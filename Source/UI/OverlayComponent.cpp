@@ -28,7 +28,10 @@ OverlayComponent::OverlayComponent()
     exitButton.onClick = [this]()
     {
 
-        juce::JUCEApplication::getInstance()->systemRequestedQuit();
+        // Guarded: a headless console test binary has no JUCEApplication instance (getInstance()
+        // returns nullptr), so calling through it unconditionally would crash an Overlay test.
+        if (auto* app = juce::JUCEApplication::getInstance())
+            app->systemRequestedQuit();
     };
 
     effectsButton.setButtonText("Effects");
