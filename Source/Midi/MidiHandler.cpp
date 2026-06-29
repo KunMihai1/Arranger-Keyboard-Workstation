@@ -758,6 +758,10 @@ void MidiHandler::handleIncomingMidiMessage(juce::MidiInput* source, const juce:
 
 	juce::MidiMessage processedMessage = message;
 
+	// When a chord-zone onset is muted (Korg-style), it must not reach the internal SFZ synth either.
+	// Only note-ONs are suppressed; note-offs/CC always pass so a note can never get stuck.
+	bool suppressInternalFeed = false;
+
 	if (message.isNoteOn())
 	{
 		int note = message.getNoteNumber();
@@ -771,6 +775,7 @@ void MidiHandler::handleIncomingMidiMessage(juce::MidiInput* source, const juce:
 		// Korg-style chord-zone mute: recognition above still runs, but we don't SOUND this onset when
 		// muting. Only note-ONs are gated -- note-offs always pass, so a note can never get stuck.
 		const bool muteChordZone = muteChordZoneNote(note);
+		suppressInternalFeed = muteChordZone;   // keep the muted onset off the internal SFZ feed too
 
 		float velocity = message.getFloatVelocity();
 
@@ -836,7 +841,8 @@ void MidiHandler::handleIncomingMidiMessage(juce::MidiInput* source, const juce:
 		listeners.call(&MidiHandlerListener::handleIncomingMessage, juce::MidiMessage::noteOff(channel, note, velocityByte));
 	}
 
-	incomingMidiMessages.addEvent(processedMessage, 0);
+	if (! suppressInternalFeed)
+		incomingMidiMessages.addEvent(processedMessage, 0);
 }
 
 void MidiHandler::getNextMidiBlock(juce::MidiBuffer& destBuffer, int startSample, int numSamples) {

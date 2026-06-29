@@ -244,6 +244,8 @@ void Display::showCurrentStyleTab(const juce::String& name)
         currentStyleComponent->setArrangerModeEnabled(arrangerModeEnabled);
         currentStyleComponent->setArrangerAutoFillEnabled(arrangerAutoFillEnabled);
         currentStyleComponent->setArrangerBassInversion(arrangerBassInversion);
+        currentStyleComponent->setArrangerNttEnabled(arrangerNttEnabled);
+        currentStyleComponent->setArrangerMinorScale(arrangerMinorScale);
         currentStyleComponent->setSynchroStartEnabled(arrangerSynchroStart);
         currentStyleComponent->setCountInEnabled(arrangerCountIn);
     }
@@ -458,6 +460,20 @@ void Display::setArrangerBassInversion(bool shouldInvert)
     arrangerBassInversion = shouldInvert;   // remembered, re-applied when currentStyleComponent is rebuilt
     if (currentStyleComponent)
         currentStyleComponent->setArrangerBassInversion(shouldInvert);
+}
+
+void Display::setArrangerNttEnabled(bool enabled)
+{
+    arrangerNttEnabled = enabled;   // remembered, re-applied when currentStyleComponent is rebuilt
+    if (currentStyleComponent)
+        currentStyleComponent->setArrangerNttEnabled(enabled);
+}
+
+void Display::setArrangerMinorScale(MinorScaleChoice choice)
+{
+    arrangerMinorScale = choice;   // remembered, re-applied when currentStyleComponent is rebuilt
+    if (currentStyleComponent)
+        currentStyleComponent->setArrangerMinorScale(choice);
 }
 
 void Display::setArrangerSynchroStart(bool enabled)

@@ -76,6 +76,16 @@ private:
     juce::ComboBox keyQualityBox;
     void populateKeyControls();        // fill the combos and select the current originalRoot/quality
 
+    // Phase 7a: per-track NTT-type selector. A horizontal scrollable strip of cells (track name +
+    // a 4-way NTT combo), rebuilt whenever the source tracks change.
+    juce::Label     nttHeaderLabel { {}, "NTT per track:" };
+    juce::Viewport  nttTrackViewport;
+    juce::Component nttTrackContent;
+    juce::OwnedArray<juce::Label>    nttTrackNameLabels;
+    juce::OwnedArray<juce::ComboBox> nttTrackCombos;
+    void rebuildTrackNttList();        // recreate the per-track cells from sourceTracks
+    void layoutTrackNttCells();        // position the cells inside nttTrackContent
+
     juce::Label busyOverlay;   // full-screen dim + centered label shown while save/update runs off-thread
 
     std::vector<SourceTrackFile> sourceTracks;

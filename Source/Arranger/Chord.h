@@ -14,6 +14,15 @@ enum class PartKind { Fixed, Acc, Bass };
     whole-keyboard, bass-driven recognition. */
 enum class ChordMode { Fingered, SingleFinger, FullKeyboard };
 
+/** Per-track Note Transposition Table type (Phase 7a). NoTranspose = identity (drums);
+    Parallel = uniform root-interval shift; Chord = role-remap chord tones + scale-snap passing
+    tones (Korg's "Chord" NTT); Fixed = same as Chord but kept in the octave nearest the original
+    note (no register drift). Unrelated to ChordMode despite the shared word. */
+enum class NttType { NoTranspose, Parallel, Chord, Fixed };
+
+/** Curated minor scale used to snap passing tones over Min/Min7 chords (Phase 7a). */
+enum class MinorScaleChoice { Dorian, Aeolian, HarmonicMinor };
+
 /** A recognized chord: pitch-class root (0=C..11=B), quality, and the lowest fingered pitch
     class (for Bass Inversion). root=-1 / quality=None means "no chord". */
 struct ArrangerChord

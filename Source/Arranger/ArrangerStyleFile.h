@@ -11,6 +11,7 @@ struct SourceTrackFile
     int    channel    = 2;
     int    instrument = -1;
     double volume     = 100.0;
+    NttType nttType   = NttType::Chord;   // Phase 7a; default overridden by part-derived migration
     std::vector<TimedBeatEvent> events;   // note-on/off only
     // effects slot intentionally omitted in Part A (reserved for Phase 4+)
 };
@@ -28,7 +29,7 @@ struct SectionWindow
 /** A whole self-contained arranger style as stored on disk. */
 struct ArrangerStyleFile
 {
-    int schemaVersion = 4;                             // v4: adds the style-level original chord
+    int schemaVersion = 5;                             // v5: adds per-track nttType (v4: style-level original chord)
     juce::String id, name;
     double originalTempo = 120.0;
     int timeSigNum = 4, timeSigDenom = 4;

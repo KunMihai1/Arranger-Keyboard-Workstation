@@ -345,6 +345,37 @@ public:
             expectEquals (on60,  0);   // nothing at the original pitch
             expectEquals (off60, 0);
         }
+
+        beginTest ("per-track NttType reaches emit-time transposition (Parallel != Chord)");
+        {
+            // One Acc track whose NTT type is Parallel, playing a chromatic seed note (61 = C#).
+            ArrangerTrack t; t.channel = 2; t.partType = ArrangerPartType::Acc;
+            t.nttType = NttType::Parallel;
+            t.pattern = { { 0.0, juce::MidiMessage::noteOn  (2, 61, (juce::uint8) 100) },
+                          { 0.5, juce::MidiMessage::noteOff (2, 61) } };
+            ArrangerSection s; s.lengthBars = 1; s.tracks.push_back (t);
+            ArrangerStyle style; style.timeSigNum = 4; style.timeSigDenom = 4; style.originalTempo = 120.0;
+            style.originalRoot = 0; style.originalQuality = ChordQuality::Maj;   // C major
+            style.sections.push_back (s);
+
+            ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
+            std::vector<juce::MidiMessage> captured;
+            engine.onMidiMessage = [&] (const juce::MidiMessage& m) { captured.push_back (m); };
+            engine.setStyle (style);
+            engine.setActiveChord ({ 5, ChordQuality::Maj, 5 });   // F major (+5)
+            engine.renderRange (0.0, 1.0);
+
+            // Parallel: 61 + 5 = 66. Chord would snap the passing tone C# to F-Ionian -> 65.
+            bool got66 = false, got65 = false;
+            for (auto& m : captured)
+                if (m.isNoteOn() && m.getChannel() == 2)
+                {
+                    if (m.getNoteNumber() == 66) got66 = true;
+                    if (m.getNoteNumber() == 65) got65 = true;
+                }
+            expect (got66,   "Parallel-typed track should emit 66 (61 + interval)");
+            expect (! got65, "Parallel type must NOT snap to the Chord-type result 65");
+        }
     }
 };
 
