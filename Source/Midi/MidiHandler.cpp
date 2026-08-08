@@ -782,26 +782,34 @@ void MidiHandler::handleIncomingMidiMessage(juce::MidiInput* source, const juce:
 
 		int ok = 0;
 
+		// Decide playability from the note range FIRST -- independent of any external MIDI-OUT device.
+		// (The internal SFZ works with no MIDI-OUT open; gating this on the device lock is what made
+		//  a physical keyboard show/sound nothing on internal SFZ. Mirrors noteOnKeyboard.)
+		if (note != this->startNoteSetting && note != this->endNoteSetting)
+		{
+			ok = 1;
+		}
+		else if (note == this->startNoteSetting)
+		{
+			if (onStartNoteSetting)
+				onStartNoteSetting();
+		}
+		else if (note == this->endNoteSetting)
+		{
+			if (onEndNoteSetting)
+				onEndNoteSetting();
+		}
+
+		// External MIDI-OUT is optional: only forward when a device is actually open.
 		if (auto midiOut = midiDevice.getDeviceOUT().lock())
 		{
-			if (note != this->startNoteSetting && note != this->endNoteSetting)
+			if (ok)
 			{
-				ok = 1;
 				//midiOut->sendMessageNow(juce::MidiMessage::noteOn(2, note+9, velocityByte));
 				midiOut->sendMessageNow(juce::MidiMessage::pitchWheel(channel, 0x2000));
 				if (! muteChordZone)
 					midiOut->sendMessageNow(juce::MidiMessage::noteOn(channel, transposedNote, velocityByte));
 				//midiOut->sendMessageNow(juce::MidiMessage::noteOn(2, note+10, velocityByte));
-			}
-			else if (note == this->startNoteSetting)
-			{
-				if (onStartNoteSetting)
-					onStartNoteSetting();
-			}
-			else if (note == this->endNoteSetting)
-			{
-				if (onEndNoteSetting)
-					onEndNoteSetting();
 			}
 		}
 
@@ -811,7 +819,13 @@ void MidiHandler::handleIncomingMidiMessage(juce::MidiInput* source, const juce:
 			//listeners.call(&MidiHandlerListener::handleIncomingMessage, juce::MidiMessage::controllerEvent(1, 91, 80));
 			//listeners.call(&MidiHandlerListener::handleIncomingMessage, juce::MidiMessage::controllerEvent(1, 74, 100));
 			if (! muteChordZone)
+			{
 				listeners.call(&MidiHandlerListener::handleIncomingMessage, juce::MidiMessage::noteOn(channel, note, velocityByte));
+
+				// Feed the internal SFZ synth on the hand-split channel (transposed), matching noteOnKeyboard.
+				// midiMutex is already held for this whole function, so add directly (no re-lock).
+				incomingMidiMessages.addEvent(juce::MidiMessage::noteOn(channel, transposedNote, velocityByte), 0);
+			}
 		}
 
 	}
@@ -834,9 +848,15 @@ void MidiHandler::handleIncomingMidiMessage(juce::MidiInput* source, const juce:
 
 		listeners.call(&MidiHandlerListener::noteOffReceived, note);
 		listeners.call(&MidiHandlerListener::handleIncomingMessage, juce::MidiMessage::noteOff(channel, note, velocityByte));
+
+		// Match the hand-split channel + transpose used for note-on so the internal synth releases it.
+		incomingMidiMessages.addEvent(juce::MidiMessage::noteOff(channel, transposedNote, velocityByte), 0);
 	}
 
-	incomingMidiMessages.addEvent(processedMessage, 0);
+	// Notes are fed to the internal synth on the correct hand-split channel above; pass everything
+	// else (CC, pitch bend, aftertouch, ...) through raw so the synth still receives it.
+	if (! message.isNoteOnOrOff())
+		incomingMidiMessages.addEvent(processedMessage, 0);
 }
 
 void MidiHandler::getNextMidiBlock(juce::MidiBuffer& destBuffer, int startSample, int numSamples) {
