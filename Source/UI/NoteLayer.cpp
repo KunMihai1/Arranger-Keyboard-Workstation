@@ -179,6 +179,38 @@ void NoteLayer::newOpenGLContextCreated()
         glViewport(0, 0, getWidth(), getHeight());
     }
     openGLContext.extensions.glGenBuffers(1, &particleVBO);
+
+#if JUCE_DEBUG
+    // --- TEMPORARY DIAGNOSTIC (remove once the intermittent GL error is identified) ---
+    // Install our own GL debug callback for THIS context, replacing JUCE's assert-only one, so the
+    // real GL_DEBUG_TYPE_ERROR is written to a file we can read later instead of only appearing at a
+    // debugger break we keep missing. Runs on the render thread (single thread per context), so the
+    // static dedup state needs no locking. Skips the harmless NVIDIA "will use VIDEO memory" noise.
+    if (glDebugMessageCallback != nullptr)
+    {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback([](GLenum, GLenum type, GLuint id, GLenum severity, GLsizei,
+                                  const GLchar* message, const void*)
+        {
+            if (type != GL_DEBUG_TYPE_ERROR && severity != GL_DEBUG_SEVERITY_HIGH)
+                return; // notifications / perf hints (incl. the "video memory" spam) -- ignore
+
+            static juce::String lastLogged;
+            juce::String line = "[GL] type=0x" + juce::String::toHexString((int) type)
+                              + " sev=0x" + juce::String::toHexString((int) severity)
+                              + " id=" + juce::String((int) id) + " : " + juce::String(message);
+            if (line == lastLogged)
+                return; // collapse the same error repeating every frame
+            lastLogged = line;
+
+            DBG(line);
+            juce::File::getSpecialLocation(juce::File::userDesktopDirectory)
+                .getChildFile("piano_gl_errors.log")
+                .appendText(line + juce::newLine);
+        }, nullptr);
+    }
+#endif
 }
 
 void NoteLayer::renderOpenGL()
