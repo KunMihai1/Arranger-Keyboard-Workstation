@@ -181,11 +181,13 @@ void NoteLayer::newOpenGLContextCreated()
     openGLContext.extensions.glGenBuffers(1, &particleVBO);
 
 #if JUCE_DEBUG
-    // --- TEMPORARY DIAGNOSTIC (remove once the intermittent GL error is identified) ---
-    // Install our own GL debug callback for THIS context, replacing JUCE's assert-only one, so the
-    // real GL_DEBUG_TYPE_ERROR is written to a file we can read later instead of only appearing at a
-    // debugger break we keep missing. Runs on the render thread (single thread per context), so the
-    // static dedup state needs no locking. Skips the harmless NVIDIA "will use VIDEO memory" noise.
+    // --- GL error tripwire (permanent) ---
+    // Replace JUCE's assert-only GL debug callback (juce_OpenGLContext.cpp:662, which *breaks/crashes*
+    // the app on any driver-reported GL error) with one that instead records the error to a file. This
+    // turns the rare, timing-dependent "crash" into a benign logged event: if a real GL error ever
+    // recurs, the exact line is captured in Desktop/piano_gl_errors.log with zero debugger effort.
+    // Runs on the render thread (single thread per context), so the static dedup state needs no lock.
+    // Skips notifications / perf hints, incl. the harmless NVIDIA "will use VIDEO memory" spam.
     if (glDebugMessageCallback != nullptr)
     {
         glEnable(GL_DEBUG_OUTPUT);
