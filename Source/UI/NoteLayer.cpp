@@ -589,13 +589,10 @@ void NoteLayer::timerCallback()
 
 void NoteLayer::resized()
 {
-    if (openGLContext.isActive())
-    {
-        glViewport(0, 0, getWidth(), getHeight());
-    }
-    else
-    {
-        openGLContext.makeActive();
-        glViewport(0, 0, getWidth(), getHeight());
-    }
+    // Do NOT touch OpenGL here: resized() runs on the message thread, while the context is owned by
+    // the dedicated GL render thread. Calling makeActive()/glViewport() here makes the context current
+    // on the wrong thread and races the render thread -> intermittent GL_DEBUG_TYPE_ERROR (the crash).
+    // JUCE already sets the correct viewport every frame before renderOpenGL() (see OpenGLContext
+    // CachedImage::renderFrame), so nothing GL-related is needed on resize -- just ask for a redraw.
+    openGLContext.triggerRepaint();
 }
