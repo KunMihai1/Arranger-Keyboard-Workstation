@@ -222,6 +222,15 @@ private:
     void loadSfzForCurrentStyle(const juce::String& styleId = {});
     void applyCurrentStyleToOutput();
 
+    /** @brief Names the SFZ slot feeding a MIDI channel, in the same terms the assign dialog uses.
+
+        Channels are only how the audio engine routes sound; SFZ files are mapped per
+        style + instrument. This reverses the routing done by loadSfzForCurrentStyle so a
+        failure can be reported as "Violin (right hand)" rather than "channel 16".
+        @param midiChannel Channel 1-16.
+        @return The instrument name and its role, or "channel <n>" if the channel is unmapped. */
+    juce::String describeSfzSlot(int midiChannel);
+
     // UI toggles
     void toggleSettingsPanel();
     void toggleSettingsButton();

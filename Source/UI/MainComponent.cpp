@@ -2452,20 +2452,35 @@ void MainComponent::ensureAudioHandlerReady()
             openingAudioLabel.setText("Preparing session...", juce::dontSendNotification);
         };
         audioHandler->onNoSfzForChannels = [this](int channelMask) {
-            juce::String channels;
-            int count = 0;
-            for (int i = 0; i < 16; ++i)
-                if (channelMask & (1 << i)) { channels += juce::String(i + 1) + ", "; ++count; }
-            if (channels.isNotEmpty()) channels = channels.dropLastCharacters(2);
-            juce::String msg = "No SFZ loaded for channel" + juce::String(count > 1 ? "s: " : ": ") + channels;
+            juce::StringArray slots;
+            for (int ch = 1; ch <= 16; ++ch)
+                if (channelMask & (1 << (ch - 1)))
+                    slots.add(describeSfzSlot(ch));
+
+            if (slots.isEmpty())
+                return;
+
+            // Keep the popup readable when a whole style is unmapped.
+            juce::String list = slots.size() <= 2
+                ? slots.joinIntoString(" and ")
+                : slots[0] + ", " + slots[1] + " and " + juce::String(slots.size() - 2) + " more";
+
+            const juce::String styleName = display != nullptr ? display->getStyleName() : juce::String();
+
+            juce::String msg = "No SFZ loaded for " + list;
+            if (styleName.isNotEmpty())
+                msg += " in style \"" + styleName + "\"";
+
             if (temporaryPopup) { temporaryPopup->updateText(msg); temporaryPopup->restartTimer(); }
             else {
                 temporaryPopup = std::make_unique<TemporaryMessage>(msg);
                 headerPanel.addChildComponent(temporaryPopup.get());
-                temporaryPopup->setBounds(getWidth() / 2 - 150, 10, 300, 30);
                 temporaryPopup->setFinishedCallBack([this] { temporaryPopup.reset(); });
                 temporaryPopup->setVisible(true);
             }
+            // Set on both paths: a popup left over from a shorter message is too narrow for this one.
+            const int popupWidth = juce::jmin(getWidth() - 20, 460);
+            temporaryPopup->setBounds(getWidth() / 2 - popupWidth / 2, 10, popupWidth, 48);
         };
     }
     if (display != nullptr)
@@ -2487,6 +2502,27 @@ void MainComponent::loadSfzForCurrentStyle(const juce::String& overrideStyleId)
     audioHandler->loadSfz(sfzManager.getSfzForStyleInstrument(styleId, rightProg), 16);
     for (const auto& t : display->getTrackChannelInstruments())
         audioHandler->loadSfz(sfzManager.getSfzForStyleInstrument(styleId, t.instrument), t.channel);
+}
+
+juce::String MainComponent::describeSfzSlot(int midiChannel)
+{
+    auto named = [](int instrument, const juce::String& role)
+    {
+        return getGMInstrumentName(instrument) + " (" + role + ")";
+    };
+
+    if (midiChannel == 1)
+        return named(midiHandler.getProgramNumberLeftHand(), "left hand");
+
+    if (midiChannel == 16)
+        return named(midiHandler.getProgramNumberRightHand(), "right hand");
+
+    if (display != nullptr)
+        for (const auto& t : display->getTrackChannelInstruments())
+            if (t.channel == midiChannel)
+                return named(t.instrument, "style track");
+
+    return "channel " + juce::String(midiChannel);
 }
 
 void MainComponent::applyCurrentStyleToOutput()
