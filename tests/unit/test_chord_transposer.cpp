@@ -216,6 +216,29 @@ public:
             t.setNttEnabled (true);
             expect (t.transpose (60, PartKind::Acc, NttType::Chord) != 60);   // active again
         }
+
+        beginTest ("master bypass beats bass inversion (regression: bypass used to miss the bass)");
+        {
+            // The bypass used to rewrite `ntt` instead of returning, so the bass-inversion branch —
+            // which returns early — never saw it: the bass stayed transposed while every other part
+            // played in the recorded key. ChordDetector sets bassNote on EVERY recognized chord (not
+            // just slash voicings), so this fired on ordinary root-position chords too.
+            ChordTransposer t;
+            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });   // recorded in C major
+            t.setBassInversion (true);
+            t.setNttEnabled (false);
+
+            t.setActiveChord ({ 9, ChordQuality::Min, 9 });     // root-position Am: bassNote == root
+            expectEquals (t.transpose (43, PartKind::Bass, NttType::Parallel), 43);   // was 52 (+9)
+            expectEquals (t.transpose (43, PartKind::Bass, NttType::Chord),    43);
+
+            t.setActiveChord ({ 0, ChordQuality::Maj, 4 });     // genuine slash chord C/E
+            expectEquals (t.transpose (43, PartKind::Bass, NttType::Parallel), 43);   // was 47 (+4)
+
+            // ...and inversion must still work once the bypass is off.
+            t.setNttEnabled (true);
+            expectEquals (t.transpose (43, PartKind::Bass, NttType::Parallel), 47);
+        }
     }
 };
 static ChordTransposerTest chordTransposerTest;

@@ -44,11 +44,16 @@ int ChordTransposer::transpose (int noteNumber, PartKind part, NttType ntt) cons
     if (part == PartKind::Fixed || ! active.isValid() || ! original.isValid())
         return noteNumber;
 
+    // Master bypass: play the recorded home key, no exceptions. This must short-circuit the WHOLE
+    // function rather than rewrite `ntt`, because the bass-inversion branch below returns early and
+    // would otherwise never see the bypass — leaving the bass transposed while every other part
+    // stayed in the recorded key.
     if (! nttEnabled)
-        ntt = NttType::NoTranspose;   // master bypass: play in the recorded home key
+        return noteNumber;
 
-    // Bass inversion (slash chords) layers on top, independent of NTT type: re-base the WHOLE bass
+    // Bass inversion (slash chords) layers on top, independent of NTT *type*: re-base the WHOLE bass
     // line onto the played bass note, preserving its shape (a C/E voicing moves the line down to E).
+    // Independent of the per-track type, but NOT of the master switch above.
     if (part == PartKind::Bass && bassInversion && active.bassNote >= 0)
         return clampMidi (noteNumber + (active.bassNote - original.root));
 
