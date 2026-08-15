@@ -18,6 +18,14 @@ public:
         beginTest ("unknown string maps to None");
         expect (chordQualityFromString ("not-a-quality") == ChordQuality::None);
 
+        // ---------------------------------------------------------------------------------------
+        // TEMPORARY - DO NOT MERGE. Exists only to prove the CI gate goes red and that branch
+        // protection blocks the merge (plan Task 6 Steps 1/3). Delete this block, and the branch
+        // ci-gate-redcheck, once the red check has been observed.
+        // ---------------------------------------------------------------------------------------
+        beginTest ("TEMP intentional failure - proves the CI gate goes red");
+        expect (false, "intentional CI red check");
+
         beginTest ("isValid requires a root and a real quality");
         expect (! ArrangerChord{}.isValid());
         expect (! (ArrangerChord{ 0, ChordQuality::None, -1 }).isValid());
