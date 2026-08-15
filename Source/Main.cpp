@@ -23,45 +23,9 @@ public:
     //==============================================================================
     void initialise(const juce::String& commandLine) override
     {
-        /*
-        if (commandLine.contains ("--run-tests"))
-        {
-            juce::UnitTestRunner runner;
-            runner.setAssertOnFailure (false);
-
-            if (commandLine.contains ("--arranger-tests"))
-                runner.runTestsInCategory ("Arranger");
-            else if (commandLine.contains ("--unit-tests"))
-                runner.runTestsInCategory ("Unit");
-            else if (commandLine.contains ("--integration-tests"))
-                runner.runTestsInCategory ("Integration");
-            else
-                runner.runAllTests();
-
-            int pass = 0, fail = 0;
-            juce::StringArray lines;
-            for (int i = 0; i < runner.getNumResults(); ++i)
-            {
-                auto* r = runner.getResult (i);
-                pass += r->passes;
-                fail += r->failures;
-                lines.add (r->unitTestName + " | passes: " + juce::String (r->passes)
-                           + " | failures: " + juce::String (r->failures));
-                for (auto& m : r->messages)
-                    if (m.isNotEmpty()) lines.add ("    " + m);
-            }
-            lines.add ("TOTAL | passes: " + juce::String (pass) + " | failures: " + juce::String (fail));
-
-            juce::File::getCurrentWorkingDirectory()
-                .getChildFile ("test-results.txt")
-                .replaceWithText (lines.joinIntoString ("\n"));
-
-            setApplicationReturnValue (fail);
-            quit();
-            return;
-        }
-        */
-
+        // Tests live in their own headless target (ci/Tests.jucer -> Project Tests.exe), so the
+        // production app carries no test code and no --run-tests path.
+        juce::ignoreUnused (commandLine);
         mainWindow.reset(new MainWindow(getApplicationName()));
     }
 
