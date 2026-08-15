@@ -6,12 +6,42 @@
 This project uses JUCE under the terms of the [GNU General Public License v3 (GPLv3)](https://www.gnu.org/licenses/gpl-3.0.html).
 
 
-## Building
+## Building & Tests
 
-1. Install [JUCE](https://juce.com/get-juce).
-2. Open the project in Projucer (`MyPlugin.jucer`).
-3. Configure your exporter (Xcode / Visual Studio / CLion).
-4. Build and run.
+**Prerequisite:** JUCE **8.0.13**. In Projucer, set **Global Paths → Path to JUCE modules** to your
+local `JUCE/modules`. Both projects resolve JUCE through that global path, so nothing is vendored
+and no machine-specific path is committed. Only `SFZero` is referenced from the in-repo `modules/`.
+
+The repo has **two** Projucer projects sharing `Source/`:
+
+| Project | Target | Purpose |
+|---|---|---|
+| `Project Synth2.jucer` | GUI app | the shipped application — compiles **no** test code |
+| `ci/Tests.jucer` | Console app | headless test runner (`Project Tests.exe`) |
+
+- **App:** open `Project Synth2.jucer`, save, then build `Builds/VisualStudio2022` (Debug x64).
+- **Tests:** open `ci/Tests.jucer`, save, build `ci/Builds/VisualStudio2022`, then run
+  `Project Tests.exe --unit-tests` and `--arranger-tests`. The **exit code is the number of failing
+  assertions** (0 = green), and results are written to `test-results.txt` in the working directory.
+  Integration / `*_HW` / Supabase tests are local-only — they need real devices and network.
+
+Either project can also be regenerated from the command line, which is what CI does:
+
+```
+Projucer.exe --set-global-search-path windows defaultJuceModulePath "<path>\JUCE\modules"
+Projucer.exe --resave "ci\Tests.jucer"
+```
+
+> **Note:** `Projucer.exe` is a GUI-subsystem executable and returns immediately when launched
+> directly, so a following build can race its file writes and silently compile a stale file list.
+> Wait on it explicitly — e.g. PowerShell `Start-Process -Wait -NoNewWindow`.
+
+**CI:** `.github/workflows/ci.yml` runs `unit` + `arranger` on every feature-branch push and on PRs
+into `main`. `main` itself runs no workflow. Once branch protection is enabled with the **CI / tests**
+check required, a PR cannot merge until it is green.
+
+**Adding a `Source/` file:** add it to **both** `Project Synth2.jucer` and `ci/Tests.jucer` — Projucer
+keeps explicit file lists. Forgetting the second one shows up as a link error in CI.
 
 
 # Piano App — Synth & Arranger
