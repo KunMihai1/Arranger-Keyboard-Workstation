@@ -40,6 +40,12 @@ Projucer.exe --resave "ci\Tests.jucer"
 into `main`. `main` itself runs no workflow. Once branch protection is enabled with the **CI / tests**
 check required, a PR cannot merge until it is green.
 
+Each CI test step checks **two** things: a zero exit code, and that the suite ran at least
+`MIN_UNIT_ASSERTIONS` / `MIN_ARRANGER_ASSERTIONS` assertions (set in the workflow). The exit code
+alone is not sufficient — the runner also exits 0 when it runs *no* tests, so a mistyped category or
+a dropped translation unit would otherwise pass silently. If you legitimately remove tests, lower the
+floor in the same commit; if you add a lot, raise it.
+
 **Adding a `Source/` file:** add it to **both** `Project Synth2.jucer` and `ci/Tests.jucer` — Projucer
 keeps explicit file lists. Forgetting the second one shows up as a link error in CI.
 
