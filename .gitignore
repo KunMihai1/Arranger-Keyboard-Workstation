@@ -49,3 +49,4 @@ test-results.txt
 
 # Local-only Obsidian wiki (never push)
 Piano-Wiki/
+/ci/Builds
