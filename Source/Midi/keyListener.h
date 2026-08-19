@@ -99,8 +99,21 @@ public:
     int mapKeyMidi(const juce::KeyPress& key);
 
 private:
-    
-    
+
+    /**
+     * @brief Rebuilds the key-code table when the active keyboard layout changes.
+     *
+     * JUCE reports a key's code as the character that key produces under the layout active at
+     * the time, so the same physical key is a different code on a US and a Romanian board.
+     * Re-deriving the table from scan codes keeps the piano layout tied to key positions.
+     */
+    void refreshKeyMapIfLayoutChanged();
+
+    /**
+     * @brief Sends note-offs for every note still held and clears the held list.
+     * Used when the layout changes underneath a held key, which would otherwise hang the note.
+     */
+    void releaseAllHeldNotes();
 
     // Member variables
     MidiHandler& midiHandler;                  /**< Reference to the MIDI handler */
@@ -108,6 +121,8 @@ private:
     int finishNoteKeyboardInput = 77;         /**< Ending MIDI note number */
     std::unordered_map<int, int> keyToInt;    /**< Map from key codes to MIDI notes */
     std::unordered_map<int, int> intToKey;    /**< Map from MIDI notes to key codes */
+    std::unordered_map<int, int> keyCodeToOffset; /**< Key code -> semitone offset from the start note */
+    void* keyboardLayoutOfMap = nullptr;      /**< Layout (HKL) the table was built for; null = not built */
     bool isKeyBoardInput = false;             /**< Whether keyboard input is active */
     std::vector<int> allPressedKeys;          /**< Tracks currently pressed MIDI notes */
 };
