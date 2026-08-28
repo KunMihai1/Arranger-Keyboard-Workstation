@@ -8,6 +8,7 @@
 
 #include <JuceHeader.h>
 #include "MainComponent.h"
+#include "AppInfo.h"
 
 //==============================================================================
 class ProjectSynthApplication : public juce::JUCEApplication
@@ -62,7 +63,7 @@ public:
         }
         */
 
-        mainWindow.reset(new MainWindow(getApplicationName()));
+        mainWindow.reset(new MainWindow(AppInfo::appName));
     }
 
     void shutdown() override

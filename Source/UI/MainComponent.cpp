@@ -1,4 +1,5 @@
 #include "MainComponent.h"
+#include "AppInfo.h"
 
 namespace
 {
@@ -531,9 +532,9 @@ void MainComponent::populateUpdateComboBoxDevices()
 void MainComponent::initalizeSaveFileForUser()
 {
     juce::PropertiesFile::Options options;
-    options.applicationName= "Piano Synth2";
+    options.applicationName= AppInfo::appName;
     options.filenameSuffix = "settings";
-    options.folderName="Piano Synth2";
+    options.folderName=AppInfo::appName;
     options.osxLibrarySubFolder = "Application Support";
     options.commonToAllUsers = false;
 

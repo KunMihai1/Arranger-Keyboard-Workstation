@@ -9,6 +9,7 @@
 */
 
 #include "midiDevicesDB.h"
+#include "AppInfo.h"
 
 MidiDevicesDataBase::MidiDevicesDataBase()
 {
@@ -242,7 +243,7 @@ juce::String MidiDevicesDataBase::getDeviceName(const juce::String& vid, const j
 juce::File MidiDevicesDataBase::getAppDataFolder()
 {
 	juce::File appDataFolder = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-		.getChildFile("Piano Synth2");
+		.getChildFile(AppInfo::appName);
 
 	if (!appDataFolder.exists())
 		appDataFolder.createDirectory();

@@ -15,7 +15,7 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
     initializeAllStyles();
     loadAllStyles();
 
-    auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+    auto appDataFolder = IOHelper::getAppDataFolder();
 
     auto jsonFile = IOHelper::getFile("myTracks.json");
 
@@ -192,7 +192,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
 
         currentStyleComponent->updateTrackFile = [this]()
         {
-            auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+            auto appDataFolder = IOHelper::getAppDataFolder();
 
             auto jsonFile = IOHelper::getFile("myTracks.json");
             TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
@@ -759,7 +759,7 @@ void Display::removeTrackFromAllStyles(const juce::Uuid& uuid)
         currentStyleComponent->removingTrack(uuid);
     }
 
-    auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+    auto appDataFolder = IOHelper::getAppDataFolder();
 
     auto jsonFile = IOHelper::getFile("allStyles.json");
 
@@ -814,8 +814,7 @@ void Display::removeTracksFromAllStyles(const std::vector<juce::Uuid>& uuids)
         currentStyleComponent->removingTracks(uuids);
     }
 
-    juce::File appDataFolder = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-        .getChildFile("Piano Synth2");
+    juce::File appDataFolder = IOHelper::getAppDataFolder();
 
     juce::File jsonFile = appDataFolder.getChildFile("allStyles.json");
 
@@ -864,8 +863,7 @@ void Display::updateTrackNameFromAllStyles(const juce::Uuid& uuid, const juce::S
         currentStyleComponent->renamingTrack(uuid, newName);
     }
 
-    juce::File appDataFolder = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-        .getChildFile("Piano Synth2");
+    juce::File appDataFolder = IOHelper::getAppDataFolder();
 
     juce::File jsonFile = appDataFolder.getChildFile("allStyles.json");
 
@@ -875,8 +873,7 @@ void Display::updateTrackNameFromAllStyles(const juce::Uuid& uuid, const juce::S
 
 void Display::initializeAllStyles()
 {
-    juce::File appDataFolder = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-        .getChildFile("Piano Synth2");
+    juce::File appDataFolder = IOHelper::getAppDataFolder();
 
     if (!appDataFolder.exists())
         appDataFolder.createDirectory();
@@ -967,7 +964,7 @@ std::vector<juce::String> Display::getAllStylesFromJson()
 
 void Display::loadAllStyles()
 {
-    auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+    auto appDataFolder = IOHelper::getAppDataFolder();
 
     auto file= IOHelper::getFile("allStyles.json");
 
@@ -1004,7 +1001,7 @@ void Display::updateStyleInJson(const juce::String& name)
         }
     }
 
-    auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+    auto appDataFolder = IOHelper::getAppDataFolder();
 
     auto file = IOHelper::getFile("allStyles.json");
 
@@ -1036,7 +1033,7 @@ void Display::updateStyleNameInJson(const juce::String& oldName, const juce::Str
         }
     }
 
-    auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+    auto appDataFolder = IOHelper::getAppDataFolder();
 
     auto jsonFile = IOHelper::getFile("allStyles.json");
 
@@ -1088,7 +1085,7 @@ void Display::appendNewStyleInJson(const juce::String& newName)
     newStyle->setProperty("tracks", tracksArray);
     stylesArray->add(newStyle);
 
-    auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+    auto appDataFolder = IOHelper::getAppDataFolder();
 
     auto jsonFile = IOHelper::getFile("allStyles.json");
 
@@ -1126,7 +1123,7 @@ void Display::removeStyleInJson(const juce::String& name)
         }
     }
 
-    auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+    auto appDataFolder = IOHelper::getAppDataFolder();
 
     auto jsonFile = IOHelper::getFile("allStyles.json");
 

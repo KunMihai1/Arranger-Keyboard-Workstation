@@ -11,6 +11,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "AppInfo.h"
 #include "styleSettingsEntry.h"
 #include "TrackEntry.h"
 #include "StyleSection.h"
@@ -32,6 +33,12 @@ public:
     static juce::File getFolder(const juce::String& name);
 
     /**
+     * @brief Returns the application's own data folder (%APPDATA%/AppInfo::appName).
+     *        Prefer this over getFolder(...) with a literal name.
+     */
+    static juce::File getAppDataFolder();
+
+    /**
      * @brief Returns a file in the application's data folder.
      * @param name Name of the file
      * @return juce::File object representing the file
@@ -40,7 +47,7 @@ public:
 
     /**
      * @brief Returns the folder holding saved arranger *.style configurations,
-     *        nested inside the app's data folder (Piano Synth2/ArrangerStyles).
+     *        nested inside the app's data folder (<appName>/ArrangerStyles).
      */
     static juce::File getArrangerStylesFolder();
 
