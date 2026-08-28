@@ -46,6 +46,7 @@ test-results.txt
 *.log
 .superpowers/
 
-# Local-only Obsidian wiki (never push)
-Piano-Wiki/
+# Obsidian wiki - tracked. Only per-machine churn is excluded.
+# (.vault-meta/pending-changes.log is already covered by *.log above)
+Piano-Wiki/.obsidian/workspace.json
 /ci/Builds

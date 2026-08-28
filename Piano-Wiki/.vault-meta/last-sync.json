@@ -1,0 +1,6 @@
+{
+  "last_synced_commit": "128cf87",
+  "last_synced_branch": "fix/sfz-integration",
+  "last_synced_at": "2026-08-29",
+  "note": "Synced to 128cf87 on fix/sfz-integration (local, NOT pushed). App renamed to \"Arranger Workstation\" via new AppInfo::appName; %APPDATA% moved and old data deliberately NOT migrated (SFZ library empty -> b5765e9 smoke test needs SFZs re-added first). .jucer file git mv'd; build output wiped clean. ChannelDSP chain documented on the Audio & SFZ page including an UNFIXED bug: the delay bypass freezes the delay line (AudioHandler.cpp:181-193). Effects fire on BOTH the external MIDI path and internal ChannelDSP; CC80/94/95 diverge from GM2. README.md rewritten but UNCOMMITTED (its Building section left alone to avoid conflicting with ci-test-separation). DATA LOSS 2026-08-29: wiki/log.md was truncated to 0 bytes and rebuilt from Obsidian File Recovery snapshots + session context; entries between 2026-06-25 and 2026-08-15 are permanently lost and the 2026-06-08 entry is partial. The vault is now TRACKED in git (removed from .gitignore) so this cannot happen unrecoverably again. Still open: main requires 1 approval a solo maintainer cannot give; Phase 7a manual sign-off 0/9; ci-test-separation unpushed. JUCE 8.0.13."
+}
