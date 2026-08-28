@@ -11,7 +11,7 @@ used_by:
   - "[[Keyboard & Main UI]]"
   - "[[Audio & SFZ Playback]]"
 created: 2026-06-06
-updated: 2026-06-25
+updated: 2026-08-29
 tags:
   - module
   - midi
@@ -54,3 +54,28 @@ The input/output spine of the app: enumerates and opens MIDI/audio devices, rece
 
 > [!warning] Two input paths must stay in parity
 > Physical MIDI in → `handleIncomingMidiMessage`; PC keyboard → `noteOnKeyboard`/`noteOffKeyboard`. They must feed the same three sinks identically: (1) the `noteOnReceived` visual feed ([[Keyboard & Main UI]] `NoteLayer`), (2) the `handleIncomingMessage` listener feed, (3) the internal SFZ via `incomingMidiMessages` on the **hand-split channel + transpose**, mute-gated. Fixed 2026-08-09 (`5c75d4f`): the physical path had its note-on `ok` flag set *inside* the external-MIDI-OUT device lock, so on an internal-SFZ-only setup (no MIDI-OUT open) `ok` stayed 0 → no on-screen notes + skipped synth feed, while the PC keyboard worked. External MIDI-OUT is **optional**; only the `midiOut->sendMessageNow(...)` calls belong behind `getDeviceOUT().lock()`. The internal synth feed is fed on `channelForHand()` (not the hardware's raw channel).
+
+## `handleIncomingMidiMessage` — the note-on contract (settled 2026-08-29)
+
+> [!key-insight] Playability is decided from the note RANGE, never from the MIDI-OUT device
+> `5c75d4f` moved the `ok` decision ahead of the `midiDevice.getDeviceOUT().lock()` block. Gating it
+> on that lock was the bug: with no external MIDI-OUT open, `ok` stayed 0 and a physical keyboard
+> produced nothing on the internal SFZ. Now `ok = 1` whenever the note is neither
+> `startNoteSetting` nor `endNoteSetting` (both default **-1**), and external MIDI-OUT is treated as
+> optional — forwarded to only when a device is actually open. This mirrors `noteOnKeyboard`, which
+> is the parity the file's own warning demands.
+
+> [!key-insight] Three explicit sink paths, not one trailing write
+> The old code ended with a single `incomingMidiMessages.addEvent(processedMessage, 0)`. It is now
+> split: **note-on** added inside the `!muteChordZone` guard (so a muted chord-zone onset never
+> reaches the internal SFZ), **note-off** always added (nothing can stick), and **non-note**
+> messages passed through raw so CC/pitch-bend still reach the synth. This is a superset of the
+> `suppressInternalFeed` flag that briefly existed on the Phase 7a line, which is why that flag was
+> dropped when the branches merged in `50e2d02`.
+
+> [!warning] A test asserted the old behaviour for months without failing
+> `test_midi_handler.cpp` carried *"noteOn does NOT notify listener without output device"* — a
+> direct assertion of the defect `5c75d4f` fixed. It never went red because the `--run-tests` runner
+> in `Main.cpp` was commented out on that branch: the app **compiled** the tests without ever
+> **running** them. Corrected in `50e2d02`. Treat any other test touching code changed between
+> `d05e07b` and 2026-08-29 with the same suspicion; CI now runs on every push, so the window is closed.

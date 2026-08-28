@@ -13,6 +13,29 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-08-29 (later) — `ci-test-separation` merged in (`50e2d02`); CI live on the branch; branches pruned
+`fix/sfz-integration` now carries everything: the rename, the SFZ popup work, the PC-keyboard fix, **Phase 7a NTT**, the wiki, and **CI itself**. Pushed; the workflow runs on this branch from now on.
+
+- **The merge (`50e2d02`, parents `539dc37` + `e394005`).** Four conflicts:
+  - **`Source/Midi/MidiHandler.cpp`** → took this branch's parity rewrite whole and **dropped `suppressInternalFeed`**. The 7a flag kept a muted chord-zone onset off the internal SFZ feed; `5c75d4f` already does that by moving the `incomingMidiMessages` note-on write inside the `!muteChordZone` guard, and goes further by splitting the single trailing `addEvent` into explicit note-on / note-off / passthrough paths. Note-offs still always pass, so the no-stuck-note invariant holds. Merged file is byte-identical to the pre-merge branch version.
+  - **`Source/Main.cpp`** → combined: no `--run-tests` path in the production app (CI side) **+** `AppInfo::appName` window title (rename side).
+  - **`.gitignore`** → kept `ci/Builds/` + `ci/JuceLibraryCode/`, but **`Piano-Wiki/` stays un-ignored**; re-adding it would have silently stopped tracking new wiki pages.
+  - **`Arranger Workstation.jucer`** → rename kept, 74-line Tests group removed (matches the CI branch's own 74-line deletion exactly).
+- **`Source/Common/AppInfo.h` added to BOTH `.jucer` file lists** (id `aPp1nF`). It had been in neither since the rename created it — a violation of the maintenance contract the CI README documents.
+- 🔑 **A stale test surfaced, and the reason matters more than the fix.** `test_midi_handler.cpp` asserted *"noteOn does NOT notify listener without output device"* — the **exact behaviour `5c75d4f` deliberately changed**, since gating on the `midiOut` lock is what stopped a physical keyboard sounding on the internal SFZ. `startNoteSetting`/`endNoteSetting` default to `-1`, so note 60 sets `ok = 1` and the listener now fires with no device open. The test had been wrong since `5c75d4f` landed but **never ran**, because the runner in `Main.cpp` was commented out on this branch. Updated to assert the intended contract. **Any test touching code changed between `d05e07b` and now may have drifted the same way — the app compiled tests without running them.**
+- **Verified locally before committing:** app builds Debug x64 **0 errors**, **zero `test_*.obj`**, `Arranger Workstation.exe` produced. Unit **665/0**, arranger **705/0**, both exit 0 — matching baseline and clearing the CI floors (650/690).
+- **Branch pruning — 12 refs deleted, 6 local + 6 remote.** `arranger-engine-phase1-2-3`, `arranger-engine-phase4-5-6`, `arranger-engine-phase4-chords`, `arranger-phase7a-ntt-engine`, `ci-test-separation` (all merged, 0 unique commits), `ci-gate-redcheck` (throwaway red-check, purpose served — its commit was self-labelled for deletion), and `sfz-integration` (2 merge commits, **0** files changed vs merge base). Only `main` and `fix/sfz-integration` remain. Deleting `ci-gate-redcheck` should have auto-closed its PR.
+- **Earlier the same day:** `71063de` brought the Piano-Wiki vault into git (it had been gitignored, which is why the `log.md` truncation was unrecoverable); `539dc37` rewrote the README off the "synth" framing — the app is a **sampler**, no oscillators exist in the codebase.
+
+## 2026-08-29 — Archived from the hot cache (previously undocumented in this log)
+These were resolved on 2026-08-19 but lived only in `hot.md`, which has been trimmed back toward its ≤500-word budget. Preserved here verbatim in substance.
+
+- ✅ **NOT A BUG — "app is silent on both machines" was chord-zone mute left on.** `ChordZoneMute=1`, `ArrangerModeEnabled=1`, `rightHandBound=-1`. `muteChordZoneNote()` = `chordZoneMute && arrangerEngaged && inChordZone(note)`, and **with no split set `inChordZone()` returns true for the whole keyboard** (`MidiHandler.cpp:1029`) — every key muted, presenting as total silence. Device path was clean. **Possible polish (not done): make the mute a no-op when `rightHandBound == -1`.**
+- ✅ **FIXED (`a73d4c8`) — `;` and `'` dead on non-US layouts.** `mapKeyMidi` switched on `key.getKeyCode()`, which JUCE resolves through the *active layout*; under Romanian those keys report 537/539 and fell through to `default: return -1`. Now keyed off **physical scan code** (`pianoKeyScanCodes[]` + `refreshKeyMapIfLayoutChanged()`), plus `releaseAllHeldNotes()` on layout switch. ⚠️ **The real lesson: use `MapVirtualKeyExW`, never unsuffixed `MapVirtualKey`** — the ANSI variant returns `'?'` (63) for out-of-codepage chars, so two offsets collided and `operator[]` silently dropped one. Fixed with the `Ex`+`W` form and `emplace`.
+- ✅ **RESOLVED — intermittent `0xC0000374` STATUS_HEAP_CORRUPTION at startup was a stale-object build artifact.** Adding members to `KeyboardListener` changed `sizeof(MainComponent)`, but MSBuild did not recompile `Main.cpp`, whose `.obj` stayed 41 min stale; `new MainComponent()` allocated the OLD size while the ctor wrote at NEW offsets. **Rule: a header change that alters a type's layout needs `/t:Rebuild`.**
+- 📝 **Desktop is OneDrive-redirected** to `C:\Users\Oricum\OneDrive\Desktop`, so `File::userDesktopDirectory` writes land there, not `%USERPROFILE%\Desktop`.
+- 📝 **Seam note-off tags are vestigial** — the scheduler stamps `PartKind`/`NttType` on synthetic note-offs but nothing reads them; the engine resolves offs via its own `activePlayedNote` map. Do not build on those tags.
+
 > [!warning] Partial reconstruction — 2026-08-29
 > This file was truncated to 0 bytes on 2026-08-29 (a write that opened the file in truncating
 > mode and then failed mid-encode). It was rebuilt from Obsidian File Recovery snapshots plus
