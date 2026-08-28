@@ -3,6 +3,13 @@ name: CI
 on:
   push:
     branches-ignore: [ main ]
+    # Docs/wiki-only pushes skip the build. Deliberately NOT applied to pull_request
+    # below: a PR containing only doc changes must still produce the required
+    # 'CI / tests' check, or branch protection blocks it waiting for a run that
+    # would never happen.
+    paths-ignore:
+      - 'Piano-Wiki/**'
+      - '**/*.md'
   pull_request:
     branches: [ main ]
 

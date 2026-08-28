@@ -31,6 +31,10 @@ Only **`main`** and **`fix/sfz-integration`** exist now, local and remote. The 7
 - Tests: build `ci/Builds/VisualStudio2022/Project Tests.sln`, run `Project Tests.exe --unit-tests` / `--arranger-tests`. **Exit code = failing assertions.** Results → `test-results.txt` in the CWD.
 - **Projucer detaches** — always `Start-Process -Wait`, then verify by counting objects.
 - A header change that alters a type's layout needs **`/t:Rebuild`**, not an incremental build.
+- **CI skips docs-only pushes.** `paths-ignore` on the *push* trigger covers `Piano-Wiki/**` and
+  `**/*.md`, so wiki syncs no longer burn a full Windows build. It is deliberately **not** on the
+  `pull_request` trigger — a docs-only PR must still emit the required `CI / tests` check, or
+  branch protection would block it waiting for a run that never comes.
 
 ## Active Threads / Next
 - 🔴 **UNFIXED — the delay bypass freezes the delay line.** `AudioHandler.cpp:181-193` keeps the buffer *write* inside `if (delayMix > 0.005f)`, so re-enabling delay replays stale audio at full mix. Fix options on [[Audio & SFZ Playback]].
