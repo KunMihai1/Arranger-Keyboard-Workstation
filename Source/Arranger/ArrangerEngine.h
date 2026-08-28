@@ -45,6 +45,10 @@ public:
     void setOriginalChord (ArrangerChord recorded);
     /** Phase 4: toggle Bass Inversion (lowest fingered note drives the bass; slash chords). */
     void setBassInversion (bool shouldInvert);
+    /** Phase 7a: master NTT bypass — when false every track plays in the recorded home key. */
+    void setNttEnabled (bool enabled);
+    /** Phase 7a: curated minor scale used to snap passing tones over minor chords. */
+    void setMinorScale (MinorScaleChoice choice);
 
     /** Enable/disable Auto Fill on variation switches (delegates to the sequencer). */
     void setAutoFillEnabled (bool enabled) { sequencer.setAutoFillEnabled (enabled); }

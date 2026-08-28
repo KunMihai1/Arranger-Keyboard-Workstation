@@ -133,7 +133,19 @@ public:
 	 * @brief Gets the currently active MIDI output device as a weak pointer
 	 * @return weak_ptr to the active MIDI output device
 	 */
-	std::weak_ptr<juce::MidiOutput> getDeviceOUT() const; 
+	std::weak_ptr<juce::MidiOutput> getDeviceOUT() const;
+
+	/**
+	 * @brief Identifier of the currently-open MIDI OUTPUT device, read live from the device.
+	 * @return the output device's identifier, or an empty string if no output is open.
+	 *
+	 * Used to detect (against MidiOutput::getAvailableDevices()) when the output was unplugged.
+	 */
+	juce::String getOutputIdentifier() const
+	{
+		return currentDeviceUSEDout != nullptr ? currentDeviceUSEDout->getDeviceInfo().identifier
+		                                       : juce::String();
+	}
 
 	/**
 	 * @brief Sets the volume of the instrument

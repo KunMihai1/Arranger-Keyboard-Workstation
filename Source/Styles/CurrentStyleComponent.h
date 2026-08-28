@@ -217,6 +217,11 @@ public:
     /** Phase 4: toggle Bass Inversion on the arranger engine (slash chords). */
     void setArrangerBassInversion(bool shouldInvert);
 
+    /** Phase 7a: master NTT bypass; remembered and re-applied on each Start. */
+    void setArrangerNttEnabled(bool enabled);
+    /** Phase 7a: curated minor scale for NTT passing-tone snap; remembered and re-applied on Start. */
+    void setArrangerMinorScale(MinorScaleChoice choice);
+
     /** Phase 6: enable/disable Synchro Start on the arranger engine (start the groove on the first
         recognised chord). Remembered and re-applied on each Start. */
     void setSynchroStartEnabled(bool enabled);
@@ -298,6 +303,8 @@ private:
     std::unique_ptr<ArrangerEngine> arrangerEngine = nullptr;   ///< Arranger-mode looping engine (parallel to trackPlayer).
     bool arrangerModeEnabled = false;                           ///< When true, play/stop route to arrangerEngine.
     bool arrangerBassInversion = false;                         ///< Remembered Bass Inversion; re-applied on each Start.
+    bool arrangerNttEnabled = true;                             ///< Remembered NTT master enable; re-applied on each Start.
+    MinorScaleChoice arrangerMinorScale = MinorScaleChoice::Dorian; ///< Remembered NTT minor scale; re-applied on each Start.
     bool synchroStartEnabled = false;                           ///< Remembered Synchro Start; re-applied on each Start.
     bool countInEnabled = false;                                ///< Remembered Count-In; re-applied on each Start.
 

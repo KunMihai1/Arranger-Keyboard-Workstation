@@ -1,5 +1,6 @@
 #include "ArrangerSourceBuilder.h"
 #include "ArrangerChannels.h"
+#include "ArrangerEnums.h"
 #include "ArrangerPatternBuilder.h"
 
 namespace ArrangerSourceBuilder
@@ -37,6 +38,7 @@ namespace ArrangerSourceBuilder
             st.partType  = isPerc ? ArrangerPartType::Drum
                          : isBass ? ArrangerPartType::Bass
                                   : ArrangerPartType::Acc;
+            st.nttType   = ArrangerEnums::nttDefaultForPart (st.partType);   // Phase 7a default
             st.channel   = channel;
             st.instrument = te.instrumentAssociated;
             st.volume    = te.volumeAssociated;

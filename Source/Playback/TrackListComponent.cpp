@@ -273,7 +273,7 @@ void TrackListComponent::addToTrackList()
 
                 listBox.updateContent();
                 listBox.repaint();
-                auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+                auto appDataFolder = IOHelper::getAppDataFolder();
 
                 auto jsonFile = IOHelper::getFile("myTracks.json");
 
@@ -346,7 +346,7 @@ void TrackListComponent::removeFromTrackList()
                 listBox.updateContent();
                 listBox.repaint();
 
-                auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+                auto appDataFolder = IOHelper::getAppDataFolder();
 
                 auto jsonFile = IOHelper::getFile("myTracks.json");
                 TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
@@ -432,7 +432,7 @@ void TrackListComponent::renameFromTrackList()
             listBox.updateContent();
             listBox.repaint();
 
-            auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+            auto appDataFolder = IOHelper::getAppDataFolder();
 
             auto jsonFile = IOHelper::getFile("myTracks.json");
             TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
@@ -493,7 +493,7 @@ void TrackListComponent::addToFolderList()
             listBox.updateContent();
             listBox.repaint();
 
-            auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+            auto appDataFolder = IOHelper::getAppDataFolder();
 
             auto jsonFile = IOHelper::getFile("myTracks.json");
             TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
@@ -556,7 +556,7 @@ void TrackListComponent::removeFromFolderList()
                     listBox.updateContent();
                     listBox.repaint();
 
-                    auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+                    auto appDataFolder = IOHelper::getAppDataFolder();
 
                     auto jsonFile = IOHelper::getFile("myTracks.json");
                     TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
@@ -634,7 +634,7 @@ void TrackListComponent::renameFromFolderList()
             listBox.updateContent();
             listBox.repaint();
 
-            auto appDataFolder = IOHelper::getFolder("Piano Synth2");
+            auto appDataFolder = IOHelper::getAppDataFolder();
 
             auto jsonFile = IOHelper::getFile("myTracks.json");
             TrackIOHelper::saveToFile(jsonFile, *groupedTracks);

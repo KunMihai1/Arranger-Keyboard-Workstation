@@ -52,3 +52,14 @@ public:
 private:
     SFZLibraryData data;
 };
+
+/** @brief The General MIDI instrument names, indexed by instrument (program) number 0-127.
+
+    Instrument numbers are the keys SFZ mappings are stored under, so this table is the
+    shared vocabulary for anything that has to name a mapping to the user. */
+const juce::StringArray& getGMInstrumentNames();
+
+/** @brief Returns the General MIDI name for an instrument number.
+    @param instrumentNumber Program number 0-127.
+    @return The instrument name, or "Instrument <n>" when the number is out of range. */
+juce::String getGMInstrumentName(int instrumentNumber);

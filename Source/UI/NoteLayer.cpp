@@ -179,6 +179,40 @@ void NoteLayer::newOpenGLContextCreated()
         glViewport(0, 0, getWidth(), getHeight());
     }
     openGLContext.extensions.glGenBuffers(1, &particleVBO);
+
+#if JUCE_DEBUG
+    // --- GL error tripwire (permanent) ---
+    // Replace JUCE's assert-only GL debug callback (juce_OpenGLContext.cpp:662, which *breaks/crashes*
+    // the app on any driver-reported GL error) with one that instead records the error to a file. This
+    // turns the rare, timing-dependent "crash" into a benign logged event: if a real GL error ever
+    // recurs, the exact line is captured in Desktop/piano_gl_errors.log with zero debugger effort.
+    // Runs on the render thread (single thread per context), so the static dedup state needs no lock.
+    // Skips notifications / perf hints, incl. the harmless NVIDIA "will use VIDEO memory" spam.
+    if (glDebugMessageCallback != nullptr)
+    {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback([](GLenum, GLenum type, GLuint id, GLenum severity, GLsizei,
+                                  const GLchar* message, const void*)
+        {
+            if (type != GL_DEBUG_TYPE_ERROR && severity != GL_DEBUG_SEVERITY_HIGH)
+                return; // notifications / perf hints (incl. the "video memory" spam) -- ignore
+
+            static juce::String lastLogged;
+            juce::String line = "[GL] type=0x" + juce::String::toHexString((int) type)
+                              + " sev=0x" + juce::String::toHexString((int) severity)
+                              + " id=" + juce::String((int) id) + " : " + juce::String(message);
+            if (line == lastLogged)
+                return; // collapse the same error repeating every frame
+            lastLogged = line;
+
+            DBG(line);
+            juce::File::getSpecialLocation(juce::File::userDesktopDirectory)
+                .getChildFile("piano_gl_errors.log")
+                .appendText(line + juce::newLine);
+        }, nullptr);
+    }
+#endif
 }
 
 void NoteLayer::renderOpenGL()
@@ -589,13 +623,10 @@ void NoteLayer::timerCallback()
 
 void NoteLayer::resized()
 {
-    if (openGLContext.isActive())
-    {
-        glViewport(0, 0, getWidth(), getHeight());
-    }
-    else
-    {
-        openGLContext.makeActive();
-        glViewport(0, 0, getWidth(), getHeight());
-    }
+    // Do NOT touch OpenGL here: resized() runs on the message thread, while the context is owned by
+    // the dedicated GL render thread. Calling makeActive()/glViewport() here makes the context current
+    // on the wrong thread and races the render thread -> intermittent GL_DEBUG_TYPE_ERROR (the crash).
+    // JUCE already sets the correct viewport every frame before renderOpenGL() (see OpenGLContext
+    // CachedImage::renderFrame), so nothing GL-related is needed on resize -- just ask for a redraw.
+    openGLContext.triggerRepaint();
 }

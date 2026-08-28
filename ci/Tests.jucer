@@ -1,0 +1,647 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="Ts3Tst" name="Project Tests" projectType="consoleapp" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+  <MAINGROUP id="vwDzJM" name="Project Tests">
+    <GROUP id="{0080393B-1406-4B96-0572-E3585FB0DAEC}" name="Tests">
+      <GROUP id="{A1B2C3D4-1111-2222-3333-444455556666}" name="Unit">
+        <FILE id="fAdttJ" name="test_add_device_window.cpp" compile="1" resource="0"
+              file="../tests/unit/test_add_device_window.cpp"/>
+        <FILE id="xDyqb2" name="test_custom_beatbar.cpp" compile="1" resource="0"
+              file="../tests/unit/test_custom_beatbar.cpp"/>
+        <FILE id="km3oiF" name="test_helper_functions.cpp" compile="1" resource="0"
+              file="../tests/unit/test_helper_functions.cpp"/>
+        <FILE id="rh3SYs" name="test_io_helper.cpp" compile="1" resource="0"
+              file="../tests/unit/test_io_helper.cpp"/>
+        <FILE id="uAIaFP" name="test_key_listener.cpp" compile="1" resource="0"
+              file="../tests/unit/test_key_listener.cpp"/>
+        <FILE id="TXGKPC" name="test_midi_device.cpp" compile="1" resource="0"
+              file="../tests/unit/test_midi_device.cpp"/>
+        <FILE id="nFlm3M" name="test_midi_devices_db.cpp" compile="1" resource="0"
+              file="../tests/unit/test_midi_devices_db.cpp"/>
+        <FILE id="Ct4wz7" name="test_midi_handler.cpp" compile="1" resource="0"
+              file="../tests/unit/test_midi_handler.cpp"/>
+        <FILE id="o25ee2" name="test_overlay_component.cpp" compile="1" resource="0"
+              file="../tests/unit/test_overlay_component.cpp"/>
+        <FILE id="xuOL1B" name="test_section_group_component.cpp" compile="1"
+              resource="0" file="../tests/unit/test_section_group_component.cpp"/>
+        <FILE id="dhj55f" name="test_settings_window.cpp" compile="1" resource="0"
+              file="../tests/unit/test_settings_window.cpp"/>
+        <FILE id="gNfg2Z" name="test_validator_ui.cpp" compile="1" resource="0"
+              file="../tests/unit/test_validator_ui.cpp"/>
+        <FILE id="arrTs0" name="test_arranger_model.cpp" compile="1" resource="0"
+              file="../tests/unit/test_arranger_model.cpp"/>
+        <FILE id="arrTs1" name="test_arranger_time.cpp" compile="1" resource="0"
+              file="../tests/unit/test_arranger_time.cpp"/>
+        <FILE id="arrTs2" name="test_arranger_scheduler.cpp" compile="1" resource="0"
+              file="../tests/unit/test_arranger_scheduler.cpp"/>
+        <FILE id="arrTs3" name="test_arranger_pattern_builder.cpp" compile="1"
+              resource="0" file="../tests/unit/test_arranger_pattern_builder.cpp"/>
+        <FILE id="arrTs4" name="test_arranger_engine.cpp" compile="1" resource="0"
+              file="../tests/unit/test_arranger_engine.cpp"/>
+        <FILE id="arrTs5" name="test_arranger_section_sequencer.cpp" compile="1"
+              resource="0" file="../tests/unit/test_arranger_section_sequencer.cpp"/>
+        <FILE id="arrTs6" name="test_arranger_enums.cpp" compile="1" resource="0"
+              file="../tests/unit/test_arranger_enums.cpp"/>
+        <FILE id="arrTs7" name="test_arranger_midi_hex.cpp" compile="1" resource="0"
+              file="../tests/unit/test_arranger_midi_hex.cpp"/>
+        <FILE id="arrTs8" name="test_arranger_style_io.cpp" compile="1" resource="0"
+              file="../tests/unit/test_arranger_style_io.cpp"/>
+        <FILE id="arrTs9" name="test_arranger_channels.cpp" compile="1" resource="0"
+              file="../tests/unit/test_arranger_channels.cpp"/>
+        <FILE id="chTst0" name="test_chord.cpp" compile="1" resource="0"
+              file="../tests/unit/test_chord.cpp"/>
+        <FILE id="chTst1" name="test_chord_detector.cpp" compile="1" resource="0"
+              file="../tests/unit/test_chord_detector.cpp"/>
+        <FILE id="chTst2" name="test_chord_transposer.cpp" compile="1" resource="0"
+              file="../tests/unit/test_chord_transposer.cpp"/>
+        <FILE id="arrTsA" name="test_arranger_timeline_geometry.cpp" compile="1"
+              resource="0" file="../tests/unit/test_arranger_timeline_geometry.cpp"/>
+        <FILE id="arrTsB" name="test_arranger_source_builder.cpp" compile="1"
+              resource="0" file="../tests/unit/test_arranger_source_builder.cpp"/>
+        <FILE id="arrTsC" name="test_arranger_defaults.cpp" compile="1" resource="0"
+              file="../tests/unit/test_arranger_defaults.cpp"/>
+      </GROUP>
+      <GROUP id="{B2C3D4E5-5555-6666-7777-888899990000}" name="Integration">
+        <FILE id="HwMdDv" name="test_midi_device_hw.cpp" compile="1" resource="0"
+              file="../tests/integration/test_midi_device_hw.cpp"/>
+        <FILE id="HwMdHn" name="test_midi_handler_hw.cpp" compile="1" resource="0"
+              file="../tests/integration/test_midi_handler_hw.cpp"/>
+        <FILE id="Bk0DPL" name="test_overlay_component_integration.cpp" compile="1"
+              resource="0" file="../tests/integration/test_overlay_component_integration.cpp"/>
+        <FILE id="nwR6hK" name="test_sections_component_integration.cpp" compile="1"
+              resource="0" file="../tests/integration/test_sections_component_integration.cpp"/>
+        <FILE id="siwLOM" name="test_settings_window_integration.cpp" compile="1"
+              resource="0" file="../tests/integration/test_settings_window_integration.cpp"/>
+        <FILE id="QgzFan" name="test_supabase_client_api.cpp" compile="1" resource="0"
+              file="../tests/integration/test_supabase_client_api.cpp"/>
+      </GROUP>
+    </GROUP>
+    <GROUP id="{7DA60EC7-6A29-1AFF-72FE-496A802E06A4}" name="Resources">
+      <FILE id="WUBbJr" name="PasswordInvisible.png" compile="0" resource="1"
+            file="../Photos/PasswordInvisible.png"/>
+      <FILE id="JDRBfJ" name="PasswordVisible.png" compile="0" resource="1"
+            file="../Photos/PasswordVisible.png"/>
+      <FILE id="YHzWqY" name="G_SHARP_AUG_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/G_SHARP_AUG_INV2.png"/>
+      <FILE id="yP6c0P" name="A_SHARP_DIM_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/A_SHARP_DIM_INV1.png"/>
+      <FILE id="gFme1f" name="A_SHARP_DIM_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/A_SHARP_DIM_INV2.png"/>
+      <FILE id="HZ5m5l" name="A_SHARP_DIM_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/A_SHARP_DIM_ROOT.png"/>
+      <FILE id="nF3CWQ" name="C_SHARP_DIM_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/C_SHARP_DIM_INV1.png"/>
+      <FILE id="kGBLBi" name="C_SHARP_DIM_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/C_SHARP_DIM_INV2.png"/>
+      <FILE id="AUjlQl" name="C_SHARP_DIM_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/C_SHARP_DIM_ROOT.png"/>
+      <FILE id="zECwrz" name="D_SHARP_DIM_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/D_SHARP_DIM_INV1.png"/>
+      <FILE id="j4icyV" name="D_SHARP_DIM_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/D_SHARP_DIM_INV2.png"/>
+      <FILE id="NhhrSv" name="D_SHARP_DIM_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/D_SHARP_DIM_ROOT.png"/>
+      <FILE id="aaaxdJ" name="F_SHARP_DIM_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/F_SHARP_DIM_INV1.png"/>
+      <FILE id="fwcKPu" name="F_SHARP_DIM_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/F_SHARP_DIM_INV2.png"/>
+      <FILE id="nSUnQR" name="F_SHARP_DIM_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/F_SHARP_DIM_ROOT.png"/>
+      <FILE id="gyhL4D" name="G_SHARP_DIM_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/G_SHARP_DIM_INV1.png"/>
+      <FILE id="qBJ0uH" name="G_SHARP_DIM_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/G_SHARP_DIM_INV2.png"/>
+      <FILE id="JDHwjT" name="G_SHARP_DIM_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL dim sharp chords/G_SHARP_DIM_ROOT.png"/>
+      <FILE id="PMbOT5" name="A_DIM_INV1.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/A_DIM_INV1.png"/>
+      <FILE id="SrMbzf" name="A_DIM_INV2.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/A_DIM_INV2.png"/>
+      <FILE id="ncLtGi" name="A_DIM_ROOT.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/A_DIM_ROOT.png"/>
+      <FILE id="pIx5Vr" name="B_DIM_INV1.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/B_DIM_INV1.png"/>
+      <FILE id="jmeu8X" name="B_DIM_INV2.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/B_DIM_INV2.png"/>
+      <FILE id="iqPMMY" name="B_DIM_ROOT.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/B_DIM_ROOT.png"/>
+      <FILE id="xrdX7K" name="C_DIM_INV1.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/C_DIM_INV1.png"/>
+      <FILE id="PwgvC8" name="C_DIM_INV2.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/C_DIM_INV2.png"/>
+      <FILE id="d9xryF" name="C_DIM_ROOT.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/C_DIM_ROOT.png"/>
+      <FILE id="XKMRUD" name="D_DIM_INV1.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/D_DIM_INV1.png"/>
+      <FILE id="Pndvuf" name="D_DIM_INV2.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/D_DIM_INV2.png"/>
+      <FILE id="y1uYIp" name="D_DIM_ROOT.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/D_DIM_ROOT.png"/>
+      <FILE id="il09UN" name="E_DIM_INV1.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/E_DIM_INV1.png"/>
+      <FILE id="CuXmxi" name="E_DIM_INV2.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/E_DIM_INV2.png"/>
+      <FILE id="poSz65" name="E_DIM_ROOT.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/E_DIM_ROOT.png"/>
+      <FILE id="gopi6A" name="F_DIM_INV1.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/F_DIM_INV1.png"/>
+      <FILE id="udCePH" name="F_DIM_INV2.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/F_DIM_INV2.png"/>
+      <FILE id="iTHnUz" name="F_DIM_ROOT.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/F_DIM_ROOT.png"/>
+      <FILE id="dJHkjn" name="G_DIM_INV1.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/G_DIM_INV1.png"/>
+      <FILE id="aZBSL0" name="G_DIM_INV2.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/G_DIM_INV2.png"/>
+      <FILE id="dnD2rb" name="G_DIM_ROOT.png" compile="0" resource="1" file="../Photos/ALL dim normal chords/G_DIM_ROOT.png"/>
+      <FILE id="iaVliN" name="A_SHARP_AUG_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/A_SHARP_AUG_INV1.png"/>
+      <FILE id="QlBzmE" name="A_SHARP_AUG_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/A_SHARP_AUG_INV2.png"/>
+      <FILE id="k9snOG" name="A_SHARP_AUG_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/A_SHARP_AUG_ROOT.png"/>
+      <FILE id="vYaNp1" name="C_SHARP_AUG_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/C_SHARP_AUG_INV1.png"/>
+      <FILE id="uxaWZw" name="C_SHARP_AUG_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/C_SHARP_AUG_INV2.png"/>
+      <FILE id="hkfHW5" name="C_SHARP_AUG_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/C_SHARP_AUG_ROOT.png"/>
+      <FILE id="LsKETM" name="D_SHARP_AUG_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/D_SHARP_AUG_INV1.png"/>
+      <FILE id="aIXei5" name="D_SHARP_AUG_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/D_SHARP_AUG_INV2.png"/>
+      <FILE id="zNWyJv" name="D_SHARP_AUG_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/D_SHARP_AUG_ROOT.png"/>
+      <FILE id="Gdwi7h" name="F_SHARP_AUG_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/F_SHARP_AUG_INV1.png"/>
+      <FILE id="bQhLlv" name="F_SHARP_AUG_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/F_SHARP_AUG_INV2.png"/>
+      <FILE id="h4b90o" name="F_SHARP_AUG_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/F_SHARP_AUG_ROOT.png"/>
+      <FILE id="N8Y4fa" name="G_SHARP_AUG_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/G_SHARP_AUG_INV1.png"/>
+      <FILE id="PIZ4Bw" name="G_SHARP_AUG_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL aug sharp chords/G_SHARP_AUG_ROOT.png"/>
+      <FILE id="xBxHF1" name="A_AUG_INV1.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/A_AUG_INV1.png"/>
+      <FILE id="Ps4VMq" name="A_AUG_INV2.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/A_AUG_INV2.png"/>
+      <FILE id="r4u7Ia" name="A_AUG_ROOT.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/A_AUG_ROOT.png"/>
+      <FILE id="t3RzLY" name="B_AUG_INV1.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/B_AUG_INV1.png"/>
+      <FILE id="x3cNPd" name="B_AUG_INV2.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/B_AUG_INV2.png"/>
+      <FILE id="yU9yx4" name="B_AUG_ROOT.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/B_AUG_ROOT.png"/>
+      <FILE id="eZSCeu" name="C_AUG_INV1.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/C_AUG_INV1.png"/>
+      <FILE id="MntOZ6" name="C_AUG_INV2.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/C_AUG_INV2.png"/>
+      <FILE id="BgepVy" name="C_AUG_ROOT.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/C_AUG_ROOT.png"/>
+      <FILE id="I4vy7s" name="D_AUG_INV1.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/D_AUG_INV1.png"/>
+      <FILE id="w8fmXi" name="D_AUG_INV2.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/D_AUG_INV2.png"/>
+      <FILE id="oMUMNt" name="D_AUG_ROOT.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/D_AUG_ROOT.png"/>
+      <FILE id="toca42" name="E_AUG_INV1.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/E_AUG_INV1.png"/>
+      <FILE id="ksJqDz" name="E_AUG_INV2.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/E_AUG_INV2.png"/>
+      <FILE id="MoVpqb" name="E_AUG_ROOT.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/E_AUG_ROOT.png"/>
+      <FILE id="UJhSrl" name="F_AUG_INV1.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/F_AUG_INV1.png"/>
+      <FILE id="n3zdHF" name="F_AUG_INV2.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/F_AUG_INV2.png"/>
+      <FILE id="LRJyDX" name="F_AUG_ROOT.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/F_AUG_ROOT.png"/>
+      <FILE id="NmsBIJ" name="G_AUG_INV1.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/G_AUG_INV1.png"/>
+      <FILE id="tIyyvf" name="G_AUG_INV2.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/G_AUG_INV2.png"/>
+      <FILE id="HrmntB" name="G_AUG_ROOT.png" compile="0" resource="1" file="../Photos/ALL aug normal chords/G_AUG_ROOT.png"/>
+      <FILE id="zU28vw" name="A_SHARP_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/A_SHARP_MINOR_INV1.png"/>
+      <FILE id="ZhbJRT" name="A_SHARP_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/A_SHARP_MINOR_INV2.png"/>
+      <FILE id="rwM2ai" name="A_SHARP_MINOR_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/A_SHARP_MINOR_ROOT.png"/>
+      <FILE id="vLvuxi" name="C_SHARP_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/C_SHARP_MINOR_INV1.png"/>
+      <FILE id="kmsopS" name="C_SHARP_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/C_SHARP_MINOR_INV2.png"/>
+      <FILE id="aS6NuV" name="C_SHARP_MINOR_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/C_SHARP_MINOR_ROOT.png"/>
+      <FILE id="ladU3Y" name="D_SHARP_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/D_SHARP_MINOR_INV1.png"/>
+      <FILE id="QbKdrP" name="D_SHARP_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/D_SHARP_MINOR_INV2.png"/>
+      <FILE id="UgvZtt" name="D_SHARP_MINOR_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/D_SHARP_MINOR_ROOT.png"/>
+      <FILE id="bDncLg" name="F_SHARP_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/F_SHARP_MINOR_INV1.png"/>
+      <FILE id="NWl5OF" name="F_SHARP_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/F_SHARP_MINOR_INV2.png"/>
+      <FILE id="NnkwrO" name="F_SHARP_MINOR_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/F_SHARP_MINOR_ROOT.png"/>
+      <FILE id="Bgd7WL" name="G_SHARP_MIN_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/G_SHARP_MIN_ROOT.png"/>
+      <FILE id="PGy7sK" name="G_SHARP_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/G_SHARP_MINOR_INV1.png"/>
+      <FILE id="jOgv2l" name="G_SHARP_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor sharp chords/G_SHARP_MINOR_INV2.png"/>
+      <FILE id="GcwgXN" name="A_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/A_MINOR_INV1.png"/>
+      <FILE id="fsUlHz" name="A_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/A_MINOR_INV2.png"/>
+      <FILE id="XxMoi5" name="A_MINOR_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/A_MINOR_ROOT.png"/>
+      <FILE id="bbGdFJ" name="B_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/B_MINOR_INV1.png"/>
+      <FILE id="e9x9Jz" name="B_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/B_MINOR_INV2.png"/>
+      <FILE id="YGrJlG" name="B_MINOR_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/B_MINOR_ROOT.png"/>
+      <FILE id="e1jDWL" name="C_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/C_MINOR_INV1.png"/>
+      <FILE id="BbpWqp" name="C_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/C_MINOR_INV2.png"/>
+      <FILE id="z1aMHS" name="C_MINOR_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/C_MINOR_ROOT.png"/>
+      <FILE id="nmC8yH" name="D_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/D_MINOR_INV1.png"/>
+      <FILE id="P7Zvsj" name="D_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/D_MINOR_INV2.png"/>
+      <FILE id="CZpXZ0" name="D_MINOR_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/D_MINOR_ROOT.png"/>
+      <FILE id="JU6pGY" name="E_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/E_MINOR_INV1.png"/>
+      <FILE id="a2OWce" name="E_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/E_MINOR_INV2.png"/>
+      <FILE id="QcJOGw" name="E_MINOR_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/E_MINOR_ROOT.png"/>
+      <FILE id="nchxMs" name="F_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/F_MINOR_INV1.png"/>
+      <FILE id="l1YAh1" name="F_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/F_MINOR_INV2.png"/>
+      <FILE id="dgCai8" name="F_MINOR_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/F_MINOR_ROOT.png"/>
+      <FILE id="wC7ybV" name="G_MINOR_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/G_MINOR_INV1.png"/>
+      <FILE id="tyhtZk" name="G_MINOR_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/G_MINOR_INV2.png"/>
+      <FILE id="rQsQ8C" name="G_MINOR_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL minor normal chords/G_MINOR_ROOT.png"/>
+      <FILE id="FPvmBL" name="A_SHARP_MAJ_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/A_SHARP_MAJ_INV1.png"/>
+      <FILE id="BWlW3Q" name="A_SHARP_MAJ_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/A_SHARP_MAJ_INV2.png"/>
+      <FILE id="iKbTjt" name="A_SHARP_MAJ_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/A_SHARP_MAJ_ROOT.png"/>
+      <FILE id="NJLcsF" name="C_SHARP_MAJ_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/C_SHARP_MAJ_INV1.png"/>
+      <FILE id="NRNa0a" name="C_SHARP_MAJ_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/C_SHARP_MAJ_INV2.png"/>
+      <FILE id="gtnSU0" name="C_SHARP_MAJ_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/C_SHARP_MAJ_ROOT.png"/>
+      <FILE id="LHBRVk" name="D_SHARP_MAJ_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/D_SHARP_MAJ_INV1.png"/>
+      <FILE id="sv3YRL" name="D_SHARP_MAJ_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/D_SHARP_MAJ_INV2.png"/>
+      <FILE id="c4vOrq" name="D_SHARP_MAJ_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/D_SHARP_MAJ_ROOT.png"/>
+      <FILE id="IeGqz0" name="F_SHARP_MAJ_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/F_SHARP_MAJ_INV1.png"/>
+      <FILE id="fJWptF" name="F_SHARP_MAJ_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/F_SHARP_MAJ_INV2.png"/>
+      <FILE id="EHirRK" name="F_SHARP_MAJ_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/F_SHARP_MAJ_ROOT.png"/>
+      <FILE id="c5rLRO" name="G_SHARP_MAJ_INV1.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/G_SHARP_MAJ_INV1.png"/>
+      <FILE id="YzPDTc" name="G_SHARP_MAJ_INV2.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/G_SHARP_MAJ_INV2.png"/>
+      <FILE id="MnpWdI" name="G_SHARP_MAJ_ROOT.png" compile="0" resource="1"
+            file="../Photos/ALL major sharp chords/G_SHARP_MAJ_ROOT.png"/>
+      <FILE id="sGOauL" name="A_MAJ_INV1.png" compile="0" resource="1" file="../Photos/ALL major normal chords/A_MAJ_INV1.png"/>
+      <FILE id="HF3oZK" name="A_MAJ_INV2.png" compile="0" resource="1" file="../Photos/ALL major normal chords/A_MAJ_INV2.png"/>
+      <FILE id="JkvJpO" name="A_MAJ_ROOT.png" compile="0" resource="1" file="../Photos/ALL major normal chords/A_MAJ_ROOT.png"/>
+      <FILE id="gWThrB" name="B_MAJ_INV1.png" compile="0" resource="1" file="../Photos/ALL major normal chords/B_MAJ_INV1.png"/>
+      <FILE id="aAEgAu" name="B_MAJ_INV2.png" compile="0" resource="1" file="../Photos/ALL major normal chords/B_MAJ_INV2.png"/>
+      <FILE id="bQOQq2" name="B_MAJ_ROOT.png" compile="0" resource="1" file="../Photos/ALL major normal chords/B_MAJ_ROOT.png"/>
+      <FILE id="HRABXX" name="C_MAJ_INV1.png" compile="0" resource="1" file="../Photos/ALL major normal chords/C_MAJ_INV1.png"/>
+      <FILE id="FNQyh8" name="C_MAJ_INV2.png" compile="0" resource="1" file="../Photos/ALL major normal chords/C_MAJ_INV2.png"/>
+      <FILE id="ZQ5Gz0" name="C_MAJ_ROOT.png" compile="0" resource="1" file="../Photos/ALL major normal chords/C_MAJ_ROOT.png"/>
+      <FILE id="E1YeJC" name="D_MAJ_INV1.png" compile="0" resource="1" file="../Photos/ALL major normal chords/D_MAJ_INV1.png"/>
+      <FILE id="mARsr4" name="D_MAJ_INV2.png" compile="0" resource="1" file="../Photos/ALL major normal chords/D_MAJ_INV2.png"/>
+      <FILE id="foNyRM" name="D_MAJ_ROOT.png" compile="0" resource="1" file="../Photos/ALL major normal chords/D_MAJ_ROOT.png"/>
+      <FILE id="qFjUz4" name="E_MAJ_INV1.png" compile="0" resource="1" file="../Photos/ALL major normal chords/E_MAJ_INV1.png"/>
+      <FILE id="G7v5GO" name="E_MAJ_INV2.png" compile="0" resource="1" file="../Photos/ALL major normal chords/E_MAJ_INV2.png"/>
+      <FILE id="tQacZB" name="E_MAJ_ROOT.png" compile="0" resource="1" file="../Photos/ALL major normal chords/E_MAJ_ROOT.png"/>
+      <FILE id="Pxidsk" name="F_MAJ_INV1.png" compile="0" resource="1" file="../Photos/ALL major normal chords/F_MAJ_INV1.png"/>
+      <FILE id="nDXUB8" name="F_MAJ_INV2.png" compile="0" resource="1" file="../Photos/ALL major normal chords/F_MAJ_INV2.png"/>
+      <FILE id="U8ADeM" name="F_MAJ_ROOT.png" compile="0" resource="1" file="../Photos/ALL major normal chords/F_MAJ_ROOT.png"/>
+      <FILE id="ZeYsTu" name="G_MAJ_INV1.png" compile="0" resource="1" file="../Photos/ALL major normal chords/G_MAJ_INV1.png"/>
+      <FILE id="xJkQhv" name="G_MAJ_INV2.png" compile="0" resource="1" file="../Photos/ALL major normal chords/G_MAJ_INV2.png"/>
+      <FILE id="TUzO6i" name="G_MAJ_ROOT.png" compile="0" resource="1" file="../Photos/ALL major normal chords/G_MAJ_ROOT.png"/>
+      <FILE id="Sji6TV" name="Knob.png" compile="0" resource="1" file="../Photos/Knob.png"/>
+      <FILE id="n7QYCK" name="playButton.svg" compile="0" resource="1" file="../Photos/playButton.svg"/>
+      <FILE id="njeogV" name="recordPlayback.svg" compile="0" resource="1"
+            file="../Photos/recordPlayback.svg"/>
+      <FILE id="fTC6Hv" name="stopButton.svg" compile="0" resource="1" file="../Photos/stopButton.svg"/>
+      <FILE id="Ybb4Zk" name="AcousticBass.png" compile="0" resource="1"
+            file="../Photos/AcousticBass.png"/>
+      <FILE id="vxnMN3" name="AcousticGrandPiano.png" compile="0" resource="1"
+            file="../Photos/AcousticGrandPiano.png"/>
+      <FILE id="pkyWEm" name="ElectricBass.png" compile="0" resource="1"
+            file="../Photos/ElectricBass.png"/>
+      <FILE id="dC1We1" name="ElectricBass2.png" compile="0" resource="1"
+            file="../Photos/ElectricBass2.png"/>
+      <FILE id="JTZPi5" name="ElectricPiano.png" compile="0" resource="1"
+            file="../Photos/ElectricPiano.png"/>
+      <FILE id="gSVPFf" name="FretlessBass.png" compile="0" resource="1"
+            file="../Photos/FretlessBass.png"/>
+      <FILE id="q6NDYX" name="SlapBass.png" compile="0" resource="1" file="../Photos/SlapBass.png"/>
+      <FILE id="GSaFS9" name="SlapBass2.png" compile="0" resource="1" file="../Photos/SlapBass2.png"/>
+      <FILE id="EIBePx" name="SynthBass.png" compile="0" resource="1" file="../Photos/SynthBass.png"/>
+      <FILE id="C87nEU" name="SynthBass2.png" compile="0" resource="1" file="../Photos/SynthBass2.png"/>
+      <FILE id="PtBlQW" name="playingBackground.png" compile="0" resource="1"
+            file="../Photos/playingBackground.png"/>
+      <FILE id="z5Flfw" name="questionMark.png" compile="0" resource="1"
+            file="../Photos/questionMark.png"/>
+      <FILE id="NiufiE" name="MainWindow.png" compile="0" resource="1" file="../Photos/MainWindow.png"
+            xcodeResource="0"/>
+    </GROUP>
+    <GROUP id="{77180095-A5AE-9575-2B89-DCC21B51B797}" name="Source">
+      <GROUP id="{8049D2A6-E1D0-07F8-2FCC-1E03FA9B8200}" name="UI">
+        <FILE id="OQf8Oe" name="SettingsWindow.h" compile="0" resource="0"
+              file="../Source/UI/SettingsWindow.h"/>
+        <FILE id="J92BVY" name="MainComponent.h" compile="0" resource="0" file="../Source/UI/MainComponent.h"/>
+        <FILE id="jn7l0T" name="MainComponent.cpp" compile="1" resource="0"
+              file="../Source/UI/MainComponent.cpp"/>
+        <FILE id="DXD47A" name="SoundEffectWindowComponent.cpp" compile="1"
+              resource="0" file="../Source/UI/SoundEffectWindowComponent.cpp"/>
+        <FILE id="HppmMB" name="SoundEffectWindowComponent.h" compile="0" resource="0"
+              file="../Source/UI/SoundEffectWindowComponent.h"/>
+        <FILE id="C9tx49" name="chordBrowser.cpp" compile="1" resource="0"
+              file="../Source/UI/chordBrowser.cpp"/>
+        <FILE id="QbNjqy" name="chordBrowser.h" compile="0" resource="0" file="../Source/UI/chordBrowser.h"/>
+        <FILE id="olzhBP" name="OverlayComponent.cpp" compile="1" resource="0"
+              file="../Source/UI/OverlayComponent.cpp"/>
+        <FILE id="Fbo82v" name="OverlayComponent.h" compile="0" resource="0"
+              file="../Source/UI/OverlayComponent.h"/>
+        <FILE id="nMJduY" name="PlayBackSettingsCustomComponent.cpp" compile="1"
+              resource="0" file="../Source/UI/PlayBackSettingsCustomComponent.cpp"/>
+        <FILE id="K0OsRB" name="PlayBackSettingsCustomComponent.h" compile="0"
+              resource="0" file="../Source/UI/PlayBackSettingsCustomComponent.h"/>
+        <FILE id="K2Xsjg" name="SelectableLabel.cpp" compile="1" resource="0"
+              file="../Source/UI/SelectableLabel.cpp"/>
+        <FILE id="cazbKc" name="SelectableLabel.h" compile="0" resource="0"
+              file="../Source/UI/SelectableLabel.h"/>
+        <FILE id="uwICeF" name="CustomTableContainer.cpp" compile="1" resource="0"
+              file="../Source/UI/CustomTableContainer.cpp"/>
+        <FILE id="NpdkDy" name="CustomTableContainer.h" compile="0" resource="0"
+              file="../Source/UI/CustomTableContainer.h"/>
+        <FILE id="Fob7bQ" name="CustomBeatBar.cpp" compile="1" resource="0"
+              file="../Source/UI/CustomBeatBar.cpp"/>
+        <FILE id="HsJERr" name="CustomBeatBar.h" compile="0" resource="0" file="../Source/UI/CustomBeatBar.h"/>
+        <FILE id="rm0gSJ" name="SubjectInterface.h" compile="0" resource="0"
+              file="../Source/Common/SubjectInterface.h"/>
+        <FILE id="xDGyFE" name="CustomToolTip.cpp" compile="1" resource="0"
+              file="../Source/UI/CustomToolTip.cpp"/>
+        <FILE id="vCYJ2n" name="CustomToolTip.h" compile="0" resource="0" file="../Source/UI/CustomToolTip.h"/>
+        <FILE id="jDbj4E" name="InstrumentChooser.cpp" compile="1" resource="0"
+              file="../Source/UI/InstrumentChooser.cpp"/>
+        <FILE id="qNR2FG" name="InstrumentChooser.h" compile="0" resource="0"
+              file="../Source/UI/InstrumentChooser.h"/>
+        <FILE id="HiLb6c" name="displayGUI.cpp" compile="1" resource="0" file="../Source/UI/displayGUI.cpp"/>
+        <FILE id="ICOTvm" name="displayGUI.h" compile="0" resource="0" file="../Source/UI/displayGUI.h"/>
+        <FILE id="myTab1" name="MyTabbedComponent.cpp" compile="1" resource="0"
+              file="../Source/UI/MyTabbedComponent.cpp"/>
+        <FILE id="myTab2" name="MyTabbedComponent.h" compile="0" resource="0"
+              file="../Source/UI/MyTabbedComponent.h"/>
+        <FILE id="diCmp1" name="Display.cpp" compile="1" resource="0" file="../Source/UI/Display.cpp"/>
+        <FILE id="diCmp2" name="Display.h" compile="0" resource="0" file="../Source/UI/Display.h"/>
+        <FILE id="dExTT9" name="temporaryNotificationUI.cpp" compile="1" resource="0"
+              file="../Source/UI/temporaryNotificationUI.cpp"/>
+        <FILE id="t6Fzqa" name="temporaryNotificationUI.h" compile="0" resource="0"
+              file="../Source/UI/temporaryNotificationUI.h"/>
+        <FILE id="T77ubi" name="InstrumentTreeItem.cpp" compile="1" resource="0"
+              file="../Source/UI/InstrumentTreeItem.cpp"/>
+        <FILE id="YlXHVG" name="InstrumentTreeItem.h" compile="0" resource="0"
+              file="../Source/UI/InstrumentTreeItem.h"/>
+        <FILE id="iqvpAW" name="NoteLayer.cpp" compile="1" resource="0" file="../Source/UI/NoteLayer.cpp"/>
+        <FILE id="cFN9eI" name="NoteLayer.h" compile="0" resource="0" file="../Source/UI/NoteLayer.h"/>
+        <FILE id="QnlFvU" name="KeyboardUI.cpp" compile="1" resource="0" file="../Source/UI/KeyboardUI.cpp"/>
+        <FILE id="HtNlxP" name="KeyboardUI.h" compile="0" resource="0" file="../Source/UI/KeyboardUI.h"/>
+        <FILE id="MsdNwG" name="SettingsWindow.cpp" compile="1" resource="0"
+              file="../Source/UI/SettingsWindow.cpp"/>
+      </GROUP>
+      <GROUP id="{D6BA8CED-DAAE-EC1B-B4D6-2D416B6732F8}" name="Styles">
+        <FILE id="w5pNZR" name="SectionsComponent.cpp" compile="1" resource="0"
+              file="../Source/Styles/SectionsComponent.cpp"/>
+        <FILE id="WsgI1I" name="SectionGroupComponent.cpp" compile="1" resource="0"
+              file="../Source/Styles/SectionGroupComponent.cpp"/>
+        <FILE id="pWsxuG" name="SectionGroupComponent.h" compile="0" resource="0"
+              file="../Source/Styles/SectionGroupComponent.h"/>
+        <FILE id="cdnTwl" name="SectionsComponent.h" compile="0" resource="0"
+              file="../Source/Styles/SectionsComponent.h"/>
+        <FILE id="svCmp1" name="StyleViewComponent.cpp" compile="1" resource="0"
+              file="../Source/Styles/StyleViewComponent.cpp"/>
+        <FILE id="svCmp2" name="StyleViewComponent.h" compile="0" resource="0"
+              file="../Source/Styles/StyleViewComponent.h"/>
+        <FILE id="slCmp1" name="StylesListComponent.cpp" compile="1" resource="0"
+              file="../Source/Styles/StylesListComponent.cpp"/>
+        <FILE id="slCmp2" name="StylesListComponent.h" compile="0" resource="0"
+              file="../Source/Styles/StylesListComponent.h"/>
+        <FILE id="csCmp1" name="CurrentStyleComponent.cpp" compile="1" resource="0"
+              file="../Source/Styles/CurrentStyleComponent.cpp"/>
+        <FILE id="csCmp2" name="CurrentStyleComponent.h" compile="0" resource="0"
+              file="../Source/Styles/CurrentStyleComponent.h"/>
+        <FILE id="u2nDST" name="StyleSection.h" compile="0" resource="0" file="../Source/Styles/StyleSection.h"/>
+        <FILE id="j3KJpG" name="styleSettingsEntry.h" compile="0" resource="0"
+              file="../Source/Styles/styleSettingsEntry.h"/>
+      </GROUP>
+      <GROUP id="{45DC58B9-9546-FF2B-682C-390F5BD846CD}" name="Playback">
+        <FILE id="tlCmp2" name="TrackListComponent.h" compile="0" resource="0"
+              file="../Source/Playback/TrackListComponent.h"/>
+        <FILE id="hpLtHh" name="MidiNotesTableModel.cpp" compile="1" resource="0"
+              file="../Source/Playback/MidiNotesTableModel.cpp"/>
+        <FILE id="trCmp1" name="Track.cpp" compile="1" resource="0" file="../Source/Playback/Track.cpp"/>
+        <FILE id="trCmp2" name="Track.h" compile="0" resource="0" file="../Source/Playback/Track.h"/>
+        <FILE id="hH5yKh" name="trackListComponentListener.h" compile="0" resource="0"
+              file="../Source/Playback/trackListComponentListener.h"/>
+        <FILE id="tlCmp1" name="TrackListComponent.cpp" compile="1" resource="0"
+              file="../Source/Playback/TrackListComponent.cpp"/>
+        <FILE id="k5GJ5O" name="TrackEntry.h" compile="0" resource="0" file="../Source/Playback/TrackEntry.h"/>
+        <FILE id="zfMrzS" name="TrackListener.h" compile="0" resource="0" file="../Source/Playback/TrackListener.h"/>
+        <FILE id="dxeclC" name="TrackPlayer.cpp" compile="1" resource="0" file="../Source/Playback/TrackPlayer.cpp"/>
+        <FILE id="PkpDN9" name="TrackPlayer.h" compile="0" resource="0" file="../Source/Playback/TrackPlayer.h"/>
+        <FILE id="sxVQU6" name="MidiNotesTableModel.h" compile="0" resource="0"
+              file="../Source/Playback/MidiNotesTableModel.h"/>
+        <FILE id="CkPnSg" name="TrackPlayerListener.h" compile="0" resource="0"
+              file="../Source/Playback/TrackPlayerListener.h"/>
+      </GROUP>
+      <GROUP id="{DEAAC901-19DC-0356-DCD4-EEDEAC2710B0}" name="Midi">
+        <FILE id="YVVyRr" name="MidiRecordPlayer.cpp" compile="1" resource="0"
+              file="../Source/Midi/MidiRecordPlayer.cpp"/>
+        <FILE id="ZZkI5J" name="keyListener.cpp" compile="1" resource="0" file="../Source/Midi/keyListener.cpp"/>
+        <FILE id="gevnkJ" name="MidiDevicesDB.cpp" compile="1" resource="0"
+              file="../Source/Midi/MidiDevicesDB.cpp"/>
+        <FILE id="IoBJ9L" name="MidiDevicesDB.h" compile="0" resource="0" file="../Source/Midi/MidiDevicesDB.h"/>
+        <FILE id="VuWhA6" name="keyListener.h" compile="0" resource="0" file="../Source/Midi/keyListener.h"/>
+        <FILE id="b1cjyA" name="MidiRecordPlayer.h" compile="0" resource="0"
+              file="../Source/Midi/MidiRecordPlayer.h"/>
+        <FILE id="z2Hsoc" name="MidiHandlerAbstractSubject.h" compile="0" resource="0"
+              file="../Source/Midi/MidiHandlerAbstractSubject.h"/>
+        <FILE id="XnnPrB" name="InstrumentHandler.cpp" compile="1" resource="0"
+              file="../Source/Midi/InstrumentHandler.cpp"/>
+        <FILE id="UMmTJT" name="InstrumentHandler.h" compile="0" resource="0"
+              file="../Source/Midi/InstrumentHandler.h"/>
+        <FILE id="r3G7fK" name="MidiHandler.h" compile="0" resource="0" file="../Source/Midi/MidiHandler.h"/>
+        <FILE id="raiann" name="MidiHandler.cpp" compile="1" resource="0" file="../Source/Midi/MidiHandler.cpp"/>
+      </GROUP>
+      <GROUP id="{746EC635-C856-A053-E4DB-ACC95221A01C}" name="Common">
+        <FILE id="DspLsn" name="DisplayListener.h" compile="0" resource="0"
+              file="../Source/Common/DisplayListener.h"/>
+        <FILE id="VWVIRr" name="HelperFunctions.cpp" compile="1" resource="0"
+              file="../Source/Common/HelperFunctions.cpp"/>
+        <FILE id="G3Jvlk" name="FileSystemInterface.h" compile="0" resource="0"
+              file="../Source/Common/FileSystemInterface.h"/>
+        <FILE id="J64Aky" name="HelperFunctions.h" compile="0" resource="0"
+              file="../Source/Common/HelperFunctions.h"/>
+        <FILE id="m1agKm" name="IOHelper.cpp" compile="1" resource="0" file="../Source/Common/IOHelper.cpp"/>
+        <FILE id="A1Vj1F" name="IOHelper.h" compile="0" resource="0" file="../Source/Common/IOHelper.h"/>
+        <FILE id="ksM2Lf" name="AppColours.h" compile="0" resource="0" file="../Source/Common/AppColours.h"/>
+        <FILE id="aPp1nF" name="AppInfo.h" compile="0" resource="0" file="../Source/Common/AppInfo.h"/>
+      </GROUP>
+      <GROUP id="{97468C97-C8B8-FE6B-B732-D2090CCDFF2A}" name="Backend">
+        <FILE id="mkAugQ" name="LoginComponent.cpp" compile="1" resource="0"
+              file="../Source/Backend/LoginComponent.cpp"/>
+        <FILE id="GK2TpN" name="PlaytimeTracker.cpp" compile="1" resource="0"
+              file="../Source/Backend/PlaytimeTracker.cpp"/>
+        <FILE id="N6kpnC" name="PlaytimeTracker.h" compile="0" resource="0"
+              file="../Source/Backend/PlaytimeTracker.h"/>
+        <FILE id="zwA8tf" name="LoginComponent.h" compile="0" resource="0"
+              file="../Source/Backend/LoginComponent.h"/>
+        <FILE id="BpF6r2" name="ValidatorUI.cpp" compile="1" resource="0" file="../Source/Backend/ValidatorUI.cpp"/>
+        <FILE id="pBoiRK" name="ValidatorUI.h" compile="0" resource="0" file="../Source/Backend/ValidatorUI.h"/>
+        <FILE id="ZSMmrT" name="addDeviceWindow.cpp" compile="1" resource="0"
+              file="../Source/Backend/addDeviceWindow.cpp"/>
+        <FILE id="oLjKCa" name="SupabaseClient.cpp" compile="1" resource="0"
+              file="../Source/Backend/SupabaseClient.cpp"/>
+        <FILE id="Ia73LG" name="SupabaseClient.h" compile="0" resource="0"
+              file="../Source/Backend/SupabaseClient.h"/>
+        <FILE id="vh8BuR" name="addDeviceWindow.h" compile="0" resource="0"
+              file="../Source/Backend/addDeviceWindow.h"/>
+      </GROUP>
+      <GROUP id="{C868CC58-753F-3A93-F3C4-A82217AD83AF}" name="Audio">
+        <FILE id="w1MPTi" name="SFZlibrary.cpp" compile="1" resource="0" file="../Source/Audio/SFZlibrary.cpp"/>
+        <FILE id="audioH" name="AudioHandler.h" compile="0" resource="0" file="../Source/Audio/AudioHandler.h"/>
+        <FILE id="audioC" name="AudioHandler.cpp" compile="1" resource="0"
+              file="../Source/Audio/AudioHandler.cpp"/>
+        <FILE id="T3o6UR" name="SFZlibrary.h" compile="0" resource="0" file="../Source/Audio/SFZlibrary.h"/>
+        <FILE id="euLojz" name="SFZLibraryUI.cpp" compile="1" resource="0"
+              file="../Source/Audio/SFZLibraryUI.cpp"/>
+        <FILE id="LWelkc" name="SFZLibraryUI.h" compile="0" resource="0" file="../Source/Audio/SFZLibraryUI.h"/>
+      </GROUP>
+      <GROUP id="{7332A212-C4D8-254D-C290-089FB8F723D8}" name="Arranger">
+        <FILE id="arrMd1" name="ArrangerModel.h" compile="0" resource="0" file="../Source/Arranger/ArrangerModel.h"/>
+        <FILE id="arrTm1" name="ArrangerTime.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ArrangerTime.cpp"/>
+        <FILE id="arrTm2" name="ArrangerTime.h" compile="0" resource="0" file="../Source/Arranger/ArrangerTime.h"/>
+        <FILE id="arrSc1" name="ArrangerScheduler.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ArrangerScheduler.cpp"/>
+        <FILE id="arrSc2" name="ArrangerScheduler.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerScheduler.h"/>
+        <FILE id="chrd01" name="Chord.h" compile="0" resource="0"
+              file="../Source/Arranger/Chord.h"/>
+        <FILE id="chDet1" name="ChordDetector.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ChordDetector.cpp"/>
+        <FILE id="chDet2" name="ChordDetector.h" compile="0" resource="0"
+              file="../Source/Arranger/ChordDetector.h"/>
+        <FILE id="chTra1" name="ChordTransposer.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ChordTransposer.cpp"/>
+        <FILE id="chTra2" name="ChordTransposer.h" compile="0" resource="0"
+              file="../Source/Arranger/ChordTransposer.h"/>
+        <FILE id="arrPb1" name="ArrangerPatternBuilder.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ArrangerPatternBuilder.cpp"/>
+        <FILE id="arrPb2" name="ArrangerPatternBuilder.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerPatternBuilder.h"/>
+        <FILE id="arrEn1" name="ArrangerEngine.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ArrangerEngine.cpp"/>
+        <FILE id="arrEn2" name="ArrangerEngine.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerEngine.h"/>
+        <FILE id="arrSq1" name="ArrangerSectionSequencer.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ArrangerSectionSequencer.cpp"/>
+        <FILE id="arrSq2" name="ArrangerSectionSequencer.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerSectionSequencer.h"/>
+        <FILE id="arrEnm1" name="ArrangerEnums.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerEnums.h"/>
+        <FILE id="arrHex1" name="ArrangerMidiHex.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerMidiHex.h"/>
+        <FILE id="arrSf1" name="ArrangerStyleFile.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerStyleFile.h"/>
+        <FILE id="arrIo1" name="ArrangerStyleIOHelper.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ArrangerStyleIOHelper.cpp"/>
+        <FILE id="arrIo2" name="ArrangerStyleIOHelper.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerStyleIOHelper.h"/>
+        <FILE id="arrCh1" name="ArrangerChannels.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ArrangerChannels.cpp"/>
+        <FILE id="arrCh2" name="ArrangerChannels.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerChannels.h"/>
+        <FILE id="arrTg1" name="ArrangerTimelineGeometry.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ArrangerTimelineGeometry.cpp"/>
+        <FILE id="arrTg2" name="ArrangerTimelineGeometry.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerTimelineGeometry.h"/>
+        <FILE id="arrSb1" name="ArrangerSourceBuilder.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ArrangerSourceBuilder.cpp"/>
+        <FILE id="arrSb2" name="ArrangerSourceBuilder.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerSourceBuilder.h"/>
+        <FILE id="arrDf1" name="ArrangerDefaults.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ArrangerDefaults.cpp"/>
+        <FILE id="arrDf2" name="ArrangerDefaults.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerDefaults.h"/>
+        <FILE id="arrTc1" name="ArrangerTimelineComponent.cpp" compile="1"
+              resource="0" file="../Source/Arranger/ArrangerTimelineComponent.cpp"/>
+        <FILE id="arrTc2" name="ArrangerTimelineComponent.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerTimelineComponent.h"/>
+        <FILE id="arrEd1" name="ArrangerStyleEditor.cpp" compile="1" resource="0"
+              file="../Source/Arranger/ArrangerStyleEditor.cpp"/>
+        <FILE id="arrEd2" name="ArrangerStyleEditor.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerStyleEditor.h"/>
+        <FILE id="arrLs1" name="ArrangerStyleListComponent.cpp" compile="1"
+              resource="0" file="../Source/Arranger/ArrangerStyleListComponent.cpp"/>
+        <FILE id="arrLs2" name="ArrangerStyleListComponent.h" compile="0" resource="0"
+              file="../Source/Arranger/ArrangerStyleListComponent.h"/>
+      </GROUP>
+      <FILE id="tstMn0" name="test_main.cpp" compile="1" resource="0" file="test_main.cpp"/>
+    </GROUP>
+  </MAINGROUP>
+  <MODULES>
+    <MODULE id="juce_analytics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_animation" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_processors_headless" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="1"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_box2d" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_cryptography" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_dsp" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_javascript" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_midi_ci" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_product_unlocking" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="1"/>
+    <MODULE id="juce_video" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="SFZero" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+  </MODULES>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
+  <EXPORTFORMATS>
+    <VS2022 targetFolder="Builds/VisualStudio2022">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="Project Tests" headerPath="../../../Source;../../../Source/Arranger;../../../Source/Midi;../../../Source/Audio;../../../Source/Playback;../../../Source/Styles;../../../Source/Backend;../../../Source/UI;../../../Source/Common"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="Project Tests" headerPath="../../../Source;../../../Source/Arranger;../../../Source/Midi;../../../Source/Audio;../../../Source/Playback;../../../Source/Styles;../../../Source/Backend;../../../Source/UI;../../../Source/Common"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_analytics" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_animation" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_box2d" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_javascript" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_midi_ci" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_product_unlocking" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_video" path="../../JUCE/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="../../NEW JUCE/JUCE/modules"/>
+        <MODULEPATH id="SFZero" path="../modules"/>
+      </MODULEPATHS>
+    </VS2022>
+  </EXPORTFORMATS>
+</JUCERPROJECT>

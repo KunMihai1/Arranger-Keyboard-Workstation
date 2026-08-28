@@ -1,0 +1,8 @@
+{
+  "mode": "B",
+  "mode_name": "Repository / Architecture",
+  "purpose": "Token-efficient, persistent knowledge base for the Piano-app JUCE synth so sessions read a small hot cache + index instead of re-crawling the codebase.",
+  "owner": "KunMihai",
+  "created": "2026-06-06",
+  "local_only": true
+}

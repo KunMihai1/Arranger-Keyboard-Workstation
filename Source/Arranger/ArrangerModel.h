@@ -32,6 +32,7 @@ struct ArrangerTrack
     int instrument = -1;
     int channel = 1;
     double volume = 100.0;
+    NttType nttType = NttType::Chord;      // Phase 7a: per-track transposition type
 
     std::vector<TimedBeatEvent> pattern;   // Phase 1: the section's loop for this track
 };

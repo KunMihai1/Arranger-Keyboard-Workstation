@@ -165,8 +165,11 @@ public:
     /** @brief Timer callback for periodic updates */
     void timerCallback() override;
 
-    /** @brief Checks if the currently selected MIDI input device is valid */
-    void checkMidiInputDeviceValid();
+    /** @brief Checks the open MIDI input AND output devices; reacts if either was unplugged. */
+    void checkMidiDevicesValid();
+
+    /** @brief Output device vanished mid-session: release it and stop the transport cleanly. */
+    void handleMidiOutputDisconnected();
 
     void comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged) override;
 
@@ -221,6 +224,15 @@ private:
     void ensureAudioHandlerReady();
     void loadSfzForCurrentStyle(const juce::String& styleId = {});
     void applyCurrentStyleToOutput();
+
+    /** @brief Names the SFZ slot feeding a MIDI channel, in the same terms the assign dialog uses.
+
+        Channels are only how the audio engine routes sound; SFZ files are mapped per
+        style + instrument. This reverses the routing done by loadSfzForCurrentStyle so a
+        failure can be reported as "Violin (right hand)" rather than "channel 16".
+        @param midiChannel Channel 1-16.
+        @return The instrument name and its role, or "channel <n>" if the channel is unmapped. */
+    juce::String describeSfzSlot(int midiChannel);
 
     // UI toggles
     void toggleSettingsPanel();
@@ -341,6 +353,11 @@ private:
 
     
     MidiDevice MIDIDevice{};       ///< MIDI device instance
+
+    /// Fires (on the message thread) the instant the MIDI device list changes, so a hot-unplug is
+    /// caught immediately rather than up to a second later on the poll timer. See checkMidiDevicesValid().
+    juce::MidiDeviceListConnection midiDeviceListConnection;
+
     InstrumentHandler instrumentHandler;
     MidiHandler midiHandler{ MIDIDevice, &instrumentHandler }; ///< MIDI event handler
     KeyboardListener keyListener{ midiHandler }; ///< Keyboard listener

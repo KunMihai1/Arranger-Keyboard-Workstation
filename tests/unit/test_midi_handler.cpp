@@ -357,6 +357,73 @@ public:
             expect(buffer2.getNumEvents() == 0);
         }
 
+        // ---- chord-zone mute must apply to the INTERNAL synth feed too (physical-MIDI path) ----
+        // Regression: physical-keyboard left-zone notes were sounding on the internal SFZ synth
+        // even with chord-zone mute on, because handleIncomingMidiMessage enqueued the raw note
+        // into incomingMidiMessages unconditionally (the PC-keyboard path already gated it).
+
+        beginTest("handleIncomingMidiMessage - muted chord-zone note-ON is NOT fed to the internal synth");
+        {
+            MidiDevice device;
+            MidiHandler handler(device);
+            handler.set_left_right_bounds(0, 100);   // notes < 100 are in the chord (left) zone
+            handler.setChordZoneMute(true);
+            handler.setArrangerEngaged(true);
+
+            // A physical-keyboard left-zone note: drives the chord, must NOT sound on the internal synth.
+            handler.handleIncomingMidiMessage(nullptr, juce::MidiMessage::noteOn(1, 48, (juce::uint8)100));
+
+            juce::MidiBuffer buffer;
+            handler.getNextMidiBlock(buffer, 0, 512);
+            expect(buffer.getNumEvents() == 0);   // muted onset never reaches the SFZ feed
+        }
+
+        beginTest("handleIncomingMidiMessage - chord-zone note-ON IS fed to the internal synth when mute is off");
+        {
+            MidiDevice device;
+            MidiHandler handler(device);
+            handler.set_left_right_bounds(0, 100);
+            handler.setChordZoneMute(false);        // normal playing: the note must sound
+            handler.setArrangerEngaged(true);
+
+            handler.handleIncomingMidiMessage(nullptr, juce::MidiMessage::noteOn(1, 48, (juce::uint8)100));
+
+            juce::MidiBuffer buffer;
+            handler.getNextMidiBlock(buffer, 0, 512);
+            expect(buffer.getNumEvents() == 1);
+        }
+
+        beginTest("handleIncomingMidiMessage - muted chord-zone note-OFF still passes (no stuck notes)");
+        {
+            MidiDevice device;
+            MidiHandler handler(device);
+            handler.set_left_right_bounds(0, 100);
+            handler.setChordZoneMute(true);
+            handler.setArrangerEngaged(true);
+
+            // Onset is muted, but the release must always reach the synth so nothing can hang.
+            handler.handleIncomingMidiMessage(nullptr, juce::MidiMessage::noteOff(1, 48, (juce::uint8)0));
+
+            juce::MidiBuffer buffer;
+            handler.getNextMidiBlock(buffer, 0, 512);
+            expect(buffer.getNumEvents() == 1);
+        }
+
+        beginTest("handleIncomingMidiMessage - right-hand note still sounds while chord zone is muted");
+        {
+            MidiDevice device;
+            MidiHandler handler(device);
+            handler.set_left_right_bounds(0, 100);   // split at 100; notes >= 100 are the right (melody) zone
+            handler.setChordZoneMute(true);
+            handler.setArrangerEngaged(true);
+
+            handler.handleIncomingMidiMessage(nullptr, juce::MidiMessage::noteOn(1, 108, (juce::uint8)100));
+
+            juce::MidiBuffer buffer;
+            handler.getNextMidiBlock(buffer, 0, 512);
+            expect(buffer.getNumEvents() == 1);   // only the left zone is muted
+        }
+
         beginTest("handleIncomingMidiMessage - noteOff notifies noteOffReceived listener");
         {
             MidiDevice device;
@@ -410,7 +477,7 @@ public:
             handler.removeListener(&listener);
         }
 
-        beginTest("handleIncomingMidiMessage - noteOn does NOT notify listener without output device");
+        beginTest("handleIncomingMidiMessage - noteOn notifies listener even without an output device");
         {
             MidiDevice device;
             MidiHandler handler(device);
@@ -428,9 +495,12 @@ public:
             auto noteOn = juce::MidiMessage::noteOn(1, 60, (juce::uint8)100);
             handler.handleIncomingMidiMessage(nullptr, noteOn);
 
-            // Without an output device, the midiOut lock fails, ok stays 0,
-            // so noteOnReceived is never called
-            expect(listener.noteOnCount == 0);
+            // Playability is decided from the note range FIRST, independent of any external
+            // MIDI-OUT device (5c75d4f). startNoteSetting/endNoteSetting default to -1, so note 60
+            // sets ok = 1 and the listener is notified even with no device open -- this is what
+            // makes the internal SFZ sound from a physical keyboard. Gating this on the midiOut
+            // lock was the bug; asserting 0 here would re-assert that bug.
+            expect(listener.noteOnCount == 1);
 
             handler.removeListener(&listener);
         }

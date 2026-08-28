@@ -43,6 +43,8 @@ public:
     std::function<void(bool)> onSynchroStartChanged;            // Phase 6: start the groove on the first chord
     std::function<void(bool)> onCountInChanged;                 // Phase 6b: one metronome bar before the groove
     std::function<void(bool)> onChordZoneMuteChanged;          // silence the chord-recognition keys (Korg-style)
+    std::function<void(bool)> onNttEnabledChanged;             // Phase 7a: master Chord-Transposition on/off
+    std::function<void(int)>  onNttMinorScaleChanged;         // Phase 7a: 0=Dorian, 1=Aeolian, 2=HarmonicMinor
     std::function<void()> onSfzLibraryChanged;                  // fired when SFZ mappings are imported/changed
 
     /**
@@ -162,6 +164,11 @@ private:
     juce::ToggleButton synchroStartToggle       { "Synchro Start (begin on first chord)" }; /**< Phase 6 */
     juce::ToggleButton countInToggle            { "Count-In (1 bar before start)" };        /**< Phase 6b */
     juce::ToggleButton chordZoneMuteToggle      { "Mute chord keys (hear only the backing)" };
+    juce::ToggleButton nttEnabledToggle         { "Chord transposition (NTT)" };                 /**< Phase 7a master */
+    juce::Label        nttMinorScaleLabel;                                                        /**< Phase 7a */
+    juce::TextButton   nttMinorDorian   { "Dorian" };                                             /**< Phase 7a */
+    juce::TextButton   nttMinorAeolian  { "Aeolian" };                                            /**< Phase 7a */
+    juce::TextButton   nttMinorHarmonic { "Harmonic" };                                           /**< Phase 7a */
 	juce::ComboBox comboBoxAudioDevicesOUT;       /**< ComboBox for selecting audio output devices */
     juce::Label midiDevicesLabelIN;           /**< Label for input devices */
     juce::Label midiDevicesLabelOUT;          /**< Label for output devices */

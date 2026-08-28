@@ -28,18 +28,24 @@ void ArrangerEngine::rebuildFromStyle()
     {
         std::vector<TimedBeatEvent> merged;
         std::vector<PartKind>       parts;
+        std::vector<NttType>        ntts;
         for (const auto& tr : sec.tracks)
         {
             // Drums/Perc never transpose; Bass honours bass inversion; Acc is plain harmony.
             const PartKind pk = (tr.partType == ArrangerPartType::Bass) ? PartKind::Bass
                               : (tr.partType == ArrangerPartType::Acc)  ? PartKind::Acc
                                                                         : PartKind::Fixed;
-            for (const auto& ev : tr.pattern) { merged.push_back (ev); parts.push_back (pk); }
+            for (const auto& ev : tr.pattern)
+            {
+                merged.push_back (ev);
+                parts.push_back (pk);
+                ntts.push_back (tr.nttType);   // Phase 7a: per-track NTT type
+            }
         }
 
         const double bars = (double) juce::jmax (1, sec.lengthBars);
         ArrangerScheduler s;
-        s.setLoop (std::move (merged), std::move (parts), bars * bpb);
+        s.setLoop (std::move (merged), std::move (parts), std::move (ntts), bars * bpb);
         schedulers.push_back (std::move (s));
     }
 
@@ -169,6 +175,16 @@ void ArrangerEngine::setBassInversion (bool shouldInvert)
     transposer.setBassInversion (shouldInvert);
 }
 
+void ArrangerEngine::setNttEnabled (bool enabled)
+{
+    transposer.setNttEnabled (enabled);
+}
+
+void ArrangerEngine::setMinorScale (MinorScaleChoice choice)
+{
+    transposer.setMinorScale (choice);
+}
+
 void ArrangerEngine::dispatch (const juce::MidiMessage& m)
 {
     if (auto out = outputDevice.lock())
@@ -187,7 +203,7 @@ void ArrangerEngine::dispatchEmitted (const EmittedEvent& e)
         // the matching note-off (which carries the original pitch) closes the same sounding note even
         // if the chord changed in between.
         const int orig   = m.getNoteNumber();
-        const int played = transposer.transpose (orig, e.part);
+        const int played = transposer.transpose (orig, e.part, e.ntt);
         activePlayedNote[{ m.getChannel(), orig }] = played;
         m = juce::MidiMessage::noteOn (m.getChannel(), played, m.getVelocity());
     }
