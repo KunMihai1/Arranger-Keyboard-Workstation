@@ -30,8 +30,9 @@ a GUI eyeball after the test-strip, and a rewritten `README.md` sitting uncommit
    │     └── cf423b0  NTT bypass/bass-inversion fix    (arranger-phase7a-ntt-engine)
    │           └── 2047f7c → 438afe3 → 919ffa9 → 1a726fe → 33142a4
    │                        (ci-test-separation ← HEAD; CI Tasks 1–6, NOT pushed)
-   └── 5c75d4f → cfe100b → 69a89b1 → ab0fe6c → b5765e9 → a73d4c8 → 128cf87 (fix/sfz-integration)
-        (b5765e9 pushed; a73d4c8 pc-keyboard fix + 128cf87 rename are local)
+   └── 5c75d4f → cfe100b → 69a89b1 → ab0fe6c → b5765e9 → a73d4c8 → 128cf87 → 71063de (fix/sfz-integration)
+        (all pushed through 71063de as of 2026-08-29; 71063de also brings the
+         Piano-Wiki vault itself into git — it is no longer gitignored)
 ```
 
 The two 7a-line branches briefly diverged when `cf423b0` landed; `ci-test-separation` was rebased onto it, so the line is linear again. **Nothing on the 7a line is pushed** — `origin/ci-test-separation` still points at `614b4ec`.
