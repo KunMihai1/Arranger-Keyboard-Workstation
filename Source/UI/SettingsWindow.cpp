@@ -353,11 +353,21 @@ void MIDIWindow::setBounds_components()
     countInToggle.setBounds(pad, y, 320, rowH);
     y += rowH + 6;
     chordZoneMuteToggle.setBounds(pad, y, 320, rowH);
+    y += rowH + 6;
+    nttEnabledToggle.setBounds(pad, y, 320, rowH);
+    y += rowH + 6;
+    {
+        nttMinorScaleLabel.setBounds(pad, y, 92, rowH);
+        const int bx = pad + 96, bw = 104, gap = 6;
+        nttMinorDorian.setBounds  (bx,                  y, bw, rowH);
+        nttMinorAeolian.setBounds (bx + (bw + gap),     y, bw, rowH);
+        nttMinorHarmonic.setBounds(bx + 2 * (bw + gap), y, bw, rowH);
+    }
 }
 
 void MIDIWindow::panelInit()
 {
-    settingsPanel.setSize(480, 540);   // tall enough for the arranger + Phase 4/5/6 chord rows
+    settingsPanel.setSize(480, 630);   // tall enough for the arranger + Phase 4/5/6 chord rows + Phase 7a NTT rows
 
     setBackgroundColour(panelBg);
 
@@ -584,6 +594,44 @@ void MIDIWindow::allInit()
         if (propertyFile != nullptr) { propertyFile->setValue("ChordZoneMute", on); propertyFile->saveIfNeeded(); }
         if (onChordZoneMuteChanged) onChordZoneMuteChanged(on);
     };
+
+    // Phase 7a: master Chord-Transposition (NTT) on/off. Default ON.
+    settingsPanel.addAndMakeVisible(nttEnabledToggle);
+    nttEnabledToggle.setToggleState(propertyFile == nullptr || propertyFile->getBoolValue("NttEnabled", true),
+                                    juce::dontSendNotification);
+    nttEnabledToggle.onClick = [this]()
+    {
+        const bool on = nttEnabledToggle.getToggleState();
+        if (propertyFile != nullptr) { propertyFile->setValue("NttEnabled", on); propertyFile->saveIfNeeded(); }
+        if (onNttEnabledChanged) onNttEnabledChanged(on);
+    };
+
+    // Phase 7a: curated minor-scale selector for NTT passing-tone snap (Dorian default).
+    nttMinorScaleLabel.setText("Minor scale", juce::dontSendNotification);
+    settingsPanel.addAndMakeVisible(nttMinorScaleLabel);
+
+    const int kNttMinorRadio = 0x77017A;   // unique non-zero radio group id
+    int minorIdx = 0;
+    for (auto* b : { &nttMinorDorian, &nttMinorAeolian, &nttMinorHarmonic })
+    {
+        b->setClickingTogglesState(true);
+        b->setRadioGroupId(kNttMinorRadio);
+        b->setMouseClickGrabsKeyboardFocus(false);   // keep the PC keyboard playable
+        b->setColour(juce::TextButton::buttonColourId,   cardBg);
+        b->setColour(juce::TextButton::buttonOnColourId, accent1);
+        b->setColour(juce::TextButton::textColourOffId,  subtitleText);
+        b->setColour(juce::TextButton::textColourOnId,   background);
+        const int idx = minorIdx++;
+        b->onClick = [this, idx]()
+        {
+            if (propertyFile != nullptr) { propertyFile->setValue("NttMinorScale", idx); propertyFile->saveIfNeeded(); }
+            if (onNttMinorScaleChanged) onNttMinorScaleChanged(idx);
+        };
+        settingsPanel.addAndMakeVisible(*b);
+    }
+    const int storedMinor = propertyFile != nullptr ? juce::jlimit(0, 2, propertyFile->getIntValue("NttMinorScale", 0)) : 0;
+    (storedMinor == 1 ? nttMinorAeolian : storedMinor == 2 ? nttMinorHarmonic : nttMinorDorian)
+        .setToggleState(true, juce::dontSendNotification);
 
 	sfzButtonInit();
 }

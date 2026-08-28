@@ -166,6 +166,7 @@ namespace ArrangerPatternBuilder
             ArrangerTrack at;
             at.id = st.id; at.name = st.name; at.partType = st.partType;
             at.instrument = st.instrument; at.channel = st.channel; at.volume = st.volume;
+            at.nttType = st.nttType;   // Phase 7a: file -> model
             at.pattern = st.events;
             master.tracks.push_back (std::move (at));
         }

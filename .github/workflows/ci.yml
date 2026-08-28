@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches-ignore: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Cache JUCE 8.0.13
+        id: juce-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}\juce
+          key: juce-8.0.13-windows
+
+      - name: Download JUCE 8.0.13 (modules + Projucer)
+        if: steps.juce-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $url = "https://github.com/juce-framework/JUCE/releases/download/8.0.13/juce-8.0.13-windows.zip"
+          Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP\juce.zip"
+          Expand-Archive "$env:RUNNER_TEMP\juce.zip" -DestinationPath "$env:RUNNER_TEMP\juce"
+
+      - name: Locate Projucer and the modules folder
+        shell: pwsh
+        run: |
+          # Locate rather than assume the archive layout, so a repackaged release can't break CI.
+          $projucer = Get-ChildItem -Recurse -Filter "Projucer.exe" "$env:RUNNER_TEMP\juce" |
+                      Select-Object -First 1
+          if (-not $projucer) { throw "Projucer.exe not found in the JUCE archive" }
+          $juceDir = $projucer.Directory.FullName
+          $modules = Join-Path $juceDir "modules"
+          if (-not (Test-Path $modules)) { throw "modules folder not found next to Projucer.exe" }
+          "PROJUCER=$($projucer.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "JUCE_MODULES=$modules"          | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Point Projucer at the JUCE modules (global path)
+        shell: pwsh
+        run: |
+          # Projucer is a GUI-subsystem exe and returns immediately when invoked with '&', which lets
+          # the next step race its file writes. Start-Process -Wait is what actually blocks.
+          Start-Process -FilePath "$env:PROJUCER" -Wait -NoNewWindow -ArgumentList `
+            '--set-global-search-path', 'windows', 'defaultJuceModulePath', "$env:JUCE_MODULES"
+
+      - name: Resave the test project
+        shell: pwsh
+        run: |
+          Start-Process -FilePath "$env:PROJUCER" -Wait -NoNewWindow -ArgumentList `
+            '--resave', 'ci\Tests.jucer'
+          if (-not (Test-Path "ci\Builds\VisualStudio2022")) {
+            throw "resave did not generate ci\Builds\VisualStudio2022"
+          }
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Build the test target
+        shell: pwsh
+        run: msbuild "ci\Builds\VisualStudio2022\Project Tests.sln" /p:Configuration=Debug /p:Platform=x64 /m /v:minimal /nologo
+
+      # Exit code alone is not enough: the runner also exits 0 when it runs ZERO tests, so a
+      # mistyped category or test TUs silently dropped from the link would show green. Assert a
+      # floor on the assertion count too. Raise these when the suites grow; a DROP should fail
+      # loudly and be a deliberate edit.
+      - name: Run unit tests
+        shell: pwsh
+        env:
+          MIN_UNIT_ASSERTIONS: '650'   # 665 as of 2026-08-15
+        run: |
+          $exe = (Get-ChildItem -Recurse -Filter "Project Tests.exe" ci\Builds | Select-Object -First 1).FullName
+          & $exe --unit-tests
+          $code = $LASTEXITCODE
+          Copy-Item test-results.txt test-results-unit.txt -ErrorAction SilentlyContinue
+          if ($code -ne 0) { throw "unit tests failed ($code failing assertions)" }
+          $line = Select-String -Path test-results-unit.txt -Pattern '^TOTAL \| passes: (\d+)' |
+                  Select-Object -Last 1
+          if (-not $line) { throw "no TOTAL line in the unit results - the runner produced no summary" }
+          $passes = [int]$line.Matches[0].Groups[1].Value
+          $min    = [int]$env:MIN_UNIT_ASSERTIONS
+          if ($passes -lt $min) {
+            throw "unit suite ran only $passes assertions (expected >= $min) - tests are missing from the build"
+          }
+          "unit: $passes assertions passed"
+
+      - name: Run arranger tests
+        shell: pwsh
+        env:
+          MIN_ARRANGER_ASSERTIONS: '690'   # 705 as of 2026-08-15
+        run: |
+          $exe = (Get-ChildItem -Recurse -Filter "Project Tests.exe" ci\Builds | Select-Object -First 1).FullName
+          & $exe --arranger-tests
+          $code = $LASTEXITCODE
+          Copy-Item test-results.txt test-results-arranger.txt -ErrorAction SilentlyContinue
+          if ($code -ne 0) { throw "arranger tests failed ($code failing assertions)" }
+          $line = Select-String -Path test-results-arranger.txt -Pattern '^TOTAL \| passes: (\d+)' |
+                  Select-Object -Last 1
+          if (-not $line) { throw "no TOTAL line in the arranger results - the runner produced no summary" }
+          $passes = [int]$line.Matches[0].Groups[1].Value
+          $min    = [int]$env:MIN_ARRANGER_ASSERTIONS
+          if ($passes -lt $min) {
+            throw "arranger suite ran only $passes assertions (expected >= $min) - tests are missing from the build"
+          }
+          "arranger: $passes assertions passed"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: |
+            test-results-unit.txt
+            test-results-arranger.txt
+          if-no-files-found: warn

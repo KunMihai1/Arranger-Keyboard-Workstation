@@ -65,4 +65,37 @@ namespace ArrangerEnums
         if (s == "Bass") return ArrangerPartType::Bass;
         return ArrangerPartType::Acc;
     }
+
+    inline juce::String toString (NttType n)
+    {
+        switch (n)
+        {
+            case NttType::NoTranspose: return "NoTranspose";
+            case NttType::Parallel:    return "Parallel";
+            case NttType::Chord:       return "Chord";
+            case NttType::Fixed:       return "Fixed";
+        }
+        return "Chord";
+    }
+
+    inline NttType nttFromString (const juce::String& s)
+    {
+        if (s == "NoTranspose") return NttType::NoTranspose;
+        if (s == "Parallel")    return NttType::Parallel;
+        if (s == "Fixed")       return NttType::Fixed;
+        return NttType::Chord;
+    }
+
+    /** Migration / fresh-track default derived from the part role. */
+    inline NttType nttDefaultForPart (ArrangerPartType p)
+    {
+        switch (p)
+        {
+            case ArrangerPartType::Drum:
+            case ArrangerPartType::Perc: return NttType::NoTranspose;
+            case ArrangerPartType::Bass: return NttType::Parallel;
+            case ArrangerPartType::Acc:  return NttType::Chord;
+        }
+        return NttType::Chord;
+    }
 }

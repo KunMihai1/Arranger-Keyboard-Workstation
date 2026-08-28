@@ -103,6 +103,10 @@ MainComponent::MainComponent()
 
     startTimer(1000);
 
+    // Catch device hot-unplug the instant it happens (the 1s timer above is only a backstop). The
+    // callback runs on the message thread (AsyncUpdater), so it can touch the UI directly.
+    midiDeviceListConnection = juce::MidiDeviceListConnection::make ([this] { checkMidiDevicesValid(); });
+
 }
 
 MainComponent::~MainComponent()
@@ -449,36 +453,74 @@ bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component*)
 
 void MainComponent::timerCallback()
 {
-    if(this->keyListener.getIsKeyboardInput()==false)
-        checkMidiInputDeviceValid();
+    checkMidiDevicesValid();   // self-gates on which devices are open; also fires on hot-plug via the connection
 
     if (settingsPanel.isVisible())
         populateUpdateComboBoxDevices();
 }
 
-void MainComponent::checkMidiInputDeviceValid()
+void MainComponent::checkMidiDevicesValid()
 {
-    auto devices = juce::MidiInput::getAvailableDevices();
-    bool deviceStillPresent = false;
-    for (auto& device : devices)
+    // OUTPUT first: if the open MIDI output vanished (e.g. the keyboard was unplugged), stop cleanly.
+    // The arranger/track-player run on their own HighResolutionTimer threads and would keep calling
+    // sendMessageNow on the now-dead endpoint -- JUCE asserts isAlive() and a Debug build crashes.
+    if (MIDIDevice.isOpenOUT())
     {
-        if (device.identifier == MIDIDevice.get_identifier())
-        {
-            deviceStillPresent = true;
-            break;
-        }
+        const auto outId = MIDIDevice.getOutputIdentifier();
+        bool present = false;
+        for (auto& d : juce::MidiOutput::getAvailableDevices())
+            if (d.identifier == outId) { present = true; break; }
+
+        if (! present)
+            handleMidiOutputDisconnected();
     }
 
-    if (!deviceStillPresent)
+    // INPUT: if the open MIDI input vanished, close it and clear any stuck-note visuals. Independent
+    // of the output so a separate output device (or the internal synth) keeps playing on input loss.
+    if (MIDIDevice.isOpenIN())
     {
-        if (noteLayer)
-            noteLayer->resetStateActiveNotes();
+        const auto inId = MIDIDevice.get_identifier();
+        bool present = false;
+        for (auto& d : juce::MidiInput::getAvailableDevices())
+            if (d.identifier == inId) { present = true; break; }
 
-        keyboard.resetStateActiveNotes();
-            
+        if (! present)
+        {
+            if (noteLayer)
+                noteLayer->resetStateActiveNotes();
 
-        this->MIDIDevice.deviceCloseIN();
-        this->MIDIDevice.deviceCloseOUT();
+            keyboard.resetStateActiveNotes();
+            this->MIDIDevice.deviceCloseIN();
+        }
+    }
+}
+
+void MainComponent::handleMidiOutputDisconnected()
+{
+    // Drop the shared output handle FIRST. Every sender (arranger engine, track player, MidiHandler)
+    // holds only a weak_ptr to it, so once the single shared owner is gone their lock() returns null
+    // and they stop sending to the dead endpoint -- without us writing their weak_ptr from this thread
+    // (which would race their timer thread). One in-flight send may still slip through before this runs;
+    // in Release that is harmless (the jassert is compiled out) and the classic MidiOutput exposes no
+    // liveness query to close that last gap.
+    this->MIDIDevice.deviceCloseOUT();
+    deviceOpenedOUT = {};
+
+    // Then stop the transport via the same path as the Stop button, so the play UI stays consistent.
+    // Its note-offs are no-ops on the released external output and still reach the internal synth.
+    if (display != nullptr)
+        display->stoppingPlayer();
+
+    // Tell the user why playback stopped (mirrors the existing transient-message pattern).
+    const juce::String msg = "MIDI output disconnected - playback stopped";
+    if (temporaryPopup) { temporaryPopup->updateText(msg); temporaryPopup->restartTimer(); }
+    else
+    {
+        temporaryPopup = std::make_unique<TemporaryMessage>(msg);
+        headerPanel.addChildComponent(temporaryPopup.get());
+        temporaryPopup->setBounds(getWidth() / 2 - 150, 10, 300, 30);
+        temporaryPopup->setFinishedCallBack([this] { temporaryPopup.reset(); });
+        temporaryPopup->setVisible(true);
     }
 }
 
@@ -1023,6 +1065,21 @@ void MainComponent::setCallBacksForOverlayWindow()
             midiWindow->onChordZoneMuteChanged = [this](bool on)
             {
                 midiHandler.setChordZoneMute(on);   // Korg-style: silence the chord keys when the arranger is engaged
+            };
+
+            // Phase 7a NTT controls.
+            midiWindow->onNttEnabledChanged = [this](bool on)
+            {
+                if (display != nullptr)
+                    display->setArrangerNttEnabled(on);
+            };
+            midiWindow->onNttMinorScaleChanged = [this](int idx)
+            {
+                const auto c = idx == 1 ? MinorScaleChoice::Aeolian
+                             : idx == 2 ? MinorScaleChoice::HarmonicMinor
+                                        : MinorScaleChoice::Dorian;
+                if (display != nullptr)
+                    display->setArrangerMinorScale(c);
             };
 
             midiWindow->onOutputEngineChanged = [this](int engineOption)
@@ -2119,6 +2176,16 @@ void MainComponent::playButtonOnClick()
             midiHandler.setChordZoneMute(propertiesFile->getBoolValue("ChordZoneMute", false));
             display->setArrangerSynchroStart(propertiesFile->getBoolValue("SynchroStart", false));
             display->setArrangerCountIn(propertiesFile->getBoolValue("CountIn", false));
+
+            // Phase 7a: restore the NTT master enable (default on) + curated minor scale (default Dorian).
+            display->setArrangerNttEnabled(propertiesFile->getBoolValue("NttEnabled", true));
+            {
+                const int m = juce::jlimit(0, 2, propertiesFile->getIntValue("NttMinorScale", 0));
+                const auto c = m == 1 ? MinorScaleChoice::Aeolian
+                             : m == 2 ? MinorScaleChoice::HarmonicMinor
+                                      : MinorScaleChoice::Dorian;
+                display->setArrangerMinorScale(c);
+            }
         }
 
         if (!keyboardInitialized)

@@ -45,7 +45,7 @@ public:
             const bool ok = ArrangerStyleIOHelper::loadFromFile (file, loaded, err);
             expect (ok, err);
 
-            expectEquals (loaded.schemaVersion, 4);
+            expectEquals (loaded.schemaVersion, 5);
             expectEquals (loaded.name, juce::String ("Sunset Groove"));
             expectEquals (loaded.timeSigNum, 4);
             expectEquals ((int) loaded.sourceTracks.size(), 1);
@@ -100,6 +100,39 @@ public:
             expectEquals (loaded.originalRoot, 0);                 // C
             expect (loaded.originalQuality == ChordQuality::Maj);  // major
             file.deleteFile();
+        }
+
+        beginTest ("nttType round-trips and a missing field migrates by part");
+        {
+            ArrangerStyleFile in;
+            in.id = "s"; in.name = "S";
+            SourceTrackFile bass; bass.id = "b"; bass.name = "Bass"; bass.partType = ArrangerPartType::Bass; bass.channel = 2;
+            bass.nttType = NttType::Parallel;
+            SourceTrackFile acc;  acc.id = "a";  acc.name = "Piano"; acc.partType = ArrangerPartType::Acc;  acc.channel = 3;
+            acc.nttType  = NttType::Fixed;      // non-default, must survive the round-trip
+            in.sourceTracks = { bass, acc };
+
+            auto tmp = juce::File::createTempFile (".style");
+            ArrangerStyleIOHelper::saveToFile (tmp, in);
+            ArrangerStyleFile out; juce::String err;
+            expect (ArrangerStyleIOHelper::loadFromFile (tmp, out, err), err);
+            expectEquals ((int) out.sourceTracks.size(), 2);
+            expect (out.sourceTracks[0].nttType == NttType::Parallel);
+            expect (out.sourceTracks[1].nttType == NttType::Fixed);
+
+            // a hand-written v4 JSON with NO nttType field -> part-derived defaults
+            const juce::String legacy =
+                "{ \"schemaVersion\":4, \"kind\":\"arrangerStyle\", \"sourceTracks\":["
+                "  {\"id\":\"d\",\"name\":\"Drums\",\"partType\":\"Drum\",\"channel\":10},"
+                "  {\"id\":\"b\",\"name\":\"Bass\",\"partType\":\"Bass\",\"channel\":2},"
+                "  {\"id\":\"a\",\"name\":\"Pad\",\"partType\":\"Acc\",\"channel\":3} ], \"sections\":[] }";
+            auto tmp2 = juce::File::createTempFile (".style"); tmp2.replaceWithText (legacy);
+            ArrangerStyleFile mig; expect (ArrangerStyleIOHelper::loadFromFile (tmp2, mig, err), err);
+            expectEquals ((int) mig.sourceTracks.size(), 3);
+            expect (mig.sourceTracks[0].nttType == NttType::NoTranspose);  // Drum
+            expect (mig.sourceTracks[1].nttType == NttType::Parallel);     // Bass
+            expect (mig.sourceTracks[2].nttType == NttType::Chord);        // Acc
+            tmp.deleteFile(); tmp2.deleteFile();
         }
 
         beginTest ("loading a missing file fails gracefully");

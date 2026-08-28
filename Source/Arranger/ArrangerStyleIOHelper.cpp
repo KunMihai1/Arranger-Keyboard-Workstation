@@ -13,6 +13,7 @@ static var trackToVar (const SourceTrackFile& t)
     o->setProperty ("channel", t.channel);
     o->setProperty ("instrument", t.instrument);
     o->setProperty ("volume", t.volume);
+    o->setProperty ("nttType", ArrangerEnums::toString (t.nttType));   // Phase 7a
     o->setProperty ("effects", var()); // reserved: null
 
     juce::Array<var> events;
@@ -93,6 +94,9 @@ bool ArrangerStyleIOHelper::loadFromFile (const juce::File& file, ArrangerStyleF
             t.channel    = (int)    tv.getProperty ("channel", 2);
             t.instrument = (int)    tv.getProperty ("instrument", -1);
             t.volume     = (double) tv.getProperty ("volume", 100.0);
+            const auto nttStr = tv.getProperty ("nttType", juce::var()).toString();   // Phase 7a: migrate by part
+            t.nttType    = nttStr.isEmpty() ? ArrangerEnums::nttDefaultForPart (t.partType)
+                                            : ArrangerEnums::nttFromString (nttStr);
             if (auto* evs = tv.getProperty ("events", var()).getArray())
                 for (const auto& ev : *evs)
                     t.events.push_back ({ (double) ev.getProperty ("b", 0.0),

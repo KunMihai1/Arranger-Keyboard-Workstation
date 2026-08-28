@@ -111,6 +111,8 @@ public:
 
     /** Phase 4: toggle Bass Inversion (slash chords) on the arranger engine. */
     void setArrangerBassInversion(bool shouldInvert);
+    void setArrangerNttEnabled(bool enabled);     // Phase 7a: master NTT bypass
+    void setArrangerMinorScale(MinorScaleChoice choice);  // Phase 7a: curated minor scale for NTT
     void setArrangerSynchroStart(bool enabled);   // Phase 6: start the groove on the first chord
     void setArrangerCountIn(bool enabled);        // Phase 6b: one metronome bar before the groove
 
@@ -238,6 +240,8 @@ private:
     bool arrangerModeEnabled = false;   ///< Remembered Arranger-mode state, applied when a style component is created.
     bool arrangerAutoFillEnabled = false;   ///< Remembered Auto Fill state, applied when a style component is created.
     bool arrangerBassInversion = false;     ///< Remembered Bass Inversion, applied when a style component is created.
+    bool arrangerNttEnabled = true;         ///< Remembered NTT master enable, applied when a style component is created.
+    MinorScaleChoice arrangerMinorScale = MinorScaleChoice::Dorian; ///< Remembered NTT minor scale.
     bool arrangerSynchroStart = false;      ///< Remembered Synchro Start, applied when a style component is created.
     bool arrangerCountIn = false;           ///< Remembered Count-In, applied when a style component is created.
 

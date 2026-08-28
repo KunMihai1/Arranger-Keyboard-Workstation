@@ -34,6 +34,8 @@ void CurrentStyleComponent::startPlaying()
         arrangerEngine->setStyle(cfg);
         arrangerEngine->setBpm(currentTempo);
         arrangerEngine->setBassInversion(arrangerBassInversion);   // re-apply: setStyle/rebuild may reset it
+        arrangerEngine->setNttEnabled(arrangerNttEnabled);         // Phase 7a: re-apply on every Start
+        arrangerEngine->setMinorScale(arrangerMinorScale);         // Phase 7a: re-apply on every Start
         arrangerEngine->selectStartSection(pendingStartType, pendingStartName);  // begin on the chosen start (stopPlaying cleared it)
         arrangerEngine->start();
         seedHeldChordIntoArranger();   // honour a chord already held when Start was pressed
@@ -378,6 +380,20 @@ void CurrentStyleComponent::setArrangerBassInversion(bool shouldInvert)
     arrangerBassInversion = shouldInvert;   // remembered; re-applied on every Start (see startPlaying)
     if (arrangerEngine)
         arrangerEngine->setBassInversion(shouldInvert);
+}
+
+void CurrentStyleComponent::setArrangerNttEnabled(bool enabled)
+{
+    arrangerNttEnabled = enabled;   // remembered; re-applied on every Start (see startPlaying)
+    if (arrangerEngine)
+        arrangerEngine->setNttEnabled(enabled);
+}
+
+void CurrentStyleComponent::setArrangerMinorScale(MinorScaleChoice choice)
+{
+    arrangerMinorScale = choice;   // remembered; re-applied on every Start (see startPlaying)
+    if (arrangerEngine)
+        arrangerEngine->setMinorScale(choice);
 }
 
 void CurrentStyleComponent::restoreEngineBeatBar()
