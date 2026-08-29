@@ -11,15 +11,25 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-08-29. **`ci-test-separation` merged into `fix/sfz-integration` (`50e2d02`) and pushed.** That branch now carries *everything*: the "Arranger Workstation" rename, the SFZ popup work, the PC-keyboard layout fix, **Phase 7a NTT**, the wiki, and **CI**. Pushing it runs the workflow for the first time on this line. Verified locally before commit: app builds Debug x64 **0 errors / zero `test_*.obj`**, unit **665/0**, arranger **705/0**. Stale branches pruned — 12 refs, 6 local + 6 remote. Full detail in [[log]].
+2026-08-30. **Both outstanding branches are merged into `main`.** PR #10 landed
+`fix/sfz-integration` (the rename, the SFZ popup work, the PC-keyboard layout fix,
+Phase 7a NTT, the wiki and **CI**); PR #11 landed `fix/dsp-quality` (the delay
+bypass freeze, per-sample CC smoothing, ADAA on the distortion). `main` is now the
+only line that matters and it carries the workflow, so CI runs on it. Full detail
+in [[log]].
 
-## Branch topology (rewritten 2026-08-29 — the old two-parallel-branch diagram is obsolete)
+## Branch topology (rewritten 2026-08-30 — everything is on main now)
 ```
-6f2ba81 (main, origin/main)  — Phase 1–6b, merged via PR #8. NO workflow file, NO CI.
-   └── … → b5765e9 → a73d4c8 → 128cf87 → 71063de → 94aea18 → 539dc37
-             └── 50e2d02  (fix/sfz-integration, pushed)   ← merge of e394005
+ab5d356 (main, origin/main)  ← PR #11, merge of fix/dsp-quality
+   └── bec111a   fix(audio): delay freeze, CC smoothing, ADAA
+f7b4df3                      ← PR #10, merge of fix/sfz-integration
+   └── 494693f → 2690b5f → 50e2d02 → …
+6f2ba81                      — Phase 1–6b, merged via PR #8. No CI on this commit.
 ```
-Only **`main`** and **`fix/sfz-integration`** exist now, local and remote. The 7a line, the CI branch and the phase branches were deleted after merging (SHAs in [[log]] if one is ever needed). **The old "merge-conflict risk between two parallel branches" warning is resolved** — that merge is done; `suppressInternalFeed` was dropped in favour of the `channelForHand` parity rewrite, which already covers it.
+**`fix/dsp-quality` and `fix/sfz-integration` are merged and can be pruned** — they
+still exist locally and on the remote, along with a stale local `sfz-integration`.
+Nothing depends on them; the repo's practice after a merge is to delete them, and
+that has not been done for these two yet.
 
 ## Key Recent Facts
 - Piano-App is a JUCE C++ **sample-based** arranger keyboard (SFZ via sfzero — **no oscillators anywhere**). [[Keyboard & Main UI]] (`MainComponent`) wires everything. Two parallel engines: classic [[Track Playback]] and the [[Arranger Engine]]; sound via [[Audio & SFZ Playback]].
@@ -37,12 +47,14 @@ Only **`main`** and **`fix/sfz-integration`** exist now, local and remote. The 7
   branch protection would block it waiting for a run that never comes.
 
 ## Active Threads / Next
-- ✅ **FIXED — the delay bypass freeze**, on `fix/dsp-quality` (2026-08-30). The write is now unconditional and only the read/mix is gated. Same branch also smooths every CC-driven parameter per sample and antialiases the distortion with first-order ADAA (alias-to-signal −13.07 → −19.25 dB, measured in `test_channel_dsp.cpp`). Unit **707/0**, arranger **705/0**, app builds clean. Detail on [[Audio & SFZ Playback]].
-- 🟡 **The delay *read offset* still jumps.** `updateCC` case 94 moves `delayReadOffset` instantly, which is a pitch discontinuity and clicks. Needs fractional (Lagrange) interpolation on the read position — a separate change from the mix smoothing already done.
+- ✅ **FIXED and merged to `main` — the delay bypass freeze** (PR #11, `ab5d356`). The write is now unconditional and only the read/mix is gated. Same change also smooths every CC-driven parameter per sample and antialiases the distortion with first-order ADAA (alias-to-signal −13.07 → −19.25 dB, measured in `test_channel_dsp.cpp`). Unit **707/0**, arranger **705/0**, app builds clean. Detail on [[Audio & SFZ Playback]].
+- 🟡 **The delay *read offset* still jumps.** `updateCC` case 94 moves `delayReadOffset` instantly, which is a pitch discontinuity and clicks. Needs fractional (Lagrange) interpolation on the read position — a separate change from the mix smoothing already done. **The replacement now exists**: `DelayLine` in the sibling `va-effects` repo, where the measurements are also written up. Integer-position reading ignores a modulation smaller than half a sample *entirely* — the output is bit-identical to no modulation — so this bug is worse than "it jumps a bit".
 - ⚠️ **Other tests may be silently stale.** `test_midi_handler.cpp` asserted behaviour `5c75d4f` had deliberately changed and never failed, because the runner in `Main.cpp` was commented out — the app compiled tests without running them. Anything touching code changed between `d05e07b` and now deserves suspicion. CI catches this from now on.
 - 🟡 **`b5765e9` missing-SFZ popup still not smoke-tested** — and now harder, since the rename left the SFZ library empty. Re-add SFZs first.
 - 🟡 **Phase 7a manual sign-off 0/9** — `docs/superpowers/test-plans/2026-06-26-arranger-phase7a-ntt-testing.md`. Automated suites green.
-- 🟡 **Next step: PR `fix/sfz-integration` → `main`.** User reports `main`'s required-approvals set to 0 (unverified from here — GitHub admin auth needed). `main` has no workflow of its own; it inherits CI once this lands.
+- ✅ **DONE — `fix/sfz-integration` merged to `main`** (PR #10, `f7b4df3`). `main` now carries the workflow, so CI runs on it.
+- 🟡 **Prune the two merged branches.** `fix/dsp-quality` and `fix/sfz-integration` remain local and remote, plus a stale local `sfz-integration`. All three are fully contained in `main`.
+- 🟡 **Next DSP change: swap `juce::dsp::Chorus` (CC93) for the BBD model** from `va-effects`. Keeps the CC mapping; gives a like-for-like A/B against a stock implementation in the same chain. The constraint is budget — sixteen `ChannelDSP` instances have to fit in what they cost before.
 - 🟢 **OpenGL crash parked** (unreproducible); tripwire logs to `Desktop/piano_gl_errors.log`, which has never appeared.
 - 📝 **`wiki/log.md` has a permanent gap** — entries between 2026-06-25 and 2026-08-15 were lost to a truncating write on 2026-08-29 and were unrecoverable (the vault was gitignored at the time; it is tracked now). Marked inline in the file.
 - 📝 Possible polish (not done): make the chord-zone mute a no-op when `rightHandBound == -1`.
