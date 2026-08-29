@@ -37,7 +37,8 @@ Only **`main`** and **`fix/sfz-integration`** exist now, local and remote. The 7
   branch protection would block it waiting for a run that never comes.
 
 ## Active Threads / Next
-- 🔴 **UNFIXED — the delay bypass freezes the delay line.** `AudioHandler.cpp:181-193` keeps the buffer *write* inside `if (delayMix > 0.005f)`, so re-enabling delay replays stale audio at full mix. Fix options on [[Audio & SFZ Playback]].
+- ✅ **FIXED — the delay bypass freeze**, on `fix/dsp-quality` (2026-08-30). The write is now unconditional and only the read/mix is gated. Same branch also smooths every CC-driven parameter per sample and antialiases the distortion with first-order ADAA (alias-to-signal −13.07 → −19.25 dB, measured in `test_channel_dsp.cpp`). Unit **707/0**, arranger **705/0**, app builds clean. Detail on [[Audio & SFZ Playback]].
+- 🟡 **The delay *read offset* still jumps.** `updateCC` case 94 moves `delayReadOffset` instantly, which is a pitch discontinuity and clicks. Needs fractional (Lagrange) interpolation on the read position — a separate change from the mix smoothing already done.
 - ⚠️ **Other tests may be silently stale.** `test_midi_handler.cpp` asserted behaviour `5c75d4f` had deliberately changed and never failed, because the runner in `Main.cpp` was commented out — the app compiled tests without running them. Anything touching code changed between `d05e07b` and now deserves suspicion. CI catches this from now on.
 - 🟡 **`b5765e9` missing-SFZ popup still not smoke-tested** — and now harder, since the rename left the SFZ library empty. Re-add SFZs first.
 - 🟡 **Phase 7a manual sign-off 0/9** — `docs/superpowers/test-plans/2026-06-26-arranger-phase7a-ntt-testing.md`. Automated suites green.

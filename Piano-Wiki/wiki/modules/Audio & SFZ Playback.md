@@ -91,13 +91,51 @@ sfzero output → filter (CC74/71) → distortion (CC80) → chorus (CC93) → r
 > CC76 (filterTrack) and CC73/75/72 (attack/decay/release) as no-ops: they are per-voice concepts
 > that post-render DSP cannot reach. True per-voice filtering would mean going inside sfzero.
 
-> [!bug] The delay bypass freezes the delay line
-> In `process` (`AudioHandler.cpp:181-193`) the **write** (`delayLineL[delayWritePos] = left[i]`)
-> sits *inside* `if (delayMix > 0.005f)`. With delay off nothing is written and `delayWritePos`
-> stops advancing, so re-enabling replays whatever was in the buffer when it was switched off —
-> a stale echo of old material at full mix on the first block. Tremolo/randomMod share the shape
-> but are harmless (stateless multiplies). Fix: always write and gate only the read/mix, or
-> `std::fill` the buffer in `updateCC` when `delayMix` crosses to zero (cheaper — control rate).
+> [!done] The delay bypass freeze is fixed (2026-08-30, `fix/dsp-quality`)
+> The **write** used to sit *inside* `if (delayMix > 0.005f)`, so with the delay off nothing was
+> written and `delayWritePos` stopped advancing — re-enabling replayed whatever was in the buffer
+> when it was switched off, a stale echo of old material at full mix. The write is now
+> unconditional and only the read/mix is gated, on the reasoning that a delay line is a record of
+> recent history and has to stay one whether or not anyone is listening. The `%` operations were
+> replaced with compare-and-wrap in the same change, which pays for most of the cost of running
+> the loop every block. Covered by `test_channel_dsp.cpp` ("bypassing does not freeze the line").
+
+> [!key-insight] Every CC-driven parameter is smoothed per sample (2026-08-30)
+> `updateCC` now sets a **target**; `process` walks each `SmoothedParam` toward it one sample at a
+> time. Previously a CC was applied as a constant for the whole block, stepping the parameter up to
+> 750 times a second — every step a waveform discontinuity. Measured on a modulated filter, that
+> plants sidebands at carrier ± n·blockrate roughly 98 dB above where per-sample updating leaves
+> them, and because the artifact frequencies track the *host's* block size, the same code sounds
+> different at 64 and 128 samples. Time constants are per parameter (expression 8 ms, filter and
+> drive 20 ms, mixes and depths 25 ms) — see the reasoning in `prepare()`.
+>
+> Two things this exposed that were not obvious:
+> - **Cutoff is smoothed as `log2(Hz)`, not Hz.** A one-pole covering hertz proportionally to the
+>   distance remaining crashes through the top octaves at ~1/(τ·ln2) ≈ 70 octaves/second on a large
+>   move, then crawls. That is a lurch, not a sweep, and it registers as a discontinuity.
+> - **The filter is crossfaded in, not switched in.** A bypassed filter holds no state, and a
+>   two-pole TPT lowpass with zero integrator state returns ≈`a2·x` on its first sample — about
+>   0.18 of the input at a 20 kHz cutoff. That click predates the smoothing work; smoothing
+>   everything else is what made it audible.
+
+> [!key-insight] The distortion is antialiased with first-order ADAA (2026-08-30)
+> `tanh` applied pointwise generates harmonics without limit; the ones above Nyquist fold back to
+> `|fs − n·f|`, which are not harmonics of anything and which *descend* as the played note rises.
+> That is why heavy drive sounded metallic in the top octaves. `Adaa1Tanh` evaluates the average of
+> the curve across each sample interval instead — a difference of `log(cosh)`, its antiderivative.
+> Measured in `test_channel_dsp.cpp` on a 5 kHz tone at CC80 = 127: alias-to-signal improves from
+> **−13.07 dB to −19.25 dB**, for roughly 20% more CPU in that stage.
+>
+> Oversampling does far better (−51.7 dB at 4×) but costs ~23×, and **sixteen of these run in
+> parallel** — about 38% of a core for one stage in a chain that also runs filters, chorus, reverb,
+> delay and a sampler. ADAA is ~1.9% for all sixteen. This is a budget decision, not a claim that
+> ADAA is the better algorithm.
+
+> [!bug] The delay read offset still jumps
+> `updateCC` case 94 sets `delayReadOffset` instantly. Moving a delay read head is a pitch
+> discontinuity — it clicks. Smoothing it needs fractional interpolation on the read position
+> (Lagrange), which is a separate change from the mix smoothing already done. Noted at
+> `AudioHandler.cpp` case 94.
 
 > [!key-insight] Effects apply to BOTH engines, but different code does the work
 > One knob fires both paths, gated on which output is open (`MainComponent.cpp:770-776`, and again

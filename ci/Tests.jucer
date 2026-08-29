@@ -7,6 +7,8 @@
       <GROUP id="{A1B2C3D4-1111-2222-3333-444455556666}" name="Unit">
         <FILE id="fAdttJ" name="test_add_device_window.cpp" compile="1" resource="0"
               file="../tests/unit/test_add_device_window.cpp"/>
+        <FILE id="chDsp1" name="test_channel_dsp.cpp" compile="1" resource="0"
+              file="../tests/unit/test_channel_dsp.cpp"/>
         <FILE id="xDyqb2" name="test_custom_beatbar.cpp" compile="1" resource="0"
               file="../tests/unit/test_custom_beatbar.cpp"/>
         <FILE id="km3oiF" name="test_helper_functions.cpp" compile="1" resource="0"

@@ -54,36 +54,80 @@ void ChannelDSP::prepare(double sr, int blockSize)
     randomModSmoothed  = 0.0f;
     filterCutoffCC     = 127;
     filterResonanceCC  = 0;
-    distortionNormFactor = 1.0f;
+
+    // Smoothing time constants. These are chosen per parameter rather than shared,
+    // because what counts as "fast enough to feel responsive" and "slow enough not
+    // to click" differs by what the parameter does.
+    //
+    //   expression   a volume pedal has to feel immediate, and gain is the
+    //                parameter least prone to artifacts, so it gets the fastest
+    //   filter       fast enough to follow a sweep, slow enough that a jumped CC
+    //                does not step the cutoff audibly
+    //   drive        changes timbre rather than level; a slower ramp reads as
+    //                intentional rather than as a glitch
+    //   mixes/depths dry-to-wet transitions are the most exposed, so slowest
+    expression          .setTimeConstant( 8.0, sr);
+    filterCutoffLog2    .setTimeConstant(20.0, sr);
+    filterResonance     .setTimeConstant(20.0, sr);
+    filterMix           .setTimeConstant(20.0, sr);
+    distortionDrive     .setTimeConstant(20.0, sr);
+    distortionNormFactor.setTimeConstant(20.0, sr);
+    tremoloDepth        .setTimeConstant(25.0, sr);
+    randomModDepth      .setTimeConstant(25.0, sr);
+    delayMix            .setTimeConstant(25.0, sr);
+
+    // prepare() is not a parameter change, so these start where they belong
+    // rather than ramping up from silence on the first block.
+    expression          .snap(1.0f);
+    filterCutoffLog2    .snap(std::log2(20000.0f));
+    filterResonance     .snap(0.707f);
+    filterMix           .snap(0.0f);
+    distortionDrive     .snap(1.0f);
+    distortionNormFactor.snap(1.0f / std::tanh(1.0f));
+    tremoloDepth        .snap(0.0f);
+    randomModDepth      .snap(0.0f);
+    delayMix            .snap(0.0f);
+
+    for (auto& adaa : distortionAdaa)
+        adaa.reset();
 }
 
 void ChannelDSP::updateCC(int ccNumber, int value)
 {
     const float norm = value / 127.0f;
+
+    // Every case below sets a *target*. Nothing here touches a value the audio
+    // loop reads directly; process() walks each parameter toward its target one
+    // sample at a time.
     switch (ccNumber)
     {
         case 11: // expression
-            expression = norm;
+            expression.target = norm;
             break;
 
         case 71: // resonance → filter Q
             filterResonanceCC = value;
-            filter.setResonance(0.5f + norm * 9.5f);
+            filterResonance.target = 0.5f + norm * 9.5f;
             break;
 
         case 74: // brightness → LP filter cutoff (100 Hz – 20 kHz, log)
         {
             filterCutoffCC = value;
             const float hz = 100.0f * std::pow(200.0f, norm);
-            filter.setCutoffFrequency(juce::jlimit(20.0f, 20000.0f, hz));
+            filterCutoffLog2.target = std::log2(juce::jlimit(20.0f, 20000.0f, hz));
             break;
         }
 
         case 80: // distortion drive
         {
-            distortionDrive = norm;
             const float drive = 1.0f + norm * 15.0f;
-            distortionNormFactor = 1.0f / std::tanh(drive);
+            distortionDrive.target = drive;
+
+            // The normalisation factor is smoothed alongside the drive rather than
+            // recomputed from the smoothed drive per sample. Both are monotonic in
+            // the same CC, so the two ramps stay consistent with each other, and
+            // this avoids a second tanh and a divide in the inner loop.
+            distortionNormFactor.target = 1.0f / std::tanh(drive);
             break;
         }
 
@@ -94,7 +138,7 @@ void ChannelDSP::updateCC(int ccNumber, int value)
             break;
 
         case 92: // tremolo depth
-            tremoloDepth = norm;
+            tremoloDepth.target = norm;
             break;
 
         case 93: // chorus mix
@@ -103,16 +147,20 @@ void ChannelDSP::updateCC(int ccNumber, int value)
             break;
 
         case 94: // delay — mix + time
-            delayMix = norm * 0.8f;
+            delayMix.target = norm * 0.8f;
             if (!delayLineL.empty())
             {
+                // NOTE: the read offset still jumps. Changing a delay length
+                // instantly moves the read head, which is a pitch discontinuity -
+                // it clicks. Smoothing it properly requires fractional
+                // interpolation on the read position, which is a separate change.
                 int offset = static_cast<int>(sampleRate * (0.05 + norm * 0.35));
                 delayReadOffset = juce::jlimit(1, static_cast<int>(delayLineL.size()) - 1, offset);
             }
             break;
 
         case 95: // random mod depth
-            randomModDepth = norm;
+            randomModDepth.target = norm;
             break;
 
         // CC1 (vibrato): passed through to sfzero — works if the SFZ file defines modwheel
@@ -130,24 +178,70 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
     float* right = buffer.getWritePointer(1);
 
     // --- LP filter (CC74 brightness + CC71 resonance) ---
-    // Skip entirely when both CCs are at neutral (CC74=127, CC71=0)
-    if (filterCutoffCC < 127 || filterResonanceCC > 0)
-    {
-        juce::dsp::AudioBlock<float> block(buffer.getArrayOfWritePointers(),
-                                           (size_t)buffer.getNumChannels(),
-                                           (size_t)numSamples);
-        filter.process(juce::dsp::ProcessContextReplacing<float>(block));
-    }
+    // Runs while the CCs are away from neutral OR while a ramp is still settling;
+    // stopping the moment the CC returns to neutral would cut the ramp off and
+    // reintroduce the step this smoothing exists to remove.
+    filterMix.target = (filterCutoffCC < 127 || filterResonanceCC > 0) ? 1.0f : 0.0f;
 
-    // --- Distortion (CC80) ---
-    if (distortionDrive > 0.005f)
+    if (filterMix.isActive(0.0005f))
     {
-        const float drive = 1.0f + distortionDrive * 15.0f;
+        // Per-sample rather than filter.process() on a block. The coefficients are
+        // recomputed every sample so that a moving cutoff is a continuous sweep
+        // rather than one step per block. A TPT filter is the structure that makes
+        // this safe: its state is a pair of integrator outputs in signal units,
+        // which stay meaningful when the coefficients change underneath them. A
+        // biquad's state is delayed signal that belongs to the coefficients that
+        // produced it, and modulating one that way diverges.
         for (int i = 0; i < numSamples; ++i)
         {
-            left[i]  = std::tanh(left[i]  * drive) * distortionNormFactor;
-            right[i] = std::tanh(right[i] * drive) * distortionNormFactor;
+            filter.setCutoffFrequency(std::exp2(filterCutoffLog2.nextValue()));
+            filter.setResonance(filterResonance.nextValue());
+
+            const float dryL = left[i];
+            const float dryR = right[i];
+            const float wetL = filter.processSample(0, dryL);
+            const float wetR = filter.processSample(1, dryR);
+            const float mix  = filterMix.nextValue();
+
+            left[i]  = dryL + mix * (wetL - dryL);
+            right[i] = dryR + mix * (wetR - dryR);
         }
+
+        filter.snapToZero();
+    }
+    else
+    {
+        // Fully bypassed. Drop the filter state rather than letting it go stale;
+        // the crossfade above is what makes starting cold inaudible next time.
+        filter.reset();
+
+        // Keep the ramps tracking their targets even while bypassed, so re-engaging
+        // starts from where the parameter actually is.
+        filterCutoffLog2.current = filterCutoffLog2.target;
+        filterResonance.current  = filterResonance.target;
+    }
+
+    // --- Distortion (CC80), antialiased ---
+    if (distortionDrive.isActive(1.005f) || distortionNormFactor.current < 0.999f)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float drive = distortionDrive.nextValue();
+            const float norm  = distortionNormFactor.nextValue();
+
+            left[i]  = distortionAdaa[0].process(left[i]  * drive) * norm;
+            right[i] = distortionAdaa[1].process(right[i] * drive) * norm;
+        }
+    }
+    else
+    {
+        // Bypassed: drop the ADAA history so the next engagement primes from its
+        // own first sample rather than differencing against a stale one.
+        for (auto& adaa : distortionAdaa)
+            adaa.reset();
+
+        distortionDrive.current      = distortionDrive.target;
+        distortionNormFactor.current = distortionNormFactor.target;
     }
 
     // --- Chorus (CC93) ---
@@ -164,11 +258,12 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
         reverb.processStereo(left, right, numSamples);
 
     // --- Tremolo (CC92) — 5 Hz amplitude LFO ---
-    if (tremoloDepth > 0.005f)
+    if (tremoloDepth.isActive(0.005f))
     {
         for (int i = 0; i < numSamples; ++i)
         {
-            const float mod = 1.0f - tremoloDepth * 0.5f * (1.0f + std::sin(tremoloPhase));
+            const float depth = tremoloDepth.nextValue();
+            const float mod = 1.0f - depth * 0.5f * (1.0f + std::sin(tremoloPhase));
             left[i]  *= mod;
             right[i] *= mod;
             tremoloPhase += tremoloPhaseInc;
@@ -176,37 +271,79 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
                 tremoloPhase -= juce::MathConstants<float>::twoPi;
         }
     }
+    else
+    {
+        tremoloDepth.current = tremoloDepth.target;
+    }
 
     // --- Delay (CC94) ---
-    if (delayMix > 0.005f && !delayLineL.empty())
+    // The delay line is written unconditionally. Previously the writes lived
+    // inside the "is the delay audible" test, so turning CC94 down froze the
+    // buffer holding whatever was playing at that moment, and turning it back up
+    // replayed up to half a second of stale audio at full mix. A delay line is a
+    // record of recent history; it has to stay a record whether or not anyone is
+    // currently listening to it.
+    if (!delayLineL.empty())
     {
         const int delaySize = static_cast<int>(delayLineL.size());
+
         for (int i = 0; i < numSamples; ++i)
         {
-            const int readPos = (delayWritePos - delayReadOffset + delaySize) % delaySize;
+            int readPos = delayWritePos - delayReadOffset;
+            if (readPos < 0)
+                readPos += delaySize;
+
+            // Read before write. The two positions cannot coincide while the read
+            // offset is at least one, but reading first is the habit that keeps a
+            // feedback path computable if one is ever added here.
+            const float delayedL = delayLineL[readPos];
+            const float delayedR = delayLineR[readPos];
+
             delayLineL[delayWritePos] = left[i];
             delayLineR[delayWritePos] = right[i];
-            left[i]  += delayMix * delayLineL[readPos];
-            right[i] += delayMix * delayLineR[readPos];
-            delayWritePos = (delayWritePos + 1) % delaySize;
+
+            const float mix = delayMix.nextValue();
+            left[i]  += mix * delayedL;
+            right[i] += mix * delayedR;
+
+            // Compare-and-wrap rather than %. Modulo is an integer division, and
+            // this loop now runs on every channel on every block rather than only
+            // when the delay is audible, so the two divisions it removes pay for
+            // most of the cost the unconditional write adds.
+            if (++delayWritePos >= delaySize)
+                delayWritePos = 0;
         }
     }
 
     // --- Random Mod (CC95) — smoothed noise amplitude flutter ---
-    if (randomModDepth > 0.005f)
+    if (randomModDepth.isActive(0.005f))
     {
         for (int i = 0; i < numSamples; ++i)
         {
             randomModSmoothed = 0.998f * randomModSmoothed + 0.002f * rng.nextFloat();
-            const float mod = 1.0f - randomModDepth * randomModSmoothed;
+            const float mod = 1.0f - randomModDepth.nextValue() * randomModSmoothed;
             left[i]  *= mod;
             right[i] *= mod;
         }
     }
+    else
+    {
+        randomModDepth.current = randomModDepth.target;
+    }
 
     // --- Expression (CC11) ---
-    if (expression < 0.999f)
-        buffer.applyGain(0, numSamples, expression);
+    // applyGain() with a single value would step once per block; the per-sample
+    // ramp is the whole point. Runs whenever the gain is below unity or still on
+    // its way back to it.
+    if (expression.current < 0.999f || expression.target < 0.999f)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float gain = expression.nextValue();
+            left[i]  *= gain;
+            right[i] *= gain;
+        }
+    }
 }
 
 //==============================================================================
