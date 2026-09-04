@@ -2,7 +2,7 @@
 type: meta
 title: "Master Index"
 created: 2026-06-06
-updated: 2026-06-25
+updated: 2026-09-04
 tags:
   - meta
   - index
@@ -41,6 +41,7 @@ See [[components/_index|Components Index]]. Reusable UI / functional components.
 ## Decisions — `wiki/decisions/`
 See [[decisions/_index|Decisions Index]]. Architecture Decision Records (ADRs).
 - [[ADR-001 Pure Schedulers and Parallel Engine]]
+- [[ADR-002 Defer MainComponent Display Refactor]] — MainComponent/Display flagged as large integration files; refactor deferred, DI preferred over event bus if it happens
 
 ## Dependencies — `wiki/dependencies/`
 See [[dependencies/_index|Dependencies Index]]. External libraries, versions, risk.
