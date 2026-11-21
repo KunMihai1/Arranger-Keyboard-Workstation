@@ -2,7 +2,7 @@
 type: meta
 title: "Operations Log"
 created: 2026-06-06
-updated: 2026-08-29
+updated: 2026-09-04
 tags:
   - meta
   - log
@@ -12,6 +12,26 @@ status: evergreen
 # Operations Log
 
 Append-only. Newest entries at the TOP. Never edit past entries.
+
+## 2026-09-04 — ARCHITECTURE.md added; ADR-002 flags MainComponent/Display for future refactor
+Added `ARCHITECTURE.md` at the repo root: subsystem breakdown, MainComponent's
+composition-root role (with a real callback-wiring snippet), the two-parallel-engines
+mode split (`TrackPlayer` vs `ArrangerEngine`, kept separate deliberately — they're two
+app modes, not a legacy duplicate), the arranger's pure-core/impure-shell split, the
+threading model, and three Mermaid diagrams (system context, whole-app components,
+arranger internals).
+
+Recorded **ADR-002**: `MainComponent.cpp` (~3,083 lines) and `Display.cpp` (~1,174
+lines) are flagged as large integration files, but refactoring either is deliberately
+deferred — no concrete pain justifies the churn yet. `Styles/CurrentStyleComponent.cpp`
+(~1,375 lines) has the same shape and is noted for the same future scrutiny, though not
+otherwise addressed. If a refactor does happen: lean on small DI-style coordinator
+classes (constructed, handed references) over a wholesale rewrite; explicitly avoid an
+event bus, since most of `MainComponent`'s coupling is direct 1:1 calls, not genuine
+many-to-many fan-out — a bus would trade a bluntly-readable file for indirection without
+solving a real problem. Trigger to revisit: wanting to unit-test the audio+arranger
+stack without the GUI, a second host window, or real concurrent work on disjoint areas —
+not general file-size discomfort. See [[ADR-002 Defer MainComponent Display Refactor]].
 
 ## 2026-08-29 (later) — `ci-test-separation` merged in (`50e2d02`); CI live on the branch; branches pruned
 `fix/sfz-integration` now carries everything: the rename, the SFZ popup work, the PC-keyboard fix, **Phase 7a NTT**, the wiki, and **CI itself**. Pushed; the workflow runs on this branch from now on.

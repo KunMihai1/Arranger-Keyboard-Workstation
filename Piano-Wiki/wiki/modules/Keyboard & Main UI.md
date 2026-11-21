@@ -14,7 +14,7 @@ depends_on:
   - "[[Supabase Backend]]"
 used_by: []
 created: 2026-06-06
-updated: 2026-06-25
+updated: 2026-09-04
 tags:
   - module
   - ui
@@ -62,4 +62,8 @@ The PC keyboard plays only while `MainComponent` holds keyboard focus, so focus 
 
 ## Notes / gotchas
 > [!gap] Large surface
-> `MainComponent.cpp` is the biggest integration point; when tracing a feature, start from the callback wiring here.
+> `MainComponent.cpp` (~3,083 lines) is the biggest integration point; when tracing a
+> feature, start from the callback wiring here. `Display.cpp` (~1,174 lines) is the
+> next-largest file in this module for similar reasons. Refactoring either was discussed
+> and deliberately deferred — see [[ADR-002 Defer MainComponent Display Refactor]] for
+> the reasoning and the trigger condition to revisit it.
