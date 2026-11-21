@@ -16,10 +16,10 @@ The repo has **two** Projucer projects sharing `Source/`:
 
 | Project | Target | Purpose |
 |---|---|---|
-| `Project Synth2.jucer` | GUI app | the shipped application — compiles **no** test code |
+| `Arranger Workstation.jucer` | GUI app | the shipped application — compiles **no** test code |
 | `ci/Tests.jucer` | Console app | headless test runner (`Project Tests.exe`) |
 
-- **App:** open `Project Synth2.jucer`, save, then build `Builds/VisualStudio2022` (Debug x64).
+- **App:** open `Arranger Workstation.jucer`, save, then build `Builds/VisualStudio2022` (Debug x64).
 - **Tests:** open `ci/Tests.jucer`, save, build `ci/Builds/VisualStudio2022`, then run
   `Project Tests.exe --unit-tests` and `--arranger-tests`. The **exit code is the number of failing
   assertions** (0 = green), and results are written to `test-results.txt` in the working directory.
@@ -46,7 +46,7 @@ alone is not sufficient — the runner also exits 0 when it runs *no* tests, so 
 a dropped translation unit would otherwise pass silently. If you legitimately remove tests, lower the
 floor in the same commit; if you add a lot, raise it.
 
-**Adding a `Source/` file:** add it to **both** `Project Synth2.jucer` and `ci/Tests.jucer` — Projucer
+**Adding a `Source/` file:** add it to **both** `Arranger Workstation.jucer` and `ci/Tests.jucer` — Projucer
 keeps explicit file lists. Forgetting the second one shows up as a link error in CI.
 
 
@@ -103,6 +103,10 @@ Sound comes from **sampled instruments (SFZ)**, not synthesis — there are no o
   piece is the engine's timer loop. That separation is what makes the engine testable.
 - Audio, timer and GUI threads exchange state only through lock-guarded mailboxes — nothing mutates
   engine state directly from the message thread.
+
+Full overview with diagrams: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Per-module deep dives and
+decision records live in the `Piano-Wiki/` vault; design specs and plans in `docs/superpowers/`.
+Contributor (and AI agent) rules: [`AGENTS.md`](AGENTS.md).
 
 ## Tech
 

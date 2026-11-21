@@ -127,7 +127,7 @@ flowchart TB
 ### Arranger internal: pure core vs. impure shell
 
 Zooming into `Arranger/` — the one subsystem architected differently from the rest of
-the app (see [ADR-001](Piano-Wiki/wiki/decisions/ADR-001%20Pure%20Schedulers%20and%20Parallel%20Engine.md)).
+the app (see [ADR-001](../Piano-Wiki/wiki/decisions/ADR-001%20Pure%20Schedulers%20and%20Parallel%20Engine.md)).
 
 ```mermaid
 flowchart LR
