@@ -402,8 +402,19 @@ void ArrangerEngine::haltAudio()
     {
         notifyActiveSection (true);
         if (onStoppedItself)
-            juce::MessageManager::callAsync ([this] { if (onStoppedItself) onStoppedItself(); });
+            juce::MessageManager::callAsync ([this] { notifyStoppedUnlessRestarted(); });
     }
+}
+
+void ArrangerEngine::notifyStoppedUnlessRestarted()
+{
+    // Start pressed while playing stops and restarts at once; this notification then arrives after the
+    // restart and would mark a playing engine as stopped (BPM unlocked, beat bar reset).
+    if (playing.load())
+        return;
+
+    if (onStoppedItself)
+        onStoppedItself();
 }
 
 void ArrangerEngine::notifyActiveSection (bool force)

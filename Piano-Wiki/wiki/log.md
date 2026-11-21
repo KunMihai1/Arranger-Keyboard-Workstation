@@ -13,6 +13,19 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Fix: Start pressed while already playing broke the BPM lock
+- Track player: `MultipleTrackPlayer::start()`/`stop(true)` post a play-state notification and the
+  listeners *flipped* state (BPM slider; notes table Change/Apply). Start-while-playing = uncounted
+  stop + counted start → one flip too many. Listeners now read `MultipleTrackPlayer::isPlaying()`
+  (new; `isTimerRunning()`, mutex-guarded in JUCE). `updateObjects` ignores track-player
+  notifications in arranger mode (the arranger owns the BPM lock there).
+- Arranger: `haltAudio` posts the 'stopped' callback; after an immediate restart it arrived late and
+  cleared the playing state. The posted target is now `ArrangerEngine::notifyStoppedUnlessRestarted()`,
+  which returns while `playing` (also true when Synchro-armed).
+- Tests `test_start_while_playing.cpp` (4 cases, all values/strings named per the new rule): 6
+  failures before, unit 806/0 + arranger 705/0 after. Live: track mode Start/Start/Stop/Stop and
+  arranger Start/Start all keep the right lock.
+
 ## 2026-11-22 — Fix: style slots switched to another track's data
 - The shared `UUID → TrackEntry*` map is now only ever pointed into the library: the picker no
   longer stores `&availableTracksFromFolder[i]` (a copy overwritten on every folder open), and

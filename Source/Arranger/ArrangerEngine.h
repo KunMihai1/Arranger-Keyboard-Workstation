@@ -68,6 +68,10 @@ public:
     void stop();
     bool isPlaying() const { return playing.load(); }
 
+    /** Delivers onStoppedItself on the message thread. Posted by every stop that was playing, so it
+        can arrive after the engine has been started again. */
+    void notifyStoppedUnlessRestarted();
+
     /** Phase 6: Synchro Start. When enabled, start() arms the engine instead of playing immediately;
         the groove begins on the first recognised chord (a chord already held at Start fires it at
         once, via the Phase-5 held-chord seed). */
