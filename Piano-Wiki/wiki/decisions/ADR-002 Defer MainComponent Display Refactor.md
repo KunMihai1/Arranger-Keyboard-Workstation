@@ -1,7 +1,7 @@
 ---
 type: decision
 title: "ADR-002: Defer the MainComponent / Display Refactor, Lean DI Over Event Bus"
-status: active
+status: partly-superseded
 date: 2026-09-04
 context: "MainComponent and Display have grown into large integration files; whether/how to refactor them was discussed and deliberately deferred"
 created: 2026-09-04
@@ -16,6 +16,10 @@ related:
 ---
 
 # ADR-002: Defer the MainComponent / Display Refactor, Lean DI Over Event Bus When It Happens
+
+> [!note] Partly superseded (2026-11-21)
+> "Leave both files as-is" is replaced by [[ADR-003 800-Line File Cap Split By Responsibility]]: the files are now
+> split verbatim by responsibility under an 800-line cap. The DI-over-event-bus guidance below still stands.
 
 ## Context
 `MainComponent.cpp` (~3,083 lines) and `Display.cpp` (~1,174 lines) are the app's largest

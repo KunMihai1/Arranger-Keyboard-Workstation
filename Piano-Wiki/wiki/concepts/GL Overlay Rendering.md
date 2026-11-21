@@ -2,7 +2,7 @@
 type: concept
 title: "GL Overlay Rendering"
 created: 2026-06-07
-updated: 2026-06-07
+updated: 2026-11-21
 tags:
   - concept
   - ui
@@ -35,4 +35,18 @@ Why on-screen overlays (loading label, ESC menu) need special handling in this a
 Any overlay that must appear **over the live scene** either (a) hides the GL `NoteLayer` for its duration, or (b) is drawn inside the GL layer. Don't rely on `setAlwaysOnTop` or `performAnyPendingRepaintsNow` alone — they don't beat the GL child surface, and forcing a paint without yielding to the loop won't present it.
 
 > [!warning] Never call OpenGL from `NoteLayer` component callbacks (message thread)
-> `NoteLayer` attaches its own `juce::OpenGLContext`, which renders on a **dedicated render thread**. Only the render-thread hooks — `newOpenGLContextCreated` / `renderOpenGL` / `openGLContextClosing` — may touch GL. Component callbacks like `resized()` run on the **message thread**; calling `openGLContext.makeActive()` / `glViewport()` there makes the context current on the wrong thread and races the render thread, producing an intermittent `GL_DEBUG_TYPE_ERROR` that trips JUCE's `glDebugMessageCallback` assert (`juce_OpenGLContext.cpp:662`) during `swapBuffers` — looks like a crash under the debugger. It's also unnecessary: JUCE sets the viewport itself every frame before `renderOpenGL()` (`CachedImage::renderFrame` line 414). Fixed 2026-08-09 (`cfe100b`): `resized()` now only calls `triggerRepaint()`. The render vs message thread are otherwise mutually excluded — `renderFrame` holds the MessageManager lock across `renderOpenGL()` — so shared state like `particles` needs no extra locking. To diagnose a residual GL error, read the `message` variable at the line-662 break (the "…will use VIDEO memory…" NVIDIA lines are harmless `NOTIFICATION` noise from the per-frame `glBufferData`).
+> `NoteLayer` attaches its own `juce::OpenGLContext`, which renders on a **dedicated render thread**. Only the render-thread hooks — `newOpenGLContextCreated` / `renderOpenGL` / `openGLContextClosing` — may touch GL. Component callbacks like `resized()` run on the **message thread**; calling `openGLContext.makeActive()` / `glViewport()` there makes the context current on the wrong thread and races the render thread, producing an intermittent `GL_DEBUG_TYPE_ERROR` that trips JUCE's `glDebugMessageCallback` assert (`juce_OpenGLContext.cpp:662`) during `swapBuffers` — looks like a crash under the debugger. It's also unnecessary: JUCE sets the viewport itself every frame before `renderOpenGL()` (`CachedImage::renderFrame` line 414). Fixed 2026-08-09 (`cfe100b`): `resized()` now only calls `triggerRepaint()`. ~~The render vs message thread are otherwise mutually excluded — `renderFrame` holds the MessageManager lock across `renderOpenGL()` — so shared state like `particles` needs no extra locking.~~ **No longer true since 2026-11-21:** that lock is only taken when *component painting* is on. `NoteLayer` now turns it off and draws everything in `renderOpenGL()`, so the render thread runs **without** the message lock. All animation state (`NoteField`, particles) is render-thread-owned; the message thread talks to it only through `NoteLayer`'s `commandLock`-guarded queue. To diagnose a residual GL error, read the `message` variable at the line-662 break (the "…will use VIDEO memory…" NVIDIA lines are harmless `NOTIFICATION` noise from the per-frame `glBufferData`).
+
+## NoteLayer draws on the render thread (2026-11-21)
+Measured: painting notes with `juce::Graphics` made JUCE hold the MessageManager lock for the whole
+paint each frame — Debug, ~90 notes: **18 fps, UI frozen up to ~90 ms**; Release ~30 % of a core,
+mostly the NVIDIA driver spin-waiting in `SwapBuffers`. Now:
+- `setComponentPaintingEnabled(false)`; notes are one batched draw with a rounded-rect SDF shader
+  (same look); particles are drawn first so notes stay on top, as before.
+- Motion in `NoteField` (pure, unit-tested), advanced with measured `dt`; sub-pixel positions.
+- Frames paced with `DwmFlush()` while animating (vsync swap waits spin on NVIDIA); idle = no frames.
+  Measured to pace correctly when minimised and on a locked session.
+- **Hiding the layer detaches the GL context** (JUCE `Attachment::componentVisibilityChanged`); it is
+  re-created on show, so every GL object is rebuilt in `newOpenGLContextCreated()`.
+- Result: Release 1.9 % CPU, message-thread latency p99 0.23 ms; Debug stress 60 fps.
+  Spec + numbers: `docs/superpowers/specs/2026-11-21-note-rendering-perf-design.md`.

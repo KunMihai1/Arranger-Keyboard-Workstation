@@ -33,7 +33,7 @@ The main application screen: hosts the on-screen keyboard, the display/transport
 ## Key files
 - `MainComponent.h/.cpp` — central component. Also defines custom UI: `SmoothRotarySlider`, `KnobLookAndFeel` (image-based rotary knobs from `BinaryData`). Owns the subsystem objects and wires their callbacks together.
 - `KeyboardUI.h` (note: declared in `NoteLayer.h`) / `KeyboardUI.cpp` — visual piano keyboard; `MidiHandlerListener` that lights active notes over a configurable note range.
-- `NoteLayer.h/.cpp` — overlay layer for note visuals.
+- `NoteLayer.h/.cpp` — falling-note visuals, drawn entirely on the OpenGL render thread (SDF shader, component painting off); motion rules in the pure, unit-tested `NoteField.h/.cpp`. See [[GL Overlay Rendering]].
 - `displayGUI.h/.cpp` — the main display / transport readout.
 - `CustomBeatBar.h/.cpp` — beat/bar position indicator (driven by `onElapsedBeats` from the players).
 - Misc UI: `PlayScreenLookAndFeel.h`, `OverlayComponent`, `temporaryNotificationUI`, `CustomToolTip`, `SelectableLabel`.
@@ -61,9 +61,11 @@ The PC keyboard plays only while `MainComponent` holds keyboard focus, so focus 
 - Depends on: essentially every other module (it owns them).
 
 ## Notes / gotchas
-> [!gap] Large surface
-> `MainComponent.cpp` (~3,083 lines) is the biggest integration point; when tracing a
-> feature, start from the callback wiring here. `Display.cpp` (~1,174 lines) is the
-> next-largest file in this module for similar reasons. Refactoring either was discussed
-> and deliberately deferred — see [[ADR-002 Defer MainComponent Display Refactor]] for
-> the reasoning and the trigger condition to revisit it.
+> [!gap] Large surface, now split across files
+> `MainComponent` is still the biggest integration point; when tracing a feature, start from
+> the callback wiring. Since 2026-11-21 its definitions span six files (800-line cap,
+> [[ADR-003 800-Line File Cap Split By Responsibility]]): `MainComponent.cpp` (core),
+> `MainComponentInit.cpp` (widget `*Init`), `MainComponentActions.cpp` (`toggle*`, `*OnClick`),
+> `MainComponentEffects.cpp`, `MainComponentOverlays.cpp`, `MainComponentPlayback.cpp`.
+> `Display` likewise has `DisplayStyleStore.cpp`. Search by class name, not file. Architectural
+> decomposition is still deferred per [[ADR-002 Defer MainComponent Display Refactor]].

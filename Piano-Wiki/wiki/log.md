@@ -2,7 +2,7 @@
 type: meta
 title: "Operations Log"
 created: 2026-06-06
-updated: 2026-09-04
+updated: 2026-11-21
 tags:
   - meta
   - log
@@ -12,6 +12,26 @@ status: evergreen
 # Operations Log
 
 Append-only. Newest entries at the TOP. Never edit past entries.
+
+## 2026-11-21 — Agent rules, docs/ tracked, GPU note rendering, 800-line file cap
+Three branches, merged in order (PRs: docs → perf → refactor):
+- **`docs/agent-rules-and-docs`** — root `AGENTS.md` (spec → TDD, root cause + measurement first,
+  real problems only, minimal diff, no AI attribution, Sonnet review whose claims the orchestrator
+  verifies) and `CLAUDE.md` importing it. `/docs` un-ignored (24 specs/plans/test plans now
+  versioned). Merged `arhitecture/add-arhitecture-optimize-big-files`; `ARCHITECTURE.md` moved to
+  `docs/`. README's stale `Project Synth2.jucer` → `Arranger Workstation.jucer`.
+- **`perf/note-layer-gpu`** — benchmark harness (exact copy of the old `NoteLayer` vs 5 variants,
+  scripted loads, unlocked re-run) showed the old `juce::Graphics` path held the MessageManager
+  lock every frame: Debug ~90 notes 18 fps / UI frozen ≤90 ms; Release ~30 % of a core (NVIDIA
+  spin in `SwapBuffers`). New: SDF-shader notes in `renderOpenGL`, component painting off,
+  `NoteField` pure model (+41 unit assertions), command queue, `DwmFlush` pacing → Release 1.9 %
+  CPU, msg latency p99 0.23 ms, Debug 60 fps. Review fixes: particles under notes again,
+  dt-scaled drag, SafePointer made on the message thread. Local integration test reads real
+  pixels (8/8). CI unit floor 650 → 730. See [[GL Overlay Rendering]].
+- **`refactor/split-large-files`** — 7 files over 800 lines split verbatim by responsibility
+  (line-multiset verified, suite totals unchanged: unit 748, arranger 705, integration 137).
+  CI now fails on any file > 800 lines. [[ADR-003 800-Line File Cap Split By Responsibility]]
+  partly supersedes [[ADR-002 Defer MainComponent Display Refactor]].
 
 ## 2026-09-04 — ARCHITECTURE.md added; ADR-002 flags MainComponent/Display for future refactor
 Added `ARCHITECTURE.md` at the repo root: subsystem breakdown, MainComponent's
