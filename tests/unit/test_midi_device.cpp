@@ -307,6 +307,19 @@ public:
             expect(device.deviceOpenOUT(999) == false);
             expect(device.isOpenOUT() == false);
         }
+
+        // Crashed the CI runner (0xC0000005): an output that is listed but fails to open leaves no
+        // device, and sendMidiCC dereferenced it.
+        beginTest("sendMidiCC - with no output device open does nothing");
+        {
+            constexpr int firstHandChannel   = 1;
+            constexpr int volumeController   = 7;
+            constexpr int halfVolume         = 64;
+            const juce::String noOutputOpen  = "no output should be open";
+            MidiDevice device;
+            device.sendMidiCC(firstHandChannel, volumeController, halfVolume);   // must not crash
+            expect(device.isOpenOUT() == false, noOutputOpen);
+        }
     }
 };
 

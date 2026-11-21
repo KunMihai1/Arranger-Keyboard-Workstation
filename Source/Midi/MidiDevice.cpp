@@ -736,6 +736,10 @@ void MidiDevice::sendMidiCC(int channel, int ccNumber, int value)
 	if (channel < 1 || channel > 16)
 		return;
 
+	// Callers check isOpenOUT() first; a failed open leaves no device, and that must not crash.
+	if (currentDeviceUSEDout == nullptr)
+		return;
+
 	juce::MidiMessage msg = juce::MidiMessage::controllerEvent(channel, ccNumber, midiValue);
 	currentDeviceUSEDout->sendMessageNow(msg);
 }
