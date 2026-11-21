@@ -63,6 +63,8 @@
               resource="0" file="../tests/unit/test_arranger_source_builder.cpp"/>
         <FILE id="arrTsC" name="test_arranger_defaults.cpp" compile="1" resource="0"
               file="../tests/unit/test_arranger_defaults.cpp"/>
+        <FILE id="ntFldT" name="test_note_field.cpp" compile="1" resource="0"
+              file="../tests/unit/test_note_field.cpp"/>
       </GROUP>
       <GROUP id="{B2C3D4E5-5555-6666-7777-888899990000}" name="Integration">
         <FILE id="HwMdDv" name="test_midi_device_hw.cpp" compile="1" resource="0"
@@ -77,6 +79,8 @@
               resource="0" file="../tests/integration/test_settings_window_integration.cpp"/>
         <FILE id="QgzFan" name="test_supabase_client_api.cpp" compile="1" resource="0"
               file="../tests/integration/test_supabase_client_api.cpp"/>
+        <FILE id="ntLyrI" name="test_note_layer_integration.cpp" compile="1"
+              resource="0" file="../tests/integration/test_note_layer_integration.cpp"/>
       </GROUP>
     </GROUP>
     <GROUP id="{7DA60EC7-6A29-1AFF-72FE-496A802E06A4}" name="Resources">
@@ -397,6 +401,8 @@
               file="../Source/UI/InstrumentTreeItem.h"/>
         <FILE id="iqvpAW" name="NoteLayer.cpp" compile="1" resource="0" file="../Source/UI/NoteLayer.cpp"/>
         <FILE id="cFN9eI" name="NoteLayer.h" compile="0" resource="0" file="../Source/UI/NoteLayer.h"/>
+        <FILE id="ntFld1" name="NoteField.cpp" compile="1" resource="0" file="../Source/UI/NoteField.cpp"/>
+        <FILE id="ntFld2" name="NoteField.h" compile="0" resource="0" file="../Source/UI/NoteField.h"/>
         <FILE id="QnlFvU" name="KeyboardUI.cpp" compile="1" resource="0" file="../Source/UI/KeyboardUI.cpp"/>
         <FILE id="HtNlxP" name="KeyboardUI.h" compile="0" resource="0" file="../Source/UI/KeyboardUI.h"/>
         <FILE id="MsdNwG" name="SettingsWindow.cpp" compile="1" resource="0"

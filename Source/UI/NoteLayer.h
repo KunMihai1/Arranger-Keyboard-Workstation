@@ -11,17 +11,29 @@
 #pragma once
 
 #include <vector>
-#include <unordered_map>
 #include <utility>
 #include <memory>
 #include <atomic>
+#include <mutex>
 #include <algorithm>
 
 #include "MidiHandler.h"
 #include "KeyboardUI.h"
+#include "NoteField.h"
 
-// NoteLayer displays active and falling MIDI notes with particle effects.
-class NoteLayer : public juce::Component, public MidiHandlerListener, public juce::Timer, private juce::OpenGLRenderer
+/**
+    Displays active and falling MIDI notes with particle effects.
+
+    Everything is drawn on the OpenGL render thread (notes with a rounded-rect SDF shader,
+    particles as point sprites) and JUCE component painting is disabled. The old juce::Graphics
+    path made JUCE hold the message-thread lock for the whole paint every frame: measured 18 fps
+    and the UI blocked for up to ~90 ms with ~90 notes in a Debug build. See
+    docs/superpowers/specs/2026-11-21-note-rendering-perf-design.md.
+
+    Threading: the public methods are called on the message thread. They post commands to a
+    small mutex-guarded queue; renderOpenGL() drains it and owns all animation state.
+*/
+class NoteLayer : public juce::Component, public MidiHandlerListener, private juce::OpenGLRenderer
 {
 public:
     /**
@@ -31,24 +43,15 @@ public:
     NoteLayer(KeyboardUI& referenceKeyboard);
 
     /** Destructor */
-    ~NoteLayer();
-
-    /** @brief Handles visibility changes (stops timer if hidden) */
-    void visibilityChanged() override;
-
-    /** @brief Timer callback for note animation and particle updates */
-    void timerCallback() override;
+    ~NoteLayer() override;
 
     /** @brief Called when the component is resized */
     void resized() override;
 
-    /** @brief Paints the component (active and falling notes) */
-    void paint(juce::Graphics& g) override;
-
-    /** @brief Called when a MIDI note-on is received */
+    /** @brief Called when a MIDI note-on is received (any thread) */
     void noteOnReceived(int midiNote) override;
 
-    /** @brief Called when a MIDI note-off is received */
+    /** @brief Called when a MIDI note-off is received (any thread) */
     void noteOffReceived(int midiNote) override;
 
     /** @brief Called when OpenGL context is created */
@@ -63,7 +66,7 @@ public:
     /** @brief Resets all visual states including active and falling notes */
     void resetState();
 
-    /** @brief Resets only active notes (triggers note-off for each) */
+    /** @brief Releases every active note (they fall away as on note-off) */
     void resetStateActiveNotes();
 
     /** @brief Sets the particle color for note effects */
@@ -80,13 +83,30 @@ public:
     std::pair<const char*, const char*> smokeShader();
     std::pair<const char*, const char*> getShaderChoice(int styleId);
 
-
 private:
-    /** @brief Updates all active particles' positions and life */
-    void updateParticles();
+    struct Command
+    {
+        enum class Type { noteOn, noteOff, releaseAll, clear };
+        Type type;
+        int midiNote = 0;
+        juce::Rectangle<int> keyBounds;
+    };
 
-    /** @brief Spawns particles for a specific MIDI note */
-    void spawnParticlesForNote(int midiNote);
+    /** Message thread: queue a command for the render thread and wake it. */
+    void post(Command command);
+
+    /** Message thread: what noteOnReceived used to do inline (needs KeyboardUI). */
+    void handleNoteOn(int midiNote);
+
+    // --- render thread only ---------------------------------------------------------------
+    void applyCommands(float width, float height);
+    void updateParticles(float dt);
+    void spawnParticlesForNote(juce::Rectangle<int> keyBounds, float width, float height);
+    void createParticleShader();
+    void releaseParticleShader();
+    void createNoteShader();
+    void drawNotes(float width, float height);
+    void drawParticles();
 
     /** @struct Particle
      *  @brief Represents a particle in the OpenGL particle system.
@@ -99,42 +119,53 @@ private:
         juce::Colour colour;        /**< Particle color */
     };
 
-    /** @struct AnimatedNote
-     *  @brief Stores visual state of a note (active or falling).
-     */
-    struct AnimatedNote {
-        juce::Rectangle<int> bounds = {0,0,0,0}; /**< Note bounds for rendering */
-        float yPosition = 0.0f;                  /**< Current vertical position */
-        float height = 0.0f;                     /**< Current height */
-        float initialHeight = 0.0f;             /**< Original height at release */
-        float alpha = 1.0f;                      /**< Transparency for fading */
-        bool isFalling = false;                  /**< Whether note is falling */
-    };
-
-    KeyboardUI& keyBoardUI;                    /**< Reference to keyboard UI */
-    juce::Colour noteColourUser;               /**< Base note color */
-    juce::Colour particleColourUser;           /**< Particle color */
-
-    juce::OpenGLContext openGLContext;         /**< OpenGL rendering context */
-    std::unique_ptr<juce::OpenGLShaderProgram> shader; /**< Shader program for particles */
-    juce::OpenGLShaderProgram::Attribute* positionAttr = nullptr;
-    juce::OpenGLShaderProgram::Attribute* pointSizeAttr = nullptr;
-    juce::OpenGLShaderProgram::Attribute* colourAttr = nullptr;
-
     struct Vertex {
         float x, y;
         float size;
         float r, g, b, a;
     };
-    GLuint particleVBO = 0;                    /**< Vertex buffer object for particles */
-    std::vector<Particle> particles;           /**< Active particles */
-    std::vector<Vertex> renderVerts;           /**< Preallocated vertex buffer */
 
-    std::unordered_map<int, AnimatedNote> activeNotes; /**< Notes currently pressed */
-    std::vector<AnimatedNote> fallingNotes;           /**< Notes released and falling */
+    struct NoteVertex {
+        float px, py;          // position, NoteLayer-local logical px
+        float lx, ly;          // position inside the note's rectangle
+        float w, h, alpha, pulse;  // rectangle size, fade, held-glow phase (-1 = released)
+    };
 
-    bool isActive;                             /**< Whether the layer is active */
+    KeyboardUI& keyBoardUI;                    /**< Reference to keyboard UI */
+    /** Made once on the message thread: the first SafePointer to a component lazily creates its
+        shared weak-reference holder, which must not race. Copies (from the MIDI thread) are safe. */
+    const juce::Component::SafePointer<NoteLayer> safeThis { this };
+    juce::OpenGLContext openGLContext;         /**< OpenGL rendering context */
+
+    // Shared between the message thread and the render thread, guarded by commandLock.
+    std::mutex commandLock;
+    std::vector<Command> commands;
+    float layerWidth = 0.0f, layerHeight = 0.0f;
+    juce::Colour particleColourUser;           /**< Particle color */
     bool spawnParticleState = false;           /**< Whether particle spawning is enabled */
     int currentStyle = 2;                      /**< 1: Sparks, 2: Dust, 3: Smoke */
-    std::atomic<bool> needsShaderRecompile;
+    bool styleChanged = false;
+
+    // Render thread only.
+    std::vector<Command> pendingCommands;
+    NoteField field;
+    std::vector<Particle> particles;           /**< Active particles */
+    juce::Random rng;                          /**< Particle randomness (getSystemRandom() is shared, not thread-safe) */
+    juce::Colour renderParticleColour;
+    bool renderSpawnParticles = false;
+    int renderStyle = 2;
+    double lastFrameTime = 0.0;
+    bool animating = false;
+
+    std::unique_ptr<juce::OpenGLShaderProgram> shader; /**< Shader program for particles */
+    std::unique_ptr<juce::OpenGLShaderProgram::Attribute> positionAttr, pointSizeAttr, colourAttr;
+    GLuint particleVBO = 0;                    /**< Vertex buffer object for particles */
+    std::vector<Vertex> renderVerts;           /**< Preallocated vertex buffer */
+
+    std::unique_ptr<juce::OpenGLShaderProgram> noteShader;
+    std::unique_ptr<juce::OpenGLShaderProgram::Attribute> notePositionAttr, noteLocalAttr, noteRectAttr;
+    GLuint noteVBO = 0;
+    std::vector<NoteVertex> noteVerts;
+
+    static constexpr size_t maxQueuedCommands = 4096; // bound the queue while the layer is hidden
 };
