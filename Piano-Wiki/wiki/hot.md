@@ -1,7 +1,7 @@
 ---
 type: meta
 title: "Hot Cache"
-updated: 2026-08-29T00:00:00
+updated: 2026-09-04T00:00:00
 tags:
   - meta
   - hot
@@ -52,7 +52,15 @@ that has not been done for these two yet.
 - ⚠️ **Other tests may be silently stale.** `test_midi_handler.cpp` asserted behaviour `5c75d4f` had deliberately changed and never failed, because the runner in `Main.cpp` was commented out — the app compiled tests without running them. Anything touching code changed between `d05e07b` and now deserves suspicion. CI catches this from now on.
 - 🟡 **`b5765e9` missing-SFZ popup still not smoke-tested** — and now harder, since the rename left the SFZ library empty. Re-add SFZs first.
 - 🟡 **Phase 7a manual sign-off 0/9** — `docs/superpowers/test-plans/2026-06-26-arranger-phase7a-ntt-testing.md`. Automated suites green.
-- ✅ **DONE — `fix/sfz-integration` merged to `main`** (PR #10, `f7b4df3`). `main` now carries the workflow, so CI runs on it.
+- 📝 **`ARCHITECTURE.md` added at the repo root** — subsystem breakdown, MainComponent's
+  composition-root role, the two-parallel-engines mode split, the arranger's pure-core
+  design, plus system/component Mermaid diagrams. Static snapshot; this wiki stays the
+  living version.
+- 📝 **ADR-002 recorded** — `MainComponent` (3,083 lines) and `Display` (1,174 lines)
+  flagged as large integration files; refactor deliberately deferred until a concrete
+  trigger (isolated testing, second window, concurrent work on disjoint areas). If it
+  happens: prefer small DI-style coordinators, not an event bus — most of the coupling
+  is 1:1 calls, not real fan-out. See [[ADR-002 Defer MainComponent Display Refactor]].
 - 🟡 **Prune the two merged branches.** `fix/dsp-quality` and `fix/sfz-integration` remain local and remote, plus a stale local `sfz-integration`. All three are fully contained in `main`.
 - 🟡 **Next DSP change: swap `juce::dsp::Chorus` (CC93) for the BBD model** from `va-effects`. Keeps the CC mapping; gives a like-for-like A/B against a stock implementation in the same chain. The constraint is budget — sixteen `ChannelDSP` instances have to fit in what they cost before.
 - 🟢 **OpenGL crash parked** (unreproducible); tripwire logs to `Desktop/piano_gl_errors.log`, which has never appeared.

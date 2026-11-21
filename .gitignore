@@ -41,7 +41,6 @@ Doxyfile
 /latex
 /modules/*
 !/modules/SFZero/
-/docs
 test-results.txt
 *.log
 .superpowers/
