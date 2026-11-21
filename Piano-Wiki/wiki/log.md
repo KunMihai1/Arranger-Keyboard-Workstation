@@ -13,6 +13,15 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — New house rule: names, not values (enforced by CI)
+- Owner's rule: no bare numbers (not even 0/1), no inline strings (incl. UI text, test names and
+  messages), meaningful identifiers (only `g` in paint() and short loop indices). In AGENTS.md.
+- `ci/check_named_values.py` flags literals outside named-constant definitions; CI runs it first
+  (~1 s). Ratchet: `ci/named-values-allowlist.txt` holds the 158 of 192 files not converted yet
+  (6,117 lines); it may only shrink, clean files must leave it, new files never join it.
+- Plan: one behaviour-identical cleanup PR per subsystem (Common, Audio, Midi, Arranger, Playback,
+  Styles, Backend, UI, tests); persisted keys keep their exact text.
+
 ## 2026-11-22 — Tests for the SFZ library (had none)
 - `test_sfz_library.cpp` (9 cases, 34 assertions): add/duplicate/missing file, assignment guards,
   remove/clear (empty style dropped), import overwrite + no-op cases, save→load round trip (twice,

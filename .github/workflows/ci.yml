@@ -45,6 +45,12 @@ jobs:
           }
           "all files <= $limit lines"
 
+      # House rule (AGENTS.md, "Names, not values"): no bare numbers or inline strings in C++. Files not
+      # converted yet are allowlisted; the list may only shrink. Takes about a second.
+      - name: Named values (no bare numbers or strings)
+        shell: pwsh
+        run: python ci/check_named_values.py
+
       - name: Cache JUCE ${{ env.JUCE_VERSION }}
         id: juce-cache
         uses: actions/cache@v6

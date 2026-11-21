@@ -79,9 +79,9 @@ int main (int argc, char* argv[])
         runner.runTests (testsInCategories ({ TestCategory::unit, TestCategory::arranger,
                                               TestCategory::integration, TestCategory::display }));
 
-    int totalPasses = 0, totalFailures = 0;
+    int totalPasses {}, totalFailures {};
     juce::StringArray lines;
-    for (int resultIndex = 0; resultIndex < runner.getNumResults(); ++resultIndex)
+    for (int resultIndex {}; resultIndex < runner.getNumResults(); ++resultIndex)
     {
         auto* result = runner.getResult (resultIndex);
         totalPasses   += result->passes;
