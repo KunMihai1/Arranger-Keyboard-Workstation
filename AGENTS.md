@@ -59,6 +59,12 @@ The wiki is the architecture documentation. Keep it in sync (see *Finishing work
   `TOTAL | passes: N` line. The app itself compiles **no** test code.
 - **Projucer returns immediately** — always `Start-Process -Wait -NoNewWindow`.
 - **New `Source/` file** → add it to **both** `Arranger Workstation.jucer` and `ci/Tests.jucer`.
+- **Precompiled header:** `Source/PrecompiledHeader.h` (`<JuceHeader.h>`) is force-included into
+  every non-module file of both projects. It hides a missing `#include`, so still include what you
+  use. Put only stable headers in it. Projucer *copies* it into the build folder on save, so an
+  edit to it only takes effect after re-saving both `.jucer` files.
+- **JUCE modules:** only the ones the code uses are enabled. Using a class from another module
+  (e.g. `juce_osc`) means adding that module to **both** `.jucer` files.
 - **A header change that alters a type's layout → `/t:Rebuild`.** Incremental builds miss
   `Source/Main.cpp`'s dependencies and the result is silent heap corruption, not a build error.
 - CI (`.github/workflows/ci.yml`) enforces assertion floors. Removing tests → lower the floor in

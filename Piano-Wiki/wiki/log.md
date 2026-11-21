@@ -13,6 +13,17 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-21 — Faster builds: precompiled header + 10 unused JUCE modules dropped
+PRs #13–#15 (docs, perf, refactor) merged. Then `build/faster-builds`: measured first — every
+source file re-parsed all 24 modules' headers (6.8 s to compile one small `.cpp`), and CI spent
+194 s of 225 s compiling. A/B on four scratch copies (same machine, tests built on 4 cores like
+the CI runner): precompiled header alone 202 → 65 s, module drop alone 202 → 169 s, both 202 → 53 s.
+Adopted both. In-repo: clean app build 92 → 39 s, one `.cpp` 8.7 → 2.1 s, `MainComponent.h`
+(7 files) 10.9 → 3.5 s; suites unchanged (unit 748, arranger 705); app starts in 0.7–0.8 s
+(unchanged — instruments already load off-thread after login). Dropped: analytics, animation,
+audio_utils, box2d, cryptography, javascript, midi_ci, osc, product_unlocking, video — none used,
+none a dependency of a kept module. See [[Dependencies Index]].
+
 ## 2026-11-21 — Agent rules, docs/ tracked, GPU note rendering, 800-line file cap
 Three branches, merged in order (PRs: docs → perf → refactor):
 - **`docs/agent-rules-and-docs`** — root `AGENTS.md` (spec → TDD, root cause + measurement first,
