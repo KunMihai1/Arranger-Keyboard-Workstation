@@ -69,6 +69,8 @@
               file="../tests/unit/test_track_list_removal.cpp"/>
         <FILE id="stWhPl" name="test_start_while_playing.cpp" compile="1" resource="0"
               file="../tests/unit/test_start_while_playing.cpp"/>
+        <FILE id="sfzLib" name="test_sfz_library.cpp" compile="1" resource="0"
+              file="../tests/unit/test_sfz_library.cpp"/>
         <FILE id="splIAo" name="test_io_helper_settings.cpp" compile="1" resource="0"
               file="../tests/unit/test_io_helper_settings.cpp"/>
         <FILE id="splCLr" name="test_instrument_handler.cpp" compile="1" resource="0"
