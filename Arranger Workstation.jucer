@@ -321,6 +321,8 @@
               file="Source/UI/InstrumentTreeItem.h"/>
         <FILE id="iqvpAW" name="NoteLayer.cpp" compile="1" resource="0" file="Source/UI/NoteLayer.cpp"/>
         <FILE id="cFN9eI" name="NoteLayer.h" compile="0" resource="0" file="Source/UI/NoteLayer.h"/>
+        <FILE id="ntFld1" name="NoteField.cpp" compile="1" resource="0" file="Source/UI/NoteField.cpp"/>
+        <FILE id="ntFld2" name="NoteField.h" compile="0" resource="0" file="Source/UI/NoteField.h"/>
         <FILE id="QnlFvU" name="KeyboardUI.cpp" compile="1" resource="0" file="Source/UI/KeyboardUI.cpp"/>
         <FILE id="HtNlxP" name="KeyboardUI.h" compile="0" resource="0" file="Source/UI/KeyboardUI.h"/>
         <FILE id="MsdNwG" name="SettingsWindow.cpp" compile="1" resource="0"

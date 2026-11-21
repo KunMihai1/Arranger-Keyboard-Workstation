@@ -83,7 +83,7 @@ jobs:
       - name: Run unit tests
         shell: pwsh
         env:
-          MIN_UNIT_ASSERTIONS: '650'   # 665 as of 2026-08-15
+          MIN_UNIT_ASSERTIONS: '730'   # 748 as of 2026-11-21
         run: |
           $exe = (Get-ChildItem -Recurse -Filter "Project Tests.exe" ci\Builds | Select-Object -First 1).FullName
           & $exe --unit-tests
