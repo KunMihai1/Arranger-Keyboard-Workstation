@@ -80,7 +80,7 @@ namespace
 class NoteLayerIntegrationTest : public juce::UnitTest
 {
 public:
-    NoteLayerIntegrationTest() : juce::UnitTest ("NoteLayer GL rendering (needs a display)", "Integration") {}
+    NoteLayerIntegrationTest() : juce::UnitTest ("NoteLayer GL rendering (needs a display)", "Integration-display") {}
 
     void runTest() override
     {

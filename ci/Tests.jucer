@@ -27,8 +27,6 @@
               file="../tests/unit/test_overlay_component.cpp"/>
         <FILE id="xuOL1B" name="test_section_group_component.cpp" compile="1"
               resource="0" file="../tests/unit/test_section_group_component.cpp"/>
-        <FILE id="dhj55f" name="test_settings_window.cpp" compile="1" resource="0"
-              file="../tests/unit/test_settings_window.cpp"/>
         <FILE id="gNfg2Z" name="test_validator_ui.cpp" compile="1" resource="0"
               file="../tests/unit/test_validator_ui.cpp"/>
         <FILE id="arrTs0" name="test_arranger_model.cpp" compile="1" resource="0"
@@ -89,8 +87,6 @@
               resource="0" file="../tests/integration/test_overlay_component_integration.cpp"/>
         <FILE id="nwR6hK" name="test_sections_component_integration.cpp" compile="1"
               resource="0" file="../tests/integration/test_sections_component_integration.cpp"/>
-        <FILE id="siwLOM" name="test_settings_window_integration.cpp" compile="1"
-              resource="0" file="../tests/integration/test_settings_window_integration.cpp"/>
         <FILE id="QgzFan" name="test_supabase_client_api.cpp" compile="1" resource="0"
               file="../tests/integration/test_supabase_client_api.cpp"/>
         <FILE id="ntLyrI" name="test_note_layer_integration.cpp" compile="1"
