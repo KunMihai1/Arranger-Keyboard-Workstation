@@ -273,15 +273,18 @@ void TableContainer::resized()
 
 void TableContainer::updateObjects()
 {
+    // Follow the player's actual state rather than flipping: notifications don't pair up one-to-one
+    // with play/stop (Start while playing posts one, Stop while stopped posts one).
+    if (! isPlayerRunning)
+        return;
+
+    const bool editingAllowed = ! isPlayerRunning();
+
     if (changeToOriginalMultipleButton)
-    {
-        changeToOriginalMultipleButton->setEnabled(!changeToOriginalMultipleButton->isEnabled());
-    }
+        changeToOriginalMultipleButton->setEnabled(editingAllowed);
 
     if (modifyMultipleButton)
-    {
-        modifyMultipleButton->setEnabled(!modifyMultipleButton->isEnabled());
-    }   
+        modifyMultipleButton->setEnabled(editingAllowed);
 }
 
 TableContainer::~TableContainer()

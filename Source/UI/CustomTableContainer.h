@@ -35,6 +35,10 @@ public:
 
     std::function<double()> getCurrentBPMstyle;
 
+    /** Whether the track player is running now; read when a play-state notification arrives.
+        The style panel sets it when it opens the table; while unset, notifications change nothing. */
+    std::function<bool()> isPlayerRunning;
+
     /**
      * @brief Constructor.
      * @param seq MIDI message sequence to display and modify.

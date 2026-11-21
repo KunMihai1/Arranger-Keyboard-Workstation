@@ -78,6 +78,9 @@ public:
     /** @brief Stops playback and all MIDI notes. */
     void stop(bool shouldModify=true);
 
+    /** @brief True while playback is running (between start() and stop()). */
+    bool isPlaying() const { return isTimerRunning(); }
+
     /** @brief Starts playback from the beginning or current elapsed time. */
     void start();
 

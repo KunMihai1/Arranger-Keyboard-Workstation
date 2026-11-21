@@ -134,6 +134,11 @@ void CurrentStyleComponent::showingTheInformationNotesFromTrack(const juce::Uuid
         return this->currentTempo;
     };
 
+    container->isPlayerRunning = [this]()
+    {
+        return trackPlayer != nullptr && trackPlayer->isPlaying();
+    };
+
     juce::CallOutBox::launchAsynchronously(
         std::move(container),
         getScreenBounds(),
