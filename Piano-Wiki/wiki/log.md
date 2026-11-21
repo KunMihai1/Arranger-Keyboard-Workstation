@@ -13,6 +13,14 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Tests for the SFZ library (had none)
+- `test_sfz_library.cpp` (9 cases, 34 assertions): add/duplicate/missing file, assignment guards,
+  remove/clear (empty style dropped), import overwrite + no-op cases, save→load round trip (twice,
+  no duplicates), missing/corrupt file → empty library, GM names 0..127. No bug found; a mutation
+  (no clear on load) is caught. Unit 846/0.
+- Coverage map: note editing is already covered via `applyChangesToASequence`; the track player's
+  timing reads the real clock, so a deterministic test would need a time seam (not done).
+
 ## 2026-11-22 — Fix: `MidiDevice::sendMidiCC` crashed with no open output (found by CI)
 - CI runners list the Windows GS synth but cannot open it; `MidiDevice_HW` treated it as hardware and
   `sendMidiCC` dereferenced the null output (0xC0000005). The test now probes that the output opens
