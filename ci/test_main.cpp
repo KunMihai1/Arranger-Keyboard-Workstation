@@ -32,6 +32,16 @@ namespace TestReport
     const juce::String lineBreak       = "\n";
 }
 
+// Prints each "Starting test: ..." line as it happens (flushed), so when a test crashes the process
+// the CI log still shows which test was running. JUCE's default only writes to the debugger output.
+class ConsoleTestRunner : public juce::UnitTestRunner
+{
+    void logMessage (const juce::String& message) override
+    {
+        std::cout << message << std::endl;
+    }
+};
+
 static juce::Array<juce::UnitTest*> testsInCategories (const juce::StringArray& categories)
 {
     juce::Array<juce::UnitTest*> selected;
@@ -51,7 +61,7 @@ int main (int argc, char* argv[])
         arguments.add (argv[argumentIndex]);
     const auto commandLine = arguments.joinIntoString (TestReport::argumentSeparator);
 
-    juce::UnitTestRunner runner;
+    ConsoleTestRunner runner;
     runner.setAssertOnFailure (false);
 
     if (commandLine.contains (TestFlag::arranger))
