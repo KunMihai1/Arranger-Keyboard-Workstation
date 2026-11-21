@@ -13,6 +13,13 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Fix: Solo Start on a "None" track crashed
+- `startPlaying()` Solo path dereferenced the null map entry that `applyBPMchangeBeforePlayback`'s
+  `operator[]` inserts for every "None" track; now null-checked like the all-tracks path.
+- Test case in `test_current_style_start.cpp` (style load → Solo → click Track → Start): unit run
+  crashed 0xC0000005 before, 758/0 after; arranger 705/0. Verified live: "There are no tracks to play".
+- Null entries themselves left alone (every other reader already checks).
+
 ## 2026-11-22 — Live reproduction of the code-reading bug list
 
 Driven in the running Debug app on main (a182b35), app data backed up and restored afterwards.

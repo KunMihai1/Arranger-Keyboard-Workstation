@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "095efb6",
-  "last_synced_branch": "ci/cache-juce-objects",
-  "last_synced_at": "2026-11-21",
-  "note": "Synced through 095efb6: PRs #16 (faster builds), #17 (Start fix), #18 (CI JUCE-object cache); in-app GPU test 12/12; 7 code-reading bugs listed in log.md for live reproduction."
+  "last_synced_commit": "44717f1",
+  "last_synced_branch": "fix/solo-none-track-crash",
+  "last_synced_at": "2026-11-22",
+  "note": "Synced through 44717f1: live reproduction of the code-reading bug list (5 confirmed, taskbar corrected); Solo/None-track crash fixed."
 }
