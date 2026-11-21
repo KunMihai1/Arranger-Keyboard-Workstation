@@ -13,6 +13,13 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Fix: `MidiDevice::sendMidiCC` crashed with no open output (found by CI)
+- CI runners list the Windows GS synth but cannot open it; `MidiDevice_HW` treated it as hardware and
+  `sendMidiCC` dereferenced the null output (0xC0000005). The test now probes that the output opens
+  (else skips); `sendMidiCC` returns without an output. App callers already checked `isOpenOUT()`.
+- The test runner now prints each test as it starts (`ConsoleTestRunner`), so a crash shows where.
+- CI integration: 95 assertions on the runner (floor 85).
+
 ## 2026-11-22 — Tests: every test runs in a known category; integration suite in CI
 - `AddDeviceWindow` test was category `Component`, which no flag ran — it never ran anywhere. Now
   `Unit` (5 assertions, all pass). Two empty test files (`test_settings_window*.cpp`) removed.
