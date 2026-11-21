@@ -353,7 +353,9 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
 
             onTrackSelected(track.getDisplayName(), track.getUniqueID(), typeString);
 
-            mapUuidToTrack[track.getUniqueID()] = &track;
+            // No map update here: `track` lives in the picker's copy of the open folder, which the
+            // next folder open overwrites. The map already points at the library entry
+            // (buildTrackUuidMap at startup, addToMapOnAdding for new tracks).
 
             if (currentStyleComponent)
             {
@@ -374,14 +376,18 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
 
     trackListComp->addListener(this);
 
+    // Removing entries shifts or destroys the library's deque elements, so the UUID -> entry map is
+    // rebuilt (assigned in place: CurrentStyleComponent holds a reference to this same map).
     trackListComp->onRemoveTrack = [this](const juce::Uuid& uuid)
     {
         removeTrackFromAllStyles(uuid);
+        mapUuidToTrack = buildTrackUuidMap();
     };
 
     trackListComp->onRemoveMultipleTracks = [this](const std::vector<juce::Uuid>& uuids)
     {
         removeTracksFromAllStyles(uuids);
+        mapUuidToTrack = buildTrackUuidMap();
     };
 
     trackListComp->onRenameTrackFromList = [this](const juce::Uuid& uuid, const juce::String& newName)
