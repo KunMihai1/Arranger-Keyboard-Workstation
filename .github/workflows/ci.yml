@@ -1,146 +1,191 @@
-name: CI
-
-on:
-  push:
-    branches-ignore: [ main ]
-    # Docs/wiki-only pushes skip the build. Deliberately NOT applied to pull_request
-    # below: a PR containing only doc changes must still produce the required
-    # 'CI / tests' check, or branch protection blocks it waiting for a run that
-    # would never happen.
-    paths-ignore:
-      - 'Piano-Wiki/**'
-      - '**/*.md'
-  pull_request:
-    branches: [ main ]
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  tests:
-    runs-on: windows-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      # House rule (AGENTS.md): no source or test file over 800 lines. Checked first because it
-      # costs a second and a long build is wasted on a branch that will be sent back anyway.
-      - name: File length limit (800 lines)
-        shell: pwsh
-        run: |
-          $limit = 800
-          $long = Get-ChildItem -Recurse -File -Path Source, tests -Include *.cpp, *.h |
-                  ForEach-Object { [pscustomobject]@{ File = (Resolve-Path -Relative $_.FullName); Lines = (Get-Content $_.FullName).Count } } |
-                  Where-Object { $_.Lines -gt $limit }
-          if ($long) {
-            $long | Sort-Object Lines -Descending | Format-Table -AutoSize | Out-String | Write-Host
-            throw "$(@($long).Count) file(s) exceed $limit lines - split by responsibility (see AGENTS.md)"
-          }
-          "all files <= $limit lines"
-
-      - name: Cache JUCE 8.0.13
-        id: juce-cache
-        uses: actions/cache@v6
-        with:
-          path: ${{ runner.temp }}\juce
-          key: juce-8.0.13-windows
-
-      - name: Download JUCE 8.0.13 (modules + Projucer)
-        if: steps.juce-cache.outputs.cache-hit != 'true'
-        shell: pwsh
-        run: |
-          $url = "https://github.com/juce-framework/JUCE/releases/download/8.0.13/juce-8.0.13-windows.zip"
-          Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP\juce.zip"
-          Expand-Archive "$env:RUNNER_TEMP\juce.zip" -DestinationPath "$env:RUNNER_TEMP\juce"
-
-      - name: Locate Projucer and the modules folder
-        shell: pwsh
-        run: |
-          # Locate rather than assume the archive layout, so a repackaged release can't break CI.
-          $projucer = Get-ChildItem -Recurse -Filter "Projucer.exe" "$env:RUNNER_TEMP\juce" |
-                      Select-Object -First 1
-          if (-not $projucer) { throw "Projucer.exe not found in the JUCE archive" }
-          $juceDir = $projucer.Directory.FullName
-          $modules = Join-Path $juceDir "modules"
-          if (-not (Test-Path $modules)) { throw "modules folder not found next to Projucer.exe" }
-          "PROJUCER=$($projucer.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "JUCE_MODULES=$modules"          | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-
-      - name: Point Projucer at the JUCE modules (global path)
-        shell: pwsh
-        run: |
-          # Projucer is a GUI-subsystem exe and returns immediately when invoked with '&', which lets
-          # the next step race its file writes. Start-Process -Wait is what actually blocks.
-          Start-Process -FilePath "$env:PROJUCER" -Wait -NoNewWindow -ArgumentList `
-            '--set-global-search-path', 'windows', 'defaultJuceModulePath', "$env:JUCE_MODULES"
-
-      - name: Resave the test project
-        shell: pwsh
-        run: |
-          Start-Process -FilePath "$env:PROJUCER" -Wait -NoNewWindow -ArgumentList `
-            '--resave', 'ci\Tests.jucer'
-          if (-not (Test-Path "ci\Builds\VisualStudio2022")) {
-            throw "resave did not generate ci\Builds\VisualStudio2022"
-          }
-
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v3
-
-      - name: Build the test target
-        shell: pwsh
-        run: msbuild "ci\Builds\VisualStudio2022\Project Tests.sln" /p:Configuration=Debug /p:Platform=x64 /m /v:minimal /nologo
-
-      # Exit code alone is not enough: the runner also exits 0 when it runs ZERO tests, so a
-      # mistyped category or test TUs silently dropped from the link would show green. Assert a
-      # floor on the assertion count too. Raise these when the suites grow; a DROP should fail
-      # loudly and be a deliberate edit.
-      - name: Run unit tests
-        shell: pwsh
-        env:
-          MIN_UNIT_ASSERTIONS: '730'   # 748 as of 2026-11-21
-        run: |
-          $exe = (Get-ChildItem -Recurse -Filter "Project Tests.exe" ci\Builds | Select-Object -First 1).FullName
-          & $exe --unit-tests
-          $code = $LASTEXITCODE
-          Copy-Item test-results.txt test-results-unit.txt -ErrorAction SilentlyContinue
-          if ($code -ne 0) { throw "unit tests failed ($code failing assertions)" }
-          $line = Select-String -Path test-results-unit.txt -Pattern '^TOTAL \| passes: (\d+)' |
-                  Select-Object -Last 1
-          if (-not $line) { throw "no TOTAL line in the unit results - the runner produced no summary" }
-          $passes = [int]$line.Matches[0].Groups[1].Value
-          $min    = [int]$env:MIN_UNIT_ASSERTIONS
-          if ($passes -lt $min) {
-            throw "unit suite ran only $passes assertions (expected >= $min) - tests are missing from the build"
-          }
-          "unit: $passes assertions passed"
-
-      - name: Run arranger tests
-        shell: pwsh
-        env:
-          MIN_ARRANGER_ASSERTIONS: '690'   # 705 as of 2026-08-15
-        run: |
-          $exe = (Get-ChildItem -Recurse -Filter "Project Tests.exe" ci\Builds | Select-Object -First 1).FullName
-          & $exe --arranger-tests
-          $code = $LASTEXITCODE
-          Copy-Item test-results.txt test-results-arranger.txt -ErrorAction SilentlyContinue
-          if ($code -ne 0) { throw "arranger tests failed ($code failing assertions)" }
-          $line = Select-String -Path test-results-arranger.txt -Pattern '^TOTAL \| passes: (\d+)' |
-                  Select-Object -Last 1
-          if (-not $line) { throw "no TOTAL line in the arranger results - the runner produced no summary" }
-          $passes = [int]$line.Matches[0].Groups[1].Value
-          $min    = [int]$env:MIN_ARRANGER_ASSERTIONS
-          if ($passes -lt $min) {
-            throw "arranger suite ran only $passes assertions (expected >= $min) - tests are missing from the build"
-          }
-          "arranger: $passes assertions passed"
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results
-          path: |
-            test-results-unit.txt
-            test-results-arranger.txt
-          if-no-files-found: warn
+name: CI
+
+on:
+  push:
+    # Runs on main too: GitHub lets pull requests read caches saved on main (and nothing else), so
+    # the post-merge run on main is what keeps the JUCE caches below warm for every PR.
+    # Docs/wiki-only pushes skip the build. Deliberately NOT applied to pull_request
+    # below: a PR containing only doc changes must still produce the required
+    # 'CI / tests' check, or branch protection blocks it waiting for a run that
+    # would never happen.
+    paths-ignore:
+      - 'Piano-Wiki/**'
+      - '**/*.md'
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# One place for the JUCE version: the download, the JUCE cache and the compiled-objects cache key
+# all follow it, so an upgrade can never reuse objects built against the old version.
+env:
+  JUCE_VERSION: '8.0.13'
+
+jobs:
+  tests:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # House rule (AGENTS.md): no source or test file over 800 lines. Checked first because it
+      # costs a second and a long build is wasted on a branch that will be sent back anyway.
+      - name: File length limit (800 lines)
+        shell: pwsh
+        run: |
+          $limit = 800
+          $long = Get-ChildItem -Recurse -File -Path Source, tests -Include *.cpp, *.h |
+                  ForEach-Object { [pscustomobject]@{ File = (Resolve-Path -Relative $_.FullName); Lines = (Get-Content $_.FullName).Count } } |
+                  Where-Object { $_.Lines -gt $limit }
+          if ($long) {
+            $long | Sort-Object Lines -Descending | Format-Table -AutoSize | Out-String | Write-Host
+            throw "$(@($long).Count) file(s) exceed $limit lines - split by responsibility (see AGENTS.md)"
+          }
+          "all files <= $limit lines"
+
+      - name: Cache JUCE ${{ env.JUCE_VERSION }}
+        id: juce-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}\juce
+          key: juce-${{ env.JUCE_VERSION }}-windows
+
+      - name: Download JUCE ${{ env.JUCE_VERSION }} (modules + Projucer)
+        if: steps.juce-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $url = "https://github.com/juce-framework/JUCE/releases/download/$env:JUCE_VERSION/juce-$env:JUCE_VERSION-windows.zip"
+          Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP\juce.zip"
+          Expand-Archive "$env:RUNNER_TEMP\juce.zip" -DestinationPath "$env:RUNNER_TEMP\juce"
+
+      - name: Locate Projucer and the modules folder
+        shell: pwsh
+        run: |
+          # Locate rather than assume the archive layout, so a repackaged release can't break CI.
+          $projucer = Get-ChildItem -Recurse -Filter "Projucer.exe" "$env:RUNNER_TEMP\juce" |
+                      Select-Object -First 1
+          if (-not $projucer) { throw "Projucer.exe not found in the JUCE archive" }
+          $juceDir = $projucer.Directory.FullName
+          $modules = Join-Path $juceDir "modules"
+          if (-not (Test-Path $modules)) { throw "modules folder not found next to Projucer.exe" }
+          # The runner's ImageVersion (it pins the MSVC version) is an OS variable, not part of the
+          # env context; export it so the JUCE object cache key below can include it.
+          if (-not $env:ImageVersion) { throw "ImageVersion not set on this runner" }
+          "RUNNER_IMAGE_VERSION=$env:ImageVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "PROJUCER=$($projucer.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "JUCE_MODULES=$modules"          | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Point Projucer at the JUCE modules (global path)
+        shell: pwsh
+        run: |
+          # Projucer is a GUI-subsystem exe and returns immediately when invoked with '&', which lets
+          # the next step race its file writes. Start-Process -Wait is what actually blocks.
+          Start-Process -FilePath "$env:PROJUCER" -Wait -NoNewWindow -ArgumentList `
+            '--set-global-search-path', 'windows', 'defaultJuceModulePath', "$env:JUCE_MODULES"
+
+      - name: Resave the test project
+        shell: pwsh
+        run: |
+          Start-Process -FilePath "$env:PROJUCER" -Wait -NoNewWindow -ArgumentList `
+            '--resave', 'ci\Tests.jucer'
+          if (-not (Test-Path "ci\Builds\VisualStudio2022")) {
+            throw "resave did not generate ci\Builds\VisualStudio2022"
+          }
+
+      # JUCE's own module code is ~76% of the compile work and never changes between runs, so its
+      # objects are cached (built with /Z7 via ci/Directory.Build.targets, so each .obj carries its own
+      # debug info). The key covers everything those objects depend on: JUCE version, runner image
+      # (compiler), the generated wrapper files (module list + config; Projucer output is
+      # deterministic) and the compiler-flag override. Any change -> new key -> clean build.
+      - name: Restore compiled JUCE modules
+        id: juce-objs
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ci/Builds/VisualStudio2022/x64/Debug/ConsoleApp/include_*.obj
+            ci/Builds/VisualStudio2022/x64/Debug/ConsoleApp/BinaryData.obj
+            ci/Builds/VisualStudio2022/x64/Debug/ConsoleApp/*.tlog
+          key: juce-objs-${{ env.JUCE_VERSION }}-${{ runner.os }}-${{ env.RUNNER_IMAGE_VERSION }}-${{ hashFiles('ci/JuceLibraryCode/**', 'ci/Directory.Build.targets') }}
+
+      - name: Let MSBuild reuse the cached JUCE objects
+        if: steps.juce-objs.outputs.cache-hit == 'true'
+        shell: pwsh
+        run: |
+          # Projucer just rewrote the wrapper files, so they look newer than the cached objects. Their
+          # content is part of the cache key, so backdating them is safe. Our own sources keep their
+          # checkout timestamps and always compile.
+          $old = Get-Date '2001-01-01'
+          Get-ChildItem -Recurse -File ci\JuceLibraryCode | ForEach-Object { $_.LastWriteTime = $old }
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Build the test target
+        shell: pwsh
+        run: msbuild "ci\Builds\VisualStudio2022\Project Tests.sln" /p:Configuration=Debug /p:Platform=x64 /m /v:minimal /nologo
+
+      - name: Save compiled JUCE modules
+        if: github.ref == 'refs/heads/main' && steps.juce-objs.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ci/Builds/VisualStudio2022/x64/Debug/ConsoleApp/include_*.obj
+            ci/Builds/VisualStudio2022/x64/Debug/ConsoleApp/BinaryData.obj
+            ci/Builds/VisualStudio2022/x64/Debug/ConsoleApp/*.tlog
+          key: ${{ steps.juce-objs.outputs.cache-primary-key }}
+
+      # Exit code alone is not enough: the runner also exits 0 when it runs ZERO tests, so a
+      # mistyped category or test TUs silently dropped from the link would show green. Assert a
+      # floor on the assertion count too. Raise these when the suites grow; a DROP should fail
+      # loudly and be a deliberate edit.
+      - name: Run unit tests
+        shell: pwsh
+        env:
+          MIN_UNIT_ASSERTIONS: '730'   # 748 as of 2026-11-21
+        run: |
+          $exe = (Get-ChildItem -Recurse -Filter "Project Tests.exe" ci\Builds | Select-Object -First 1).FullName
+          & $exe --unit-tests
+          $code = $LASTEXITCODE
+          Copy-Item test-results.txt test-results-unit.txt -ErrorAction SilentlyContinue
+          if ($code -ne 0) { throw "unit tests failed ($code failing assertions)" }
+          $line = Select-String -Path test-results-unit.txt -Pattern '^TOTAL \| passes: (\d+)' |
+                  Select-Object -Last 1
+          if (-not $line) { throw "no TOTAL line in the unit results - the runner produced no summary" }
+          $passes = [int]$line.Matches[0].Groups[1].Value
+          $min    = [int]$env:MIN_UNIT_ASSERTIONS
+          if ($passes -lt $min) {
+            throw "unit suite ran only $passes assertions (expected >= $min) - tests are missing from the build"
+          }
+          "unit: $passes assertions passed"
+
+      - name: Run arranger tests
+        shell: pwsh
+        env:
+          MIN_ARRANGER_ASSERTIONS: '690'   # 705 as of 2026-08-15
+        run: |
+          $exe = (Get-ChildItem -Recurse -Filter "Project Tests.exe" ci\Builds | Select-Object -First 1).FullName
+          & $exe --arranger-tests
+          $code = $LASTEXITCODE
+          Copy-Item test-results.txt test-results-arranger.txt -ErrorAction SilentlyContinue
+          if ($code -ne 0) { throw "arranger tests failed ($code failing assertions)" }
+          $line = Select-String -Path test-results-arranger.txt -Pattern '^TOTAL \| passes: (\d+)' |
+                  Select-Object -Last 1
+          if (-not $line) { throw "no TOTAL line in the arranger results - the runner produced no summary" }
+          $passes = [int]$line.Matches[0].Groups[1].Value
+          $min    = [int]$env:MIN_ARRANGER_ASSERTIONS
+          if ($passes -lt $min) {
+            throw "arranger suite ran only $passes assertions (expected >= $min) - tests are missing from the build"
+          }
+          "arranger: $passes assertions passed"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: |
+            test-results-unit.txt
+            test-results-arranger.txt
+          if-no-files-found: warn
