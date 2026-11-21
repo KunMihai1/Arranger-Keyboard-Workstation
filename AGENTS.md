@@ -69,6 +69,10 @@ The wiki is the architecture documentation. Keep it in sync (see *Finishing work
   `Source/Main.cpp`'s dependencies and the result is silent heap corruption, not a build error.
 - CI (`.github/workflows/ci.yml`) enforces assertion floors. Removing tests → lower the floor in
   the same change; adding many → raise it.
+- **CI caches the compiled JUCE module objects** (the runs on `main` fill it; PRs read it). The test
+  project builds with `/Z7` (`ci/Directory.Build.targets`) so each `.obj` is self-contained. The key
+  hashes the generated `ci/JuceLibraryCode/` files, so changing modules or JUCE options just
+  rebuilds cold — no manual invalidation needed.
 
 ## Codebase rules
 

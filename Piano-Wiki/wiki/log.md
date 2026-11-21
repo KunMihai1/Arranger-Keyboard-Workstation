@@ -13,6 +13,31 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-21 — Start-with-nothing-to-play fix, CI object cache, bug hunt by code reading
+- **PR #16 merged** (precompiled header + 10 modules dropped): CI 4–5 min → ~2 min.
+- **PR #17 `fix/start-without-tracks`**: Start on a style with all tracks "None" left the beat light
+  red and (arranger mode) the BPM slider locked — the button set `isPlaying` before
+  `startPlaying()`, which returns early. `startPlaying()` now returns bool; test
+  `test_current_style_start.cpp` (red 3 → green). Unit 756, arranger 705.
+- **PR #18 `ci/cache-juce-objects`**: JUCE module code is 76 % of compile CPU (`/Bt+`). Test project
+  builds with `/Z7` (`ci/Directory.Build.targets`); CI restores the module `.obj`s + tlogs keyed on
+  JUCE version + runner image + hash of generated `ci/JuceLibraryCode`; saved only from `main`
+  (CI now runs on push to main). Simulated: 53.6 → 23.8 s.
+- **In-app run of the GPU note test plan: 12/12 pass** (login button skips credentials).
+- **Found by reading code — to reproduce live before fixing:**
+  1. Start while the arranger plays: stale async `onStoppedItself` (ArrangerEngine::haltAudio)
+     clears `isPlaying` / unlocks BPM after the restart.
+  2. Start while the track player plays: BPM slider toggled by `updateObjects()` ends up inverted
+     (`stop(false)` doesn't toggle, `start()` does).
+  3. Crash: Solo mode + "None" track selected + BPM drag (`mapUuidToTrackEntry[...]` inserts nullptr)
+     + Start → `*it->second` on nullptr (CurrentStyleComponent.cpp ~64).
+  4. Track picker stores `&(*availableTracksFromFolder)[i]` (a copy, rewritten on folder switch) in
+     the shared map (Display.cpp ~356) → wrong track plays / use-after-free.
+  5. Removing a track erases mid-`deque` in `groupedTracks` → other map pointers shift; map not rebuilt.
+  6. `AudioHandler::loadSfz`: detached threads per load → out-of-order completion leaves the older
+     instrument; also captures `this` (quit during loading).
+  7. Window `setFullScreen(true)` covers the taskbar → style list's button row hidden (fix: maximised).
+
 ## 2026-11-21 — Faster builds: precompiled header + 10 unused JUCE modules dropped
 PRs #13–#15 (docs, perf, refactor) merged. Then `build/faster-builds`: measured first — every
 source file re-parsed all 24 modules' headers (6.8 s to compile one small `.cpp`), and CI spent

@@ -13,7 +13,8 @@ status: evergreen
 ## Last Updated
 2026-11-21. Three PRs landed in order: **docs** (`AGENTS.md`/`CLAUDE.md` rules, `docs/` now
 tracked, `docs/ARCHITECTURE.md`), **perf** (GPU note rendering), **refactor** (800-line file cap)
-— PRs #13–#15. Then **faster builds** (precompiled header, 10 unused modules dropped). Detail in [[log]].
+— PRs #13–#15; **faster builds** #16; **Start-with-nothing-to-play fix** #17; **CI JUCE-object
+cache** #18. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -39,10 +40,13 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - Git Bash `sed -i` drops CRLF in `.jucer` files — edit them with Python.
 - **Precompiled header** + only the JUCE modules in use: one-file rebuild ~2 s, clean ~40 s, CI
   build ~1 min. Editing `Source/PrecompiledHeader.h` needs a Projucer re-save. [[Dependencies Index]]
+- CI caches compiled JUCE objects (filled by runs on `main`; key hashes `ci/JuceLibraryCode`).
 
 ## Active Threads / Next
-- 🟡 **Manual check of the new note rendering** in the real app (login needed):
-  `docs/superpowers/test-plans/2026-11-21-note-layer-gpu-testing.md`.
+- 🔴 **7 bugs found by code reading, not yet reproduced** (crash in Solo mode, wrong track after
+  switching picker folders, Start-while-playing state, SFZ load order, taskbar) — list in [[log]]
+  2026-11-21. Reproduce live with the owner, then fix each test-first.
+- ✅ GPU note rendering: in-app test plan 12/12 (the Login button skips credentials).
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.
 - 🟡 **Swap `juce::dsp::Chorus` (CC93) for the BBD model** from `va-effects`; budget = 16 `ChannelDSP`s.

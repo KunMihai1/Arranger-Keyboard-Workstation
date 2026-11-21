@@ -1,0 +1,9 @@
+<Project>
+  <!-- Test runner only: embed debug info in each .obj (/Z7) instead of one shared compiler PDB (/Zi),
+       so compiled JUCE module objects are self-contained and can be cached between CI runs. -->
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+</Project>
