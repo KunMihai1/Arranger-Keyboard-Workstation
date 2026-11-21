@@ -77,7 +77,7 @@ void NoteLayer::noteOnReceived(int midiNote)
 {
     // May arrive on the MIDI thread. Hop to the message thread (as before) to read KeyboardUI
     // and to keep note-on/note-off ordering identical to the order they were received in.
-    juce::MessageManager::callAsync([safe = juce::Component::SafePointer<NoteLayer>(this), midiNote]
+    juce::MessageManager::callAsync([safe = safeThis, midiNote]
         {
             if (safe != nullptr)
                 safe->handleNoteOn(midiNote);
@@ -96,7 +96,7 @@ void NoteLayer::handleNoteOn(int midiNote)
 
 void NoteLayer::noteOffReceived(int midiNote)
 {
-    juce::MessageManager::callAsync([safe = juce::Component::SafePointer<NoteLayer>(this), midiNote]
+    juce::MessageManager::callAsync([safe = safeThis, midiNote]
         {
             if (safe != nullptr)
                 safe->post({ Command::Type::noteOff, midiNote });
@@ -250,8 +250,10 @@ void NoteLayer::renderOpenGL()
 
     if (width > 0.0f && height > 0.0f)
     {
-        drawNotes(width, height);
+        // Particles first, notes on top: the old juce::Graphics notes were composited over
+        // whatever renderOpenGL() drew, so this keeps the same layering.
         drawParticles();
+        drawNotes(width, height);
     }
 
     // Keep drawing while anything moves (DwmFlush paces it), then go idle until the next command.
@@ -606,7 +608,7 @@ void NoteLayer::updateParticles(float dt)
         }
         else if (renderStyle == 2) { // Dust
             p.velocity.x += (rng.nextFloat() - 0.5f) * 0.5f * dt; // Brownian
-            p.velocity.x *= 0.95f; // Drag
+            p.velocity.x *= std::pow(0.95f, dt * 60.0f); // Drag: 0.95 per 60 Hz tick, at any frame rate
             p.pos += p.velocity * dt;
             p.life -= dt * 0.6f; // Slow fade
         }

@@ -132,6 +132,9 @@ private:
     };
 
     KeyboardUI& keyBoardUI;                    /**< Reference to keyboard UI */
+    /** Made once on the message thread: the first SafePointer to a component lazily creates its
+        shared weak-reference holder, which must not race. Copies (from the MIDI thread) are safe. */
+    const juce::Component::SafePointer<NoteLayer> safeThis { this };
     juce::OpenGLContext openGLContext;         /**< OpenGL rendering context */
 
     // Shared between the message thread and the render thread, guarded by commandLock.
