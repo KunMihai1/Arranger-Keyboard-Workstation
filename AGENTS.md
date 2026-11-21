@@ -86,6 +86,28 @@ The wiki is the architecture documentation. Keep it in sync (see *Finishing work
   hashes the generated `ci/JuceLibraryCode/` files, so changing modules or JUCE options just
   rebuilds cold — no manual invalidation needed.
 
+## Names, not values (owner's rule, 2026-11-22)
+
+Every value in the C++ code has a name that says what it means, and every name says what it holds.
+
+- **No bare numbers, not even 0 or 1.** Name the value (`constexpr int maxMidiVelocity = 127;`,
+  `constexpr float blackKeyLengthRatio = 0.6f;`) or use an idiom that needs no number:
+  `{}` value-initialisation for "start at zero", `empty()`, `front()`/`back()`, `++`, `begin()`.
+- **No inline strings.** Keys, IDs, file names, JSON and settings keys, URLs, user-visible text, test
+  names, test categories and test messages are all named constants. A persisted key keeps its exact
+  text: renaming the *constant* is fine, changing the *string* breaks saved files.
+- **Where names live:** values used in one file go in a namespace at the top of that file. Values shared
+  by a subsystem go in that subsystem's constants header (e.g. MIDI facts: velocity range, drum channel,
+  middle C). Don't create one global "constants" file.
+- **Meaningful identifiers:** no `tr`, `it`, `cfg`, `tmp`, `laf`, `c`, `x2`. The only short names allowed
+  are `g` for `juce::Graphics` in `paint()` and an index in a loop of a few lines.
+- **Enforced by CI:** `python ci/check_named_values.py` flags any literal outside a named-constant
+  definition (comments, `#include`, enumerator values and `true`/`false`/`nullptr` are fine).
+  `ci/named-values-allowlist.txt` lists the files not converted yet. It may only shrink, and a file that
+  becomes clean must leave it. New files are never added to it.
+- This rule beats "minimal diff" only inside dedicated cleanup PRs (one subsystem per PR, behaviour
+  and file formats unchanged). In any other change, the lines you add or touch must already comply.
+
 ## Codebase rules
 
 - JUCE threading: audio thread never allocates/locks; GL calls only from `renderOpenGL` /
