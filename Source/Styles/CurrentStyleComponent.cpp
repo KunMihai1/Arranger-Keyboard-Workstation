@@ -5,7 +5,7 @@
 #include "Arranger/ArrangerStyleIOHelper.h"
 #include "IOHelper.h"
 
-void CurrentStyleComponent::startPlaying()
+bool CurrentStyleComponent::startPlaying()
 {
     int selectedID = lastPlayModeId;   // 1 = all tracks, 2 = solo; the active-config path below ignores this
 
@@ -19,7 +19,7 @@ void CurrentStyleComponent::startPlaying()
     if (!hasMidiOut && !hasAudioInject)
     {
         juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Playing tracks", "No output device selected.");
-        return;
+        return false;
     }
 
     // Arranger mode with a loaded/saved configuration: play it directly (self-contained,
@@ -39,7 +39,7 @@ void CurrentStyleComponent::startPlaying()
         arrangerEngine->selectStartSection(pendingStartType, pendingStartName);  // begin on the chosen start (stopPlaying cleared it)
         arrangerEngine->start();
         seedHeldChordIntoArranger();   // honour a chord already held when Start was pressed
-        return;
+        return true;
     }
 
     if (selectedID == 1)
@@ -68,7 +68,7 @@ void CurrentStyleComponent::startPlaying()
     if (selectedTracks.empty())
     {
         juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Playing tracks", "There are no tracks to play");
-        return;
+        return false;
     }
 
     if (arrangerModeEnabled)
@@ -80,13 +80,13 @@ void CurrentStyleComponent::startPlaying()
         arrangerEngine->selectStartSection(pendingStartType, pendingStartName);  // begin on the chosen start
         arrangerEngine->start();
         seedHeldChordIntoArranger();   // honour a chord already held when Start was pressed
-        return;
+        return true;
     }
 
     trackPlayer->setTracks(selectedTracks);
     trackPlayer->syncPlaybackSettings();
     trackPlayer->start();
-
+    return true;
 }
 
 void CurrentStyleComponent::seedHeldChordIntoArranger()
@@ -177,8 +177,13 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
 
     startPlayingTracks.onClick = [this]
     {
+        // Enter the playing state only if something actually started. With no output device or no
+        // tracks, startPlaying() tells the user why and returns false; marking the panel as playing
+        // anyway left the beat bar red and (arranger mode) the BPM slider locked until Stop.
+        if (! startPlaying())
+            return;
+
         isPlaying = true;
-        startPlaying();
         if (arrangerModeEnabled) tempoSlider.setEnabled(false);   // lock BPM while the arranger plays
 
         // Starting rebuilds the play scene, which can land keyboard focus on a freshly created

@@ -131,8 +131,10 @@ public:
     void loadJson(const juce::var& styleVar);
 
     //==============================================================================
-    /** @brief Starts playback of selected tracks based on play mode (all/solo). */
-    void startPlaying();
+    /** @brief Starts playback of selected tracks based on play mode (all/solo).
+        @returns false when nothing was started (no output device, or no tracks to play) -
+                 the user has been told why, and the panel must stay in its stopped state. */
+    bool startPlaying();
 
     /** @brief Stops playback of all tracks. */
     void stopPlaying(bool shouldModify=true);
