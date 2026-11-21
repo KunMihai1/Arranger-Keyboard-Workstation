@@ -323,36 +323,44 @@ void TrackListComponent::removeFromTrackList()
                 if (result == 0) // Cancel
                     return;
 
-
-                for (int i = selectedRows.size() - 1; i >= 0; --i)
-                {
-                    int rowIndex = selectedRows[i];
-                    auto& track = (*availableTracks)[rowIndex];
-                    juce::Uuid uuid = track.getUniqueID();
-                    juce::String folderName = track.folderName;
-
-                    auto& folderVector = (*groupedTracks)[folderName];
-                    folderVector.erase(std::remove_if(folderVector.begin(), folderVector.end(), [uuid](const TrackEntry& tr)
-                        {
-                            return uuid == tr.getUniqueID();
-
-                        }));
-                    availableTracks->erase(availableTracks->begin() + rowIndex);
-
-                    if (onRemoveTrack) onRemoveTrack(uuid);
-                }
-
-                listBox.deselectAllRows();
-                listBox.updateContent();
-                listBox.repaint();
-
-                auto appDataFolder = IOHelper::getAppDataFolder();
+                removeTracks(selectedRows);
 
                 auto jsonFile = IOHelper::getFile("myTracks.json");
                 TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
             }
         )
     );
+}
+
+// The library change itself, kept apart from the confirmation dialog and the save to disk.
+void TrackListComponent::removeTracks(const juce::SparseSet<int>& selectedRows)
+{
+    for (int i = selectedRows.size() - 1; i >= 0; --i)
+    {
+        int rowIndex = selectedRows[i];
+        auto& track = (*availableTracks)[rowIndex];
+        juce::Uuid uuid = track.getUniqueID();
+
+        // The rows belong to the open folder. Don't go by track.folderName: a folder rename leaves
+        // it stale, and operator[] would then create that old folder and erase(end()) from it.
+        auto folder = groupedTracks->find(currentFolderName);
+        if (folder != groupedTracks->end())
+        {
+            auto& folderVector = folder->second;
+            folderVector.erase(std::remove_if(folderVector.begin(), folderVector.end(), [uuid](const TrackEntry& tr)
+                {
+                    return uuid == tr.getUniqueID();
+                }),
+                folderVector.end());
+        }
+        availableTracks->erase(availableTracks->begin() + rowIndex);
+
+        if (onRemoveTrack) onRemoveTrack(uuid);
+    }
+
+    listBox.deselectAllRows();
+    listBox.updateContent();
+    listBox.repaint();
 }
 
 void TrackListComponent::renameFromTrackList()
@@ -530,40 +538,46 @@ void TrackListComponent::removeFromFolderList()
                 if (result == 0) // Cancel
                     return;
 
-                for (int i = selectedRows.size() - 1; i >= 0; i--)
-                {
-                    int rowIndex = selectedRows[i];
-                    juce::String folderName = (*groupedTrackKeys)[rowIndex];
+                removeFolders(selectedRows);
 
-                    auto& tracks = (*groupedTracks)[folderName];
-                    std::vector<juce::Uuid> uuidsToRemove;
-
-                    for (auto& track : tracks)
-                        uuidsToRemove.push_back(track.getUniqueID());
-
-                    if (onRemoveMultipleTracks)
-                        onRemoveMultipleTracks(uuidsToRemove);
-
-                    tracks.clear();
-
-                    groupedTracks->erase(folderName);
-
-                    auto it = std::find(groupedTrackKeys->begin(), groupedTrackKeys->end(), folderName);
-                    if (it != groupedTrackKeys->end())
-                        groupedTrackKeys->erase(it);
-
-                    listBox.deselectAllRows();
-                    listBox.updateContent();
-                    listBox.repaint();
-
-                    auto appDataFolder = IOHelper::getAppDataFolder();
-
-                    auto jsonFile = IOHelper::getFile("myTracks.json");
-                    TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
-                }
+                auto jsonFile = IOHelper::getFile("myTracks.json");
+                TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
             }
         )
     );
+}
+
+// The library change itself, kept apart from the confirmation dialog and the save to disk.
+void TrackListComponent::removeFolders(const juce::SparseSet<int>& selectedRows)
+{
+    for (int i = selectedRows.size() - 1; i >= 0; i--)
+    {
+        int rowIndex = selectedRows[i];
+        juce::String folderName = (*groupedTrackKeys)[rowIndex];
+
+        auto& tracks = (*groupedTracks)[folderName];
+        std::vector<juce::Uuid> uuidsToRemove;
+
+        for (auto& track : tracks)
+            uuidsToRemove.push_back(track.getUniqueID());
+
+        tracks.clear();
+
+        groupedTracks->erase(folderName);
+
+        auto it = std::find(groupedTrackKeys->begin(), groupedTrackKeys->end(), folderName);
+        if (it != groupedTrackKeys->end())
+            groupedTrackKeys->erase(it);
+
+        // Only now: the listener rebuilds its UUID -> entry map from the library, which must no
+        // longer contain this folder's (destroyed) entries.
+        if (onRemoveMultipleTracks)
+            onRemoveMultipleTracks(uuidsToRemove);
+
+        listBox.deselectAllRows();
+        listBox.updateContent();
+        listBox.repaint();
+    }
 }
 
 void TrackListComponent::renameFromFolderList()

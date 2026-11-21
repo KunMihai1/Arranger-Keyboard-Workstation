@@ -43,11 +43,10 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - CI caches compiled JUCE objects (filled by runs on `main`; key hashes `ci/JuceLibraryCode`).
 
 ## Active Threads / Next
-- 🔴 **5 bugs reproduced live 2026-11-22** (see [[log]]): ~~Solo + "None" track + Start crashes~~
-  (fixed, `fix/solo-none-track-crash`);
-  browsing another picker folder swaps a slot's notes; removing a folder track shifts later slots;
-  Start-while-playing unlocks BPM (arranger and track player). Fix each test-first. Taskbar bug is
-  only "restore down" (restored size = whole screen); launch is maximised correctly.
+- 🔴 **Bugs reproduced live 2026-11-22** (see [[log]]): ✅ Solo/None crash (PR #19); ✅ stale track
+  map after picker browse / track or folder removal (`fix/track-map-stale-pointers`). Open:
+  Start-while-playing unlocks BPM (arranger + track player); "restore down" size = whole screen.
+  Watch: "Notes information" table holds refs into a library entry while open (unreachable today).
 - ✅ GPU note rendering: in-app test plan 12/12 (the Login button skips credentials).
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.

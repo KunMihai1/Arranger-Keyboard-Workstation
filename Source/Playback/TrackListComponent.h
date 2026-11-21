@@ -101,6 +101,12 @@ public:
     /** @brief Removes one or more selected folders and their contained tracks. */
     void removeFromFolderList();
 
+    /** @brief Removes the given rows of the open folder (what Remove does once confirmed). */
+    void removeTracks(const juce::SparseSet<int>& rows);
+
+    /** @brief Removes the folders at the given rows (what Remove folder does once confirmed). */
+    void removeFolders(const juce::SparseSet<int>& rows);
+
     /** @brief Renames the currently selected folder. */
     void renameFromFolderList();
 

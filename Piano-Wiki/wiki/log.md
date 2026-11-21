@@ -13,6 +13,20 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Fix: style slots switched to another track's data
+- The shared `UUID → TrackEntry*` map is now only ever pointed into the library: the picker no
+  longer stores `&availableTracksFromFolder[i]` (a copy overwritten on every folder open), and
+  Display rebuilds the map (`buildTrackUuidMap`) after any track/folder removal.
+- `TrackListComponent`: post-confirm work extracted to `removeTracks()`/`removeFolders()` (no disk
+  I/O; dialog callbacks save). Folder removal notifies after the erase; track removal uses the open
+  folder (`currentFolderName`) and `erase(remove_if(...), end())` — `entry.folderName` goes stale
+  after a folder rename and used to create a phantom folder + `erase(end())` (UB).
+- Tests `test_track_list_removal.cpp` (4 cases): folder case failed and rename case aborted the
+  runner before; unit 786/0, arranger 705/0 after. Verified live with the reproduction steps.
+- Noted, not changed: Notes-information table keeps references into the entry while open; a
+  folder rename leaves `TrackEntry::folderName` stale (nothing reads it after load now).
+- Spec: `docs/superpowers/specs/2026-11-22-track-map-stale-pointers-design.md`.
+
 ## 2026-11-22 — Fix: Solo Start on a "None" track crashed
 - `startPlaying()` Solo path dereferenced the null map entry that `applyBPMchangeBeforePlayback`'s
   `operator[]` inserts for every "None" track; now null-checked like the all-tracks path.
