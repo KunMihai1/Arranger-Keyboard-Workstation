@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "4236ecb",
-  "last_synced_branch": "build/faster-builds",
+  "last_synced_commit": "095efb6",
+  "last_synced_branch": "ci/cache-juce-objects",
   "last_synced_at": "2026-11-21",
-  "note": "Synced through 4236ecb: PRs #13-#15 merged (docs, perf, refactor); faster builds (precompiled header + 10 unused JUCE modules dropped; one-file rebuild 8.7 -> 2.1 s, CI test build ~194 -> ~53 s)."
+  "note": "Synced through 095efb6: PRs #16 (faster builds), #17 (Start fix), #18 (CI JUCE-object cache); in-app GPU test 12/12; 7 code-reading bugs listed in log.md for live reproduction."
 }
