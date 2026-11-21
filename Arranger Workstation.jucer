@@ -268,6 +268,11 @@
         <FILE id="J92BVY" name="MainComponent.h" compile="0" resource="0" file="Source/UI/MainComponent.h"/>
         <FILE id="jn7l0T" name="MainComponent.cpp" compile="1" resource="0"
               file="Source/UI/MainComponent.cpp"/>
+        <FILE id="splLBc" name="MainComponentActions.cpp" compile="1" resource="0" file="Source/UI/MainComponentActions.cpp"/>
+        <FILE id="splbfn" name="MainComponentEffects.cpp" compile="1" resource="0" file="Source/UI/MainComponentEffects.cpp"/>
+        <FILE id="sploGM" name="MainComponentInit.cpp" compile="1" resource="0" file="Source/UI/MainComponentInit.cpp"/>
+        <FILE id="splbJm" name="MainComponentOverlays.cpp" compile="1" resource="0" file="Source/UI/MainComponentOverlays.cpp"/>
+        <FILE id="splTPS" name="MainComponentPlayback.cpp" compile="1" resource="0" file="Source/UI/MainComponentPlayback.cpp"/>
         <FILE id="DXD47A" name="SoundEffectWindowComponent.cpp" compile="1"
               resource="0" file="Source/UI/SoundEffectWindowComponent.cpp"/>
         <FILE id="HppmMB" name="SoundEffectWindowComponent.h" compile="0" resource="0"
@@ -289,6 +294,7 @@
               file="Source/UI/SelectableLabel.h"/>
         <FILE id="uwICeF" name="CustomTableContainer.cpp" compile="1" resource="0"
               file="Source/UI/CustomTableContainer.cpp"/>
+        <FILE id="splgRV" name="CustomTableContainerModify.cpp" compile="1" resource="0" file="Source/UI/CustomTableContainerModify.cpp"/>
         <FILE id="NpdkDy" name="CustomTableContainer.h" compile="0" resource="0"
               file="Source/UI/CustomTableContainer.h"/>
         <FILE id="Fob7bQ" name="CustomBeatBar.cpp" compile="1" resource="0"
@@ -310,6 +316,7 @@
         <FILE id="myTab2" name="MyTabbedComponent.h" compile="0" resource="0"
               file="Source/UI/MyTabbedComponent.h"/>
         <FILE id="diCmp1" name="Display.cpp" compile="1" resource="0" file="Source/UI/Display.cpp"/>
+        <FILE id="spl5If" name="DisplayStyleStore.cpp" compile="1" resource="0" file="Source/UI/DisplayStyleStore.cpp"/>
         <FILE id="diCmp2" name="Display.h" compile="0" resource="0" file="Source/UI/Display.h"/>
         <FILE id="dExTT9" name="temporaryNotificationUI.cpp" compile="1" resource="0"
               file="Source/UI/temporaryNotificationUI.cpp"/>
@@ -347,6 +354,8 @@
               file="Source/Styles/StylesListComponent.h"/>
         <FILE id="csCmp1" name="CurrentStyleComponent.cpp" compile="1" resource="0"
               file="Source/Styles/CurrentStyleComponent.cpp"/>
+        <FILE id="splVrp" name="CurrentStyleComponentUI.cpp" compile="1" resource="0" file="Source/Styles/CurrentStyleComponentUI.cpp"/>
+        <FILE id="sploiV" name="CurrentStyleComponentTracks.cpp" compile="1" resource="0" file="Source/Styles/CurrentStyleComponentTracks.cpp"/>
         <FILE id="csCmp2" name="CurrentStyleComponent.h" compile="0" resource="0"
               file="Source/Styles/CurrentStyleComponent.h"/>
         <FILE id="u2nDST" name="StyleSection.h" compile="0" resource="0" file="Source/Styles/StyleSection.h"/>
@@ -391,6 +400,7 @@
               file="Source/Midi/InstrumentHandler.h"/>
         <FILE id="r3G7fK" name="MidiHandler.h" compile="0" resource="0" file="Source/Midi/MidiHandler.h"/>
         <FILE id="raiann" name="MidiHandler.cpp" compile="1" resource="0" file="Source/Midi/MidiHandler.cpp"/>
+        <FILE id="splOhb" name="MidiDevice.cpp" compile="1" resource="0" file="Source/Midi/MidiDevice.cpp"/>
       </GROUP>
       <GROUP id="{746EC635-C856-A053-E4DB-ACC95221A01C}" name="Common">
         <FILE id="DspLsn" name="DisplayListener.h" compile="0" resource="0"
