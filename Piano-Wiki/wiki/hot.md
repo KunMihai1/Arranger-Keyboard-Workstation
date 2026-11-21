@@ -12,8 +12,8 @@ status: evergreen
 
 ## Last Updated
 2026-11-21. Three PRs landed in order: **docs** (`AGENTS.md`/`CLAUDE.md` rules, `docs/` now
-tracked, `docs/ARCHITECTURE.md`), **perf** (GPU note rendering), **refactor** (800-line file cap).
-Detail in [[log]].
+tracked, `docs/ARCHITECTURE.md`), **perf** (GPU note rendering), **refactor** (800-line file cap)
+— PRs #13–#15. Then **faster builds** (precompiled header, 10 unused modules dropped). Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -37,6 +37,8 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - Projucer detaches: `Start-Process -Wait`; quote `"Arranger Workstation.jucer"` (space in name).
 - Header layout change → `/t:Rebuild`. New `Source/` file → add to **both** `.jucer`s.
 - Git Bash `sed -i` drops CRLF in `.jucer` files — edit them with Python.
+- **Precompiled header** + only the JUCE modules in use: one-file rebuild ~2 s, clean ~40 s, CI
+  build ~1 min. Editing `Source/PrecompiledHeader.h` needs a Projucer re-save. [[Dependencies Index]]
 
 ## Active Threads / Next
 - 🟡 **Manual check of the new note rendering** in the real app (login needed):
