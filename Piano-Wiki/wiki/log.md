@@ -13,6 +13,15 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Tests: every test runs in a known category; integration suite in CI
+- `AddDeviceWindow` test was category `Component`, which no flag ran — it never ran anywhere. Now
+  `Unit` (5 assertions, all pass). Two empty test files (`test_settings_window*.cpp`) removed.
+- GL test moved to `Integration-display` (`--display-tests`; real window + pixel reads, needs an
+  unlocked desktop). `--api-tests` added for `Integration-api` (real backend, creates accounts).
+  No flag now runs everything **except** the API tests (it used to run them too).
+- CI runs `--integration-tests` (≈2 s; 93 assertions without MIDI hardware, floor 85). Unit floor
+  730 → 790 (811 now). Category table in AGENTS.md.
+
 ## 2026-11-22 — Fix: Start pressed while already playing broke the BPM lock
 - Track player: `MultipleTrackPlayer::start()`/`stop(true)` post a play-state notification and the
   listeners *flipped* state (BPM slider; notes table Change/Apply). Start-while-playing = uncounted
