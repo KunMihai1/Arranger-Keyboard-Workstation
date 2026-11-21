@@ -2,7 +2,7 @@
 type: meta
 title: "Operations Log"
 created: 2026-06-06
-updated: 2026-11-21
+updated: 2026-11-22
 tags:
   - meta
   - log
@@ -12,6 +12,34 @@ status: evergreen
 # Operations Log
 
 Append-only. Newest entries at the TOP. Never edit past entries.
+
+## 2026-11-22 — Fix: Solo Start on a "None" track crashed
+- `startPlaying()` Solo path dereferenced the null map entry that `applyBPMchangeBeforePlayback`'s
+  `operator[]` inserts for every "None" track; now null-checked like the all-tracks path.
+- Test case in `test_current_style_start.cpp` (style load → Solo → click Track → Start): unit run
+  crashed 0xC0000005 before, 758/0 after; arranger 705/0. Verified live: "There are no tracks to play".
+- Null entries themselves left alone (every other reader already checks).
+
+## 2026-11-22 — Live reproduction of the code-reading bug list
+
+Driven in the running Debug app on main (a182b35), app data backed up and restored afterwards.
+
+- **Confirmed – crash:** Solo mode, click a "None" track, Start → access violation (c0000005).
+  No BPM drag needed: loading the style already runs `applyBPMchangeBeforePlayback`, whose
+  `mapUuidToTrackEntry[...]` inserts a null entry for each None track; the Solo path in
+  `startPlaying()` derefs it without the null check the All-tracks path has.
+- **Confirmed – picker folder switch:** assign Bass from folder A, browse into folder B without
+  choosing → the slot still says Bass but Notes information shows folder B's track (C8 test notes).
+  The map holds `&(*availableTracksFromFolder)[i]`, a copy overwritten on folder open.
+- **Confirmed – removing a folder track:** removing a track stored *before* a used one shifts it
+  (`remove_if` + erase) → the slot shows another track's notes. Removing one stored after it does not.
+- **Confirmed – Start while playing:** track player: BPM unlocked while playing and locked after
+  Stop (toggle in `updateObjects`). Arranger: BPM unlocked while still playing (stale async
+  `onStoppedItself` from `haltAudio`).
+- **Corrected – taskbar:** a normal launch is maximised correctly; only Windows "restore" gives a
+  window the size of the whole screen (0,0-1938,1077). The earlier sighting and the "black keys too
+  long" look came from the test helper's SW_RESTORE. Black keys are 0.6 of the key height as drawn.
+- Not reproducible live (races): SFZ load order, MIDI-thread recording without a lock.
 
 ## 2026-11-21 — Start-with-nothing-to-play fix, CI object cache, bug hunt by code reading
 - **PR #16 merged** (precompiled header + 10 modules dropped): CI 4–5 min → ~2 min.

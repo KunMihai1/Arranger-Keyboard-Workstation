@@ -21,6 +21,7 @@ public:
     {
         checkStartWithNoTracks (false);
         checkStartWithNoTracks (true);
+        checkSoloStartOnNoneTrack();
     }
 
 private:
@@ -32,6 +33,60 @@ private:
                 if (pred (*t))
                     return t;
         return nullptr;
+    }
+
+    template <typename T>
+    static T* findDescendant (juce::Component& parent)
+    {
+        for (auto* c : parent.getChildren())
+        {
+            if (auto* t = dynamic_cast<T*> (c))
+                return t;
+            if (auto* t = findDescendant<T> (*c))
+                return t;
+        }
+        return nullptr;
+    }
+
+    /*  Bug (2026-11-22, reproduced live as an access violation): Solo mode, click a "None" track,
+        Start. Loading a style runs applyBPMchangeBeforePlayback(), whose map operator[] inserts a
+        null entry for every "None" track; the Solo path then dereferenced that entry. It must
+        behave like "All tracks" instead: nothing to play, panel stays stopped. */
+    void checkSoloStartOnNoneTrack()
+    {
+        beginTest ("Solo Start on a \"None\" track plays nothing and does not crash");
+
+        std::unordered_map<juce::Uuid, TrackEntry*> trackEntries;
+        CurrentStyleComponent panel ("Style 1", trackEntries, {}, {});
+        panel.setMidiInjectCallback ([] (const juce::MidiMessage&) {});
+        panel.setSize (700, 120);
+
+        panel.applyBPMchangeBeforePlayback (120.0);   // what loading a style does
+
+        auto* mode  = findChild<juce::ComboBox> (panel, [] (juce::ComboBox&) { return true; });
+        auto* track = findDescendant<Track> (panel);
+        auto* start = findChild<juce::TextButton> (panel, [] (juce::TextButton& b) { return b.getButtonText() == "Start"; });
+        auto* beat  = findChild<BeatBar> (panel, [] (BeatBar&) { return true; });
+
+        expect (mode != nullptr && track != nullptr && start != nullptr && beat != nullptr, "panel children not found");
+        if (mode == nullptr || track == nullptr || start == nullptr || beat == nullptr)
+            return;
+
+        mode->setSelectedId (2, juce::sendNotificationSync);   // "Solo track (last selected)"
+
+        // A click on the track selects it (the panel listens to its children's mouse-downs).
+        const auto now = juce::Time::getCurrentTime();
+        const juce::MouseEvent click (juce::Desktop::getInstance().getMainMouseSource(), {}, juce::ModifierKeys::leftButtonModifier,
+                                      juce::MouseInputSource::defaultPressure, 0.0f, 0.0f, 0.0f, 0.0f,
+                                      track, track, now, {}, now, 1, false);
+        static_cast<juce::Component&> (panel).mouseDown (click);   // the override is private; dispatch as JUCE does
+
+        start->onClick();
+
+        expect (! (beat->isPlayingCheck && beat->isPlayingCheck()),
+                "beat bar shows 'playing' after a Solo Start on a track with nothing to play");
+
+        closeAlerts();
     }
 
     static void closeAlerts()

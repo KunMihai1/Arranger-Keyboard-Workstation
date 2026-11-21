@@ -59,8 +59,10 @@ bool CurrentStyleComponent::startPlaying()
     {
         if (lastSelectedTrack)
         {
+            // A "None" track has a null entry (applyBPMchangeBeforePlayback inserts one), so check
+            // it like the all-tracks path does: nothing to play, not a crash.
             auto it = mapUuidToTrackEntry.find(lastSelectedTrack->getUsedID());
-            if (it != mapUuidToTrackEntry.end())
+            if (it != mapUuidToTrackEntry.end() && it->second != nullptr)
                 selectedTracks.push_back(*it->second);
         }
     }
