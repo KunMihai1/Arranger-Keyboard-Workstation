@@ -143,7 +143,7 @@ jobs:
       - name: Run unit tests
         shell: pwsh
         env:
-          MIN_UNIT_ASSERTIONS: '730'   # 748 as of 2026-11-21
+          MIN_UNIT_ASSERTIONS: '790'   # 811 as of 2026-11-22
         run: |
           $exe = (Get-ChildItem -Recurse -Filter "Project Tests.exe" ci\Builds | Select-Object -First 1).FullName
           & $exe --unit-tests
@@ -180,6 +180,29 @@ jobs:
           }
           "arranger: $passes assertions passed"
 
+      # Components working together (overlay, style sections; the MIDI-hardware tests skip without a
+      # device). Takes about 2 s. The GL test needs a real desktop and the API tests create real
+      # accounts, so they have their own categories and do not run here (see ci/test_main.cpp).
+      - name: Run integration tests
+        shell: pwsh
+        env:
+          MIN_INTEGRATION_ASSERTIONS: '85'   # 93 without MIDI hardware, 129 with, as of 2026-11-22
+        run: |
+          $exe = (Get-ChildItem -Recurse -Filter "Project Tests.exe" ci\Builds | Select-Object -First 1).FullName
+          & $exe --integration-tests
+          $code = $LASTEXITCODE
+          Copy-Item test-results.txt test-results-integration.txt -ErrorAction SilentlyContinue
+          if ($code -ne 0) { throw "integration tests failed ($code failing assertions)" }
+          $line = Select-String -Path test-results-integration.txt -Pattern '^TOTAL \| passes: (\d+)' |
+                  Select-Object -Last 1
+          if (-not $line) { throw "no TOTAL line in the integration results - the runner produced no summary" }
+          $passes = [int]$line.Matches[0].Groups[1].Value
+          $min    = [int]$env:MIN_INTEGRATION_ASSERTIONS
+          if ($passes -lt $min) {
+            throw "integration suite ran only $passes assertions (expected >= $min) - tests are missing from the build"
+          }
+          "integration: $passes assertions passed"
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
@@ -188,4 +211,5 @@ jobs:
           path: |
             test-results-unit.txt
             test-results-arranger.txt
+            test-results-integration.txt
           if-no-files-found: warn

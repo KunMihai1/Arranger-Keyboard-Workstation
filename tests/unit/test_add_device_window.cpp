@@ -4,7 +4,7 @@
 class AddDeviceWindowTest : public juce::UnitTest
 {
 public:
-    AddDeviceWindowTest() : juce::UnitTest("AddDeviceWindow", "Component") {}
+    AddDeviceWindowTest() : juce::UnitTest("AddDeviceWindow", "Unit") {}
 
     void runTest() override
     {

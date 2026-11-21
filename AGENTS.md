@@ -57,6 +57,18 @@ The wiki is the architecture documentation. Keep it in sync (see *Finishing work
   `Project Tests.exe --unit-tests` and `--arranger-tests`. **Exit code = number of failing
   assertions.** Results go to `test-results.txt` in the *working directory*; check the
   `TOTAL | passes: N` line. The app itself compiles **no** test code.
+- **Test categories** (the second argument of `juce::UnitTest`; `ci/test_main.cpp` maps each to a flag).
+  A test in any other category never runs, so pick one of these:
+
+  | Category | Flag | What goes there | Runs in CI |
+  |---|---|---|---|
+  | `Unit` | `--unit-tests` | logic and single components; files only in the temp folder | yes |
+  | `Arranger` | `--arranger-tests` | the arranger engine and model | yes |
+  | `Integration` | `--integration-tests` | several components together; MIDI-hardware tests skip without a device | yes |
+  | `Integration-display` | `--display-tests` | opens real windows and reads pixels: needs an unlocked desktop with a GPU | no (run locally) |
+  | `Integration-api` | `--api-tests` | real backend calls that **create accounts**: never by default | no |
+
+  No flag runs every category except `Integration-api`. Tests must never write to `%APPDATA%`.
 - **Projucer returns immediately** — always `Start-Process -Wait -NoNewWindow`.
 - **New `Source/` file** → add it to **both** `Arranger Workstation.jucer` and `ci/Tests.jucer`.
 - **Precompiled header:** `Source/PrecompiledHeader.h` (`<JuceHeader.h>`) is force-included into

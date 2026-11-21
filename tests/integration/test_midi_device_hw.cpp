@@ -55,6 +55,25 @@ public:
             }
         }
 
+        // A listed output that can't be opened (CI runners list the Windows GS synth but have no MIDI
+        // service) is not usable hardware: treat it like "no device" so these tests skip.
+        if (hasOutputDevice)
+        {
+            const juce::String listedButUnopenableMessage = "SKIPPED - MIDI output is listed but cannot be opened";
+            MidiDevice probe;
+            std::vector<std::string> probeDevices;
+            probe.getAvailableDevicesMidiOUT(probeDevices);
+            if (probe.deviceOpenOUT(outputDeviceIndex))
+            {
+                probe.deviceCloseOUT();
+            }
+            else
+            {
+                logMessage(listedButUnopenableMessage);
+                hasOutputDevice = false;
+            }
+        }
+
         // ---- Device Discovery ----
 
         beginTest("[HW] getAvailableDevicesMidiIN - finds at least one device");

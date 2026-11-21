@@ -45,7 +45,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 ## Active Threads / Next
 - 🔴 **Bugs reproduced live 2026-11-22** (see [[log]]): ✅ Solo/None crash (PR #19); ✅ stale track
   map after picker browse / track or folder removal (PR #20); ✅ Start-while-playing BPM lock
-  (`fix/start-while-playing`). Open: "restore down" size = whole screen.
+  (PR #21). Open: "restore down" size = whole screen. Tests: categories table in AGENTS.md.
   Watch: "Notes information" table holds refs into a library entry while open (unreachable today).
 - ✅ GPU note rendering: in-app test plan 12/12 (the Login button skips credentials).
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
