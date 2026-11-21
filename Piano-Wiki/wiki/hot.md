@@ -43,9 +43,10 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - CI caches compiled JUCE objects (filled by runs on `main`; key hashes `ci/JuceLibraryCode`).
 
 ## Active Threads / Next
-- 🔴 **7 bugs found by code reading, not yet reproduced** (crash in Solo mode, wrong track after
-  switching picker folders, Start-while-playing state, SFZ load order, taskbar) — list in [[log]]
-  2026-11-21. Reproduce live with the owner, then fix each test-first.
+- 🔴 **5 bugs reproduced live 2026-11-22** (see [[log]]): Solo + "None" track + Start crashes;
+  browsing another picker folder swaps a slot's notes; removing a folder track shifts later slots;
+  Start-while-playing unlocks BPM (arranger and track player). Fix each test-first. Taskbar bug is
+  only "restore down" (restored size = whole screen); launch is maximised correctly.
 - ✅ GPU note rendering: in-app test plan 12/12 (the Login button skips credentials).
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.
