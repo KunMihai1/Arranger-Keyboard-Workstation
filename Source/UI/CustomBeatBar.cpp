@@ -10,7 +10,20 @@
 
 #include "CustomBeatBar.h"
 
-BeatBar::BeatBar(): numerator{4}, denominator{4}
+namespace
+{
+    constexpr int   defaultBeatsPerBar   = 4;     // 4/4 until a style says otherwise
+    constexpr int   defaultBeatUnit      = 4;
+    constexpr float quarterNoteUnit      = 4.0f;  // sub-beats per beat = beat unit / 4
+    constexpr float cornerRatio          = 0.3f;
+    constexpr int   downbeat             = 0;
+    constexpr float activeAlpha          = 0.85f;
+    constexpr float outlineAlpha         = 0.3f;
+    constexpr float outlineThickness     = 1.0f;
+    constexpr double barStart            = 0.0;
+}
+
+BeatBar::BeatBar(): numerator{defaultBeatsPerBar}, denominator{defaultBeatUnit}
 {
 
 }
@@ -26,28 +39,28 @@ void BeatBar::paint(juce::Graphics& g)
     int currentSubdivision = getCurrentSubdivision();
 
     float subBeatWidth = area.getWidth() / totalSubdivisions;
-    float cornerSize = juce::jmin(subBeatWidth, height) * 0.3f;
+    float cornerSize = juce::jmin(subBeatWidth, height) * cornerRatio;
 
-    for (int i = 0; i < totalSubdivisions; ++i)
+    for (int subdivision {}; subdivision < totalSubdivisions; ++subdivision)
     {
         juce::Rectangle<float> beatRect(
-            area.getX() + i * subBeatWidth,
+            area.getX() + subdivision * subBeatWidth,
             area.getY(),
             subBeatWidth,
             height
         );
 
-        bool isCurrent = (i == currentSubdivision);
+        bool isCurrent = (subdivision == currentSubdivision);
 
         if (isCurrent)
         {
-            if (i == 0 && isPlayingCheck && isPlayingCheck())
+            if (subdivision == downbeat && isPlayingCheck && isPlayingCheck())
             {
-                g.setColour(juce::Colours::red.withAlpha(0.85f));
+                g.setColour(juce::Colours::red.withAlpha(activeAlpha));
             }
             else
             {
-                g.setColour(juce::Colours::yellow.withAlpha(0.85f));
+                g.setColour(juce::Colours::yellow.withAlpha(activeAlpha));
             }
         }
         else
@@ -57,8 +70,8 @@ void BeatBar::paint(juce::Graphics& g)
 
         g.fillRoundedRectangle(beatRect, cornerSize);
 
-        g.setColour(juce::Colours::blanchedalmond.withAlpha(0.3f));
-        g.drawRoundedRectangle(beatRect, cornerSize, 1.0f);
+        g.setColour(juce::Colours::blanchedalmond.withAlpha(outlineAlpha));
+        g.drawRoundedRectangle(beatRect, cornerSize, outlineThickness);
     }
 }
 
@@ -106,7 +119,7 @@ int BeatBar::getCurrentSubdivision()
 
     double beatInBar = std::fmod(currentBeatsElapsed, beatsPerBar);
 
-    if (beatInBar < 0)
+    if (beatInBar < barStart)
         beatInBar += beatsPerBar;
 
     return static_cast<int>(std::floor(beatInBar * subBeatsPerBeat));
@@ -114,5 +127,5 @@ int BeatBar::getCurrentSubdivision()
 
 float BeatBar::getSubBeatsPerBeat()
 {
-    return static_cast<float>(denominator) / 4.0f;
+    return static_cast<float>(denominator) / quarterNoteUnit;
 }

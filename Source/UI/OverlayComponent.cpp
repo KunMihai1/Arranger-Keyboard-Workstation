@@ -1,5 +1,15 @@
 #include "OverlayComponent.h"
 
+namespace OverlayText
+{
+    const juce::String settings = "Settings";
+    const juce::String exit     = "Exit";
+    const juce::String effects  = "Effects";
+    constexpr float dimAlpha        = 0.6f;
+    constexpr int   centringDivisor = 2;
+    constexpr int   panelPadding    = 30;
+}
+
 OverlayComponent::OverlayComponent()
 {
     setVisible(false);
@@ -14,7 +24,7 @@ OverlayComponent::OverlayComponent()
     menuPanel.addAndMakeVisible(effectsButton);
     menuPanel.addAndMakeVisible(exitButton);
 
-    settingsButton.setButtonText("Settings");
+    settingsButton.setButtonText(OverlayText::settings);
     settingsButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     settingsButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     settingsButton.onClick = [this]() { 
@@ -22,7 +32,7 @@ OverlayComponent::OverlayComponent()
             onSettingsClick();
     };
 
-    exitButton.setButtonText("Exit");
+    exitButton.setButtonText(OverlayText::exit);
     exitButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     exitButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     exitButton.onClick = [this]()
@@ -34,7 +44,7 @@ OverlayComponent::OverlayComponent()
             app->systemRequestedQuit();
     };
 
-    effectsButton.setButtonText("Effects");
+    effectsButton.setButtonText(OverlayText::effects);
     effectsButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     effectsButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     effectsButton.onClick = [this]()
@@ -47,7 +57,7 @@ OverlayComponent::OverlayComponent()
 void OverlayComponent::paint(juce::Graphics& g)
 {
 
-    g.fillAll(juce::Colours::black.withAlpha(0.6f));
+    g.fillAll(juce::Colours::black.withAlpha(OverlayText::dimAlpha));
 }
 
 void OverlayComponent::resized()
@@ -55,11 +65,11 @@ void OverlayComponent::resized()
     auto area = getLocalBounds();
     const int panelWidth = 300;
     const int panelHeight = 300;
-    menuPanel.setBounds(area.getCentreX() - panelWidth / 2,
-        area.getCentreY() - panelHeight / 2,
+    menuPanel.setBounds(area.getCentreX() - panelWidth / OverlayText::centringDivisor,
+        area.getCentreY() - panelHeight / OverlayText::centringDivisor,
         panelWidth, panelHeight);
 
-    auto panelArea = menuPanel.getLocalBounds().reduced(30);
+    auto panelArea = menuPanel.getLocalBounds().reduced(OverlayText::panelPadding);
     const int buttonHeight = 40;
     const int spacing = 20;
 

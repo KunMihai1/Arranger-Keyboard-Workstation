@@ -21,6 +21,11 @@ namespace SectionGroupNames
     inline const juce::String fills       = "fills";
     inline const juce::String variations  = "variations";
     inline const juce::String breakButton = "Break";
+    // Live section buttons are "<prefix><number>", e.g. "Var 2".
+    inline const juce::String variationPrefix = "Var ";
+    inline const juce::String fillPrefix      = "Fill ";
+    inline const juce::String introPrefix     = "Intro ";
+    inline const juce::String endingPrefix    = "Ending ";
 }
 
 class SectionGroupComponent: public juce::Component {

@@ -10,9 +10,20 @@
 
 #include "InstrumentChooser.h"
 
+namespace
+{
+    const juce::String searchHint = "Click HERE to Search";
+    constexpr int   outerPadding    = 6;
+    constexpr int   searchHeight    = 18;
+    constexpr int   searchGap       = 4;
+    constexpr float rowFontHeight   = 16.0f;
+    constexpr int   textLeft        = 4;
+    constexpr int   rowTop          = 0;
+}
+
 InstrumentChooserComponent::InstrumentChooserComponent(juce::StringArray& arr): allInstruments{arr}
 {
-    searchBox.setTextToShowWhenEmpty("Click HERE to Search", juce::Colours::darkgrey);
+    searchBox.setTextToShowWhenEmpty(searchHint, juce::Colours::darkgrey);
     searchBox.addListener(this);
     addAndMakeVisible(searchBox);
 
@@ -29,9 +40,9 @@ InstrumentChooserComponent::~InstrumentChooserComponent()
 
 void InstrumentChooserComponent::resized()
 {
-    auto area = getLocalBounds().reduced(6);
-    searchBox.setBounds(area.removeFromTop(18));
-    area.removeFromTop(4);
+    auto area = getLocalBounds().reduced(outerPadding);
+    searchBox.setBounds(area.removeFromTop(searchHeight));
+    area.removeFromTop(searchGap);
     instrumentListBox.setBounds(area);
 }
 
@@ -45,19 +56,19 @@ void InstrumentChooserComponent::paintListBoxItem(int rowNumber, juce::Graphics&
     if (rowIsSelected)
         g.fillAll(juce::Colours::coral);
     g.setColour(juce::Colours::peachpuff);
-    g.setFont(16.0f);
-    g.drawText(filteredInstruments[rowNumber], 4, 0, width, height, juce::Justification::centredLeft);
+    g.setFont(rowFontHeight);
+    g.drawText(filteredInstruments[rowNumber], textLeft, rowTop, width, height, juce::Justification::centredLeft);
 }
 
 void InstrumentChooserComponent::listBoxItemClicked(int row, const juce::MouseEvent& ev)
 {
     juce::String name = filteredInstruments[row];
-    for (int i = 0; i < allInstruments.size(); i++)
+    for (int instrumentIndex {}; instrumentIndex < allInstruments.size(); instrumentIndex++)
     {
-        if (name == allInstruments[i])
+        if (name == allInstruments[instrumentIndex])
         {
             if (instrumentSelectedFunction)
-                instrumentSelectedFunction(i, name);
+                instrumentSelectedFunction(instrumentIndex, name);
             break;
         }
     }

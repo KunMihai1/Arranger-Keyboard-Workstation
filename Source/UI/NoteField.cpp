@@ -2,17 +2,24 @@
 
 #include <algorithm>
 
-bool NoteField::noteOn (int midiNote, float x, float width)
+namespace
 {
-    if (heldNotes.count (midiNote) != 0)
+    constexpr float fieldTop          = 0.0f;
+    constexpr float transparent       = 0.0f;
+    constexpr float minVisibleHeight  = 0.1f;   // px; a note squeezed below this is gone
+}
+
+bool NoteField::noteOn (int midiNote, float left, float width)
+{
+    if (heldNotes.count (midiNote) != std::size_t {})
         return false;
 
-    Note n;
-    n.x = x;
-    n.width = width;
-    n.height = startHeight;
-    n.y = fieldHeight - startHeight;
-    heldNotes[midiNote] = n;
+    Note note;
+    note.left = left;
+    note.width = width;
+    note.height = startHeight;
+    note.top = fieldHeight - startHeight;
+    heldNotes[midiNote] = note;
     return true;
 }
 
@@ -22,7 +29,7 @@ void NoteField::noteOff (int midiNote)
     if (it == heldNotes.end())
         return;
 
-    it->second.alpha = 1.0f;
+    it->second.alpha = opaque;
     fallingNotes.push_back (it->second);
     heldNotes.erase (it);
 }
@@ -31,7 +38,7 @@ void NoteField::releaseAll()
 {
     for (auto& held : heldNotes)
     {
-        held.second.alpha = 1.0f;
+        held.second.alpha = opaque;
         fallingNotes.push_back (held.second);
     }
     heldNotes.clear();
@@ -50,35 +57,35 @@ void NoteField::advance (float seconds)
     // Held: the top rises, the bottom stays put, never taller than the field.
     for (auto& held : heldNotes)
     {
-        auto& n = held.second;
-        n.y -= rise;
-        n.height += rise;
+        auto& note = held.second;
+        note.top -= rise;
+        note.height += rise;
 
-        if (n.height > fieldHeight)
+        if (note.height > fieldHeight)
         {
-            const float bottom = n.y + n.height;
-            n.height = fieldHeight;
-            n.y = bottom - n.height;
+            const float bottom = note.top + note.height;
+            note.height = fieldHeight;
+            note.top = bottom - note.height;
         }
     }
 
     // Released: the whole note rises; against the top edge it shrinks, and fades over its tail.
     for (auto it = fallingNotes.begin(); it != fallingNotes.end();)
     {
-        auto& n = *it;
-        n.y -= rise;
+        auto& note = *it;
+        note.top -= rise;
 
-        if (n.y < 0.0f)
+        if (note.top < fieldTop)
         {
-            n.height += n.y;
-            n.y = 0.0f;
+            note.height += note.top;
+            note.top = fieldTop;
         }
 
-        const float tailY = n.y + n.height;
+        const float tailY = note.top + note.height;
         if (tailY < fadeZone)
-            n.alpha = std::max (0.0f, tailY / fadeZone);
+            note.alpha = std::max (transparent, tailY / fadeZone);
 
-        if (tailY <= 0.0f || n.height <= 0.1f || n.alpha <= 0.0f)
+        if (tailY <= fieldTop || note.height <= minVisibleHeight || note.alpha <= transparent)
             it = fallingNotes.erase (it);
         else
             ++it;

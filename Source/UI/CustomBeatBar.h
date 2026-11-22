@@ -94,5 +94,5 @@ private:
     int denominator;
 
     /** @brief Tracks how many beats have elapsed for highlighting. */
-    double currentBeatsElapsed = 0.0;
+    double currentBeatsElapsed {};
 };

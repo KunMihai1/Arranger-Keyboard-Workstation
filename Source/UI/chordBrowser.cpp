@@ -10,20 +10,44 @@
 
 #include "chordBrowser.h"
 
+namespace
+{
+    constexpr int   chordShapes        = 3;       // root position and two inversions
+    constexpr float labelFontHeight    = 13.0f;
+    constexpr int   previewPadding     = 6;
+    constexpr int   labelHeight        = 22;
+    constexpr int   labelInsetX        = 4;
+    constexpr int   labelInsetY        = 2;
+    constexpr int   imageInset         = 4;
+    const juce::Colour hoverColour { 0xffe8f0ff };
+    constexpr float rowFontHeight      = 20.0f;
+    constexpr int   rowTextInsetX      = 6;
+    constexpr int   rowTextInsetY      = 4;
+    const juce::String searchHint      = "Search chords...";
+    constexpr int   browserWidth       = 1200;
+    constexpr int   browserHeight      = 750;
+    constexpr int   firstRow           = 0;
+    constexpr int   outerPadding       = 8;
+    constexpr int   searchHeight       = 28;
+    constexpr int   listWidthDivisor   = 3;       // the list takes a third of the width
+    constexpr int   listInset          = 2;
+    constexpr int   previewInset       = 4;
+}
+
 ChordPreview::ChordPreview()
 {
     const juce::String labels[] = { "Root", "1st Inversion", "2nd Inversion" };
 
-    for (int i = 0; i < 3; ++i)
+    for (int shapeIndex {}; shapeIndex < chordShapes; ++shapeIndex)
     {
         auto* container = new juce::Component();
         addAndMakeVisible(container);
         containers.add(container);
 
         auto* lbl = new juce::Label();
-        lbl->setText(labels[i], juce::dontSendNotification);
+        lbl->setText(labels[shapeIndex], juce::dontSendNotification);
         lbl->setJustificationType(juce::Justification::centred);
-        lbl->setFont(juce::Font(13.0f, juce::Font::bold));
+        lbl->setFont(juce::Font(labelFontHeight, juce::Font::bold));
         container->addAndMakeVisible(lbl);
         labelsArray.add(lbl);
 
@@ -38,23 +62,23 @@ ChordPreview::ChordPreview()
 
 void ChordPreview::resized()
 {
-    auto area = getLocalBounds().reduced(6);
-    int singleH = area.getHeight() / 3;
+    auto area = getLocalBounds().reduced(previewPadding);
+    int singleH = area.getHeight() / chordShapes;
 
-    for (int i = 0; i < containers.size(); ++i)
+    for (int shapeIndex {}; shapeIndex < containers.size(); ++shapeIndex)
     {
         auto row = area.removeFromTop(singleH);
-        containers[i]->setBounds(row);
+        containers[shapeIndex]->setBounds(row);
 
         
-        auto containerLocal = containers[i]->getLocalBounds();
+        auto containerLocal = containers[shapeIndex]->getLocalBounds();
 
         
-        auto labelArea = containerLocal.removeFromTop(22).reduced(4, 2);
-        labelsArray[i]->setBounds(labelArea);
+        auto labelArea = containerLocal.removeFromTop(labelHeight).reduced(labelInsetX, labelInsetY);
+        labelsArray[shapeIndex]->setBounds(labelArea);
 
         
-        imageComponents[i]->setBounds(containerLocal.reduced(4));
+        imageComponents[shapeIndex]->setBounds(containerLocal.reduced(imageInset));
     }
 }
 
@@ -64,14 +88,14 @@ void ChordPreview::showChordImages(Chord& chord)
 
     const juce::Image images[] = { chord.imgRoot,chord.imgInv1,chord.imgInv2 };
 
-    for (int i = 0; i < imageComponents.size(); ++i)
+    for (int shapeIndex {}; shapeIndex < imageComponents.size(); ++shapeIndex)
     {
-        if (!images[i].isNull())
+        if (!images[shapeIndex].isNull())
         {
             ChordHelper::loadChordNeeded(chord);
         }
 
-        imageComponents[i]->setImage(images[i]);
+        imageComponents[shapeIndex]->setImage(images[shapeIndex]);
     }
 }
 
@@ -82,7 +106,7 @@ void ChordPreview::clearImages()
 }
 
 
-ChordRowComponent::ChordRowComponent(Chord& chord, std::function<void(Chord& c)> onClick, std::function<void(Chord& c)> onHoverEnter, std::function<void()> onHoverExit)
+ChordRowComponent::ChordRowComponent(Chord& chord, std::function<void(Chord& clicked)> onClick, std::function<void(Chord& hovered)> onHoverEnter, std::function<void()> onHoverExit)
     :chordData{chord}, onClick{onClick}, onHoverEnter{onHoverEnter}, onHoverExit{onHoverExit}
 {
     setInterceptsMouseClicks(true, true);
@@ -93,20 +117,20 @@ ChordRowComponent::~ChordRowComponent()
 {
 }
 
-void ChordRowComponent::updateChordData(const Chord& c)
+void ChordRowComponent::updateChordData(const Chord& chord)
 {
-    chordData = c;
+    chordData = chord;
     repaint();
 }
 
 void ChordRowComponent::paint(juce::Graphics& g)
 {
-    auto r = getLocalBounds();
+    auto rowBounds = getLocalBounds();
     if (isMouseOver())
-        g.fillAll(juce::Colour(0xffe8f0ff));
+        g.fillAll(hoverColour);
     g.setColour(juce::Colours::lightgrey);
-    g.setFont(20.0f);
-    g.drawText(chordData.name, r.reduced(6, 4), juce::Justification::centredLeft);
+    g.setFont(rowFontHeight);
+    g.drawText(chordData.name, rowBounds.reduced(rowTextInsetX, rowTextInsetY), juce::Justification::centredLeft);
 }
 
 void ChordRowComponent::mouseEnter(const juce::MouseEvent& ev)
@@ -129,7 +153,7 @@ void ChordRowComponent::mouseDown(const juce::MouseEvent& ev)
 ChordBrowserComponent::ChordBrowserComponent(const std::vector<Chord>& allChords): allChords{allChords}
 {
     addAndMakeVisible(search);
-    search.setTextToShowWhenEmpty("Search chords...", juce::Colours::grey);
+    search.setTextToShowWhenEmpty(searchHint, juce::Colours::grey);
     search.addListener(this);
 
     addAndMakeVisible(listBox);
@@ -141,7 +165,7 @@ ChordBrowserComponent::ChordBrowserComponent(const std::vector<Chord>& allChords
     addAndMakeVisible(preview);
 
     rebuildFilteredList();
-    setSize(1200, 750);
+    setSize(browserWidth, browserHeight);
 }
 
 ChordBrowserComponent::~ChordBrowserComponent()
@@ -161,14 +185,14 @@ int ChordBrowserComponent::getNumRows()
 juce::Component* ChordBrowserComponent::refreshComponentForRow(
     int rowNumber, bool isRowSelected, juce::Component* existingComponentToUpdate)
 {
-    if (rowNumber < 0 || rowNumber >= (int)filteredIndices.size())
+    if (rowNumber < firstRow || rowNumber >= (int)filteredIndices.size())
     {
         if (existingComponentToUpdate != nullptr)
             delete existingComponentToUpdate;
 
         return nullptr;
     }
-    Chord& c = allChords[filteredIndices[(size_t)rowNumber]];
+    Chord& rowChord = allChords[filteredIndices[(size_t)rowNumber]];
 
     
     auto* row = dynamic_cast<ChordRowComponent*>(existingComponentToUpdate);
@@ -181,7 +205,7 @@ juce::Component* ChordBrowserComponent::refreshComponentForRow(
 
         
 
-        row = new ChordRowComponent(c,
+        row = new ChordRowComponent(rowChord,
             [this](Chord& chosen) { if (onChordChosen) onChordChosen(chosen); },
             [this](Chord& hovered) { showPreviewForChord(hovered); },
             [this]() { clearPreview(); });
@@ -189,7 +213,7 @@ juce::Component* ChordBrowserComponent::refreshComponentForRow(
     else
     {
         
-        row->updateChordData(c);
+        row->updateChordData(rowChord);
     }
 
     return row;
@@ -201,15 +225,15 @@ void ChordBrowserComponent::paint(juce::Graphics& g)
 
 void ChordBrowserComponent::resized()
 {
-    auto r = getLocalBounds().reduced(8);
-    auto top = r.removeFromTop(28);
-    search.setBounds(top.removeFromLeft(r.getWidth()));
+    auto area = getLocalBounds().reduced(outerPadding);
+    auto top = area.removeFromTop(searchHeight);
+    search.setBounds(top.removeFromLeft(area.getWidth()));
 
     
-    auto left = r.removeFromLeft(getWidth() / 3);
-    listBox.setBounds(left.reduced(2));
+    auto left = area.removeFromLeft(getWidth() / listWidthDivisor);
+    listBox.setBounds(left.reduced(listInset));
 
-    preview.setBounds(r.reduced(4));
+    preview.setBounds(area.reduced(previewInset));
 }
 
 void ChordBrowserComponent::paintListBoxItem(int rowNumber, juce::Graphics&, int width, int height, bool rowIsSelected)
@@ -238,12 +262,12 @@ void ChordBrowserComponent::textEditorFocusLost(juce::TextEditor& editor)
 void ChordBrowserComponent::rebuildFilteredList()
 {
     filteredIndices.clear();
-    for (int i = 0; i < (int)allChords.size(); ++i)
+    for (int chordIndex {}; chordIndex < (int)allChords.size(); ++chordIndex)
     {
         if (filterText.isEmpty()
-            || allChords[(size_t)i].name.toLowerCase().contains(filterText.toLowerCase()))
+            || allChords[(size_t)chordIndex].name.toLowerCase().contains(filterText.toLowerCase()))
         {
-            filteredIndices.push_back(i);
+            filteredIndices.push_back(chordIndex);
         }
     }
     listBox.updateContent();
