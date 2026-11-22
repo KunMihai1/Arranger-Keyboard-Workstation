@@ -2,322 +2,426 @@
 #include <juce_audio_devices/juce_audio_devices.h>
 #include "MidiHandler.h"
 
+namespace MidiDeviceTestValues
+{
+    const juce::String testName     = "MidiDevice";
+    const juce::String testCategory = "Unit";
+
+    const juce::String defaultVolumeAndReverb   = "Constructor - default volume and reverb";
+    const juce::String defaultNoteRange         = "Constructor - default note range";
+    const juce::String notOpenByDefault         = "Constructor - device not open by default";
+    const juce::String defaultDeviceIndices     = "Constructor - default device indices";
+    const juce::String minNoteRoundTrip         = "set_minNote and get_minNote";
+    const juce::String maxNoteRoundTrip         = "set_maxNote and get_maxNote";
+    const juce::String keysFullRange            = "getNrKeysAfterInitialized - full range";
+    const juce::String keysCustomRange          = "getNrKeysAfterInitialized - custom range";
+    const juce::String volumeLeftHand           = "setVolume / getVolume - channel 1";
+    const juce::String volumeRightHand          = "setVolume / getVolume - channel 16";
+    const juce::String volumeUnknownChannel     = "getVolume - unknown channel returns 50.0";
+    const juce::String reverbLeftHand           = "setReverb / getReverb - channel 1";
+    const juce::String reverbRightHand          = "setReverb / getReverb - channel 16";
+    const juce::String reverbUnknownChannel     = "getReverb - unknown channel returns 50.0";
+    const juce::String toneRoundTrip            = "brightness/expression/chorus/resonance - round-trip per channel, independent hands";
+    const juce::String toneUnknownChannel       = "brightness/expression/chorus/resonance - unknown channel returns 50";
+    const juce::String sustainRoundTrip         = "sustain toggle - round-trip per channel, unknown channel defaults true";
+    const juce::String envelopeRoundTrip        = "envelope/mod accessors (attack/decay/release/vibrato/delay) - round-trip + default 0";
+    const juce::String settersIgnoreOtherChannels = "setters ignore channels other than 1 and 16 (no first/second-hand change)";
+    const juce::String deviceInRoundTrip        = "setDeviceIN / getDeviceIndexIN";
+    const juce::String deviceOutRoundTrip       = "setDeviceOUT / getDeviceIndexOUT";
+    const juce::String vendorIdRoundTrip        = "setVID / getVID";
+    const juce::String productIdRoundTrip       = "setPID / getPID";
+    const juce::String nameRoundTrip            = "setDeviceName / getName";
+    const juce::String extractPidValid          = "extractPID - valid identifier";
+    const juce::String extractPidUsb            = "extractPID - standard USB identifier";
+    const juce::String extractPidMissing        = "extractPID - no pid_ in identifier";
+    const juce::String extractPidEmpty          = "extractPID - empty string";
+    const juce::String extractVidValid          = "extractVID - valid identifier";
+    const juce::String extractVidMissing        = "extractVID - no vid_ in identifier";
+    const juce::String extractVidEmpty          = "extractVID - empty string";
+    const juce::String openInNegative           = "deviceOpenIN - negative index returns false";
+    const juce::String openInOutOfRange         = "deviceOpenIN - out of range index returns false";
+    const juce::String openOutNegative          = "deviceOpenOUT - negative index returns false";
+    const juce::String openOutOutOfRange        = "deviceOpenOUT - out of range index returns false";
+    const juce::String sendCcWithoutOutput      = "sendMidiCC - with no output device open does nothing";
+
+    const juce::String noOutputOpen = "no output should be open";
+
+    using HandChannels::leftHand;
+    using HandChannels::rightHand;
+    constexpr int otherChannel      = 5;    // neither hand
+    constexpr int unknownChannel    = 7;
+
+    constexpr int defaultLevel      = 64;   // volume and reverb start at the controller centre
+    constexpr int unknownLevel      = 50;   // what an unknown channel reports
+    constexpr int unknownEnvelope   = 0;
+    constexpr int lowestNote        = 0;
+    constexpr int highestNote       = 127;
+    constexpr int allKeys           = 128;
+    constexpr int noteC2            = 36;
+    constexpr int noteC7            = 96;
+    constexpr int noteC8            = 108;
+    constexpr int keysC2ToC7        = 61;
+    constexpr int firstDevice       = 0;
+    constexpr int inputDevice       = 3;
+    constexpr int outputDevice      = 5;
+    constexpr int negativeIndex     = -1;
+    constexpr int outOfRangeIndex   = 999;
+
+    constexpr int leftVolume  = 75;
+    constexpr int rightVolume = 30;
+    constexpr int leftReverb  = 80;
+    constexpr int rightReverb = 25;
+
+    constexpr int leftBrightness  = 20;
+    constexpr int rightBrightness = 80;
+    constexpr int leftExpression  = 33;
+    constexpr int rightExpression = 99;
+    constexpr int leftChorus      = 10;
+    constexpr int rightChorus     = 70;
+    constexpr int leftResonance   = 5;
+    constexpr int rightResonance  = 60;
+    constexpr int ignoredBrightness = 123;
+
+    constexpr int leftAttack   = 15;
+    constexpr int rightAttack  = 45;
+    constexpr int leftDecay    = 25;
+    constexpr int rightDecay   = 55;
+    constexpr int leftRelease  = 35;
+    constexpr int rightRelease = 65;
+    constexpr int leftVibrato  = 12;
+    constexpr int rightVibrato = 72;
+    constexpr int leftDelay    = 18;
+    constexpr int rightDelay   = 88;
+
+    const juce::String vendorId       = "07cf";
+    const juce::String productId      = "6803";
+    const juce::String deviceName     = "CT s-300";
+    const juce::String windowsIdentifier = "\\\\?\\SWD#MMDEVAPI#MIDII_VID&pid_6803&SomethingElse";
+    const juce::String prefixedPid    = "some_prefix_pid_6803_suffix";
+    const juce::String usbIdentifier  = "usb_vid_07cf&pid_ABCD&rev_0100";
+    const juce::String usbProductId   = "ABCD";
+    const juce::String noProductId    = "no_product_id_here";
+    const juce::String vendorAndProduct = "usb_vid_07cf&pid_6803";
+    const juce::String noVendorId     = "no_vendor_id_here";
+
+    constexpr int volumeController = 7;
+    constexpr int halfVolume       = 64;
+}
+
+using namespace MidiDeviceTestValues;
+
 class MidiDeviceTest : public juce::UnitTest
 {
 public:
-    MidiDeviceTest() : juce::UnitTest("MidiDevice", "Unit") {}
+    MidiDeviceTest() : juce::UnitTest(MidiDeviceTestValues::testName, MidiDeviceTestValues::testCategory) {}
 
     void runTest() override
     {
         // ---- Constructor Defaults ----
 
-        beginTest("Constructor - default volume and reverb");
+        beginTest(defaultVolumeAndReverb);
         {
             MidiDevice device;
-            expect(device.getVolume(1) == 64);
-            expect(device.getVolume(16) == 64);
-            expect(device.getReverb(1) == 64);
-            expect(device.getReverb(16) == 64);
+            expect(device.getVolume(leftHand) == defaultLevel);
+            expect(device.getVolume(rightHand) == defaultLevel);
+            expect(device.getReverb(leftHand) == defaultLevel);
+            expect(device.getReverb(rightHand) == defaultLevel);
         }
 
-        beginTest("Constructor - default note range");
+        beginTest(defaultNoteRange);
         {
             MidiDevice device;
-            expect(device.get_minNote() == 0);
-            expect(device.get_maxNote() == 127);
+            expect(device.get_minNote() == lowestNote);
+            expect(device.get_maxNote() == highestNote);
         }
 
-        beginTest("Constructor - device not open by default");
+        beginTest(notOpenByDefault);
         {
             MidiDevice device;
             expect(device.isOpenIN() == false);
             expect(device.isOpenOUT() == false);
         }
 
-        beginTest("Constructor - default device indices");
+        beginTest(defaultDeviceIndices);
         {
             MidiDevice device;
-            expect(device.getDeviceIndexIN() == 0);
-            expect(device.getDeviceIndexOUT() == 0);
+            expect(device.getDeviceIndexIN() == firstDevice);
+            expect(device.getDeviceIndexOUT() == firstDevice);
         }
 
         // ---- min/max Note ----
 
-        beginTest("set_minNote and get_minNote");
+        beginTest(minNoteRoundTrip);
         {
             MidiDevice device;
-            device.set_minNote(36);
-            expect(device.get_minNote() == 36);
-            device.set_minNote(0);
-            expect(device.get_minNote() == 0);
+            device.set_minNote(noteC2);
+            expect(device.get_minNote() == noteC2);
+            device.set_minNote(lowestNote);
+            expect(device.get_minNote() == lowestNote);
         }
 
-        beginTest("set_maxNote and get_maxNote");
+        beginTest(maxNoteRoundTrip);
         {
             MidiDevice device;
-            device.set_maxNote(96);
-            expect(device.get_maxNote() == 96);
-            device.set_maxNote(108);
-            expect(device.get_maxNote() == 108);
+            device.set_maxNote(noteC7);
+            expect(device.get_maxNote() == noteC7);
+            device.set_maxNote(noteC8);
+            expect(device.get_maxNote() == noteC8);
         }
 
-        beginTest("getNrKeysAfterInitialized - full range");
+        beginTest(keysFullRange);
         {
             MidiDevice device;
             // default: min=0, max=127 => 128 keys
-            expect(device.getNrKeysAfterInitialized() == 128);
+            expect(device.getNrKeysAfterInitialized() == allKeys);
         }
 
-        beginTest("getNrKeysAfterInitialized - custom range");
+        beginTest(keysCustomRange);
         {
             MidiDevice device;
-            device.set_minNote(36);
-            device.set_maxNote(96);
-            expect(device.getNrKeysAfterInitialized() == 61);
+            device.set_minNote(noteC2);
+            device.set_maxNote(noteC7);
+            expect(device.getNrKeysAfterInitialized() == keysC2ToC7);
         }
 
         // ---- Volume per channel ----
 
-        beginTest("setVolume / getVolume - channel 1");
+        beginTest(volumeLeftHand);
         {
             MidiDevice device;
-            device.setVolume(75, 1);
-            expect(device.getVolume(1) == 75);
-            expect(device.getVolume(16) == 64);  // channel 16 unchanged
+            device.setVolume(leftVolume, leftHand);
+            expect(device.getVolume(leftHand) == leftVolume);
+            expect(device.getVolume(rightHand) == defaultLevel);  // channel 16 unchanged
         }
 
-        beginTest("setVolume / getVolume - channel 16");
+        beginTest(volumeRightHand);
         {
             MidiDevice device;
-            device.setVolume(30, 16);
-            expect(device.getVolume(16) == 30);
-            expect(device.getVolume(1) == 64);  // channel 1 unchanged
+            device.setVolume(rightVolume, rightHand);
+            expect(device.getVolume(rightHand) == rightVolume);
+            expect(device.getVolume(leftHand) == defaultLevel);  // channel 1 unchanged
         }
 
-        beginTest("getVolume - unknown channel returns 50.0");
+        beginTest(volumeUnknownChannel);
         {
             MidiDevice device;
-            expect(device.getVolume(5) == 50);
+            expect(device.getVolume(otherChannel) == unknownLevel);
         }
 
         // ---- Reverb per channel ----
 
-        beginTest("setReverb / getReverb - channel 1");
+        beginTest(reverbLeftHand);
         {
             MidiDevice device;
-            device.setReverb(80, 1);
-            expect(device.getReverb(1) == 80);
-            expect(device.getReverb(16) == 64);
+            device.setReverb(leftReverb, leftHand);
+            expect(device.getReverb(leftHand) == leftReverb);
+            expect(device.getReverb(rightHand) == defaultLevel);
         }
 
-        beginTest("setReverb / getReverb - channel 16");
+        beginTest(reverbRightHand);
         {
             MidiDevice device;
-            device.setReverb(25, 16);
-            expect(device.getReverb(16) == 25);
-            expect(device.getReverb(1) == 64);
+            device.setReverb(rightReverb, rightHand);
+            expect(device.getReverb(rightHand) == rightReverb);
+            expect(device.getReverb(leftHand) == defaultLevel);
         }
 
-        beginTest("getReverb - unknown channel returns 50.0");
+        beginTest(reverbUnknownChannel);
         {
             MidiDevice device;
-            expect(device.getReverb(7) == 50);
+            expect(device.getReverb(unknownChannel) == unknownLevel);
         }
 
         // ---- Per-hand CC / sound-shaping accessors (channel 1 = first hand, 16 = second) ----
 
-        beginTest("brightness/expression/chorus/resonance - round-trip per channel, independent hands");
+        beginTest(toneRoundTrip);
         {
-            MidiDevice d;
-            d.setBrightness(20, 1);  d.setBrightness(80, 16);
-            d.setExpression(33, 1);  d.setExpression(99, 16);
-            d.setChorus(10, 1);      d.setChorus(70, 16);
-            d.setResonance(5, 1);    d.setResonance(60, 16);
+            MidiDevice device;
+            device.setBrightness(leftBrightness, leftHand);  device.setBrightness(rightBrightness, rightHand);
+            device.setExpression(leftExpression, leftHand);  device.setExpression(rightExpression, rightHand);
+            device.setChorus(leftChorus, leftHand);          device.setChorus(rightChorus, rightHand);
+            device.setResonance(leftResonance, leftHand);    device.setResonance(rightResonance, rightHand);
 
-            expectEquals(d.getBrightness(1), 20);  expectEquals(d.getBrightness(16), 80);
-            expectEquals(d.getExpression(1), 33);  expectEquals(d.getExpression(16), 99);
-            expectEquals(d.getChorus(1), 10);      expectEquals(d.getChorus(16), 70);
-            expectEquals(d.getResonance(1), 5);    expectEquals(d.getResonance(16), 60);
+            expectEquals(device.getBrightness(leftHand), leftBrightness);  expectEquals(device.getBrightness(rightHand), rightBrightness);
+            expectEquals(device.getExpression(leftHand), leftExpression);  expectEquals(device.getExpression(rightHand), rightExpression);
+            expectEquals(device.getChorus(leftHand), leftChorus);          expectEquals(device.getChorus(rightHand), rightChorus);
+            expectEquals(device.getResonance(leftHand), leftResonance);    expectEquals(device.getResonance(rightHand), rightResonance);
         }
 
-        beginTest("brightness/expression/chorus/resonance - unknown channel returns 50");
+        beginTest(toneUnknownChannel);
         {
-            MidiDevice d;
-            expectEquals(d.getBrightness(7), 50);
-            expectEquals(d.getExpression(7), 50);
-            expectEquals(d.getChorus(7), 50);
-            expectEquals(d.getResonance(7), 50);
+            MidiDevice device;
+            expectEquals(device.getBrightness(unknownChannel), unknownLevel);
+            expectEquals(device.getExpression(unknownChannel), unknownLevel);
+            expectEquals(device.getChorus(unknownChannel), unknownLevel);
+            expectEquals(device.getResonance(unknownChannel), unknownLevel);
         }
 
-        beginTest("sustain toggle - round-trip per channel, unknown channel defaults true");
+        beginTest(sustainRoundTrip);
         {
-            MidiDevice d;
-            d.setSustainToggle(false, 1);
-            d.setSustainToggle(true, 16);
-            expect(d.getSustainToggle(1) == false);
-            expect(d.getSustainToggle(16) == true);
-            expect(d.getSustainToggle(7) == true);   // unknown -> default
+            MidiDevice device;
+            device.setSustainToggle(false, leftHand);
+            device.setSustainToggle(true, rightHand);
+            expect(device.getSustainToggle(leftHand) == false);
+            expect(device.getSustainToggle(rightHand) == true);
+            expect(device.getSustainToggle(unknownChannel) == true);   // unknown -> default
         }
 
-        beginTest("envelope/mod accessors (attack/decay/release/vibrato/delay) - round-trip + default 0");
+        beginTest(envelopeRoundTrip);
         {
-            MidiDevice d;
-            d.setAttack(15, 1);   d.setAttack(45, 16);
-            d.setDecay(25, 1);    d.setDecay(55, 16);
-            d.setRelease(35, 1);  d.setRelease(65, 16);
-            d.setVibrato(12, 1);  d.setVibrato(72, 16);
-            d.setDelay(18, 1);    d.setDelay(88, 16);
+            MidiDevice device;
+            device.setAttack(leftAttack, leftHand);     device.setAttack(rightAttack, rightHand);
+            device.setDecay(leftDecay, leftHand);       device.setDecay(rightDecay, rightHand);
+            device.setRelease(leftRelease, leftHand);   device.setRelease(rightRelease, rightHand);
+            device.setVibrato(leftVibrato, leftHand);   device.setVibrato(rightVibrato, rightHand);
+            device.setDelay(leftDelay, leftHand);       device.setDelay(rightDelay, rightHand);
 
-            expectEquals(d.getAttack(1), 15);   expectEquals(d.getAttack(16), 45);
-            expectEquals(d.getDecay(1), 25);    expectEquals(d.getDecay(16), 55);
-            expectEquals(d.getRelease(1), 35);  expectEquals(d.getRelease(16), 65);
-            expectEquals(d.getVibrato(1), 12);  expectEquals(d.getVibrato(16), 72);
-            expectEquals(d.getDelay(1), 18);    expectEquals(d.getDelay(16), 88);
+            expectEquals(device.getAttack(leftHand), leftAttack);    expectEquals(device.getAttack(rightHand), rightAttack);
+            expectEquals(device.getDecay(leftHand), leftDecay);      expectEquals(device.getDecay(rightHand), rightDecay);
+            expectEquals(device.getRelease(leftHand), leftRelease);  expectEquals(device.getRelease(rightHand), rightRelease);
+            expectEquals(device.getVibrato(leftHand), leftVibrato);  expectEquals(device.getVibrato(rightHand), rightVibrato);
+            expectEquals(device.getDelay(leftHand), leftDelay);      expectEquals(device.getDelay(rightHand), rightDelay);
 
-            expectEquals(d.getAttack(7), 0);
-            expectEquals(d.getDecay(7), 0);
-            expectEquals(d.getRelease(7), 0);
-            expectEquals(d.getVibrato(7), 0);
-            expectEquals(d.getDelay(7), 0);
+            expectEquals(device.getAttack(unknownChannel), unknownEnvelope);
+            expectEquals(device.getDecay(unknownChannel), unknownEnvelope);
+            expectEquals(device.getRelease(unknownChannel), unknownEnvelope);
+            expectEquals(device.getVibrato(unknownChannel), unknownEnvelope);
+            expectEquals(device.getDelay(unknownChannel), unknownEnvelope);
         }
 
-        beginTest("setters ignore channels other than 1 and 16 (no first/second-hand change)");
+        beginTest(settersIgnoreOtherChannels);
         {
-            MidiDevice d;
-            const int b1 = d.getBrightness(1), b16 = d.getBrightness(16);
-            d.setBrightness(123, 5);   // channel 5 is neither hand -> ignored
-            expectEquals(d.getBrightness(1), b1);
-            expectEquals(d.getBrightness(16), b16);
+            MidiDevice device;
+            const int leftBefore = device.getBrightness(leftHand), rightBefore = device.getBrightness(rightHand);
+            device.setBrightness(ignoredBrightness, otherChannel);   // channel 5 is neither hand -> ignored
+            expectEquals(device.getBrightness(leftHand), leftBefore);
+            expectEquals(device.getBrightness(rightHand), rightBefore);
         }
 
         // ---- Device Index ----
 
-        beginTest("setDeviceIN / getDeviceIndexIN");
+        beginTest(deviceInRoundTrip);
         {
             MidiDevice device;
-            device.setDeviceIN(3);
-            expect(device.getDeviceIndexIN() == 3);
+            device.setDeviceIN(inputDevice);
+            expect(device.getDeviceIndexIN() == inputDevice);
         }
 
-        beginTest("setDeviceOUT / getDeviceIndexOUT");
+        beginTest(deviceOutRoundTrip);
         {
             MidiDevice device;
-            device.setDeviceOUT(5);
-            expect(device.getDeviceIndexOUT() == 5);
+            device.setDeviceOUT(outputDevice);
+            expect(device.getDeviceIndexOUT() == outputDevice);
         }
 
         // ---- VID / PID / Name ----
 
-        beginTest("setVID / getVID");
+        beginTest(vendorIdRoundTrip);
         {
             MidiDevice device;
-            device.setVID("07cf");
-            expect(device.getVID() == "07cf");
+            device.setVID(vendorId);
+            expect(device.getVID() == vendorId);
         }
 
-        beginTest("setPID / getPID");
+        beginTest(productIdRoundTrip);
         {
             MidiDevice device;
-            device.setPID("6803");
-            expect(device.getPID() == "6803");
+            device.setPID(productId);
+            expect(device.getPID() == productId);
         }
 
-        beginTest("setDeviceName / getName");
+        beginTest(nameRoundTrip);
         {
             MidiDevice device;
-            device.setDeviceName("CT s-300");
-            expect(device.getName() == "CT s-300");
+            device.setDeviceName(deviceName);
+            expect(device.getName() == deviceName);
         }
 
         // ---- extractPID ----
 
-        beginTest("extractPID - valid identifier");
+        beginTest(extractPidValid);
         {
             MidiDevice device;
-            juce::String identifier = "\\\\?\\SWD#MMDEVAPI#MIDII_VID&pid_6803&SomethingElse";
-            expect(device.extractPID("some_prefix_pid_6803_suffix") == "6803");
+            juce::String identifier = windowsIdentifier;
+            expect(device.extractPID(prefixedPid) == productId);
         }
 
-        beginTest("extractPID - standard USB identifier");
+        beginTest(extractPidUsb);
         {
             MidiDevice device;
-            expect(device.extractPID("usb_vid_07cf&pid_ABCD&rev_0100") == "ABCD");
+            expect(device.extractPID(usbIdentifier) == usbProductId);
         }
 
-        beginTest("extractPID - no pid_ in identifier");
+        beginTest(extractPidMissing);
         {
             MidiDevice device;
-            expect(device.extractPID("no_product_id_here") == "");
+            expect(device.extractPID(noProductId).isEmpty());
         }
 
-        beginTest("extractPID - empty string");
+        beginTest(extractPidEmpty);
         {
             MidiDevice device;
-            expect(device.extractPID("") == "");
+            expect(device.extractPID({}).isEmpty());
         }
 
         // ---- extractVID ----
 
-        beginTest("extractVID - valid identifier");
+        beginTest(extractVidValid);
         {
             MidiDevice device;
-            expect(device.extractVID("usb_vid_07cf&pid_6803") == "07cf");
+            expect(device.extractVID(vendorAndProduct) == vendorId);
         }
 
-        beginTest("extractVID - no vid_ in identifier");
+        beginTest(extractVidMissing);
         {
             MidiDevice device;
-            expect(device.extractVID("no_vendor_id_here") == "");
+            expect(device.extractVID(noVendorId).isEmpty());
         }
 
-        beginTest("extractVID - empty string");
+        beginTest(extractVidEmpty);
         {
             MidiDevice device;
-            expect(device.extractVID("") == "");
+            expect(device.extractVID({}).isEmpty());
         }
 
         // ---- deviceOpenIN invalid index ----
 
-        beginTest("deviceOpenIN - negative index returns false");
+        beginTest(openInNegative);
         {
             MidiDevice device;
-            expect(device.deviceOpenIN(-1, nullptr) == false);
+            expect(device.deviceOpenIN(negativeIndex, nullptr) == false);
             expect(device.isOpenIN() == false);
         }
 
-        beginTest("deviceOpenIN - out of range index returns false");
+        beginTest(openInOutOfRange);
         {
             MidiDevice device;
-            expect(device.deviceOpenIN(999, nullptr) == false);
+            expect(device.deviceOpenIN(outOfRangeIndex, nullptr) == false);
             expect(device.isOpenIN() == false);
         }
 
         // ---- deviceOpenOUT invalid index ----
 
-        beginTest("deviceOpenOUT - negative index returns false");
+        beginTest(openOutNegative);
         {
             MidiDevice device;
-            expect(device.deviceOpenOUT(-1) == false);
+            expect(device.deviceOpenOUT(negativeIndex) == false);
             expect(device.isOpenOUT() == false);
         }
 
-        beginTest("deviceOpenOUT - out of range index returns false");
+        beginTest(openOutOutOfRange);
         {
             MidiDevice device;
-            expect(device.deviceOpenOUT(999) == false);
+            expect(device.deviceOpenOUT(outOfRangeIndex) == false);
             expect(device.isOpenOUT() == false);
         }
 
         // Crashed the CI runner (0xC0000005): an output that is listed but fails to open leaves no
         // device, and sendMidiCC dereferenced it.
-        beginTest("sendMidiCC - with no output device open does nothing");
+        beginTest(sendCcWithoutOutput);
         {
-            constexpr int firstHandChannel   = 1;
-            constexpr int volumeController   = 7;
-            constexpr int halfVolume         = 64;
-            const juce::String noOutputOpen  = "no output should be open";
             MidiDevice device;
-            device.sendMidiCC(firstHandChannel, volumeController, halfVolume);   // must not crash
+            device.sendMidiCC(leftHand, volumeController, halfVolume);   // must not crash
             expect(device.isOpenOUT() == false, noOutputOpen);
         }
     }

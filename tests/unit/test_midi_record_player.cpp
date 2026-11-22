@@ -5,7 +5,59 @@
 #include "InstrumentHandler.h"
 #include "MidiRecordPlayer.h"
 
+namespace MidiRecordPlayerTestValues
+{
+    const juce::String testName     = "MidiRecordPlayer";
+    const juce::String testCategory = "Unit";
 
+    const juce::String leftHandNoteOnRemapped   = "remapChannel - channel 1 -> 14, note-on preserved";
+    const juce::String rightHandNoteOffRemapped = "remapChannel - channel 16 -> 15, note-off preserved";
+    const juce::String otherChannelsUnchanged   = "remapChannel - other channels are left unchanged";
+    const juce::String controllerRemapped       = "remapChannel - controller on ch1 remapped, type + data preserved";
+    const juce::String programChangeRemapped    = "remapChannel - program change on ch16 remapped to 15";
+    const juce::String pitchWheelRemapped       = "remapChannel - pitch wheel on ch1 remapped, value preserved";
+    const juce::String unhandledTypeUnchanged   = "remapChannel - an unhandled message type is returned unchanged (channel kept)";
+    const juce::String defaultsAreEmpty         = "defaults - program numbers 0 and no recorded events";
+    const juce::String stateMachine             = "state machine - start arms + clears; stop guard returns false/true";
+    const juce::String captureOnlyWhileRecording = "capture - handleIncomingMessage records (remapped) only while recording";
+    const juce::String serializationRoundTrip   = "serialization round-trips through in-memory streams (no disk)";
+    const juce::String garbageInputFails        = "readRecordingFromStream - garbage input fails cleanly with an error message";
+
+    const juce::String wrongChannelMessage   = "a parsed note was on the wrong channel";
+    const juce::String notesLostMessage      = "note numbers did not survive the round-trip";
+    const char garbageInput[] = "not a midi file at all";
+
+    // The record player moves the hands' channels: 1 -> 14 and 16 -> 15.
+    constexpr int leftHandChannel          = 1;
+    constexpr int recordedLeftHandChannel  = 14;
+    constexpr int rightHandChannel         = 16;
+    constexpr int recordedRightHandChannel = 15;
+    constexpr int untouchedChannel         = 5;
+    constexpr int styleChannel             = 2;
+
+    constexpr int         middleC       = 60;
+    constexpr int         noteE4        = 64;
+    constexpr juce::uint8 velocity      = 100;
+    constexpr juce::uint8 softVelocity  = 90;
+    constexpr juce::uint8 quietVelocity = 1;
+    constexpr int         volumeController = 7;
+    constexpr int         controllerValue  = 100;
+    constexpr int         programNumber    = 42;
+    constexpr int         pitchWheelValue  = 12000;
+    constexpr int         pressureValue    = 90;
+
+    constexpr int    defaultProgram   = 0;
+    constexpr int    noEvents         = 0;
+    constexpr int    oneEvent         = 1;
+    constexpr int    twoNoteOns       = 2;
+    constexpr int    atLeastOneNoteOff = 1;
+    constexpr double recordingStart   = 0.0;
+    constexpr double halfSecond       = 0.5;
+    constexpr double oneSecond        = 1.0;
+    constexpr double tempo            = 120.0;
+}
+
+using namespace MidiRecordPlayerTestValues;
 
 //======================================================================================
 //  MidiRecordPlayer::remapChannel — record-player channel remap (previously untested)
@@ -13,151 +65,150 @@
 class MidiRecordPlayerTest : public juce::UnitTest
 {
 public:
-    MidiRecordPlayerTest() : juce::UnitTest("MidiRecordPlayer", "Unit") {}
+    MidiRecordPlayerTest() : juce::UnitTest(MidiRecordPlayerTestValues::testName, MidiRecordPlayerTestValues::testCategory) {}
 
     void runTest() override
     {
-        beginTest("remapChannel - channel 1 -> 14, note-on preserved");
+        beginTest(leftHandNoteOnRemapped);
         {
-            MidiRecordPlayer p;
-            auto m = p.remapChannel(juce::MidiMessage::noteOn(1, 60, (juce::uint8) 100));
-            expect(m.isNoteOn());
-            expectEquals(m.getChannel(), 14);
-            expectEquals(m.getNoteNumber(), 60);
-            expectEquals((int) m.getVelocity(), 100);
+            MidiRecordPlayer player;
+            auto message = player.remapChannel(juce::MidiMessage::noteOn(leftHandChannel, middleC, velocity));
+            expect(message.isNoteOn());
+            expectEquals(message.getChannel(), recordedLeftHandChannel);
+            expectEquals(message.getNoteNumber(), middleC);
+            expectEquals((int) message.getVelocity(), (int) velocity);
         }
 
-        beginTest("remapChannel - channel 16 -> 15, note-off preserved");
+        beginTest(rightHandNoteOffRemapped);
         {
-            MidiRecordPlayer p;
-            auto m = p.remapChannel(juce::MidiMessage::noteOff(16, 64));
-            expect(m.isNoteOff());
-            expectEquals(m.getChannel(), 15);
-            expectEquals(m.getNoteNumber(), 64);
+            MidiRecordPlayer player;
+            auto message = player.remapChannel(juce::MidiMessage::noteOff(rightHandChannel, noteE4));
+            expect(message.isNoteOff());
+            expectEquals(message.getChannel(), recordedRightHandChannel);
+            expectEquals(message.getNoteNumber(), noteE4);
         }
 
-        beginTest("remapChannel - other channels are left unchanged");
+        beginTest(otherChannelsUnchanged);
         {
-            MidiRecordPlayer p;
-            auto m = p.remapChannel(juce::MidiMessage::noteOn(5, 60, (juce::uint8) 90));
-            expectEquals(m.getChannel(), 5);
+            MidiRecordPlayer player;
+            auto message = player.remapChannel(juce::MidiMessage::noteOn(untouchedChannel, middleC, softVelocity));
+            expectEquals(message.getChannel(), untouchedChannel);
         }
 
-        beginTest("remapChannel - controller on ch1 remapped, type + data preserved");
+        beginTest(controllerRemapped);
         {
-            MidiRecordPlayer p;
-            auto m = p.remapChannel(juce::MidiMessage::controllerEvent(1, 7, 100));
-            expect(m.isController());
-            expectEquals(m.getChannel(), 14);
-            expectEquals(m.getControllerNumber(), 7);
-            expectEquals(m.getControllerValue(), 100);
+            MidiRecordPlayer player;
+            auto message = player.remapChannel(juce::MidiMessage::controllerEvent(leftHandChannel, volumeController, controllerValue));
+            expect(message.isController());
+            expectEquals(message.getChannel(), recordedLeftHandChannel);
+            expectEquals(message.getControllerNumber(), volumeController);
+            expectEquals(message.getControllerValue(), controllerValue);
         }
 
-        beginTest("remapChannel - program change on ch16 remapped to 15");
+        beginTest(programChangeRemapped);
         {
-            MidiRecordPlayer p;
-            auto m = p.remapChannel(juce::MidiMessage::programChange(16, 42));
-            expect(m.isProgramChange());
-            expectEquals(m.getChannel(), 15);
-            expectEquals(m.getProgramChangeNumber(), 42);
+            MidiRecordPlayer player;
+            auto message = player.remapChannel(juce::MidiMessage::programChange(rightHandChannel, programNumber));
+            expect(message.isProgramChange());
+            expectEquals(message.getChannel(), recordedRightHandChannel);
+            expectEquals(message.getProgramChangeNumber(), programNumber);
         }
 
-        beginTest("remapChannel - pitch wheel on ch1 remapped, value preserved");
+        beginTest(pitchWheelRemapped);
         {
-            MidiRecordPlayer p;
-            auto m = p.remapChannel(juce::MidiMessage::pitchWheel(1, 12000));
-            expect(m.isPitchWheel());
-            expectEquals(m.getChannel(), 14);
-            expectEquals(m.getPitchWheelValue(), 12000);
+            MidiRecordPlayer player;
+            auto message = player.remapChannel(juce::MidiMessage::pitchWheel(leftHandChannel, pitchWheelValue));
+            expect(message.isPitchWheel());
+            expectEquals(message.getChannel(), recordedLeftHandChannel);
+            expectEquals(message.getPitchWheelValue(), pitchWheelValue);
         }
 
-        beginTest("remapChannel - an unhandled message type is returned unchanged (channel kept)");
+        beginTest(unhandledTypeUnchanged);
         {
-            MidiRecordPlayer p;
+            MidiRecordPlayer player;
             // channel pressure is none of the remapped types -> returned as-is, channel NOT remapped
-            auto m = p.remapChannel(juce::MidiMessage::channelPressureChange(1, 90));
-            expect(m.isChannelPressure());
-            expectEquals(m.getChannel(), 1);
+            auto message = player.remapChannel(juce::MidiMessage::channelPressureChange(leftHandChannel, pressureValue));
+            expect(message.isChannelPressure());
+            expectEquals(message.getChannel(), leftHandChannel);
         }
 
-        beginTest("defaults - program numbers 0 and no recorded events");
+        beginTest(defaultsAreEmpty);
         {
-            MidiRecordPlayer p;
-            expectEquals(p.getProgramLeftHand(), 0);
-            expectEquals(p.getProgramRightHand(), 0);
-            expectEquals(p.getSizeRecorded(), 0);
+            MidiRecordPlayer player;
+            expectEquals(player.getProgramLeftHand(), defaultProgram);
+            expectEquals(player.getProgramRightHand(), defaultProgram);
+            expectEquals(player.getSizeRecorded(), noEvents);
         }
 
-        beginTest("state machine - start arms + clears; stop guard returns false/true");
+        beginTest(stateMachine);
         {
-            MidiRecordPlayer p;
-            p.applyPresetFunction = [] {};                 // startRecording invokes this; stub it
-            p.getAllRecordedEvents().push_back(RecordedEvent{ juce::MidiMessage::noteOn(1,60,(juce::uint8)1), 0.0 });
+            MidiRecordPlayer player;
+            player.applyPresetFunction = [] {};                 // startRecording invokes this; stub it
+            player.getAllRecordedEvents().push_back(RecordedEvent{ juce::MidiMessage::noteOn(leftHandChannel,middleC,quietVelocity), recordingStart });
 
-            expect(p.stopRecording() == false);            // not recording yet -> guard returns false
-            p.startRecording();
-            expect(p.getIsRecording());
-            expectEquals(p.getSizeRecorded(), 0);          // startRecording cleared the buffer
-            expect(p.stopRecording() == true);             // was recording -> true
-            expect(! p.getIsRecording());
+            expect(player.stopRecording() == false);            // not recording yet -> guard returns false
+            player.startRecording();
+            expect(player.getIsRecording());
+            expectEquals(player.getSizeRecorded(), noEvents);   // startRecording cleared the buffer
+            expect(player.stopRecording() == true);             // was recording -> true
+            expect(! player.getIsRecording());
         }
 
-        beginTest("capture - handleIncomingMessage records (remapped) only while recording");
+        beginTest(captureOnlyWhileRecording);
         {
-            MidiRecordPlayer p;
-            p.applyPresetFunction = [] {};
+            MidiRecordPlayer player;
+            player.applyPresetFunction = [] {};
 
-            p.handleIncomingMessage(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100));  // not recording
-            expectEquals(p.getSizeRecorded(), 0);          // ignored
+            player.handleIncomingMessage(juce::MidiMessage::noteOn(leftHandChannel, middleC, velocity));  // not recording
+            expectEquals(player.getSizeRecorded(), noEvents);   // ignored
 
-            p.startRecording();
-            p.handleIncomingMessage(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100));  // ch1 -> remapped to 14
-            expectEquals(p.getSizeRecorded(), 1);
-            const auto& ev = p.getAllRecordedEvents().back();
+            player.startRecording();
+            player.handleIncomingMessage(juce::MidiMessage::noteOn(leftHandChannel, middleC, velocity));  // ch1 -> remapped to 14
+            expectEquals(player.getSizeRecorded(), oneEvent);
+            const auto& ev = player.getAllRecordedEvents().back();
             expect(ev.message.isNoteOn());
-            expectEquals(ev.message.getChannel(), 14);     // remapChannel applied on capture
-            expectEquals(ev.message.getNoteNumber(), 60);
-            expect(ev.timeFromStart >= 0.0);
-            p.stopRecording();
+            expectEquals(ev.message.getChannel(), recordedLeftHandChannel);     // remapChannel applied on capture
+            expectEquals(ev.message.getNoteNumber(), middleC);
+            expect(ev.timeFromStart >= recordingStart);
+            player.stopRecording();
         }
 
-        beginTest("serialization round-trips through in-memory streams (no disk)");
+        beginTest(serializationRoundTrip);
         {
-            MidiRecordPlayer p;
+            MidiRecordPlayer player;
             // Populate the in-memory buffer directly (skip the timer/wall-clock recording path).
-            auto& evs = p.getAllRecordedEvents();
-            evs.push_back(RecordedEvent{ juce::MidiMessage::noteOn (2, 60, (juce::uint8)100), 0.0 });
-            evs.push_back(RecordedEvent{ juce::MidiMessage::noteOn (2, 64, (juce::uint8)100), 0.5 });
-            evs.push_back(RecordedEvent{ juce::MidiMessage::noteOff(2, 60),                  1.0 });
+            auto& evs = player.getAllRecordedEvents();
+            evs.push_back(RecordedEvent{ juce::MidiMessage::noteOn (styleChannel, middleC, velocity), recordingStart });
+            evs.push_back(RecordedEvent{ juce::MidiMessage::noteOn (styleChannel, noteE4, velocity),  halfSecond });
+            evs.push_back(RecordedEvent{ juce::MidiMessage::noteOff(styleChannel, middleC),           oneSecond });
 
             juce::MemoryOutputStream out;
             juce::String err;
-            expect(p.writeRecordingToStream(out, err, 120.0), err);
+            expect(player.writeRecordingToStream(out, err, tempo), err);
 
             juce::MemoryInputStream in(out.getData(), out.getDataSize(), false);
-            expect(p.readRecordingFromStream(in, err), err);
+            expect(player.readRecordingFromStream(in, err), err);
 
-            int noteOns = 0, noteOffs = 0; bool chOk = true; bool has60 = false, has64 = false;
-            for (const auto& e : p.getParsedEvents())
+            int noteOns {}, noteOffs {}; bool chOk = true; bool has60 = false, has64 = false;
+            for (const auto& event : player.getParsedEvents())
             {
-                if (e.message.isNoteOn())  { ++noteOns;  if (e.message.getChannel() != 2) chOk = false;
-                                             if (e.message.getNoteNumber() == 60) has60 = true;
-                                             if (e.message.getNoteNumber() == 64) has64 = true; }
-                else if (e.message.isNoteOff()) { ++noteOffs; if (e.message.getChannel() != 2) chOk = false; }
+                if (event.message.isNoteOn())  { ++noteOns;  if (event.message.getChannel() != styleChannel) chOk = false;
+                                                 if (event.message.getNoteNumber() == middleC) has60 = true;
+                                                 if (event.message.getNoteNumber() == noteE4) has64 = true; }
+                else if (event.message.isNoteOff()) { ++noteOffs; if (event.message.getChannel() != styleChannel) chOk = false; }
             }
-            expectEquals(noteOns, 2);
-            expect(noteOffs >= 1);
-            expect(chOk, "a parsed note was on the wrong channel");
-            expect(has60 && has64, "note numbers did not survive the round-trip");
+            expectEquals(noteOns, twoNoteOns);
+            expect(noteOffs >= atLeastOneNoteOff);
+            expect(chOk, wrongChannelMessage);
+            expect(has60 && has64, notesLostMessage);
         }
 
-        beginTest("readRecordingFromStream - garbage input fails cleanly with an error message");
+        beginTest(garbageInputFails);
         {
-            MidiRecordPlayer p;
-            const char junk[] = "not a midi file at all";
-            juce::MemoryInputStream in(junk, sizeof(junk), false);
+            MidiRecordPlayer player;
+            juce::MemoryInputStream in(garbageInput, sizeof(garbageInput), false);
             juce::String err;
-            expect(! p.readRecordingFromStream(in, err));   // returns false
+            expect(! player.readRecordingFromStream(in, err));   // returns false
             expect(err.isNotEmpty());                        // and sets an error message
         }
     }

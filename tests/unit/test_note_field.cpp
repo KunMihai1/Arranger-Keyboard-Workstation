@@ -1,6 +1,65 @@
 #include <juce_core/juce_core.h>
 #include "UI/NoteField.h"
 
+namespace NoteFieldTestValues
+{
+    const juce::String testName     = "NoteField";
+    const juce::String testCategory = "Unit";
+
+    const juce::String noteOnSpawns          = "note-on spawns a 10 px note at the bottom, at the key's x and width";
+    const juce::String repeatedNoteOnIgnored = "a repeated note-on for a held note is ignored";
+    const juce::String heldNoteGrows         = "a held note grows upward at 400 px/s with its bottom anchored";
+    const juce::String heldNoteStopsGrowing  = "a held note stops growing at the field height";
+    const juce::String noteOffReleases       = "note-off releases the note with its current geometry; unknown note-offs are ignored";
+    const juce::String releasedNoteRises     = "a released note rises, shrinks against the top, fades over its last 80 px, then disappears";
+    const juce::String releaseAllAndClear    = "releaseAll releases every held note; clear empties everything";
+    const juce::String zeroAdvanceAndIdle    = "advance(0) changes nothing and an empty field is idle";
+
+    constexpr double tolerance = 1e-3;
+
+    constexpr int middleC     = 60;
+    constexpr int notHeldNote = 61;
+    constexpr int noteE4      = 64;
+    constexpr int noteG4      = 67;
+
+    constexpr float fieldHeight      = 500.0f;
+    constexpr float shortFieldHeight = 200.0f;
+    constexpr float smallFieldHeight = 300.0f;
+    constexpr float keyWidth         = 20.0f;
+    constexpr float keyLeft          = 100.0f;
+    constexpr float otherKeyLeft     = 300.0f;
+    constexpr float leftEdge         = 0.0f;
+    constexpr float keyLeftAt40      = 40.0f;
+    constexpr float keyLeftAt50      = 50.0f;
+    constexpr float keyLeftAt90      = 90.0f;
+
+    constexpr float tenthSecond      = 0.1f;
+    constexpr float quarterSecond    = 0.25f;
+    constexpr float halfSecond       = 0.5f;
+    constexpr float oneSecond        = 1.0f;
+    constexpr float tailIntoFade     = 0.075f;   // 30 px: the tail is left at 70 px
+    constexpr float tailGone         = 0.2f;
+    constexpr float noTime           = 0.0f;
+
+    constexpr float startHeight          = 10.0f;
+    constexpr float startTop             = 490.0f;   // fieldHeight - startHeight
+    constexpr float heightAfterTenth     = 50.0f;    // 10 + 400 * 0.1
+    constexpr float heightAfterQuarter   = 110.0f;   // 10 + 400 * 0.25
+    constexpr float topAfterQuarter      = 390.0f;
+    constexpr float topAfterRising       = 190.0f;   // 390 - 400 * 0.5
+    constexpr float pinnedTop            = 0.0f;
+    constexpr float heightAgainstTop     = 100.0f;
+    constexpr float tailHeight           = 70.0f;
+    constexpr float tailAlpha            = 0.875f;   // 70 / 80
+    constexpr float smallFieldStartTop   = 290.0f;
+    constexpr float opaque               = 1.0f;
+
+    constexpr int oneNote  = 1;
+    constexpr int twoNotes = 2;
+}
+
+using namespace NoteFieldTestValues;
+
 // NoteField is NoteLayer's animation model, pulled out of the GL code so it can be tested.
 // The numbers below reproduce what NoteLayer did before the move to the render thread:
 // notes rise at 400 px/s, start 10 px tall, grow while held (bottom anchored, clamped to the
@@ -9,133 +68,133 @@
 class NoteFieldTest : public juce::UnitTest
 {
 public:
-    NoteFieldTest() : juce::UnitTest ("NoteField", "Unit") {}
+    NoteFieldTest() : juce::UnitTest (NoteFieldTestValues::testName, NoteFieldTestValues::testCategory) {}
 
     void runTest() override
     {
-        constexpr double eps = 1e-3;
+        constexpr float eps = (float) tolerance;
 
-        beginTest ("note-on spawns a 10 px note at the bottom, at the key's x and width");
+        beginTest (noteOnSpawns);
         {
-            NoteField f;
-            f.setHeight (500.0f);
-            expect (f.noteOn (60, 100.0f, 20.0f));
-            expectEquals ((int) f.held().size(), 1);
-            const auto& n = f.held().at (60);
-            expectWithinAbsoluteError (n.left, 100.0f, (float) eps);
-            expectWithinAbsoluteError (n.width, 20.0f, (float) eps);
-            expectWithinAbsoluteError (n.height, 10.0f, (float) eps);
-            expectWithinAbsoluteError (n.top, 490.0f, (float) eps);
-            expectWithinAbsoluteError (n.alpha, 1.0f, (float) eps);
-            expect (! f.isIdle());
+            NoteField field;
+            field.setHeight (fieldHeight);
+            expect (field.noteOn (middleC, keyLeft, keyWidth));
+            expectEquals ((int) field.held().size(), oneNote);
+            const auto& note = field.held().at (middleC);
+            expectWithinAbsoluteError (note.left, keyLeft, eps);
+            expectWithinAbsoluteError (note.width, keyWidth, eps);
+            expectWithinAbsoluteError (note.height, startHeight, eps);
+            expectWithinAbsoluteError (note.top, startTop, eps);
+            expectWithinAbsoluteError (note.alpha, opaque, eps);
+            expect (! field.isIdle());
         }
 
-        beginTest ("a repeated note-on for a held note is ignored");
+        beginTest (repeatedNoteOnIgnored);
         {
-            NoteField f;
-            f.setHeight (500.0f);
-            f.noteOn (60, 100.0f, 20.0f);
-            f.advance (0.1f);
-            expect (! f.noteOn (60, 300.0f, 20.0f));
-            expectEquals ((int) f.held().size(), 1);
-            expectWithinAbsoluteError (f.held().at (60).left, 100.0f, (float) eps);
-            expectWithinAbsoluteError (f.held().at (60).height, 50.0f, (float) eps);
+            NoteField field;
+            field.setHeight (fieldHeight);
+            field.noteOn (middleC, keyLeft, keyWidth);
+            field.advance (tenthSecond);
+            expect (! field.noteOn (middleC, otherKeyLeft, keyWidth));
+            expectEquals ((int) field.held().size(), oneNote);
+            expectWithinAbsoluteError (field.held().at (middleC).left, keyLeft, eps);
+            expectWithinAbsoluteError (field.held().at (middleC).height, heightAfterTenth, eps);
         }
 
-        beginTest ("a held note grows upward at 400 px/s with its bottom anchored");
+        beginTest (heldNoteGrows);
         {
-            NoteField f;
-            f.setHeight (500.0f);
-            f.noteOn (60, 0.0f, 20.0f);
-            f.advance (0.25f);
-            const auto& n = f.held().at (60);
-            expectWithinAbsoluteError (n.height, 110.0f, (float) eps);
-            expectWithinAbsoluteError (n.top, 390.0f, (float) eps);
-            expectWithinAbsoluteError (n.top + n.height, 500.0f, (float) eps);
+            NoteField field;
+            field.setHeight (fieldHeight);
+            field.noteOn (middleC, leftEdge, keyWidth);
+            field.advance (quarterSecond);
+            const auto& note = field.held().at (middleC);
+            expectWithinAbsoluteError (note.height, heightAfterQuarter, eps);
+            expectWithinAbsoluteError (note.top, topAfterQuarter, eps);
+            expectWithinAbsoluteError (note.top + note.height, fieldHeight, eps);
         }
 
-        beginTest ("a held note stops growing at the field height");
+        beginTest (heldNoteStopsGrowing);
         {
-            NoteField f;
-            f.setHeight (200.0f);
-            f.noteOn (60, 0.0f, 20.0f);
-            f.advance (1.0f);
-            f.advance (1.0f);
-            const auto& n = f.held().at (60);
-            expectWithinAbsoluteError (n.height, 200.0f, (float) eps);
-            expectWithinAbsoluteError (n.top, 0.0f, (float) eps);
+            NoteField field;
+            field.setHeight (shortFieldHeight);
+            field.noteOn (middleC, leftEdge, keyWidth);
+            field.advance (oneSecond);
+            field.advance (oneSecond);
+            const auto& note = field.held().at (middleC);
+            expectWithinAbsoluteError (note.height, shortFieldHeight, eps);
+            expectWithinAbsoluteError (note.top, pinnedTop, eps);
         }
 
-        beginTest ("note-off releases the note with its current geometry; unknown note-offs are ignored");
+        beginTest (noteOffReleases);
         {
-            NoteField f;
-            f.setHeight (500.0f);
-            f.noteOn (60, 40.0f, 20.0f);
-            f.advance (0.25f);
-            f.noteOff (61);
-            expectEquals ((int) f.held().size(), 1);
-            f.noteOff (60);
-            expect (f.held().empty());
-            expectEquals ((int) f.falling().size(), 1);
-            const auto& n = f.falling().front();
-            expectWithinAbsoluteError (n.left, 40.0f, (float) eps);
-            expectWithinAbsoluteError (n.height, 110.0f, (float) eps);
-            expectWithinAbsoluteError (n.top, 390.0f, (float) eps);
-            expectWithinAbsoluteError (n.alpha, 1.0f, (float) eps);
+            NoteField field;
+            field.setHeight (fieldHeight);
+            field.noteOn (middleC, keyLeftAt40, keyWidth);
+            field.advance (quarterSecond);
+            field.noteOff (notHeldNote);
+            expectEquals ((int) field.held().size(), oneNote);
+            field.noteOff (middleC);
+            expect (field.held().empty());
+            expectEquals ((int) field.falling().size(), oneNote);
+            const auto& note = field.falling().front();
+            expectWithinAbsoluteError (note.left, keyLeftAt40, eps);
+            expectWithinAbsoluteError (note.height, heightAfterQuarter, eps);
+            expectWithinAbsoluteError (note.top, topAfterQuarter, eps);
+            expectWithinAbsoluteError (note.alpha, opaque, eps);
         }
 
-        beginTest ("a released note rises, shrinks against the top, fades over its last 80 px, then disappears");
+        beginTest (releasedNoteRises);
         {
-            NoteField f;
-            f.setHeight (500.0f);
-            f.noteOn (60, 0.0f, 20.0f);
-            f.advance (0.25f);                     // h 110, y 390
-            f.noteOff (60);
+            NoteField field;
+            field.setHeight (fieldHeight);
+            field.noteOn (middleC, leftEdge, keyWidth);
+            field.advance (quarterSecond);                     // h 110, y 390
+            field.noteOff (middleC);
 
-            f.advance (0.5f);                      // rises 200 px, keeps its height
-            expectWithinAbsoluteError (f.falling().front().top, 190.0f, (float) eps);
-            expectWithinAbsoluteError (f.falling().front().height, 110.0f, (float) eps);
+            field.advance (halfSecond);                      // rises 200 px, keeps its height
+            expectWithinAbsoluteError (field.falling().front().top, topAfterRising, eps);
+            expectWithinAbsoluteError (field.falling().front().height, heightAfterQuarter, eps);
 
-            f.advance (0.5f);                      // would reach top -10: pinned at 0, 10 px shorter
-            expectWithinAbsoluteError (f.falling().front().top, 0.0f, (float) eps);
-            expectWithinAbsoluteError (f.falling().front().height, 100.0f, (float) eps);
-            expectWithinAbsoluteError (f.falling().front().alpha, 1.0f, (float) eps);
+            field.advance (halfSecond);                      // would reach top -10: pinned at 0, 10 px shorter
+            expectWithinAbsoluteError (field.falling().front().top, pinnedTop, eps);
+            expectWithinAbsoluteError (field.falling().front().height, heightAgainstTop, eps);
+            expectWithinAbsoluteError (field.falling().front().alpha, opaque, eps);
 
-            f.advance (0.075f);                    // tail at 70 px -> alpha 70/80
-            expectWithinAbsoluteError (f.falling().front().height, 70.0f, (float) eps);
-            expectWithinAbsoluteError (f.falling().front().alpha, 0.875f, (float) eps);
+            field.advance (tailIntoFade);                    // tail at 70 px -> alpha 70/80
+            expectWithinAbsoluteError (field.falling().front().height, tailHeight, eps);
+            expectWithinAbsoluteError (field.falling().front().alpha, tailAlpha, eps);
 
-            f.advance (0.2f);                      // tail gone
-            expect (f.falling().empty());
-            expect (f.isIdle());
+            field.advance (tailGone);                      // tail gone
+            expect (field.falling().empty());
+            expect (field.isIdle());
         }
 
-        beginTest ("releaseAll releases every held note; clear empties everything");
+        beginTest (releaseAllAndClear);
         {
-            NoteField f;
-            f.setHeight (500.0f);
-            f.noteOn (60, 0.0f, 20.0f);
-            f.noteOn (64, 50.0f, 20.0f);
-            f.releaseAll();
-            expect (f.held().empty());
-            expectEquals ((int) f.falling().size(), 2);
+            NoteField field;
+            field.setHeight (fieldHeight);
+            field.noteOn (middleC, leftEdge, keyWidth);
+            field.noteOn (noteE4, keyLeftAt50, keyWidth);
+            field.releaseAll();
+            expect (field.held().empty());
+            expectEquals ((int) field.falling().size(), twoNotes);
 
-            f.noteOn (67, 90.0f, 20.0f);
-            f.clear();
-            expect (f.held().empty());
-            expect (f.falling().empty());
-            expect (f.isIdle());
+            field.noteOn (noteG4, keyLeftAt90, keyWidth);
+            field.clear();
+            expect (field.held().empty());
+            expect (field.falling().empty());
+            expect (field.isIdle());
         }
 
-        beginTest ("advance(0) changes nothing and an empty field is idle");
+        beginTest (zeroAdvanceAndIdle);
         {
-            NoteField f;
-            expect (f.isIdle());
-            f.setHeight (300.0f);
-            f.noteOn (60, 0.0f, 20.0f);
-            f.advance (0.0f);
-            expectWithinAbsoluteError (f.held().at (60).top, 290.0f, (float) eps);
-            expectWithinAbsoluteError (f.held().at (60).height, 10.0f, (float) eps);
+            NoteField field;
+            expect (field.isIdle());
+            field.setHeight (smallFieldHeight);
+            field.noteOn (middleC, leftEdge, keyWidth);
+            field.advance (noTime);
+            expectWithinAbsoluteError (field.held().at (middleC).top, smallFieldStartTop, eps);
+            expectWithinAbsoluteError (field.held().at (middleC).height, startHeight, eps);
         }
     }
 };
