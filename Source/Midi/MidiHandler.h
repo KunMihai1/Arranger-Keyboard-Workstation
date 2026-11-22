@@ -11,6 +11,50 @@
 #include <atomic>
 #include <functional>
 
+/** Facts of the MIDI protocol itself, shared by every MIDI class. */
+namespace MidiFacts
+{
+	constexpr int lowestNote  = 0;
+	constexpr int highestNote = 127;
+	constexpr int noteCount   = 128;
+	constexpr int lowestControllerValue  = 0;
+	constexpr int highestControllerValue = 127;
+	constexpr int lowestChannel  = 1;
+	constexpr int highestChannel = 16;
+}
+
+/** Which device list a MidiDevice call works on. */
+namespace DeviceListChoice
+{
+	constexpr int midiInput   = 0;
+	constexpr int midiOutput  = 1;
+	constexpr int audioOutput = 2;
+}
+
+/** The MIDI channels the two hands play on (the keyboard split sends the right hand to its own channel). */
+namespace HandChannels
+{
+	constexpr int leftHand  = 1;
+	constexpr int rightHand = 16;
+}
+
+/** What MidiHandler::handlePlayableRange did with the device's key count. */
+namespace PlayableRangeResult
+{
+	constexpr int askedForKeyCount = -1;   // unknown device: the UI asks the user, the range is set later
+	constexpr int rangeApplied     = 1;
+}
+
+namespace DeviceNames
+{
+	const juce::String pcKeyboard = "PC Keyboard";   // the computer keyboard, listed as a MIDI input
+}
+
+namespace MidiHandlerSettings
+{
+	constexpr int notSet = -1;   // a note setting or bound the user has not chosen, or a CC never sent
+}
+
 class MidiDevice {
 public:
 
@@ -40,18 +84,18 @@ public:
 	/**
 	 * @brief Gets a device name, based on its index in the list of devices
 	 * @param Index the index of the device 
-	 * @param choice Parameter to filter out if it's input or ouput (0-input, 1-output)
+	 * @param choice Parameter to filter out if it's input or output (a DeviceListChoice)
 	 * @return the name of the device as a string
 	 */
-	juce::String getDeviceNameBasedOnIndex(int Index, int choice = 0);
+	juce::String getDeviceNameBasedOnIndex(int Index, int choice = DeviceListChoice::midiInput);
 
 	/**
 	 * @brief Gets a device identifier, based on its index in the list of devices
 	 * @param Index the index of the device
-	 * @param choice Parameter to filter out if it's input or ouput (0-input, 1-output)
+	 * @param choice Parameter to filter out if it's input or output (a DeviceListChoice)
 	 * @return the identifier of the device as a string
 	 */
-	juce::String getDeviceIdentifierBasedOnIndex(int Index, int choice = 0);
+	juce::String getDeviceIdentifierBasedOnIndex(int Index, int choice = DeviceListChoice::midiInput);
 
 	/**
 	 * @brief Opens a MIDI input device
@@ -151,7 +195,7 @@ public:
 	 * @brief Sets the volume of the instrument
 	 * @param vValue Volume value 
 	 */
-	void setVolume(const int vValue, int channel=1);
+	void setVolume(const int vValue, int channel = HandChannels::leftHand);
 
 	/**
 	 * @brief Gets the current volume of the instrument
@@ -163,7 +207,7 @@ public:
 	 * @brief Sets the reverb amount of the instrument
 	 * @param rValue Reverb value (typically 0.0 - 1.0)
 	 */
-	void setReverb(const int rValue, int channel=1) ;
+	void setReverb(const int rValue, int channel = HandChannels::leftHand) ;
 
 	/**
 	 * @brief Gets the current reverb amount of the instrument
@@ -172,58 +216,58 @@ public:
 	int getReverb(int channel) const;
 
 
-	void setBrightness(const int rValue, int channel = 1);
+	void setBrightness(const int rValue, int channel = HandChannels::leftHand);
 
 	int getBrightness(int channel) const;
 
-	void setChorus(const int rValue, int channel = 1);
+	void setChorus(const int rValue, int channel = HandChannels::leftHand);
 
 	int getChorus(int channel) const;
 
-	void setExpression(const int rValue, int channel = 1);
+	void setExpression(const int rValue, int channel = HandChannels::leftHand);
 
 	int getExpression(int channel) const;
 
-	void setResonance(const int rValue, int channel = 1);
+	void setResonance(const int rValue, int channel = HandChannels::leftHand);
 
 	int getResonance(int channel) const;
 
-	void setSustainToggle(const bool rValue, int channel = 1);
+	void setSustainToggle(const bool rValue, int channel = HandChannels::leftHand);
 
 	bool getSustainToggle(int channel) const;
 
 	// Envelope & Modulation
-	void setAttack(const int rValue, int channel = 1);
+	void setAttack(const int rValue, int channel = HandChannels::leftHand);
 	int getAttack(int channel) const;
 
-	void setDecay(const int rValue, int channel = 1);
+	void setDecay(const int rValue, int channel = HandChannels::leftHand);
 	int getDecay(int channel) const;
 
-	void setRelease(const int rValue, int channel = 1);
+	void setRelease(const int rValue, int channel = HandChannels::leftHand);
 	int getRelease(int channel) const;
 
-	void setVibrato(const int rValue, int channel = 1);
+	void setVibrato(const int rValue, int channel = HandChannels::leftHand);
 	int getVibrato(int channel) const;
 
 	// Effects & Pan
 
-	void setDelay(const int rValue, int channel = 1);
+	void setDelay(const int rValue, int channel = HandChannels::leftHand);
 	int getDelay(int channel) const;
 
-	void setPan(const int rValue, int channel = 1);
+	void setPan(const int rValue, int channel = HandChannels::leftHand);
 	int getPan(int channel) const;
 
 	// Additional effects
-	void setDistortion(const int rValue, int channel = 1);
+	void setDistortion(const int rValue, int channel = HandChannels::leftHand);
 	int getDistortion(int channel) const;
 
-	void setFilterTrack(const int rValue, int channel = 1);
+	void setFilterTrack(const int rValue, int channel = HandChannels::leftHand);
 	int getFilterTrack(int channel) const;
 
-	void setTremolo(const int rValue, int channel = 1);
+	void setTremolo(const int rValue, int channel = HandChannels::leftHand);
 	int getTremolo(int channel) const;
 
-	void setRandomMod(const int rValue, int channel = 1);
+	void setRandomMod(const int rValue, int channel = HandChannels::leftHand);
 	int getRandomMod(int channel) const;
 
 	/**
@@ -302,9 +346,9 @@ private:
 		}
 	};
 
-	void refreshDeviceList(int choice = 0);
+	void refreshDeviceList(int choice = DeviceListChoice::midiInput);
 
-	void refreshDeviceListNew(std::vector<std::pair<juce::String,juce::String>>& vec, int choice=0);
+	void refreshDeviceListNew(std::vector<std::pair<juce::String,juce::String>>& vec, int choice = DeviceListChoice::midiInput);
 
 	std::vector<std::string> currentDevicesIN;
 	juce::Array<juce::MidiDeviceInfo> CachedDevicesIN;
@@ -519,13 +563,13 @@ private:
 	juce::CriticalSection midiMutex;
 	std::atomic<bool> internalSynthListening { false };
 	void queueForInternalSynth(const juce::MidiMessage& message);
-	int programNumberLeftHand = 0;
-	int programNumberRightHand = 0;
-	int startNoteSetting=-1;
-	int endNoteSetting=-1;
-	int leftHandBoundSetting = -1;
-	int rightHandBoundSetting = -1;
-	int transposeValue = 0;
+	int programNumberLeftHand {};
+	int programNumberRightHand {};
+	int startNoteSetting = MidiHandlerSettings::notSet;
+	int endNoteSetting = MidiHandlerSettings::notSet;
+	int leftHandBoundSetting = MidiHandlerSettings::notSet;
+	int rightHandBoundSetting = MidiHandlerSettings::notSet;
+	int transposeValue {};
 
 	// Phase 4: chord recognition fed from the live input. The detector lives on the input thread;
 	// only the resulting ArrangerChord crosses to the engine (via onChordChanged).
@@ -539,12 +583,12 @@ private:
 	bool muteChordZoneNote (int note) const { return chordZoneMute && arrangerEngaged && inChordZone (note); }
 	void feedChordNote (int note, bool isOn);
 
-	int lastCC91=-1; //reverb
-	int lastCC74 = -1;  //brightness
-	int lastCC11 = -1; //expression
-	int lastCC93 = -1; //chours
-	int lastCC71 = -1; //resonance
-	int lastCC64 = -1; //sustain pedal;
+	int lastCC91 = MidiHandlerSettings::notSet; //reverb
+	int lastCC74 = MidiHandlerSettings::notSet;  //brightness
+	int lastCC11 = MidiHandlerSettings::notSet; //expression
+	int lastCC93 = MidiHandlerSettings::notSet; //chours
+	int lastCC71 = MidiHandlerSettings::notSet; //resonance
+	int lastCC64 = MidiHandlerSettings::notSet; //sustain pedal;
 
 
 };

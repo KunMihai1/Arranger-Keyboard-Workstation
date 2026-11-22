@@ -58,12 +58,12 @@ not assumed: the speakers were recorded through WASAPI loopback and reported in 
 | B2/B3 | Section + transport storm, then Stop | Sound gone ~350 ms after Stop (-104 dBFS). |
 | B3 | 102 random 3-key PC-keyboard chords in 15 s while playing, then Stop | Sound gone ~850 ms after Stop (live-note release tails). |
 | B3 | Chord held through 60 Start/Stop clicks, Stop, release | Silent 2 s later. No stuck notes. |
-| B4 | Switch style while playing | Keeps playing the previous style's arrangement under the new style's name until Stop (one CurrentStyleComponent is reused; the engine keeps what Start built). Stop works. **Product question for the owner**, not changed. |
+| B4 | Switch style while playing | Keeps playing the previous style's arrangement under the new style's name until Stop (one CurrentStyleComponent is reused; the engine keeps what Start built). Stop works. **Intended** (owner, 2026-11-22): a new style takes effect on the next Start. |
 | B6 | Minimise 6 s while playing, maximise | Beat bar exactly on the beat afterwards (6 frames checked against elapsed time). |
 | B7 | Doubled output to external synth + SFZ | Does not happen (only one output is ever open). Found instead: notes queued for the SFZ synth were never drained with External MIDI and burst into the synth on switching — fixed, see `specs/2026-11-22-stale-synth-midi-backlog-design.md`. |
 
 Also observed: a section clicked while **stopped** becomes the start section, including an Ending (Start then
-plays the ending once and stops). Coherent; whether an Ending should be selectable as a start is the owner's call.
+plays the ending once and stops). **Intended** (owner, 2026-11-22): any section may be the start section.
 
 Not run: B4 switching SFZ instrument / audio output (no SFZ library on this machine), B5 style editor and
 Section Configurations while playing, Synchro Start / Count-In from the UI (covered headless in A).

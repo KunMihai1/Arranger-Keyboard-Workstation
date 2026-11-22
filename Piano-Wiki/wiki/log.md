@@ -13,6 +13,19 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: Source/Midi done; owner decisions
+- `MidiHandler`, `MidiDevice`, `MidiDevicesDB`, `MidiRecordPlayer`: named values, behaviour unchanged.
+  Shared names in `MidiHandler.h`: `HandChannels` (1 / 16), `DeviceListChoice` (MIDI in / MIDI out /
+  audio out), `DeviceNames::pcKeyboard`, `PlayableRangeResult`. Keyboard sizes and the 30 seed devices
+  are tables; `myDevices.json` and its keys unchanged. Allowlist 142 → 137. Suites: same totals as main.
+- Owner decisions: a style switch while playing takes effect on the next Start (intended); any section,
+  an Ending included, may be the start section (intended); restore-down stays work-area sized, no
+  proportional scaled window ("over engineering").
+- MIDI protocol facts (note/controller/channel ranges) shared once as `MidiFacts` in `MidiHandler.h`
+  (review found no defects; this removes the duplicated copies it pointed out).
+- Rule: the 800-line cap now covers wiki pages too (`.raw/` exempt); CI checks `Piano-Wiki/**/*.md`.
+  Largest page today: log.md, 404 lines.
+
 ## 2026-11-22 — "Restore down" fits the work area
 - Measured: restored window was 1938x1077 at (0,0) on a 1920x1080 screen (work area 1920x1020): off the
   right edge and under the taskbar. Cause: JUCE restores to the bounds before `setFullScreen`, which were

@@ -34,6 +34,8 @@ Piano-Wiki/
 - .raw/ contains source documents: never modify them.
 - wiki/index.md is the master catalog: update on every ingest.
 - wiki/log.md is append-only: never edit past entries. New entries go at the TOP.
+- No wiki page over 800 lines (CI enforces it; `.raw/` sources excepted). Split a long page by topic;
+  when log.md nears the cap, move its oldest entries unchanged to wiki/log-archive-<year>.md and link it.
 - Update wiki/hot.md after every ingest, significant query, and at session end. Overwrite completely, keep under 500 words.
 
 ## Operations
