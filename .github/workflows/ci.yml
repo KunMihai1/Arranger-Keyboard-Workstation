@@ -110,7 +110,8 @@ jobs:
       # objects are cached (built with /Z7 via ci/Directory.Build.targets, so each .obj carries its own
       # debug info). The key covers everything those objects depend on: JUCE version, runner image
       # (compiler), the generated wrapper files (module list + config; Projucer output is
-      # deterministic) and the compiler-flag override. Any change -> new key -> clean build.
+      # deterministic) and the MSBuild overrides (compiler host, /Z7, /bigobj). Any change -> new key ->
+      # clean build.
       - name: Restore compiled JUCE modules
         id: juce-objs
         uses: actions/cache/restore@v6
@@ -119,7 +120,7 @@ jobs:
             ci/Builds/VisualStudio2022/x64/Debug/ConsoleApp/include_*.obj
             ci/Builds/VisualStudio2022/x64/Debug/ConsoleApp/BinaryData.obj
             ci/Builds/VisualStudio2022/x64/Debug/ConsoleApp/*.tlog
-          key: juce-objs-${{ env.JUCE_VERSION }}-${{ runner.os }}-${{ env.RUNNER_IMAGE_VERSION }}-${{ hashFiles('ci/JuceLibraryCode/**', 'ci/Directory.Build.targets') }}
+          key: juce-objs-${{ env.JUCE_VERSION }}-${{ runner.os }}-${{ env.RUNNER_IMAGE_VERSION }}-${{ hashFiles('ci/JuceLibraryCode/**', 'ci/Directory.Build.targets', 'Directory.Build.props', 'Directory.Build.targets') }}
 
       - name: Let MSBuild reuse the cached JUCE objects
         if: steps.juce-objs.outputs.cache-hit == 'true'

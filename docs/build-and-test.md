@@ -37,8 +37,13 @@
   "last saved using an outdated version of the Projucer".
 - **JUCE modules:** only the ones the code uses are enabled. Using a class from another module (e.g.
   `juce_osc`) means adding that module to **both** `.jucer` files.
+- **MSBuild settings Projucer can't express** live in the repository-root `Directory.Build.props` /
+  `.targets` (both projects; `ci/Directory.Build.targets` imports the root one) and survive a re-save:
+  the 64-bit-hosted compiler and linker, and one `/bigobj` option set for all JUCE module files so they
+  compile as a single `/MP` batch. Measurements: `docs/superpowers/specs/2026-11-22-build-time-design.md`.
 - **A header change that alters a type's layout -> `/t:Rebuild`.** Incremental builds miss
   `Source/Main.cpp`'s dependencies and the result is silent heap corruption, not a build error.
 - **CI caches the compiled JUCE module objects** (runs on `main` fill it; PRs read it). The test project
   builds with `/Z7` (`ci/Directory.Build.targets`) so each `.obj` is self-contained. The key hashes the
-  generated `ci/JuceLibraryCode/` files, so changing modules or JUCE options just rebuilds cold.
+  generated `ci/JuceLibraryCode/` files and the `Directory.Build.*` files, so changing modules, JUCE
+  options or those overrides just rebuilds cold.

@@ -1,0 +1,8 @@
+<Project>
+  <!-- Both projects (Projucer has no setting for this). Without it MSBuild runs the 32-bit-hosted
+       compiler and linker; the 64-bit-hosted ones produce the same x64 code and link much faster
+       (docs/superpowers/specs/2026-11-22-build-time-design.md). -->
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+</Project>

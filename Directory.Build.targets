@@ -1,0 +1,13 @@
+<Project>
+  <!-- Both projects (the test runner imports this from ci/Directory.Build.targets).
+       MSBuild compiles each group of files with identical options as one /MP batch, and runs the batches
+       one after another. Projucer gives five JUCE module files /bigobj, which splits the JUCE code into two
+       serial batches; giving every non-PCH C++ file the same option merges them into one. -->
+  <Target Name="MergeJuceModuleBatches" BeforeTargets="ClCompile">
+    <ItemGroup>
+      <ClCompile Condition="'%(ClCompile.PrecompiledHeader)' == 'NotUsing' and '%(Extension)' == '.cpp' and !$([System.String]::Copy('%(ClCompile.AdditionalOptions)').Contains('/bigobj'))">
+        <AdditionalOptions> /bigobj %(ClCompile.AdditionalOptions)</AdditionalOptions>
+      </ClCompile>
+    </ItemGroup>
+  </Target>
+</Project>
