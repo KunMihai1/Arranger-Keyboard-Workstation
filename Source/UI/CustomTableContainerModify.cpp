@@ -1,36 +1,68 @@
 #include "CustomTableContainer.h"
 
+namespace
+{
+    namespace Text
+    {
+        const juce::String confirmTitle          = "Confirm action";
+        const juce::String askTimeStamps         = "What would you like to do with the time stamps?";
+        const juce::String askVelocities         = "What would you like to do with the velocities?";
+        const juce::String modifyTitle           = "Modify";
+        const juce::String shiftTimeStamps       = "Shift the time stamps of your notes";
+        const juce::String timeStampsSuffix      = " time stamps";
+        const juce::String timeStampLabel        = "Time stamp";
+        const juce::String enterVelocity         = "Enter a new velocity for your notes";
+        const juce::String velocitiesSuffix      = " velocities";
+        const juce::String velocityLabel         = "Velocity";
+        const juce::String valueSuffix           = " value:";
+        const juce::String propertyEditor        = "propertyEditor";
+        const juce::String okButton              = "OK";
+        const juce::String modifyTimeStampsTitle = "Modify time stamps";
+        const juce::String modifyVelocitiesTitle = "Modify velocities";
+        const juce::String invalidInput          = "Invalid input value";
+        const juce::String invalidValue          = "Invalid value";
+        const juce::String currentRowLog         = "current row is: ";
+        const juce::String previousLog           = "prev: ";
+        const juce::String currentLog            = " current: ";
+        const juce::String nextLog               = " next: ";
+    }
+
+    constexpr int dialogOk       = 1;   // the value dialog's OK / Cancel results
+    constexpr int dialogCancel   = 0;
+    constexpr int firstSelection = 0;
+}
+
 
 void TableContainer::modifyTimeStampsUI()
 {
-    showModifyChangeDialog("Confirm action",
-        "What would you like to do with the time stamps?",
-        "What would you like to do with the time stamps?",
-        { "Modify All", "Modify selected", "Cancel" },
-        { "Modify All", "Cancel" },
+    showModifyChangeDialog(Text::confirmTitle,
+        Text::askTimeStamps,
+        Text::askTimeStamps,
+        { TableDialog::modifyAll, TableDialog::modifySelected, TableDialog::cancel },
+        { TableDialog::modifyAll, TableDialog::cancel },
         [this](int result)
         {
-            if (result == 1)
+            if (result == TableDialog::applyToAll)
                 modifyOnlyTimeStamps();
-            else if (result == 2)
+            else if (result == TableDialog::applyToSelected)
                 modifyOnlyTimeStampsSelected(table->getSelectedRows());
         },true);
 }
 
 void TableContainer::modifyVelocitiesUI()
 {
-    showModifyChangeDialog("Confirm action",
-        "What would you like to do with the velocities?",
-        "What would you like to do with the velocities?",
-        { "Modify All", "Modify selected", "Cancel" },
-        { "Modify All", "Cancel" },
+    showModifyChangeDialog(Text::confirmTitle,
+        Text::askVelocities,
+        Text::askVelocities,
+        { TableDialog::modifyAll, TableDialog::modifySelected, TableDialog::cancel },
+        { TableDialog::modifyAll, TableDialog::cancel },
         [this](int result)
         {
-            if (result == 1)
+            if (result == TableDialog::applyToAll)
             {
                 modifyOnlyVelocities();
             }
-            else if (result == 2)
+            else if (result == TableDialog::applyToSelected)
             {
                 modifyOnlyVelocitiesSelected(table->getSelectedRows());
             }
@@ -91,7 +123,7 @@ void TableContainer::resetPropertyAndApply(const std::function<void(MidiChangeIn
 {
     if (selected!=nullptr)
     {
-        for (int rangeIndex = 0; rangeIndex < selected->getNumRanges(); ++rangeIndex)
+        for (int rangeIndex {}; rangeIndex < selected->getNumRanges(); ++rangeIndex)
         {
             auto range = selected->getRange(rangeIndex);
             for (int row = range.getStart(); row < range.getEnd(); ++row)
@@ -137,7 +169,7 @@ void TableContainer::newPropertyAndApply(const std::function<void(MidiChangeInfo
 {
     if (selected != nullptr)
     {
-        for (int rangeIndex = 0; rangeIndex < selected->getNumRanges(); ++rangeIndex)
+        for (int rangeIndex {}; rangeIndex < selected->getNumRanges(); ++rangeIndex)
         {
             auto range = selected->getRange(rangeIndex);
             for (int row = range.getStart(); row < range.getEnd(); ++row)
@@ -162,11 +194,11 @@ void TableContainer::newPropertyAndApply(const std::function<void(MidiChangeInfo
 
 void TableContainer::newPropertyHelperFunction(const std::function<void(MidiChangeInfo&)>& newProperty, const juce::SparseSet<int>* selected, bool modifyVelocity, int originalIndex, int noteOnIndex)
 {
-    auto* e = originalSequence.getEventPointer(originalIndex);
-    if (e == nullptr)
+    auto* event = originalSequence.getEventPointer(originalIndex);
+    if (event == nullptr)
         return;
 
-    auto oldMsg = e->message;
+    auto oldMsg = event->message;
 
     auto [it, inserted] = changesMap.try_emplace(noteOnIndex);
     MidiChangeInfo& info = it->second;
@@ -210,72 +242,72 @@ void TableContainer::showModifyChangeDialog(
 
     if (isModify)
     {
-       juce::String title = "Modify", text, label;
+       juce::String title = Text::modifyTitle, text, label;
        int selectedID = actionModifyCB->getSelectedId();
 
-       if (selectedID == 1)
+       if (selectedID == ModifyActionIds::timeStamps)
        {
-           text = "Shift the time stamps of your notes";
-           title += " time stamps";
-           label = "Time stamp";
+           text = Text::shiftTimeStamps;
+           title += Text::timeStampsSuffix;
+           label = Text::timeStampLabel;
        }
-       else if (selectedID == 2)
+       else if (selectedID == ModifyActionIds::velocities)
        {
-           text = "Enter a new velocity for your notes";
-           title += " velocities";
-           label = "Velocity";
+           text = Text::enterVelocity;
+           title += Text::velocitiesSuffix;
+           label = Text::velocityLabel;
        }
-       label += " value:";
+       label += Text::valueSuffix;
 
        auto* window = new juce::AlertWindow{ title, text, juce::AlertWindow::NoIcon };
 
-       window->addTextEditor("propertyEditor", "", label);
+       window->addTextEditor(Text::propertyEditor, {}, label);
 
-       window->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
-       window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+       window->addButton(Text::okButton, dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
+       window->addButton(TableDialog::cancel, dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
 
        window->enterModalState(true,
            juce::ModalCallbackFunction::create([this, window, selectedID, title,messageAllSelected,messageNoSelection,buttonsWithSelection,buttonsWithoutSelection,onValidResults](int result)
                {
                    std::unique_ptr<juce::AlertWindow> cleanup{ window };
-                   if (result != 1)
+                   if (result != dialogOk)
                        return;
 
-                   juce::String userValue = window->getTextEditor("propertyEditor")->getText().trim();
-                   if (selectedID == 1)
+                   juce::String userValue = window->getTextEditor(Text::propertyEditor)->getText().trim();
+                   if (selectedID == ModifyActionIds::timeStamps)
                    {
                        if (!Validator::isValidMidiDoubleString(userValue))
                        {
-                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Modify time stamps", "Invalid input value");
+                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::modifyTimeStampsTitle, Text::invalidInput);
                            return;
                        }
 
                        double doubleValue = userValue.getDoubleValue();
 
-                       int currentRow = table->getSelectedRows()[0];
-                       DBG("current row is: " + juce::String(currentRow));
+                       int currentRow = table->getSelectedRows()[firstSelection];
+                       DBG(Text::currentRowLog + juce::String(currentRow));
 
                        double timeStampPreviousNoteOn=model->getPreviousNoteOnTimeStamp(currentRow);
                        double timeStampCurrentNoteOn = model->getCurrentNoteOnTimeStamp(currentRow);
                        double timeStampNextNoteOn = model->getNextNoteOnTimeStamp(currentRow);
 
-                       DBG("prev: " + juce::String(timeStampPreviousNoteOn) + " current: " + juce::String(timeStampCurrentNoteOn) + " next: " + juce::String(timeStampNextNoteOn));
+                       DBG(Text::previousLog + juce::String(timeStampPreviousNoteOn) + Text::currentLog + juce::String(timeStampCurrentNoteOn) + Text::nextLog + juce::String(timeStampNextNoteOn));
 
-                       if (timeStampPreviousNoteOn == -1)
+                       if (timeStampPreviousNoteOn == Validator::noTimeStamp)
                            return;
 
                        if (!Validator::isValidMidiDoubleValueTimeStamps(doubleValue,timeStampCurrentNoteOn,timeStampPreviousNoteOn,timeStampNextNoteOn))
                        {
-                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Modify time stamps", "Invalid value");
+                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::modifyTimeStampsTitle, Text::invalidValue);
                            return;
                        }
                        editorValue = doubleValue;
                    }
-                   else if (selectedID == 2)
+                   else if (selectedID == ModifyActionIds::velocities)
                    {
                        if (!Validator::isValidMidiIntegerString(userValue))
                        {
-                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Modify velocities", "Invalid input value");
+                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::modifyVelocitiesTitle, Text::invalidInput);
                            return;
                        }
 
@@ -283,7 +315,7 @@ void TableContainer::showModifyChangeDialog(
 
                        if (!Validator::isValidMidiIntValue(intValue))
                        {
-                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Modify velocities", "Invalid value");
+                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::modifyVelocitiesTitle, Text::invalidValue);
                            return;
                        }
 
@@ -294,13 +326,13 @@ void TableContainer::showModifyChangeDialog(
 
                    auto& buttons = anySelected() ? buttonsWithSelection : buttonsWithoutSelection;
 
-                   for (int i = 0; i < buttons.size(); i++)
-                       alert->addButton(buttons[i], i + 1);
+                   for (int buttonIndex {}; buttonIndex < buttons.size(); buttonIndex++)
+                       alert->addButton(buttons[buttonIndex], buttonIndex + TableDialog::firstButtonId);
 
                    alert->enterModalState(true,
                        juce::ModalCallbackFunction::create([this, onValidResults](int result)
                            {
-                               if (result == 0) return;
+                               if (result == TableDialog::dismissed) return;
                                onValidResults(result);
                                onConfirmed();
                            }),
@@ -309,7 +341,7 @@ void TableContainer::showModifyChangeDialog(
                }));
        juce::MessageManager::callAsync([window]()
            {
-               if (auto* editor = window->getTextEditor("propertyEditor"))
+               if (auto* editor = window->getTextEditor(Text::propertyEditor))
                    editor->grabKeyboardFocus();
            });
     }
@@ -319,13 +351,13 @@ void TableContainer::showModifyChangeDialog(
 
         auto& buttons = anySelected() ? buttonsWithSelection : buttonsWithoutSelection;
 
-        for (int i = 0; i < buttons.size(); i++)
-            alert->addButton(buttons[i], i + 1);
+        for (int buttonIndex {}; buttonIndex < buttons.size(); buttonIndex++)
+            alert->addButton(buttons[buttonIndex], buttonIndex + TableDialog::firstButtonId);
 
         alert->enterModalState(true,
             juce::ModalCallbackFunction::create([this, onValidResults](int result)
                 {
-                    if (result == 0) return;
+                    if (result == TableDialog::dismissed) return;
                     onValidResults(result);
                     onConfirmed();
                 }),

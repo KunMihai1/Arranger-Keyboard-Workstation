@@ -11,6 +11,34 @@
 #include "PlayBackSettingsCustomComponent.h"
 #include "IOHelper.h"
 
+namespace
+{
+    namespace Text
+    {
+        const juce::String noneItem        = "None";
+        const juce::String rangeSeparator  = "-";      // "C2-G4"
+        const juce::String leftHand        = "Left hand";
+        const juce::String rightHand       = "Right hand";
+        const juce::String startNote       = "Start note";
+        const juce::String endNote         = "End note";
+        const juce::String semitonesSuffix = " semitones";
+    }
+
+    constexpr int outerPadding          = 10;
+    constexpr int comboWidth            = 85;
+    constexpr int comboHeight           = 20;
+    constexpr int labelHeight           = 10;
+    constexpr int spacing               = 5;
+    constexpr int sliderHeight          = 30;
+    constexpr int spacingsAboveSlider   = 2;
+    constexpr int firstItemId           = 1;
+    constexpr int maxTransposeSemitones = 12;
+    constexpr int transposeStep         = 1;
+    constexpr int noTranspose           = 0;
+    constexpr int transposeBoxWidth     = 60;
+    constexpr int transposeBoxHeight    = 20;
+}
+
 PlayBackSettingsComponent::PlayBackSettingsComponent(int lowestNote, int highestNote, PlayBackSettings& settingsGiven): settings{settingsGiven}
 {
     this->lowestNote = lowestNote;
@@ -31,18 +59,12 @@ PlayBackSettingsComponent::~PlayBackSettingsComponent()
 
 void PlayBackSettingsComponent::resized()
 {
-    auto area = getLocalBounds().reduced(10);
-
-    int comboWidth = 85;
-    int comboHeight = 20;
-    int labelHeight = 10;   
-    int spacing = 5;        
+    auto area = getLocalBounds().reduced(outerPadding);
 
     startNoteLabel.setBounds(area.removeFromLeft(comboWidth).withHeight(labelHeight));
     startNoteBox.setBounds(startNoteLabel.getX(), startNoteLabel.getBottom() + spacing, comboWidth, comboHeight);
 
-    int sliderHeight = 30;
-    transposeSlider.setBounds(startNoteBox.getX(), startNoteBox.getBottom() + spacing*2, comboWidth, sliderHeight);
+    transposeSlider.setBounds(startNoteBox.getX(), startNoteBox.getBottom() + spacing*spacingsAboveSlider, comboWidth, sliderHeight);
 
     area.removeFromLeft(spacing);
 
@@ -74,12 +96,12 @@ void PlayBackSettingsComponent::comboBoxChanged(juce::ComboBox* comboBoxThatHasC
     else if (comboBoxThatHasChanged == &leftHandBoundBox)
     {
         juce::String text = leftHandBoundBox.getText();
-        settings.leftHandBound = MapHelper::stringToIntNote(text.fromFirstOccurrenceOf("-",false,false));
+        settings.leftHandBound = MapHelper::stringToIntNote(text.fromFirstOccurrenceOf(Text::rangeSeparator,false,false));
     }
     else if (comboBoxThatHasChanged == &rightHandBoundBox)
     {
         juce::String text = rightHandBoundBox.getText();
-        settings.rightHandBound = MapHelper::stringToIntNote(text.upToFirstOccurrenceOf("-", false, false));
+        settings.rightHandBound = MapHelper::stringToIntNote(text.upToFirstOccurrenceOf(Text::rangeSeparator, false, false));
     }
 
     if(onChangingSettings)
@@ -89,8 +111,8 @@ void PlayBackSettingsComponent::comboBoxChanged(juce::ComboBox* comboBoxThatHasC
 
 void PlayBackSettingsComponent::handIntervalsInit()
 {
-    juce::StringArray availableRangeLeft= "None";
-    juce::StringArray availableRangeRight = "None";
+    juce::StringArray availableRangeLeft= Text::noneItem;
+    juce::StringArray availableRangeRight = Text::noneItem;
 
     addAndMakeVisible(leftHandBoundBox);
     addAndMakeVisible(rightHandBoundBox);
@@ -100,11 +122,11 @@ void PlayBackSettingsComponent::handIntervalsInit()
 
     addAndMakeVisible(leftHandBoundLabel);
 
-    leftHandBoundLabel.setText("Left hand", juce::dontSendNotification);
+    leftHandBoundLabel.setText(Text::leftHand, juce::dontSendNotification);
 
     addAndMakeVisible(rightHandBoundLabel);
 
-    rightHandBoundLabel.setText("Right hand", juce::dontSendNotification);
+    rightHandBoundLabel.setText(Text::rightHand, juce::dontSendNotification);
 
     leftHandBoundBox.addListener(this);
     rightHandBoundBox.addListener(this);
@@ -112,31 +134,31 @@ void PlayBackSettingsComponent::handIntervalsInit()
     juce::String lowestNoteString = MapHelper::intToStringNote(lowestNote);
     juce::String highestNoteString = MapHelper::intToStringNote(highestNote);
 
-    for (int i = lowestNote; i <= highestNote; i++)
+    for (int noteNumber = lowestNote; noteNumber <= highestNote; noteNumber++)
     {
-        availableRangeLeft.add(lowestNoteString + "-" + MapHelper::intToStringNote(i));
-        availableRangeRight.add(MapHelper::intToStringNote(i) + "-" + highestNoteString);
+        availableRangeLeft.add(lowestNoteString + Text::rangeSeparator + MapHelper::intToStringNote(noteNumber));
+        availableRangeRight.add(MapHelper::intToStringNote(noteNumber) + Text::rangeSeparator + highestNoteString);
     }
     
 
-    leftHandBoundBox.addItemList(availableRangeLeft, 1);
-    rightHandBoundBox.addItemList(availableRangeRight, 1);
+    leftHandBoundBox.addItemList(availableRangeLeft, firstItemId);
+    rightHandBoundBox.addItemList(availableRangeRight, firstItemId);
 
-    if (settings.leftHandBound != -1)
-        leftHandBoundBox.setText(lowestNoteString + "-" + MapHelper::intToStringNote(settings.leftHandBound), juce::dontSendNotification);
-    else leftHandBoundBox.setText("None", juce::dontSendNotification);
+    if (settings.leftHandBound != PlaybackSettingsKeys::notSet)
+        leftHandBoundBox.setText(lowestNoteString + Text::rangeSeparator + MapHelper::intToStringNote(settings.leftHandBound), juce::dontSendNotification);
+    else leftHandBoundBox.setText(Text::noneItem, juce::dontSendNotification);
 
-    if (settings.rightHandBound != -1)
-        rightHandBoundBox.setText(MapHelper::intToStringNote(settings.rightHandBound) + "-" + highestNoteString, juce::dontSendNotification);
-    else rightHandBoundBox.setText("None", juce::dontSendNotification);
+    if (settings.rightHandBound != PlaybackSettingsKeys::notSet)
+        rightHandBoundBox.setText(MapHelper::intToStringNote(settings.rightHandBound) + Text::rangeSeparator + highestNoteString, juce::dontSendNotification);
+    else rightHandBoundBox.setText(Text::noneItem, juce::dontSendNotification);
 }
 
 void PlayBackSettingsComponent::startStopInit()
 {
-    juce::StringArray availableNotes = "None";
-    for (int i = lowestNote; i <= highestNote; i++)
+    juce::StringArray availableNotes = Text::noneItem;
+    for (int noteNumber = lowestNote; noteNumber <= highestNote; noteNumber++)
     {
-        availableNotes.add(MapHelper::intToStringNote(i));
+        availableNotes.add(MapHelper::intToStringNote(noteNumber));
     }
     addAndMakeVisible(startNoteBox);
     addAndMakeVisible(endNoteBox);
@@ -144,26 +166,26 @@ void PlayBackSettingsComponent::startStopInit()
     startNoteBox.clear();
     endNoteBox.clear();
 
-    startNoteBox.addItemList(availableNotes, 1);
+    startNoteBox.addItemList(availableNotes, firstItemId);
 
     addAndMakeVisible(startNoteLabel);
-    startNoteLabel.setText("Start note", juce::dontSendNotification);
-    endNoteBox.addItemList(availableNotes, 1);
+    startNoteLabel.setText(Text::startNote, juce::dontSendNotification);
+    endNoteBox.addItemList(availableNotes, firstItemId);
 
     addAndMakeVisible(endNoteLabel);
-    endNoteLabel.setText("End note", juce::dontSendNotification);
+    endNoteLabel.setText(Text::endNote, juce::dontSendNotification);
 
 
-    if (settings.startNote != -1)
+    if (settings.startNote != PlaybackSettingsKeys::notSet)
     {
         startNoteBox.setText(MapHelper::intToStringNote(settings.startNote), juce::dontSendNotification);
     }
-    else startNoteBox.setText("None", juce::dontSendNotification);
-    if (settings.endNote != -1)
+    else startNoteBox.setText(Text::noneItem, juce::dontSendNotification);
+    if (settings.endNote != PlaybackSettingsKeys::notSet)
     {
         endNoteBox.setText(MapHelper::intToStringNote(settings.endNote), juce::dontSendNotification);
     }
-    else endNoteBox.setText("None", juce::dontSendNotification);
+    else endNoteBox.setText(Text::noneItem, juce::dontSendNotification);
     startNoteBox.addListener(this);
     endNoteBox.addListener(this);
 }
@@ -171,11 +193,11 @@ void PlayBackSettingsComponent::startStopInit()
 void PlayBackSettingsComponent::transposeSliderInit()
 {
     addAndMakeVisible(transposeSlider);
-    transposeSlider.setRange(-12, 12, 1);
-    transposeSlider.setValue(0);
-    transposeSlider.setTextValueSuffix(" semitones");
+    transposeSlider.setRange(-maxTransposeSemitones, maxTransposeSemitones, transposeStep);
+    transposeSlider.setValue(noTranspose);
+    transposeSlider.setTextValueSuffix(Text::semitonesSuffix);
     transposeSlider.setSliderStyle(juce::Slider::IncDecButtons);
-    transposeSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, 20);
+    transposeSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, transposeBoxWidth, transposeBoxHeight);
 
     transposeSlider.onDragEnd = [this]()
     {
@@ -186,29 +208,29 @@ void PlayBackSettingsComponent::transposeSliderInit()
 
 void PlayBackSettingsComponent::setNewSettings(PlayBackSettings& newSettings)
 {
-    juce::StringArray availableNotes = "None";
-    for (int i = lowestNote; i <= highestNote; i++)
+    juce::StringArray availableNotes = Text::noneItem;
+    for (int noteNumber = lowestNote; noteNumber <= highestNote; noteNumber++)
     {
-        availableNotes.add(MapHelper::intToStringNote(i));
+        availableNotes.add(MapHelper::intToStringNote(noteNumber));
     }
 
     startNoteBox.clear();
     endNoteBox.clear();
 
-    startNoteBox.addItemList(availableNotes, 1);
-    endNoteBox.addItemList(availableNotes, 1);
+    startNoteBox.addItemList(availableNotes, firstItemId);
+    endNoteBox.addItemList(availableNotes, firstItemId);
 
     this->settings = newSettings;
-    if (settings.startNote != -1)
+    if (settings.startNote != PlaybackSettingsKeys::notSet)
     {
         startNoteBox.setText(MapHelper::intToStringNote(settings.startNote), juce::dontSendNotification);
     }
-    else startNoteBox.setText("None", juce::dontSendNotification);
-    if (settings.endNote != -1)
+    else startNoteBox.setText(Text::noneItem, juce::dontSendNotification);
+    if (settings.endNote != PlaybackSettingsKeys::notSet)
     {
         endNoteBox.setText(MapHelper::intToStringNote(settings.endNote), juce::dontSendNotification);
     }
-    else endNoteBox.setText("None", juce::dontSendNotification);
+    else endNoteBox.setText(Text::noneItem, juce::dontSendNotification);
 
 
     juce::String lowestNoteString = MapHelper::intToStringNote(lowestNote);
@@ -217,26 +239,26 @@ void PlayBackSettingsComponent::setNewSettings(PlayBackSettings& newSettings)
     leftHandBoundBox.clear();
     rightHandBoundBox.clear();
 
-    juce::StringArray availableRangeLeft = "None";
-    juce::StringArray availableRangeRight = "None";
+    juce::StringArray availableRangeLeft = Text::noneItem;
+    juce::StringArray availableRangeRight = Text::noneItem;
 
-    for (int i = lowestNote; i <= highestNote; i++)
+    for (int noteNumber = lowestNote; noteNumber <= highestNote; noteNumber++)
     {
-        availableRangeLeft.add(lowestNoteString + "-" + MapHelper::intToStringNote(i));
-        availableRangeRight.add(MapHelper::intToStringNote(i) + "-" + highestNoteString);
+        availableRangeLeft.add(lowestNoteString + Text::rangeSeparator + MapHelper::intToStringNote(noteNumber));
+        availableRangeRight.add(MapHelper::intToStringNote(noteNumber) + Text::rangeSeparator + highestNoteString);
     }
 
 
-    leftHandBoundBox.addItemList(availableRangeLeft, 1);
-    rightHandBoundBox.addItemList(availableRangeRight, 1);
+    leftHandBoundBox.addItemList(availableRangeLeft, firstItemId);
+    rightHandBoundBox.addItemList(availableRangeRight, firstItemId);
 
-    if (settings.leftHandBound != -1)
-        leftHandBoundBox.setText(lowestNoteString + "-" + MapHelper::intToStringNote(settings.leftHandBound), juce::dontSendNotification);
-    else leftHandBoundBox.setText("None", juce::dontSendNotification);
+    if (settings.leftHandBound != PlaybackSettingsKeys::notSet)
+        leftHandBoundBox.setText(lowestNoteString + Text::rangeSeparator + MapHelper::intToStringNote(settings.leftHandBound), juce::dontSendNotification);
+    else leftHandBoundBox.setText(Text::noneItem, juce::dontSendNotification);
 
-    if (settings.rightHandBound != -1)
-        rightHandBoundBox.setText(MapHelper::intToStringNote(settings.rightHandBound) + "-" + highestNoteString, juce::dontSendNotification);
-    else rightHandBoundBox.setText("None", juce::dontSendNotification);
+    if (settings.rightHandBound != PlaybackSettingsKeys::notSet)
+        rightHandBoundBox.setText(MapHelper::intToStringNote(settings.rightHandBound) + Text::rangeSeparator + highestNoteString, juce::dontSendNotification);
+    else rightHandBoundBox.setText(Text::noneItem, juce::dontSendNotification);
 
     if (onChangingSettings)
         onChangingSettings(settings);

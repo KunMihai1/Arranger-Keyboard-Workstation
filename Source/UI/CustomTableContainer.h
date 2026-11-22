@@ -18,6 +18,36 @@
 #include "TrackPlayerListener.h"
 #include "TrackPlayer.h"
 
+/** Item ids of the "Undo settings" dropdown (reset to the original track). */
+namespace ResetActionIds
+{
+    constexpr int everything = 1;
+    constexpr int notes      = 2;
+    constexpr int timeStamps = 3;
+    constexpr int velocities = 4;
+}
+
+/** Item ids of the "Modify settings" dropdown. */
+namespace ModifyActionIds
+{
+    constexpr int timeStamps = 1;
+    constexpr int velocities = 2;
+}
+
+/** showModifyChangeDialog: buttons are numbered from 1 in the order given; 0 means dismissed. */
+namespace TableDialog
+{
+    constexpr int dismissed       = 0;
+    constexpr int firstButtonId   = 1;
+    constexpr int applyToAll      = 1;   // first button
+    constexpr int applyToSelected = 2;   // second button
+    inline const juce::String changeAll      = "Change All";
+    inline const juce::String changeSelected = "Change selected";
+    inline const juce::String modifyAll      = "Modify All";
+    inline const juce::String modifySelected = "Modify selected";
+    inline const juce::String cancel         = "Cancel";
+}
+
 /**
  * @class TableContainer
  * @brief A component that displays a table of MIDI notes and allows editing of note properties.
