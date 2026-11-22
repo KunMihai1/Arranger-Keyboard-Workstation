@@ -22,6 +22,21 @@
  */
 enum class TrackType { Melodic, Percussion };
 
+/** Track type names as stored in myTracks.json: the text must never change. */
+namespace TrackTypeNames
+{
+    inline const juce::String melodic    = "melodic";
+    inline const juce::String percussion = "percussion";
+    inline const juce::String unknown    = "unknown";
+}
+
+namespace TrackEntryDefaults
+{
+    constexpr int    notSet      = -1;       // no note / velocity / instrument recorded
+    constexpr double bpmNotSet   = -120.0;   // marks a change entry whose BPM was never set
+    constexpr int    keepCurrent = -1;       // playback settings: leave this value unchanged
+}
+
 /**
  * @struct MidiChangeInfo
  * @brief Stores information about a single MIDI note change.
@@ -31,16 +46,16 @@ enum class TrackType { Melodic, Percussion };
  */
 struct MidiChangeInfo
 {
-    double oldBPMchange=-120.0;
-    double newBPMchange = -120.0;
+    double oldBPMchange = TrackEntryDefaults::bpmNotSet;
+    double newBPMchange = TrackEntryDefaults::bpmNotSet;
 
-    int oldNumber = -1;       /**< Original MIDI note number */
-    double oldTimeStamp = 0.0; /**< Original time stamp (seconds) */
-    int oldVelocity = -1;     /**< Original velocity */
+    int oldNumber = TrackEntryDefaults::notSet;       /**< Original MIDI note number */
+    double oldTimeStamp {};   /**< Original time stamp (seconds) */
+    int oldVelocity = TrackEntryDefaults::notSet;     /**< Original velocity */
 
-    int newNumber = -1;       /**< Updated MIDI note number */
-    double newTimeStamp = 0.0; /**< Updated time stamp */
-    int newVelocity = -1;     /**< Updated velocity */
+    int newNumber = TrackEntryDefaults::notSet;       /**< Updated MIDI note number */
+    double newTimeStamp {};   /**< Updated time stamp */
+    int newVelocity = TrackEntryDefaults::notSet;     /**< Updated velocity */
 };
 
 /**
@@ -54,11 +69,11 @@ struct TrackEntry
     juce::String folderName;  /**< Folder containing this track */
     juce::Uuid uuid;          /**< Unique identifier for the track */
     juce::File file;          /**< Associated file (e.g., MIDI file) */
-    int trackIndex = 0;       /**< Index in a track list */
+    int trackIndex {};        /**< Index in a track list */
     juce::String displayName; /**< User-visible name of the track */
-    int instrumentAssociated = -1; /**< MIDI instrument assigned */
-    double volumeAssociated = 0.0; /**< Track volume */
-    double originalBPM = 0.0;      /**< Original tempo */
+    int instrumentAssociated = TrackEntryDefaults::notSet; /**< MIDI instrument assigned */
+    double volumeAssociated {}; /**< Track volume */
+    double originalBPM {};      /**< Original tempo */
 
     /**
      * @brief Map of style/arrangement changes.
@@ -105,14 +120,14 @@ namespace TrackTypeConversion
 {
     inline juce::String toString(TrackType type)
     {
-        if (type == TrackType::Melodic) return "melodic";
-        else if (type == TrackType::Percussion) return "percussion";
-        return "unknown";
+        if (type == TrackType::Melodic) return TrackTypeNames::melodic;
+        else if (type == TrackType::Percussion) return TrackTypeNames::percussion;
+        return TrackTypeNames::unknown;
     }
 
-    inline TrackType fromString(const juce::String& str)
+    inline TrackType fromString(const juce::String& name)
     {
-        if (str.compareIgnoreCase("percussion") == 0)
+        if (name.equalsIgnoreCase(TrackTypeNames::percussion))
             return TrackType::Percussion;
         else
             return TrackType::Melodic;

@@ -33,13 +33,19 @@
 class MultipleTrackPlayer: private juce::HighResolutionTimer, public TrackListener
 {
 public:
+    static constexpr int    drumChannel        = 10;    // General MIDI percussion
+    static constexpr int    firstTrackChannel  = 2;     // melodic tracks take 2, 3, ... in order
+    static constexpr double defaultBpm         = 120.0;
+    static constexpr int    defaultBeatsPerBar = 4;
+    static constexpr int    defaultBeatUnit    = 4;
+
     /**
      * @struct TrackPlaybackData
      * @brief Holds the playback state of a single track.
      */
     struct TrackPlaybackData {
-        int filteredSequenceIndex = -1; /**< Index of the filtered MIDI sequence */
-        int nextEventIndex = 0;         /**< Index of the next MIDI event to play */
+        int filteredSequenceIndex = TrackEntryDefaults::notSet; /**< Index of the filtered MIDI sequence */
+        int nextEventIndex {};          /**< Index of the next MIDI event to play */
     };
 
     /** 
@@ -90,7 +96,8 @@ public:
      * @param newVolume Optional volume (0–127), default -1 = no change.
      * @param newInstrument Optional instrument/program change, default -1 = no change.
      */
-    void updatePlaybackSettings(int channel, int newVolume=-1, int newInstrument=-1) override;
+    void updatePlaybackSettings(int channel, int newVolume = TrackEntryDefaults::keepCurrent,
+                                int newInstrument = TrackEntryDefaults::keepCurrent) override;
 
     /** @brief Destructor. */
     ~MultipleTrackPlayer();
@@ -121,17 +128,17 @@ public:
     /** @brief Sets the time signature numerator. */
     void setTimeSignatureNumerator(int newNumerator);
 
-    void setLastSectionUsed(const StyleSection& s);
+    void setLastSectionUsed(const StyleSection& section);
 
     void resetLastSectionUsed();
 
     const std::vector<TrackEntry>& getCurrentTracks() const;
 
-    void addSubjectTrackPlayerListener(TrackPlayerListener* l);
-    void addSubjectTrackPlayerModifyListener(TrackPlayerListenerModifyStateObjects* l);
+    void addSubjectTrackPlayerListener(TrackPlayerListener* listener);
+    void addSubjectTrackPlayerModifyListener(TrackPlayerListenerModifyStateObjects* listener);
 
-    void removeSubjectTrackPlayerListener(TrackPlayerListener* l);
-    void removeSubjectTrackPlayerModifyListener(TrackPlayerListenerModifyStateObjects* l);
+    void removeSubjectTrackPlayerListener(TrackPlayerListener* listener);
+    void removeSubjectTrackPlayerModifyListener(TrackPlayerListenerModifyStateObjects* listener);
 
 
 
@@ -141,17 +148,17 @@ private:
 
     // Member variables
     std::vector<juce::MidiMessageSequence> filteredSequences; /**< Filtered MIDI sequences ready for playback */
-    int baseChannelTrack = 2;                                  /**< Starting MIDI channel for non-percussion tracks */
+    int baseChannelTrack = firstTrackChannel;                                /**< Starting MIDI channel for non-percussion tracks */
     std::vector<TrackEntry> currentTracks;                     /**< Tracks currently loaded */
     std::weak_ptr<juce::MidiOutput> outputDevice;              /**< MIDI output device */
     std::vector<TrackPlaybackData> tracks;                     /**< Playback state for each track */
     std::vector<int> eventIndices;                              /**< Event indices for each track */
-    double startTime = 0.0;                                     /**< Start time of playback */
+    double startTime {};                                        /**< Start time of playback */
     double currentElapsedTime;                                  /**< Current elapsed time in seconds */
-    double currentBPM = 120.0;                                  /**< Current BPM */
-    double lastKnownSequenceTime = 0.0;                        /**< Last known time in the sequence */
-    int timeSignatureDenominator = 4;                           /**< Time signature denominator */
-    int timeSignatureNumerator = 4;                             /**< Time signature numerator */
+    double currentBPM = defaultBpm;                                /**< Current BPM */
+    double lastKnownSequenceTime {};                           /**< Last known time in the sequence */
+    int timeSignatureDenominator = defaultBeatUnit;                         /**< Time signature denominator */
+    int timeSignatureNumerator = defaultBeatsPerBar;                           /**< Time signature numerator */
 
     Subject<TrackPlayerListener> trackPlayerSubjects;
     Subject<TrackPlayerListenerModifyStateObjects> trackPlayerModifyObjectsSubjects;

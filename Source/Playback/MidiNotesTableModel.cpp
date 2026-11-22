@@ -10,15 +10,45 @@
 
 #include "MidiNotesTableModel.h"
 
-MidiNotesTableModel::MidiNotesTableModel(const juce::MidiMessageSequence& seq, int ch, std::unordered_map<int, MidiChangeInfo>& map): channel{ch}, changesMap{&map}
+namespace
 {
-    for (int i = 0; i < seq.getNumEvents(); ++i)
+    constexpr float cellFontHeight   = 14.0f;
+    constexpr int   cellTextInset    = 2;
+    constexpr int   cellTextSpare    = 4;
+    constexpr int   cellTop          = 0;
+    constexpr int   cellLeft         = 0;
+    constexpr int   shortestNoteName = 2;      // a letter and an octave digit
+    constexpr int   nameStart        = 0;
+    constexpr int   notFound         = -1;
+    constexpr double noTimeStamp     = -1;     // timestamp getters: no note to report
+    constexpr double songStart       = 0.0;
+    constexpr int   firstRow         = 0;
+    constexpr int   oneRow           = 1;
+    constexpr int   halves           = 2;      // binary search midpoint
+    constexpr int   bytesEqual       = 0;      // memcmp result
+    constexpr int   semitonesPerOctave = 12;
+    constexpr int   lowestMidiNote   = 0;
+    constexpr int   highestMidiNote  = 127;
+    const juce::String octaveCharacters = "0123456789-";
+    constexpr juce::juce_wchar negativeSign = '-';
+    const juce::StringArray pitchClassNames { "C", "C#", "D", "D#", "E", "F",
+                                              "F#", "G", "G#", "A", "A#", "B" };
+
+    juce::String noteName (int noteNumber)
     {
-        const auto* event = seq.getEventPointer(i);
+        return juce::MidiMessage::getMidiNoteName(noteNumber, NoteNames::useSharps, NoteNames::includeOctave, NoteNames::middleCOctave);
+    }
+}
+
+MidiNotesTableModel::MidiNotesTableModel(const juce::MidiMessageSequence& seq, int trackChannel, std::unordered_map<int, MidiChangeInfo>& map): channel{trackChannel}, changesMap{&map}
+{
+    for (int eventIndex {}; eventIndex < seq.getNumEvents(); ++eventIndex)
+    {
+        const auto* event = seq.getEventPointer(eventIndex);
         if (event != nullptr && event->message.isNoteOn())
         {
             int indexInNoteOn = noteOnEvents.size();
-            noteOnEvents.push_back({ event, i, indexInNoteOn });
+            noteOnEvents.push_back({ event, eventIndex, indexInNoteOn });
             //originalIndexToRowMap[i] = noteOnEvents.size()-1;
         }
     }
@@ -31,7 +61,7 @@ int MidiNotesTableModel::getNumRows()
 
 void MidiNotesTableModel::sortOrderChanged(int newSortColumnId, bool isForwards)
 {
-    if (newSortColumnId == 1)
+    if (newSortColumnId == NoteTableColumns::note)
     {
         std::stable_sort(noteOnEvents.begin(), noteOnEvents.end(),
             [isForwards](const EventWithIndex& first, const EventWithIndex& second)
@@ -41,7 +71,7 @@ void MidiNotesTableModel::sortOrderChanged(int newSortColumnId, bool isForwards)
                 else return first.event->message.getNoteNumber() > second.event->message.getNoteNumber();
             });
     }
-    else if (newSortColumnId == 2)
+    else if (newSortColumnId == NoteTableColumns::time)
     {
         std::stable_sort(noteOnEvents.begin(), noteOnEvents.end(),
             [isForwards](const EventWithIndex& first, const EventWithIndex& second)
@@ -51,7 +81,7 @@ void MidiNotesTableModel::sortOrderChanged(int newSortColumnId, bool isForwards)
                 else return first.event->message.getTimeStamp() > second.event->message.getTimeStamp();
             });
     }
-    else if (newSortColumnId == 3)
+    else if (newSortColumnId == NoteTableColumns::velocity)
     {
         std::stable_sort(noteOnEvents.begin(), noteOnEvents.end(),
             [isForwards](const EventWithIndex& first, const EventWithIndex& second)
@@ -75,9 +105,9 @@ void MidiNotesTableModel::paintRowBackground(juce::Graphics& g, int rowNumber, i
 
 void MidiNotesTableModel::paintCell(juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool isSelected)
 {
-    if (columnId == 4 || columnId==3 || columnId==2)
+    if (columnId == NoteTableColumns::channel || columnId == NoteTableColumns::velocity || columnId == NoteTableColumns::time)
     {
-        if (rowNumber < 0 || rowNumber >= noteOnEvents.size()) return;
+        if (rowNumber < firstRow || rowNumber >= noteOnEvents.size()) return;
         auto* event = noteOnEvents[rowNumber].event;
 
         if (event == nullptr)
@@ -90,30 +120,30 @@ void MidiNotesTableModel::paintCell(juce::Graphics& g, int rowNumber, int column
         {
             switch (columnId)
             {
-            case 1: text = juce::MidiMessage::getMidiNoteName(msg.getNoteNumber(), true, true, 4); break;
-            case 2: text = juce::String(msg.getTimeStamp()); break;
-            case 3: text = juce::String(msg.getVelocity()); break;
-            case 4: text = juce::String(channel); break;
+            case NoteTableColumns::note:     text = noteName(msg.getNoteNumber()); break;
+            case NoteTableColumns::time:     text = juce::String(msg.getTimeStamp()); break;
+            case NoteTableColumns::velocity: text = juce::String(msg.getVelocity()); break;
+            case NoteTableColumns::channel: text = juce::String(this->channel); break;
             default: break;
             }
         }
 
         g.setColour(juce::Colours::black);
-        g.setFont(14.0f);
-        g.drawText(text, 2, 0, width - 4, height, juce::Justification::centredLeft);
+        g.setFont(cellFontHeight);
+        g.drawText(text, cellTextInset, cellTop, width - cellTextSpare, height, juce::Justification::centredLeft);
         g.setColour(juce::Colours::lightgrey);
-        g.drawRect(0, 0, width, height);
+        g.drawRect(cellLeft, cellTop, width, height);
     }
 }
 
 
 juce::Component* MidiNotesTableModel::refreshComponentForCell(int rowNumber, int columnId, bool isRowSelected, juce::Component* existingComponentToUpdate)
 {
-    if (columnId == 4 || columnId==3 || columnId==2)
+    if (columnId == NoteTableColumns::channel || columnId == NoteTableColumns::velocity || columnId == NoteTableColumns::time)
         return nullptr;
 
 
-    if (rowNumber < 0 || rowNumber >= noteOnEvents.size())
+    if (rowNumber < firstRow || rowNumber >= noteOnEvents.size())
         return nullptr;
 
     const auto* event = noteOnEvents[rowNumber].event;
@@ -137,36 +167,36 @@ juce::Component* MidiNotesTableModel::refreshComponentForCell(int rowNumber, int
 
     label->onEditorHide = [this, rowNumber, columnId, label, originalIndex,changeMapIndex]()
     {
-        auto* e = noteOnEvents[rowNumber].event;
-        if (e == nullptr)
+        auto* noteOnEvent = noteOnEvents[rowNumber].event;
+        if (noteOnEvent == nullptr)
             return;
 
-        auto oldMsg = e->message;
+        auto oldMsg = noteOnEvent->message;
         juce::MidiMessage newMsg;
 
-        if (columnId == 1)
+        if (columnId == NoteTableColumns::note)
         {
             juce::String input = label->getText().trim();
             juce::String normalizedInput = input.toUpperCase();
 
             int newNoteNumber = getMidiNoteNumberFromName(normalizedInput);
-            if (newNoteNumber == -1)
+            if (newNoteNumber == NoteNames::invalidNote)
             {
-                label->setText(juce::MidiMessage::getMidiNoteName(oldMsg.getNoteNumber(), true, true, 4), juce::dontSendNotification);
+                label->setText(noteName(oldMsg.getNoteNumber()), juce::dontSendNotification);
                 return;
             }
 
             label->setText(
-                juce::MidiMessage::getMidiNoteName(newNoteNumber, true, true, 4),
+                noteName(newNoteNumber),
                 juce::dontSendNotification
             );
 
             newMsg = juce::MidiMessage::noteOn(oldMsg.getChannel(), newNoteNumber, (juce::uint8)oldMsg.getVelocity());
             newMsg.setTimeStamp(oldMsg.getTimeStamp());
 
-            if (e->noteOffObject != nullptr)
+            if (noteOnEvent->noteOffObject != nullptr)
             {
-                auto* noteOffEvent = e->noteOffObject;
+                auto* noteOffEvent = noteOnEvent->noteOffObject;
                 juce::MidiMessage offMsg = juce::MidiMessage::noteOff(
                     noteOffEvent->message.getChannel(),
                     newNoteNumber
@@ -228,7 +258,7 @@ juce::Component* MidiNotesTableModel::refreshComponentForCell(int rowNumber, int
         if (validForErase(current))
             changesMap->erase(changeMapIndex);
 
-        const_cast<juce::MidiMessageSequence::MidiEventHolder*>(e)->message = newMsg;
+        const_cast<juce::MidiMessageSequence::MidiEventHolder*>(noteOnEvent)->message = newMsg;
 
         if (!areMidiMessagesEqual(newMsg, oldMsg) && onUpdate)
             onUpdate(rowNumber);
@@ -243,18 +273,18 @@ juce::Component* MidiNotesTableModel::refreshComponentForCell(int rowNumber, int
     const auto& message = event->message;
     if (message.isNoteOn())
     {
-        if (columnId == 1)
+        if (columnId == NoteTableColumns::note)
         {
-            auto noteName = juce::MidiMessage::getMidiNoteName(message.getNoteNumber(), true, true, 4);
-            label->setText(noteName, juce::dontSendNotification);
+            auto shownName = noteName(message.getNoteNumber());
+            label->setText(shownName, juce::dontSendNotification);
         }
         
-        else if (columnId == 2)
+        else if (columnId == NoteTableColumns::time)
         {
             auto noteTime = juce::String(message.getTimeStamp());
             label->setText(noteTime, juce::dontSendNotification);
         }
-        else if (columnId == 3)
+        else if (columnId == NoteTableColumns::velocity)
         {
             auto noteVelocity = juce::String(message.getVelocity());
             label->setText(noteVelocity, juce::dontSendNotification);
@@ -269,48 +299,43 @@ juce::Component* MidiNotesTableModel::refreshComponentForCell(int rowNumber, int
 
 int MidiNotesTableModel::getMidiNoteNumberFromName(const juce::String& noteName, int octaveNoteMiddleC)
 {
-    static const juce::StringArray noteNames{
-        "C", "C#", "D", "D#", "E", "F",
-        "F#", "G", "G#", "A", "A#", "B"
-    };
-
     juce::String name = noteName.trim().toUpperCase();
-    if (name.length() < 2)
-        return -1;
+    if (name.length() < shortestNoteName)
+        return NoteNames::invalidNote;
 
     int digit = findFirstDigitName(noteName);
-    if (digit == -1)
-        return -1;
+    if (digit == notFound)
+        return NoteNames::invalidNote;
 
-    juce::String notePart = name.substring(0, digit);
+    juce::String notePart = name.substring(nameStart, digit);
     juce::String octavePart = name.substring(digit);
 
-    if (!octavePart.containsOnly("0123456789-"))
-        return -1;
+    if (!octavePart.containsOnly(octaveCharacters))
+        return NoteNames::invalidNote;
 
-    int noteIndex = noteNames.indexOf(notePart);
+    int noteIndex = pitchClassNames.indexOf(notePart);
     int octave = octavePart.getIntValue();
 
 
-    if (noteIndex == -1)
-        return -1;
+    if (noteIndex == notFound)
+        return NoteNames::invalidNote;
 
-    int midiNumber = (octave - octaveNoteMiddleC + 5) * 12 + noteIndex;
+    int midiNumber = (octave - octaveNoteMiddleC + NoteNames::octavesBelowMiddleC) * semitonesPerOctave + noteIndex;
 
-    if (midiNumber < 0 || midiNumber>127)
-        return -1;
+    if (midiNumber < lowestMidiNote || midiNumber > highestMidiNote)
+        return NoteNames::invalidNote;
 
     return midiNumber;
 }
 
 int MidiNotesTableModel::findFirstDigitName(const juce::String& name)
 {
-    for (int i = 0; i < name.length(); i++)
+    for (int characterIndex {}; characterIndex < name.length(); characterIndex++)
     {
-        if (juce::CharacterFunctions::isDigit(name[i]) || name[i]=='-')
-            return i;
+        if (juce::CharacterFunctions::isDigit(name[characterIndex]) || name[characterIndex] == negativeSign)
+            return characterIndex;
     }
-    return -1;
+    return notFound;
 }
 
 void MidiNotesTableModel::handleMapNonExistingCase(juce::MidiMessage& oldMessage, juce::MidiMessage& newMessage, MidiChangeInfo& information)
@@ -333,27 +358,27 @@ void MidiNotesTableModel::handleMapExistingCase(juce::MidiMessage& newMessage, M
     information.newVelocity = newMessage.getVelocity();
 }
 
-bool MidiNotesTableModel::areMidiMessagesEqual(const juce::MidiMessage& a, const juce::MidiMessage& b)
+bool MidiNotesTableModel::areMidiMessagesEqual(const juce::MidiMessage& first, const juce::MidiMessage& second)
 {
-    if (a.getTimeStamp() != b.getTimeStamp())
+    if (first.getTimeStamp() != second.getTimeStamp())
         return false;
 
-    if (a.getRawDataSize() != b.getRawDataSize())
+    if (first.getRawDataSize() != second.getRawDataSize())
         return false;
 
-    return std::memcmp(a.getRawData(), b.getRawData(), a.getRawDataSize()) == 0; // comparing bytes
+    return std::memcmp(first.getRawData(), second.getRawData(), first.getRawDataSize()) == bytesEqual; // comparing bytes
 }
 
 void MidiNotesTableModel::refreshVectorFromSequence(const juce::MidiMessageSequence& seq)
 {
     noteOnEvents.clear();
     //originalIndexToRowMap.clear();
-    for (int i = 0; i < seq.getNumEvents(); i++)
+    for (int eventIndex {}; eventIndex < seq.getNumEvents(); eventIndex++)
     {
-        const auto* event = seq.getEventPointer(i);
+        const auto* event = seq.getEventPointer(eventIndex);
         if (event != nullptr && event->message.isNoteOn())
         {
-            noteOnEvents.push_back({ event, i, static_cast<int>(noteOnEvents.size())});
+            noteOnEvents.push_back({ event, eventIndex, static_cast<int>(noteOnEvents.size())});
             //originalIndexToRowMap[i] = static_cast<int>(noteOnEvents.size()) - 1;
         }
     }
@@ -361,57 +386,57 @@ void MidiNotesTableModel::refreshVectorFromSequence(const juce::MidiMessageSeque
 
 int MidiNotesTableModel::getOriginalIndexFromRow(int row)
 {
-    if (row >= 0 && row < noteOnEvents.size())
+    if (row >= firstRow && row < noteOnEvents.size())
         return noteOnEvents[row].originalIndex;
-    return -1;
+    return notFound;
 }
 
 int MidiNotesTableModel::getChangesMapIndexFromRow(int row)
 {
-    if (row >= 0 && row < noteOnEvents.size())
+    if (row >= firstRow && row < noteOnEvents.size())
         return noteOnEvents[row].indexForChangesMap;
-    return -1;
+    return notFound;
 }
 
 double MidiNotesTableModel::getFirstNoteOnTimeStamps()
 {
     if (noteOnEvents.empty())
-        return -1;
+        return noTimeStamp;
 
-    return noteOnEvents[0].event->message.getTimeStamp();
+    return noteOnEvents.front().event->message.getTimeStamp();
 }
 
 double MidiNotesTableModel::getPreviousNoteOnTimeStamp(int currentIndex)
 {
-    if (noteOnEvents.empty() || currentIndex==-1)
-        return -1;
+    if (noteOnEvents.empty() || currentIndex == NoteTableColumns::noRow)
+        return noTimeStamp;
 
-    if (currentIndex == 0)
-        return 0.0;
+    if (currentIndex == firstRow)
+        return songStart;
 
-    else return noteOnEvents[currentIndex - 1].event->message.getTimeStamp();
+    else return noteOnEvents[currentIndex - oneRow].event->message.getTimeStamp();
 }
 
 double MidiNotesTableModel::getCurrentNoteOnTimeStamp(int currentIndex)
 {
-    if (noteOnEvents.empty() || currentIndex == -1)
-        return -1;
+    if (noteOnEvents.empty() || currentIndex == NoteTableColumns::noRow)
+        return noTimeStamp;
 
     return noteOnEvents[currentIndex].event->message.getTimeStamp();
 }
 
 double MidiNotesTableModel::getNextNoteOnTimeStamp(int currentIndex)
 {
-    if (noteOnEvents.empty() || currentIndex == -1)
-        return -1;
+    if (noteOnEvents.empty() || currentIndex == NoteTableColumns::noRow)
+        return noTimeStamp;
 
     if (currentIndex >= noteOnEvents.size())
-        return -1;
+        return noTimeStamp;
 
-    if (currentIndex == noteOnEvents.size() - 1)
+    if (currentIndex == noteOnEvents.size() - oneRow)
         return noteOnEvents[currentIndex].event->message.getTimeStamp();
 
-    return noteOnEvents[currentIndex + 1].event->message.getTimeStamp();
+    return noteOnEvents[currentIndex + oneRow].event->message.getTimeStamp();
 }
 
 std::vector<MidiNotesTableModel::EventWithIndex> MidiNotesTableModel::getEvents()
@@ -422,25 +447,25 @@ std::vector<MidiNotesTableModel::EventWithIndex> MidiNotesTableModel::getEvents(
 int MidiNotesTableModel::getRowFromTime(double currentTime)
 {
     if (noteOnEvents.empty())
-        return -1;
+        return NoteTableColumns::noRow;
 
-    int left = 0;
-    int right = static_cast<int>(noteOnEvents.size()) - 1;
-    int result = -1;
+    int left {};
+    int right = static_cast<int>(noteOnEvents.size()) - oneRow;
+    int result = NoteTableColumns::noRow;
 
     while (left <= right)
     {
-        int middle = (left + right) / 2;
+        int middle = (left + right) / halves;
         double middleTime = noteOnEvents[middle].event->message.getTimeStamp();
 
         if (middleTime <= currentTime)
         {
             result = middle;    
-            left = middle + 1;  
+            left = middle + oneRow;
         }
         else
         {
-            right = middle - 1;
+            right = middle - oneRow;
         }
     }
 
