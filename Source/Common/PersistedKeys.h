@@ -18,12 +18,35 @@ namespace DeviceSettingsKeys
     inline constexpr int firstHandChannel      = 1;
 }
 
+// Settings file (juce::PropertiesFile): app-wide choices. Per-style program numbers are
+// "<styleID>" + leftInstrumentSuffix / rightInstrumentSuffix.
+namespace SettingsFileKeys
+{
+    inline const juce::String arrangerModeEnabled     = "ArrangerModeEnabled";
+    inline const juce::String arrangerAutoFillEnabled = "ArrangerAutoFillEnabled";
+    inline const juce::String chordBassInversion      = "ChordBassInversion";
+    inline const juce::String chordMode               = "ChordMode";
+    inline const juce::String chordFullKeyboard       = "ChordFullKeyboard";   // legacy, read only
+    inline const juce::String chordMemory             = "ChordMemory";
+    inline const juce::String chordZoneMute           = "ChordZoneMute";
+    inline const juce::String synchroStart            = "SynchroStart";
+    inline const juce::String countIn                 = "CountIn";
+    inline const juce::String nttEnabled              = "NttEnabled";
+    inline const juce::String nttMinorScale           = "NttMinorScale";
+    inline const juce::String engineOptionIndex       = "EngineOptionIndex";   // OutputEngineIds
+    inline const juce::String leftInstrumentSuffix    = "_leftInstrumentNumber";
+    inline const juce::String rightInstrumentSuffix   = "_rightInstrumentNumber";
+}
+
 namespace AppDataNames
 {
     inline const juce::String arrangerStylesFolder = "ArrangerStyles";
     inline const juce::String tracksFile           = "myTracks.json";
     inline const juce::String sectionsFile         = "mySections.json";
     inline const juce::String stylesFile           = "allStyles.json";
+    inline const juce::String sfzLibraryFile       = "SFZLibrary.json";
+    inline const juce::String settingsFileSuffix   = "settings";              // <app name>.settings
+    inline const juce::String macLibrarySubfolder  = "Application Support";
 }
 
 // myTracks.json

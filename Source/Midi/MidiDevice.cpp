@@ -19,7 +19,6 @@ namespace MidiDeviceValues
 	constexpr int tagNotFound    = -1;
 	constexpr int noteSpanIncludesBothEnds = 1;   // keys from lowest to highest note, both counted
 
-	const juce::String noDevicesFound            = "No devices found!";
 	const juce::String noMidiInputDevicesFound   = "No MIDI INPUT devices found!";
 	const juce::String noMidiOutputDevicesFound  = "No MIDI OUTPUT devices found!";
 	const juce::String noAudioOutputDevicesFound = "No AUDIO OUTPUT devices found!";
@@ -61,7 +60,7 @@ std::vector<std::pair<juce::String, juce::String>> MidiDevice::getAvailableInput
 	if (vec.empty())
 	{
 		vec.clear();
-		vec.push_back({ noDevicesFound, {} });
+		vec.push_back({ DeviceNames::noDevicesFound, {} });
 	}
 	return vec;
 }

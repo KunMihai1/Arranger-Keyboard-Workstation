@@ -47,7 +47,37 @@ namespace PlayableRangeResult
 
 namespace DeviceNames
 {
-	const juce::String pcKeyboard = "PC Keyboard";   // the computer keyboard, listed as a MIDI input
+	inline const juce::String pcKeyboard = "PC Keyboard";   // the computer keyboard, listed as a MIDI input
+	inline const juce::String noDevicesFound = "No devices found!";   // the only entry of an empty device list
+}
+
+/** MIDI controller (CC) numbers of the effects the app sends, one per SoundSettings field. */
+namespace EffectControllers
+{
+	constexpr int vibrato     = 1;    // modulation wheel
+	constexpr int volume      = 7;
+	constexpr int pan         = 10;
+	constexpr int expression  = 11;
+	constexpr int sustain     = 64;
+	constexpr int resonance   = 71;
+	constexpr int release     = 72;
+	constexpr int attack      = 73;
+	constexpr int brightness  = 74;
+	constexpr int decay       = 75;
+	constexpr int filterTrack = 76;
+	constexpr int distortion  = 80;
+	constexpr int reverb      = 91;
+	constexpr int tremolo     = 92;
+	constexpr int chorus      = 93;
+	constexpr int delay       = 94;
+	constexpr int randomMod   = 95;
+}
+
+/** Which hand a program change is for (setProgramNumber / setProgarmNumber, matched ignoring case). */
+namespace HandChoiceNames
+{
+	inline const juce::String left  = "left";
+	inline const juce::String right = "right";
 }
 
 namespace MidiHandlerSettings

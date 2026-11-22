@@ -1,6 +1,72 @@
 #include "MainComponent.h"
 #include "AppInfo.h"
 
+namespace
+{
+    namespace Text
+    {
+        const juce::String preparingSession = "Preparing session...";
+    }
+
+    constexpr int deviceCheckIntervalMs  = 1000;   // backstop poll for unplugged MIDI devices
+    constexpr int focusLossCheckDelayMs  = 150;
+    constexpr int firstItemId            = 1;
+    constexpr int semitonesPerOctave     = 12;
+    constexpr int octaveDownKey          = 'Z';    // PC keyboard: shift the playable range an octave
+    constexpr int octaveUpKey            = 'X';
+    constexpr int lowestShiftableStart   = 24;     // the range may move down while it starts at C1 or above
+    constexpr int highestShiftableFinish = 101;    // and up while it ends at F7 or below
+
+    namespace Layout
+    {
+        constexpr int   origin                 = 0;
+        constexpr int   taskbarAllowance       = 40;
+        constexpr float loadingFontHeight      = 24.0f;
+        constexpr float loadingLabelAlpha      = 0.7f;
+        constexpr float loadingDimAlpha        = 0.75f;
+        constexpr int   loadingTextPadding     = 20;
+        constexpr int   singleLine             = 1;
+        constexpr float defaultFontHeight      = 16.0f;
+        constexpr float half                   = 0.5f;
+        constexpr double centre                = 0.5;
+        constexpr int   centringDivisor        = 2;
+        constexpr int   playButtonWidthDivisor  = 16;
+        constexpr int   playButtonHeightDivisor = 24;
+        constexpr double playButtonLeftOfCentre = 0.175;   // fractions of the window, matching the artwork
+        constexpr double playButtonBelowCentre  = 0.162;
+        constexpr int   settingsWidth          = 250;
+        constexpr int   settingsButtonHeight   = 70;
+        constexpr int   panelButtonWidth       = 200;
+        constexpr int   panelButtonHeight      = 50;
+        constexpr int   smallGap               = 5;
+        constexpr int   headerMargin           = 10;
+        constexpr int   toggleHeight           = 25;
+        constexpr int   helpIconX              = 210;
+        constexpr int   helpIconY              = 20;
+        constexpr int   helpIconHeight         = 20;
+        constexpr int   headerHeight           = 100;
+        constexpr int   homeButtonWidth        = 75;
+        constexpr int   headerButtonWidth      = 100;
+        constexpr int   headerButtonHeight     = 30;
+        constexpr int   colourButtonX          = 90;
+        constexpr int   instrumentButtonX      = 195;
+        constexpr int   transportButtonSize    = 30;
+        constexpr int   transportRightMargin   = 35;
+        constexpr int   chordHelperRightOffset = 205;
+        constexpr int   saveButtonWidth        = 140;
+        constexpr int   playRecordingX         = 305;
+        constexpr int   sfzLibraryWidth        = 500;
+        constexpr int   sfzLibraryHeight       = 400;
+        constexpr int   displayWidth           = 400;
+        constexpr int   sectionsExtraHeight    = 20;
+        constexpr int   sectionsOverlap        = 7;
+        constexpr int   popupWidth             = 300;
+        constexpr int   popupHalfWidth         = 150;
+        constexpr int   popupHeight            = 30;
+        constexpr int   loginPanelSize         = 400;
+    }
+}
+
 //==============================================================================
 MainComponent::MainComponent()
 {
@@ -17,8 +83,8 @@ MainComponent::MainComponent()
 
     displayInit();
 
-    setBounds(0, 0, juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->totalArea.getWidth(),
-        juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->totalArea.getHeight() - 40);
+    setBounds(Layout::origin, Layout::origin, juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->totalArea.getWidth(),
+        juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->totalArea.getHeight() - Layout::taskbarAllowance);
     this->addKeyListener(&this->keyListener);
     addKeyListener(this);
 
@@ -26,11 +92,11 @@ MainComponent::MainComponent()
 
     loginWindowInitialize();
 
-    openingAudioLabel.setText("Preparing session...", juce::dontSendNotification);
+    openingAudioLabel.setText(Text::preparingSession, juce::dontSendNotification);
     openingAudioLabel.setJustificationType(juce::Justification::centred);
-    openingAudioLabel.setFont(juce::Font(24.0f, juce::Font::bold));
+    openingAudioLabel.setFont(juce::Font(Layout::loadingFontHeight, juce::Font::bold));
     openingAudioLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    openingAudioLabel.setColour(juce::Label::backgroundColourId, juce::Colours::black.withAlpha(0.7f));
+    openingAudioLabel.setColour(juce::Label::backgroundColourId, juce::Colours::black.withAlpha(Layout::loadingLabelAlpha));
     openingAudioLabel.setAlwaysOnTop(true);
     addAndMakeVisible(openingAudioLabel);
     openingAudioLabel.setVisible(false);
@@ -86,12 +152,12 @@ MainComponent::MainComponent()
     initializeOverlay();
 
 
-    sfzManager.load(IOHelper::getFile("SFZLibrary.json"));
+    sfzManager.load(IOHelper::getFile(AppDataNames::sfzLibraryFile));
     sfzLibraryUI = std::make_unique<SFZLibraryUI>(sfzManager);
     addAndMakeVisible(*sfzLibraryUI);
     sfzLibraryUI->setVisible(false);
 
-    startTimer(1000);
+    startTimer(deviceCheckIntervalMs);
 
     // Catch device hot-unplug the instant it happens (the 1s timer above is only a backstop). The
     // callback runs on the message thread (AsyncUpdater), so it can touch the UI directly.
@@ -101,7 +167,7 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
-    sfzManager.save(IOHelper::getFile("SFZLibrary.json"));
+    sfzManager.save(IOHelper::getFile(AppDataNames::sfzLibraryFile));
 
     if (this->MIDIDevice.isOpenIN())
         this->MIDIDevice.deviceCloseIN();
@@ -154,12 +220,12 @@ void MainComponent::paint(juce::Graphics& g)
             auto scale = juce::jmax(bounds.getWidth() / imageWidth, bounds.getHeight() / imageHeight);
             auto newWidth = imageWidth * scale;
             auto newHeight = imageHeight * scale;
-            auto x = (bounds.getWidth() - newWidth) * 0.5f;
-            auto y = (bounds.getHeight() - newHeight) * 0.5f;
+            auto imageX = (bounds.getWidth() - newWidth) * Layout::half;
+            auto imageY = (bounds.getHeight() - newHeight) * Layout::half;
             g.setColour(juce::Colours::grey);
             g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
-            g.drawImage(currentBackground, juce::Rectangle<float>(x, y, newWidth, newHeight));
-        g.setFont(juce::FontOptions(16.0f));
+            g.drawImage(currentBackground, juce::Rectangle<float>(imageX, imageY, newWidth, newHeight));
+        g.setFont(juce::FontOptions(Layout::defaultFontHeight));
         g.setColour(juce::Colours::white);
     }
 }
@@ -169,14 +235,14 @@ void MainComponent::paintOverChildren(juce::Graphics& g)
     if (!openingAudioLabel.isVisible())
         return;
 
-    g.setColour(juce::Colours::black.withAlpha(0.75f));
+    g.setColour(juce::Colours::black.withAlpha(Layout::loadingDimAlpha));
     g.fillAll();
 
     g.setColour(juce::Colours::white);
-    g.setFont(juce::Font(24.0f, juce::Font::bold));
+    g.setFont(juce::Font(Layout::loadingFontHeight, juce::Font::bold));
     g.drawFittedText(openingAudioLabel.getText(),
-                     getLocalBounds().reduced(20),
-                     juce::Justification::centred, 1);
+                     getLocalBounds().reduced(Layout::loadingTextPadding),
+                     juce::Justification::centred, Layout::singleLine);
 
     // The overlay is now actually on screen: run the deferred blocking init exactly once,
     // after this paint completes (callAsync keeps us out of the paint call itself).
@@ -216,7 +282,7 @@ void MainComponent::globalFocusChanged(juce::Component* focusedComponent)
     {
         // Focus left JUCE — but on Windows this also fires briefly during
         // within-app window switches.  Defer the hide so we don't flicker.
-        juce::Timer::callAfterDelay(150,
+        juce::Timer::callAfterDelay(focusLossCheckDelayMs,
             [safeThis = juce::Component::SafePointer<MainComponent>(this)]()
             {
                 if (safeThis == nullptr) return;
@@ -248,7 +314,7 @@ void MainComponent::globalFocusChanged(juce::Component* focusedComponent)
     }
 }
 
-void MainComponent::mouseDown(const juce::MouseEvent& e)
+void MainComponent::mouseDown(const juce::MouseEvent& event)
 {
     // Korg/Yamaha-style: the instrument keeps listening to the PC keyboard.
     // Any click on the play scene that isn't text entry returns keyboard focus
@@ -266,8 +332,8 @@ void MainComponent::mouseDown(const juce::MouseEvent& e)
         return;
 
     // Leave focus alone while the user is typing into a text field.
-    for (auto* c = e.eventComponent; c != nullptr; c = c->getParentComponent())
-        if (dynamic_cast<juce::TextEditor*>(c) != nullptr)
+    for (auto* clicked = event.eventComponent; clicked != nullptr; clicked = clicked->getParentComponent())
+        if (dynamic_cast<juce::TextEditor*>(clicked) != nullptr)
             return;
 
     // Defer to after the click is fully handled (e.g. a button's own action),
@@ -288,41 +354,42 @@ void MainComponent::resized()
     openingAudioLabel.setBounds(getLocalBounds());
     if (overlayWindow)
         overlayWindow->setBounds(getLocalBounds());
-    int buttonWidth = getWidth() / 16;
-    int buttonHeight = getHeight() / 24;
-    int x = (int)(getWidth() * 0.5 - getWidth() * 0.175);
-    int y = (int)(getHeight() * 0.5 + getHeight() * 0.162);
+    using namespace Layout;
+    int buttonWidth = getWidth() / playButtonWidthDivisor;
+    int buttonHeight = getHeight() / playButtonHeightDivisor;
+    int playX = (int)(getWidth() * centre - getWidth() * playButtonLeftOfCentre);
+    int playY = (int)(getHeight() * centre + getHeight() * playButtonBelowCentre);
 
-    playButton.setBounds(x, y, buttonWidth, buttonHeight);
-    settingsButton.setBounds(0, 0, 250, 70);
-    settingsPanel.setBounds(0, 70, 250, getHeight());
-    midiButton.setBounds(0, 5, 200, 50);
-    updateNumberOfKeysDevice.setBounds(0, midiButton.getBottom() + 10, 200, 50);
-    devicesCBUpdate.setBounds(0, updateNumberOfKeysDevice.getBottom() + 5, 200, 25);
+    playButton.setBounds(playX, playY, buttonWidth, buttonHeight);
+    settingsButton.setBounds(origin, origin, settingsWidth, settingsButtonHeight);
+    settingsPanel.setBounds(origin, settingsButtonHeight, settingsWidth, getHeight());
+    midiButton.setBounds(origin, smallGap, panelButtonWidth, panelButtonHeight);
+    updateNumberOfKeysDevice.setBounds(origin, midiButton.getBottom() + headerMargin, panelButtonWidth, panelButtonHeight);
+    devicesCBUpdate.setBounds(origin, updateNumberOfKeysDevice.getBottom() + smallGap, panelButtonWidth, toggleHeight);
 
-    helpIcon.setBounds(210, 20, 100, 20);
+    helpIcon.setBounds(helpIconX, helpIconY, headerButtonWidth, helpIconHeight);
 
-    headerPanel.setBounds(0, 0, getWidth(), 100);
-    homeButton.setBounds(10, 10, 75, 30);
-    colourSelectorButton.setBounds(90, 10, 100, 30);
-    instrumentSelectorButton.setBounds(195, 10, 100, 30);
-    particleToggle.setBounds(colourSelectorButton.getX(), colourSelectorButton.getY() +colourSelectorButton.getHeight(), 100, 25);
-    noteNumbersAnnotation.setBounds(particleToggle.getX(), particleToggle.getBottom(), 100, 25);
+    headerPanel.setBounds(origin, origin, getWidth(), headerHeight);
+    homeButton.setBounds(headerMargin, headerMargin, homeButtonWidth, headerButtonHeight);
+    colourSelectorButton.setBounds(colourButtonX, headerMargin, headerButtonWidth, headerButtonHeight);
+    instrumentSelectorButton.setBounds(instrumentButtonX, headerMargin, headerButtonWidth, headerButtonHeight);
+    particleToggle.setBounds(colourSelectorButton.getX(), colourSelectorButton.getY() +colourSelectorButton.getHeight(), headerButtonWidth, toggleHeight);
+    noteNumbersAnnotation.setBounds(particleToggle.getX(), particleToggle.getBottom(), headerButtonWidth, toggleHeight);
 
-    leftHandInstrumentToggle.setBounds(instrumentSelectorButton.getX(), instrumentSelectorButton.getY() + instrumentSelectorButton.getHeight(), 100, 25);
-    rightHandInstrumentToggle.setBounds(instrumentSelectorButton.getX(), leftHandInstrumentToggle.getY() + leftHandInstrumentToggle.getHeight(), 100, 25);
+    leftHandInstrumentToggle.setBounds(instrumentSelectorButton.getX(), instrumentSelectorButton.getY() + instrumentSelectorButton.getHeight(), headerButtonWidth, toggleHeight);
+    rightHandInstrumentToggle.setBounds(instrumentSelectorButton.getX(), leftHandInstrumentToggle.getY() + leftHandInstrumentToggle.getHeight(), headerButtonWidth, toggleHeight);
 
-    startPlayback.setBounds(getWidth() - 30 - 35, 10, 30, 30);
-    stopRecording.setBounds(startPlayback.getX()-30-10, 10, 30, 30);
-    startRecording.setBounds(stopRecording.getX()-30-10, 10, 30, 30);
+    startPlayback.setBounds(getWidth() - transportButtonSize - transportRightMargin, headerMargin, transportButtonSize, transportButtonSize);
+    stopRecording.setBounds(startPlayback.getX()-transportButtonSize-headerMargin, headerMargin, transportButtonSize, transportButtonSize);
+    startRecording.setBounds(stopRecording.getX()-transportButtonSize-headerMargin, headerMargin, transportButtonSize, transportButtonSize);
 
-    chordHelperButton.setBounds(getLocalBounds().getRight()-205, startRecording.getBottom()+5, 200, 50);
+    chordHelperButton.setBounds(getLocalBounds().getRight()-chordHelperRightOffset, startRecording.getBottom()+smallGap, panelButtonWidth, panelButtonHeight);
 
-    saveRecordingButton.setBounds(startRecording.getX()-140-10, 10, 140, 30);
-    playRecordingFileButton.setBounds(305, 10, 100, 30);
+    saveRecordingButton.setBounds(startRecording.getX()-saveButtonWidth-headerMargin, headerMargin, saveButtonWidth, headerButtonHeight);
+    playRecordingFileButton.setBounds(playRecordingX, headerMargin, headerButtonWidth, headerButtonHeight);
 
     if (sfzLibraryUI)
-        sfzLibraryUI->setBounds(getLocalBounds().withSizeKeepingCentre(500, 400));
+        sfzLibraryUI->setBounds(getLocalBounds().withSizeKeepingCentre(sfzLibraryWidth, sfzLibraryHeight));
 
 
 
@@ -332,10 +399,10 @@ void MainComponent::resized()
     // Push display rightward on narrow screens rather than collapsing the sections.
     {
         const int minSectionWidth = 240;
-        int sectionStart = playRecordingFileButton.getRight() + 10;
-        int displayX = juce::jmax(sectionStart + minSectionWidth + 5,
-                                   (headerPanel.getWidth() - 400) / 2);
-        display->setBounds(displayX, 0, 400, 100);
+        int sectionStart = playRecordingFileButton.getRight() + headerMargin;
+        int displayX = juce::jmax(sectionStart + minSectionWidth + smallGap,
+                                   (headerPanel.getWidth() - displayWidth) / centringDivisor);
+        display->setBounds(displayX, origin, displayWidth, headerHeight);
     }
 
     if (noteLayer)
@@ -350,18 +417,18 @@ void MainComponent::resized()
 
     if (introsEndings)
     {
-        int width = display->getX() - playRecordingFileButton.getX() - playRecordingFileButton.getWidth() - 10;
-        int height = playRecordingFileButton.getHeight() + 20;
-        introsEndings->setBounds(playRecordingFileButton.getX() + playRecordingFileButton.getWidth() + 10, playRecordingFileButton.getY(), width, height);
+        int width = display->getX() - playRecordingFileButton.getX() - playRecordingFileButton.getWidth() - headerMargin;
+        int height = playRecordingFileButton.getHeight() + sectionsExtraHeight;
+        introsEndings->setBounds(playRecordingFileButton.getX() + playRecordingFileButton.getWidth() + headerMargin, playRecordingFileButton.getY(), width, height);
     }
 
     if (variationsFills)
     {
         int varFillsX = playRecordingFileButton.getX();
-        int varFillsY = introsEndings->getY() + introsEndings->getHeight()-7;
-        int width = display->getX() - rightHandInstrumentToggle.getX() - rightHandInstrumentToggle.getWidth() - 10;
+        int varFillsY = introsEndings->getY() + introsEndings->getHeight()-sectionsOverlap;
+        int width = display->getX() - rightHandInstrumentToggle.getX() - rightHandInstrumentToggle.getWidth() - headerMargin;
         int height = display->getHeight() - (introsEndings->getY() + introsEndings->getHeight());
-        variationsFills->setBounds(varFillsX, varFillsY, width, height+10);
+        variationsFills->setBounds(varFillsX, varFillsY, width, height+headerMargin);
     }
 }
 
@@ -403,12 +470,12 @@ bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component*)
     //DBG("Start note:" << startNote);
     //DBG("End note:" << finishNote);
 
-    if (key.getKeyCode() == 'Z')
+    if (key.getKeyCode() == octaveDownKey)
     {
-        if (startNote >= 24)
+        if (startNote >= lowestShiftableStart)
         {
-            this->keyListener.setStartNoteKeyboardInput(startNote - 12);
-            this->keyListener.setFinishNoteKeyboardInput(finishNote - 12);
+            this->keyListener.setStartNoteKeyboardInput(startNote - semitonesPerOctave);
+            this->keyListener.setFinishNoteKeyboardInput(finishNote - semitonesPerOctave);
             this->keyboard.set_min_and_max(keyListener.getStartNoteKeyboardInput(), keyListener.getFinishNoteKeyboardInput());
             
             this->midiHandler.allOffKeyboard();
@@ -416,17 +483,17 @@ bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component*)
             this->keyListener.resetState();
             this->keyboard.setIsDrawn(false);
             this->keyboard.resetStateActiveNotes();
-            this->display->set_min_max(startNote - 12, finishNote - 12);
-            this->display->setNewSettingsHelperFunction(-12);
+            this->display->set_min_max(startNote - semitonesPerOctave, finishNote - semitonesPerOctave);
+            this->display->setNewSettingsHelperFunction(-semitonesPerOctave);
         }
     }
-    else if (key.getKeyCode() == 'X')
+    else if (key.getKeyCode() == octaveUpKey)
     {
         //DBG("Finish note" << finishNote);
-        if (finishNote <= 101)
+        if (finishNote <= highestShiftableFinish)
         {
-            this->keyListener.setStartNoteKeyboardInput(startNote + 12);
-            this->keyListener.setFinishNoteKeyboardInput(finishNote + 12);
+            this->keyListener.setStartNoteKeyboardInput(startNote + semitonesPerOctave);
+            this->keyListener.setFinishNoteKeyboardInput(finishNote + semitonesPerOctave);
             this->keyboard.set_min_and_max(keyListener.getStartNoteKeyboardInput(), keyListener.getFinishNoteKeyboardInput());
 
             this->midiHandler.allOffKeyboard();
@@ -434,8 +501,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component*)
             this->keyListener.resetState();
             this->keyboard.setIsDrawn(false);
             this->keyboard.resetStateActiveNotes();
-            this->display->set_min_max(startNote + 12, finishNote + 12);
-            this->display->setNewSettingsHelperFunction(12);
+            this->display->set_min_max(startNote + semitonesPerOctave, finishNote + semitonesPerOctave);
+            this->display->setNewSettingsHelperFunction(semitonesPerOctave);
         }
     }
     return false;
@@ -458,8 +525,8 @@ void MainComponent::checkMidiDevicesValid()
     {
         const auto outId = MIDIDevice.getOutputIdentifier();
         bool present = false;
-        for (auto& d : juce::MidiOutput::getAvailableDevices())
-            if (d.identifier == outId) { present = true; break; }
+        for (auto& device : juce::MidiOutput::getAvailableDevices())
+            if (device.identifier == outId) { present = true; break; }
 
         if (! present)
             handleMidiOutputDisconnected();
@@ -471,8 +538,8 @@ void MainComponent::checkMidiDevicesValid()
     {
         const auto inId = MIDIDevice.get_identifier();
         bool present = false;
-        for (auto& d : juce::MidiInput::getAvailableDevices())
-            if (d.identifier == inId) { present = true; break; }
+        for (auto& device : juce::MidiInput::getAvailableDevices())
+            if (device.identifier == inId) { present = true; break; }
 
         if (! present)
         {
@@ -508,7 +575,7 @@ void MainComponent::handleMidiOutputDisconnected()
     {
         temporaryPopup = std::make_unique<TemporaryMessage>(msg);
         headerPanel.addChildComponent(temporaryPopup.get());
-        temporaryPopup->setBounds(getWidth() / 2 - 150, 10, 300, 30);
+        temporaryPopup->setBounds(getWidth() / Layout::centringDivisor - Layout::popupHalfWidth, Layout::headerMargin, Layout::popupWidth, Layout::popupHeight);
         temporaryPopup->setFinishedCallBack([this] { temporaryPopup.reset(); });
         temporaryPopup->setVisible(true);
     }
@@ -525,7 +592,7 @@ void MainComponent::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged)
 void MainComponent::populateUpdateComboBoxDevices()
 {
     bool ok = false;
-    if (last == -1 || last != MIDIDevice.getNrInputActualDevices())
+    if (last == noDeviceCountYet || last != MIDIDevice.getNrInputActualDevices())
     {
         lastOfLast = last;
         last = MIDIDevice.getNrInputActualDevices();
@@ -535,7 +602,7 @@ void MainComponent::populateUpdateComboBoxDevices()
     if (!ok)
         return;
     devicesCBUpdate.clear();
-    int i = 1;
+    int itemId = firstItemId;
     for (auto& dev : this->MIDIDevice.getAvailableInputDevicesNameIdentifier())
     {
         juce::String name = dev.first;
@@ -545,29 +612,29 @@ void MainComponent::populateUpdateComboBoxDevices()
         if (dataBase.deviceExists(VID, PID)==false)
             continue;
 
-        if (i == 1)
+        if (itemId == firstItemId)
             updateDevicesMap.clear(); //map needs to be here because if we are here that means there has been at least a change in the devices, otherwise we clear the map each time
 
 
         updateDevicesMap[name] = identifier;
 
-        this->devicesCBUpdate.addItem(name, i++);
+        this->devicesCBUpdate.addItem(name, itemId++);
     }
-    if(lastOfLast!=-1)
+    if(lastOfLast!=noDeviceCountYet)
     {
         devicesCBUpdate.hidePopup();
         devicesCBUpdate.showPopup();
     }
-    devicesCBUpdate.setSelectedId(1);
+    devicesCBUpdate.setSelectedId(firstItemId);
 }
 
 void MainComponent::initalizeSaveFileForUser()
 {
     juce::PropertiesFile::Options options;
     options.applicationName= AppInfo::appName;
-    options.filenameSuffix = "settings";
+    options.filenameSuffix = AppDataNames::settingsFileSuffix;
     options.folderName=AppInfo::appName;
-    options.osxLibrarySubFolder = "Application Support";
+    options.osxLibrarySubFolder = AppDataNames::macLibrarySubfolder;
     options.commonToAllUsers = false;
 
     appProperties.setStorageParameters(options);
@@ -581,13 +648,13 @@ void MainComponent::loginWindowInitialize()
     addAndMakeVisible(loginWindow.get());
 
     auto parentBounds = getLocalBounds();
-    int panelWidth = 400;
-    int panelHeight = 400;
+    int panelWidth = Layout::loginPanelSize;
+    int panelHeight = Layout::loginPanelSize;
 
-    int x = (parentBounds.getWidth() - panelWidth) / 2;
-    int y = (parentBounds.getHeight() - panelHeight) / 2;
+    int panelX = (parentBounds.getWidth() - panelWidth) / Layout::centringDivisor;
+    int panelY = (parentBounds.getHeight() - panelHeight) / Layout::centringDivisor;
 
-    loginWindow->setBounds(x, y, panelWidth, panelHeight);
+    loginWindow->setBounds(panelX, panelY, panelWidth, panelHeight);
 
     loginWindow->onSuccessfullLogin = [this]()
     {
@@ -612,111 +679,4 @@ void MainComponent::loginWindowInitialize()
         
     };
 
-}
-
-SmoothRotarySlider::SmoothRotarySlider()
-{
-    setSliderStyle(juce::Slider::Rotary);
-}
-
-void SmoothRotarySlider::mouseDown(const juce::MouseEvent& e)
-{
-    dragStartValue = getValue(); 
-    dragStartPos = e.position; 
-    juce::Slider::mouseDown(e);
-}
-
-void SmoothRotarySlider::mouseDrag(const juce::MouseEvent& e)
-{
-    float dx = e.position.x - dragStartPos.x;
-    float dy = dragStartPos.y - e.position.y;
-
-    float sensitivity = 0.005f;
-
-    float delta = dx + dy;
-
-    float newValue = dragStartValue + delta * sensitivity * (getMaximum() - getMinimum());
-    setValue(newValue, juce::dontSendNotification);
-}
-
-KnobLookAndFeel::KnobLookAndFeel()
-{
-    rawKnobImage = juce::ImageCache::getFromMemory(BinaryData::Knob_png, BinaryData::Knob_pngSize);
-    rotaryStartAngle = juce::MathConstants<float>::pi * 1.25f;
-    rotaryEndAngle = juce::MathConstants<float>::pi * 2.75f; 
-}
-
-void KnobLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, float sliderPosProportional, float rotaryStart, float rotaryEnd, juce::Slider& slider)
-{
-    float startAngle = rotaryStartAngle; 
-    
-    
-    float endAngle = rotaryEndAngle;
-
-    sliderPosProportional = juce::jlimit(0.0f, 1.0f, sliderPosProportional);
-
-    float angle = startAngle + sliderPosProportional * (endAngle - startAngle);
-
-    const float cx = x + width * 0.5f;
-    const float cy = y + height * 0.5f; 
-    const int knobSize = juce::jmin(width, height);
-
-    g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
-    if (rawKnobImage.isValid())
-    {
-        juce::Image scaledKnob = rawKnobImage.rescaled(knobSize, knobSize);
-        juce::AffineTransform transform = juce::AffineTransform::translation(-scaledKnob.getWidth() * 0.5f, -scaledKnob.getHeight() * 0.5f).rotated(angle).translated(cx, cy);
-        g.drawImageTransformed(scaledKnob, transform);
-    }
-    else
-    {
-        float radius = knobSize * 0.5f - 4.0f;
-        g.setColour(juce::Colours::darkgrey); 
-        
-        g.fillEllipse(cx - radius, cy - radius, radius * 2.0f, radius * 2.0f);
-
-        g.setColour(juce::Colours::orange);
-
-        juce::Point<float> lineStart(cx, cy); 
-        juce::Point<float> lineEnd(cx + radius * std::cos(angle), cy + radius * std::sin(angle)); 
-        g.drawLine(lineStart.x, lineStart.y, lineEnd.x, lineEnd.y, 3.0f);
-    }
-}
-
-juce::Font CustomLookAndFeel::getTextButtonFont(juce::TextButton& button, int buttonHeight)
-{
-    return juce::Font(40.0f, juce::Font::bold);
-}
-
-void CustomLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour& backgroundColour, bool isMouseOverButton, bool isButtonDown)
-{
-    juce::ignoreUnused(button, isMouseOverButton, isButtonDown); g.fillAll(backgroundColour);
-}
-
-void MainComponent::Panel::paint(juce::Graphics& g)
-{
-    juce::Colour translucentGray = juce::Colour::fromRGBA(169, 169, 169, 204);
-    juce::Colour option = juce::Colour::fromRGBA(50, 100, 95, 170);
-    juce::Colour subtleBorderColor = juce::Colour::fromRGBA(169, 169, 169, 200);
-    juce::Colour secondBorder = juce::Colour::fromRGBA(140, 140, 140, 220);
-
-    g.fillAll(option); // Background of the panel
-    g.setColour(subtleBorderColor); 
-    g.drawRect(getLocalBounds(), 3);
-}
-
-void MainComponent::headerPanel::paint(juce::Graphics& g)
-{
-    // Base dark fill
-    g.fillAll(AppColours::panelBg);
-
-    // Subtle purple gradient overlay (fades from top)
-    juce::ColourGradient overlay(AppColours::accent2.withAlpha(0.18f), 0.0f, 0.0f,
-                                 juce::Colours::transparentBlack, 0.0f, (float)getHeight(), false);
-    g.setGradientFill(overlay);
-    g.fillAll();
-
-    // Top accent strip
-    g.setColour(AppColours::accent2);
-    g.fillRect(0, 0, getWidth(), 3);
 }

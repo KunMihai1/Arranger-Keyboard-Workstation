@@ -28,6 +28,23 @@
 #include "chordBrowser.h"
 #include "LoginComponent.h"
 #include "PlaytimeTracker.h"
+
+namespace MainComponentText
+{
+    inline const juce::String settings          = "Settings";
+    inline const juce::String midiSettings      = "MIDI Settings";
+    inline const juce::String play              = "Play";
+    inline const juce::String home              = "Home";
+    inline const juce::String selectColour      = "Select colour";
+    inline const juce::String selectInstrument  = "Select instrument";
+    inline const juce::String saveRecording     = "Save recording";
+    inline const juce::String playRecordingFile = "Play recording file";
+    inline const juce::String chordHelper       = "Chord helper";
+    inline const juce::String updateKeyCount    = "Update number of keys";
+    inline const juce::String record            = "Record";
+    inline const juce::String stop              = "Stop";
+    inline const juce::String selectDevice      = "Select a device";   // device combo placeholder
+}
 #include "SoundEffectWindowComponent.h"
 #include "styleSettingsEntry.h"
 #include "SFZLibraryUI.h"
@@ -46,13 +63,13 @@ public:
     SmoothRotarySlider();
 
     /** @brief Handles mouse down to store starting value and position */
-    void mouseDown(const juce::MouseEvent& e) override;
+    void mouseDown(const juce::MouseEvent& event) override;
 
     /** @brief Handles mouse drag for smooth value changes */
-    void mouseDrag(const juce::MouseEvent& e) override;
+    void mouseDrag(const juce::MouseEvent& event) override;
 
 private:
-    float dragStartValue = 0.0f;          ///< Slider value at drag start
+    float dragStartValue {};              ///< Slider value at drag start
     juce::Point<float> dragStartPos;      ///< Mouse position at drag start
 };
 
@@ -71,8 +88,8 @@ public:
     /**
      * @brief Draws the rotary slider
      * @param g Graphics context
-     * @param x X position
-     * @param y Y position
+     * @param left X position
+     * @param top Y position
      * @param width Width of slider
      * @param height Height of slider
      * @param sliderPosProportional Proportional slider position [0..1]
@@ -80,7 +97,7 @@ public:
      * @param rotaryEnd End angle (ignored, using internal angles)
      * @param slider Reference to slider
      */
-    void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
+    void drawRotarySlider(juce::Graphics& g, int left, int top, int width, int height,
                           float sliderPosProportional, float rotaryStart, float rotaryEnd,
                           juce::Slider& slider) override;
 
@@ -157,7 +174,7 @@ public:
 
     /** @brief Reclaims keyboard focus on any non-text click so the PC keyboard
      *         can always keep playing after touching a button/pad/config browser. */
-    void mouseDown(const juce::MouseEvent& e) override;
+    void mouseDown(const juce::MouseEvent& event) override;
 
     /** @brief Callback for change events */
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
@@ -179,11 +196,16 @@ private:
 
 
 
-    int initialWidth = 0;  ///< Initial window width
-    int initialHeight = 0; ///< Initial window height
+    static constexpr int defaultPlayX = 750;
+    static constexpr int defaultPlayY = 690;
+    static constexpr int noDeviceCountYet = -1;
+    static constexpr int tooltipDelayMs = 200;
 
-    int xPlay = 750;       ///< X coordinate of play button
-    int yPlay = 690;       ///< Y coordinate of play button
+    int initialWidth {};   ///< Initial window width
+    int initialHeight {};  ///< Initial window height
+
+    int xPlay = defaultPlayX;  ///< X coordinate of play button
+    int yPlay = defaultPlayY;  ///< Y coordinate of play button
 
     bool hasBeenResized = false; ///< True if window has been resized
 
@@ -197,7 +219,7 @@ private:
 
     /** @brief Loads settings from disk */
 
-    void applySettingsToChannel(const SoundSettings& s, int channel);
+    void applySettingsToChannel(const SoundSettings& settings, int channel);
 
     juce::String applyEffectCC(int ccNumber, int value, int channel);
 
@@ -205,11 +227,11 @@ private:
 
     juce::String getCurrentEffectSettingsKey(const juce::String& styleID);
 
-    void loadEffectsFromFile(const juce::String& styleID="style_default");
+    void loadEffectsFromFile(const juce::String& styleID=StyleNames::defaultStyleId);
 
-    void loadSettings(const juce::String& styleID="style_default");
+    void loadSettings(const juce::String& styleID=StyleNames::defaultStyleId);
 
-    void playChordOnClick(const Chord& c);
+    void playChordOnClick(const Chord& chord);
 
     void buildChordLibrary();
 
@@ -298,8 +320,8 @@ private:
     bool openingDevicesForPlay();
     void showColourSelector();
     void showInstrumentSelector();
-    void saveRecordingToFile(double tempo = 120.0);
-    void playRecordingFromFile(double tempo = 120.0);
+    void saveRecordingToFile(double tempo = ArrangerStyleDefaults::tempoBpm);
+    void playRecordingFromFile(double tempo = ArrangerStyleDefaults::tempoBpm);
 
     void handleIntro(const juce::String& name);
 
@@ -346,7 +368,7 @@ private:
     juce::Label helpIcon;                ///< Help icon label
     juce::Label openingAudioLabel;       ///< Loading overlay label
     bool pendingPlayInit = false;        ///< Set on Play click; the blocking init runs once the overlay has actually painted
-    juce::TooltipWindow tooltipWindow{ this, 200 }; ///< Tooltip manager
+    juce::TooltipWindow tooltipWindow{ this, tooltipDelayMs }; ///< Tooltip manager
 
     std::weak_ptr<juce::MidiInput> deviceOpenedIN; ///< Currently opened MIDI input device
     std::weak_ptr<juce::MidiOutput> deviceOpenedOUT; ///< Currently opened MIDI output device
@@ -368,7 +390,7 @@ private:
     std::vector<std::string> devicesOUT; ///< List of output devices
 	std::vector<std::string> devicesAudioOUT; ///< List of audio output devices
 
-    int last=-1, lastOfLast=-1;
+    int last=noDeviceCountYet, lastOfLast=noDeviceCountYet;
 
     bool midiWindowShouldBeVisible = false;
     bool overlayShouldBeVisible = false;
@@ -382,30 +404,30 @@ private:
     bool sceneHiddenForArrangerOverlay = false; ///< True while the arranger authoring overlay hides the note layer
     bool noteLayerVisibleBeforeArranger = false;///< Note-layer visibility to restore after the arranger overlay
     // UI buttons and toggles
-    juce::TextButton settingsButton{ "Settings" };
-    juce::TextButton midiButton{ "MIDI Settings" };
-    juce::TextButton playButton{ "Play" };
-    juce::TextButton homeButton{ "Home" };
+    juce::TextButton settingsButton{ MainComponentText::settings };
+    juce::TextButton midiButton{ MainComponentText::midiSettings };
+    juce::TextButton playButton{ MainComponentText::play };
+    juce::TextButton homeButton{ MainComponentText::home };
     juce::ToggleButton particleToggle;
-    juce::TextButton colourSelectorButton{ "Select colour" };
-    juce::TextButton instrumentSelectorButton{ "Select instrument" };
-    juce::TextButton saveRecordingButton{ "Save recording" };
-    juce::TextButton playRecordingFileButton{ "Play recording file" };
+    juce::TextButton colourSelectorButton{ MainComponentText::selectColour };
+    juce::TextButton instrumentSelectorButton{ MainComponentText::selectInstrument };
+    juce::TextButton saveRecordingButton{ MainComponentText::saveRecording };
+    juce::TextButton playRecordingFileButton{ MainComponentText::playRecordingFile };
     juce::ToggleButton leftHandInstrumentToggle, rightHandInstrumentToggle;
     juce::ToggleButton noteNumbersAnnotation;
-    juce::TextButton chordHelperButton{ "Chord helper" };
+    juce::TextButton chordHelperButton{ MainComponentText::chordHelper };
     std::unique_ptr<StyleSectionComponent> introsEndings, variationsFills;
 
 
     std::unordered_map<juce::String, juce::String> updateDevicesMap;
     std::unordered_map<juce::String, StyleSettings> styleSettingsMap;
 
-    juce::TextButton updateNumberOfKeysDevice{"Update number of keys"};
+    juce::TextButton updateNumberOfKeysDevice{MainComponentText::updateKeyCount};
     juce::ComboBox devicesCBUpdate;
 
-    juce::DrawableButton startRecording{ "Record", juce::DrawableButton::ImageFitted };
-    juce::DrawableButton stopRecording{ "Stop", juce::DrawableButton::ImageFitted };
-    juce::DrawableButton startPlayback{ "Play", juce::DrawableButton::ImageFitted };
+    juce::DrawableButton startRecording{ MainComponentText::record, juce::DrawableButton::ImageFitted };
+    juce::DrawableButton stopRecording{ MainComponentText::stop, juce::DrawableButton::ImageFitted };
+    juce::DrawableButton startPlayback{ MainComponentText::play, juce::DrawableButton::ImageFitted };
     std::unique_ptr<juce::Drawable> recordDrawable, stopDrawable, playDrawable;
     juce::Slider volumeKnob, reverbKnob;
     KnobLookAndFeel customKnobLookAndFeel;
