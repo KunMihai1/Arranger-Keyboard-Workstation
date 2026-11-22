@@ -51,10 +51,12 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - Show the owner the direction (mock-ups / screenshots) before building it.
 
 ## 2. Open engineering threads (from the wiki)
-- 🔴 **`Project Tests.exe` with no flag is unreliable** (found 2026-11-22, not investigated): running every
-  safe category in one process gave 5 failures once, a crash (0xC0000005) once and a hang once. Each
-  category alone (`--unit/--arranger/--integration/--display-tests`, what CI runs) is green. Unknown whether
-  it predates the test names cleanup.
+- 🔴 **Use-after-free: stop callbacks outlive their player** (root-caused 2026-11-22, fix awaiting sign-off).
+  `ArrangerEngine`/`TrackPlayer` post beat-bar updates with `callAsync([this]…)`; destroying a style panel
+  calls `stop()` then frees the engine, so the queued callback runs on freed memory. Hits the app when the
+  open style is removed or rebuilt. Found because `Project Tests.exe` with no flag crashed (0xC0000005);
+  bisected to the CurrentStyleComponent start test + any message pump; crash stack confirms.
+  Spec: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
 - ⬜ Delay read offset still jumps on CC94 changes (needs a fractional read; `DelayLine` in `va-effects`).
 - ⬜ Swap `juce::dsp::Chorus` (CC93) for the BBD model from `va-effects`.
 - ⬜ 🔒 Missing-SFZ popup never smoke-tested; Phase 7a manual sign-off 0/9.
