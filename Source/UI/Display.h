@@ -222,8 +222,7 @@ private:
     std::unique_ptr<CurrentStyleComponent> currentStyleComponent; ///< UI for current style
     std::unique_ptr<PlayBackSettingsComponent> playBackSettings; ///< Playback settings UI
     bool created = false; ///< Flag for style tab creation
-    bool createdTracksTab = false; ///< Flag for tracks tab creation
-    bool createdPlaybackSettingsTab = false;
+    std::unique_ptr<TemporaryTabs> temporaryTabs; ///< "Playback Settings" / "My tracks" open/close rules
 
     int minNote, maxNote;  ///< min and max notes of playing range
     PlayBackSettings settings; ///< Playback settings

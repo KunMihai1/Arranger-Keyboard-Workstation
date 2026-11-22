@@ -13,6 +13,17 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Live checks + style tab lost after Home (fixed)
+- Live on an unlocked screen (app data backed up and restored, 0 differences): Synchro Start from the UI
+  (beat bar held, groove on the first chord), Count-In (4 clicks 0.5 s apart, accented first), style
+  editor while playing (live stops, editor + preview + Add Fill work, live plays again after Close).
+- Bug found: Settings tab → Home → Play → Styles removed the style tab, then the style list renamed the
+  Styles tab. Cause: `Display` closed temporary tabs by position with flags Home never cleared. Fix:
+  `TemporaryTabs` (next to `MyTabbedComponent`) closes them by name; 5 tests (2 failed before).
+- Build pitfalls noted: Projucer must be 8.0.13 (`Desktop\Latest Juce\JUCE`); a stopped build can
+  leave orphaned `cl.exe` holding the PCH.
+- Owner request recorded: UI refinement + piano skins ([[Owner Backlog]] 1b).
+
 ## 2026-11-22 — Names cleanup: Playback part 1
 - `TrackEntry.h`, `TrackPlayer`, `MidiNotesTableModel` converted (107 → 102). Shared names: `TrackTypeNames`
   (persisted "melodic"/"percussion"), `TrackEntryDefaults`, `NoteTableColumns` (Notes-information column

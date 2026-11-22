@@ -65,5 +65,15 @@ not assumed: the speakers were recorded through WASAPI loopback and reported in 
 Also observed: a section clicked while **stopped** becomes the start section, including an Ending (Start then
 plays the ending once and stops). **Intended** (owner, 2026-11-22): any section may be the start section.
 
-Not run: B4 switching SFZ instrument / audio output (no SFZ library on this machine), B5 style editor and
-Section Configurations while playing, Synchro Start / Count-In from the UI (covered headless in A).
+Run live on 2026-11-22 (second session):
+
+| Case | Result |
+|---|---|
+| Synchro Start (Settings) → Start → wait 6.7 s → C major chord | Silent and beat bar held on beat 1 until the chord; then the beat bar advances and the groove follows the song's intro. |
+| Count-In (Settings) → Start | Four side-stick clicks 0.5 s apart (120 BPM), the first accented (-32.6 vs -39.6 dBFS), then the section. |
+| Section Configurations while playing → New → Add Fill → Preview → Stop → Close | Live playback stops on opening; editor shows key, timeline, NTT strip; Fill added; preview plays; after closing, live Start plays (count-in + groove). |
+
+Found on the way: the style tab disappeared after Settings → Home → Play → Styles (fixed, see
+`specs/2026-11-22-temporary-tabs-after-home-design.md`).
+
+Not run: B4 switching SFZ instrument / audio output (no SFZ library on this machine).

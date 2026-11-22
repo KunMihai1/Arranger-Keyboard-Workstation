@@ -32,6 +32,9 @@
   non-module file of both projects. It hides a missing `#include`, so still include what you use. Put
   only stable headers in it. Projucer *copies* it on save, so an edit only takes effect after re-saving
   both `.jucer` files.
+- **Projucer version:** re-save with the one matching the modules (8.0.13,
+  `Desktop\Latest Juce\JUCE\Projucer.exe`); an older Projucer makes `JuceHeader.h` stop the build with
+  "last saved using an outdated version of the Projucer".
 - **JUCE modules:** only the ones the code uses are enabled. Using a class from another module (e.g.
   `juce_osc`) means adding that module to **both** `.jucer` files.
 - **A header change that alters a type's layout -> `/t:Rebuild`.** Incremental builds miss
