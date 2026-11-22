@@ -25,7 +25,7 @@ public:
     void  noteOff (int noteNumber);
     void  reset();
 
-    void  setMode (ChordMode m) { mode = m; recompute(); }
+    void  setMode (ChordMode newMode) { mode = newMode; recompute(); }
     ChordMode getMode() const { return mode; }
 
     /** Best chord for the currently-held notes, or ArrangerChord::none (root=-1) if unrecognized. */

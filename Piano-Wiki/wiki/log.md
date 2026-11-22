@@ -13,6 +13,14 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — AGENTS.md slimmed; no single-letter names; checker fixes
+- AGENTS.md 139 → 100 lines: build/test detail moved to `docs/build-and-test.md`, the full naming
+  rule to `docs/names-not-values.md`; AGENTS.md keeps short summaries + one-line pointers.
+- Owner tightened the rule: no single-letter names, loop indices included; only JUCE's `g` in paint().
+  The checker now flags single-letter declarations; 6 clean headers had parameter names fixed.
+- Checker: a pure-virtual `= 0` is syntax; a constant's initialiser may span lines until `;`
+  (5 interface headers became clean). Allowlist: 153 files.
+
 ## 2026-11-22 — Skipped tests are counted and listed
 - A test that can't run here logs `SKIPPED - <reason>`; the runner counts these per case and prints
   `| skipped: N` on every line and the TOTAL, plus a list (test / case: reason). CI prints

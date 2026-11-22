@@ -46,7 +46,7 @@ private:
     public:
         juce::Colour arcColour;
 
-        void drawRotarySlider(juce::Graphics&, int x, int y, int width,
+        void drawRotarySlider(juce::Graphics&, int sliderX, int sliderY, int width,
                               int height, float sliderPos,
                               float rotaryStartAngle, float rotaryEndAngle,
                               juce::Slider&) override;

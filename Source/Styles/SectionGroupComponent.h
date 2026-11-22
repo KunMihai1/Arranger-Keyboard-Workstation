@@ -25,9 +25,9 @@ public:
 
     ~SectionGroupComponent();
 
-    void mouseEnter(const juce::MouseEvent& e) override;
+    void mouseEnter(const juce::MouseEvent& event) override;
 
-    void mouseExit(const juce::MouseEvent& e) override;
+    void mouseExit(const juce::MouseEvent& event) override;
 
     std::vector<std::unique_ptr<juce::TextButton>>& getButtons();
 

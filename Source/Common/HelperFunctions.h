@@ -46,7 +46,7 @@ private:
 class ChordHelper
 {
 public:
-    static std::vector<int> getNotesForChord(const Chord& c);
+    static std::vector<int> getNotesForChord(const Chord& chord);
 
-    static void loadChordNeeded(Chord& c);
+    static void loadChordNeeded(Chord& chord);
 };
