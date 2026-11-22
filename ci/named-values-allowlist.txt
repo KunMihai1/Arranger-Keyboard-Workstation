@@ -9,10 +9,6 @@ Source/Backend/ValidatorUI.cpp
 Source/Backend/ValidatorUI.h
 Source/Backend/addDeviceWindow.cpp
 Source/Backend/addDeviceWindow.h
-Source/Styles/CurrentStyleComponent.cpp
-Source/Styles/CurrentStyleComponent.h
-Source/Styles/CurrentStyleComponentTracks.cpp
-Source/Styles/CurrentStyleComponentUI.cpp
 Source/UI/CustomBeatBar.cpp
 Source/UI/CustomBeatBar.h
 Source/UI/CustomTableContainer.cpp

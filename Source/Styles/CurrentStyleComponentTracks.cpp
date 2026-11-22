@@ -5,6 +5,24 @@
 #include "Arranger/ArrangerStyleIOHelper.h"
 #include "IOHelper.h"
 
+namespace
+{
+    namespace Text
+    {
+        const juce::String unnamedTrack   = "<Unnamed>";
+        const juce::String styleExtension = ".style";
+    }
+
+    constexpr int    notesWindowWidth      = 350;
+    constexpr int    notesWindowHeight     = 340;
+    constexpr double noTempo               = 0.0;     // a BPM at or below this is unset
+    constexpr int    channelVolumeCC       = 7;
+    // Volume and program are sent just before the first note so the track starts with them.
+    constexpr double earliestSetupTime     = 0.01;    // seconds
+    constexpr double setupLeadTime         = 0.005;
+    constexpr double volumeLeadTime        = 0.004;
+    constexpr double programLeadTime       = 0.002;
+}
 
 void CurrentStyleComponent::applyChangesForOneTrack(TrackEntry& track)
 {
@@ -36,10 +54,10 @@ void CurrentStyleComponent::removingTrack(const juce::Uuid& uuid)
     {
         if (track->getUsedID() == uuid)
         {
-            track->setNameLabel("None");
-            track->setUUID(juce::Uuid{ "noID" });
-            track->setTypeOfTrack("None");
-            track->setChannel(2);
+            track->setNameLabel(StyleTrackJsonKeys::emptySlot);
+            track->setUUID(juce::Uuid{ StyleTrackJsonKeys::noTrackId });
+            track->setTypeOfTrack(StyleTrackJsonKeys::emptySlot);
+            track->setChannel(MultipleTrackPlayer::firstTrackChannel);
         }
     }
 }
@@ -53,10 +71,10 @@ void CurrentStyleComponent::removingTracks(const std::vector<juce::Uuid>& uuids)
         {
             if (trackUUID == uuid)
             {
-                track->setNameLabel("None");
-                track->setUUID(juce::Uuid{ "noID" });
-                track->setTypeOfTrack("None");
-                track->setChannel(2);
+                track->setNameLabel(StyleTrackJsonKeys::emptySlot);
+                track->setUUID(juce::Uuid{ StyleTrackJsonKeys::noTrackId });
+                track->setTypeOfTrack(StyleTrackJsonKeys::emptySlot);
+                track->setChannel(MultipleTrackPlayer::firstTrackChannel);
                 break;
             }
         }
@@ -76,8 +94,8 @@ void CurrentStyleComponent::showingTheInformationNotesFromTrack(const juce::Uuid
 {
     juce::MidiMessageSequence* sequence = nullptr;
     std::unordered_map<int, MidiChangeInfo>* changeMap = nullptr;
-    juce::String displayName = "<Unnamed>";
-    double originalBPMfromFile = 120.0;
+    juce::String displayName = Text::unnamedTrack;
+    double originalBPMfromFile = ArrangerStyleDefaults::tempoBpm;
 
     auto it = mapUuidToTrackEntry.find(uuid);
     if (it != mapUuidToTrackEntry.end())
@@ -109,7 +127,7 @@ void CurrentStyleComponent::showingTheInformationNotesFromTrack(const juce::Uuid
 
     trackPlayer->addSubjectTrackPlayerModifyListener(container.get());
 
-    container->setSize(350, 340);
+    container->setSize(notesWindowWidth, notesWindowHeight);
 
     container->updateToFile = [this]()
     {
@@ -179,15 +197,15 @@ void CurrentStyleComponent::syncPercussionTracksVolumeChange(double newVolume)
 
 void CurrentStyleComponent::applyBPMchangeBeforePlayback(double userBPM, bool applyStyleChanges)
 {
-    if (userBPM <= 0.0)
-        userBPM = 120.0;
+    if (userBPM <= noTempo)
+        userBPM = ArrangerStyleDefaults::tempoBpm;
 
     currentTempo = userBPM;
 
     if (trackPlayer)
         trackPlayer->setCurrentBPM(currentTempo);
 
-    int channelCounter = 0;
+    int channelCounter {};
 
     for (const auto& trackPtr : allTracks)
     {
@@ -195,18 +213,18 @@ void CurrentStyleComponent::applyBPMchangeBeforePlayback(double userBPM, bool ap
         if (tr == nullptr)
             continue;
 
-        int targetChannel = (tr->type == TrackType::Percussion) ? 10 : (channelCounter + 2);
+        int targetChannel = (tr->type == TrackType::Percussion) ? MultipleTrackPlayer::drumChannel : (channelCounter + MultipleTrackPlayer::firstTrackChannel);
         if (tr->type != TrackType::Percussion)
             ++channelCounter;
 
-        double originalBPM = (tr->originalBPM > 0.0) ? tr->originalBPM : 120.0;
+        double originalBPM = (tr->originalBPM > noTempo) ? tr->originalBPM : ArrangerStyleDefaults::tempoBpm;
         double ratio = originalBPM / userBPM;
 
         juce::MidiMessageSequence scaledSequence;
 
-        for (int i = 0; i < tr->originalSequenceTicks.getNumEvents(); ++i)
+        for (int eventIndex {}; eventIndex < tr->originalSequenceTicks.getNumEvents(); ++eventIndex)
         {
-            const auto& event = tr->originalSequenceTicks.getEventPointer(i)->message;
+            const auto& event = tr->originalSequenceTicks.getEventPointer(eventIndex)->message;
             double scaledTime = event.getTimeStamp() * ratio;
 
             juce::MidiMessage newMsg = event;
@@ -228,29 +246,29 @@ void CurrentStyleComponent::applyBPMchangeBeforePlayback(double userBPM, bool ap
 
         auto& toApply = tr->sequence;
 
-        double firstNoteOnTime = 0.01;
-        for (int i = 0; i < toApply.getNumEvents(); ++i)
+        double firstNoteOnTime = earliestSetupTime;
+        for (int eventIndex {}; eventIndex < toApply.getNumEvents(); ++eventIndex)
         {
-            const auto& msg = toApply.getEventPointer(i)->message;
+            const auto& msg = toApply.getEventPointer(eventIndex)->message;
             if (msg.isNoteOn())
             {
-                firstNoteOnTime = std::max(0.01, msg.getTimeStamp() - 0.005);
+                firstNoteOnTime = std::max(earliestSetupTime, msg.getTimeStamp() - setupLeadTime);
                 break;
             }
         }
 
-        if (tr->volumeAssociated != -1)
+        if (tr->volumeAssociated != TrackEntryDefaults::notSet)
         {
             toApply.addEvent(
-                juce::MidiMessage::controllerEvent(targetChannel, 7, (int)tr->volumeAssociated)
-                .withTimeStamp(firstNoteOnTime - 0.004));
+                juce::MidiMessage::controllerEvent(targetChannel, channelVolumeCC, (int)tr->volumeAssociated)
+                .withTimeStamp(firstNoteOnTime - volumeLeadTime));
         }
 
-        if (targetChannel != 10 && tr->instrumentAssociated != -1)
+        if (targetChannel != MultipleTrackPlayer::drumChannel && tr->instrumentAssociated != TrackEntryDefaults::notSet)
         {
             toApply.addEvent(
                 juce::MidiMessage::programChange(targetChannel, tr->instrumentAssociated)
-                .withTimeStamp(firstNoteOnTime - 0.002));
+                .withTimeStamp(firstNoteOnTime - programLeadTime));
         }
     }
 }
@@ -259,8 +277,8 @@ void CurrentStyleComponent::applyBPMchangeBeforePlayback(double userBPM, bool ap
 void CurrentStyleComponent::applyBPMchangeForOne(double userBPM, const juce::Uuid& uuid)
 {
 
-    if (userBPM <= 0.0)
-        userBPM = 120.0;
+    if (userBPM <= noTempo)
+        userBPM = ArrangerStyleDefaults::tempoBpm;
 
     currentTempo = userBPM;
 
@@ -274,8 +292,8 @@ void CurrentStyleComponent::applyBPMchangeForOne(double userBPM, const juce::Uui
     auto& tr = it->second;
 
 
-    int channelCounter = 0;
-    int targetChannel = (tr->type == TrackType::Percussion) ? 10 : 2;
+    int channelCounter {};
+    int targetChannel = (tr->type == TrackType::Percussion) ? MultipleTrackPlayer::drumChannel : MultipleTrackPlayer::firstTrackChannel;
     for (const auto& trackPtr : allTracks)
     {
         if (trackPtr->getUsedID() == uuid)
@@ -286,16 +304,16 @@ void CurrentStyleComponent::applyBPMchangeForOne(double userBPM, const juce::Uui
             ++channelCounter;
     }
     if (tr->type != TrackType::Percussion)
-        targetChannel = channelCounter + 2;
+        targetChannel = channelCounter + MultipleTrackPlayer::firstTrackChannel;
 
-    double originalBPM = (tr->originalBPM > 0.0) ? tr->originalBPM : 120.0;
+    double originalBPM = (tr->originalBPM > noTempo) ? tr->originalBPM : ArrangerStyleDefaults::tempoBpm;
     double ratio = originalBPM / userBPM;
 
     juce::MidiMessageSequence scaledSequence;
 
-    for (int i = 0; i < tr->originalSequenceTicks.getNumEvents(); ++i)
+    for (int eventIndex {}; eventIndex < tr->originalSequenceTicks.getNumEvents(); ++eventIndex)
     {
-        const auto& event = tr->originalSequenceTicks.getEventPointer(i)->message;
+        const auto& event = tr->originalSequenceTicks.getEventPointer(eventIndex)->message;
         double scaledTime = event.getTimeStamp() * ratio;
 
         juce::MidiMessage newMsg = event;
@@ -307,29 +325,29 @@ void CurrentStyleComponent::applyBPMchangeForOne(double userBPM, const juce::Uui
     scaledSequence.sort();
     scaledSequence.updateMatchedPairs();
 
-    double firstNoteOnTime = 0.01;
-    for (int i = 0; i < scaledSequence.getNumEvents(); ++i)
+    double firstNoteOnTime = earliestSetupTime;
+    for (int eventIndex {}; eventIndex < scaledSequence.getNumEvents(); ++eventIndex)
     {
-        const auto& msg = scaledSequence.getEventPointer(i)->message;
+        const auto& msg = scaledSequence.getEventPointer(eventIndex)->message;
         if (msg.isNoteOn())
         {
-            firstNoteOnTime = std::max(0.01, msg.getTimeStamp() - 0.005);
+            firstNoteOnTime = std::max(earliestSetupTime, msg.getTimeStamp() - setupLeadTime);
             break;
         }
     }
 
-    if (tr->volumeAssociated != -1)
+    if (tr->volumeAssociated != TrackEntryDefaults::notSet)
     {
         scaledSequence.addEvent(
-            juce::MidiMessage::controllerEvent(targetChannel, 7, (int)tr->volumeAssociated)
-            .withTimeStamp(firstNoteOnTime - 0.004));
+            juce::MidiMessage::controllerEvent(targetChannel, channelVolumeCC, (int)tr->volumeAssociated)
+            .withTimeStamp(firstNoteOnTime - volumeLeadTime));
     }
 
-    if (targetChannel != 10 && tr->instrumentAssociated != -1)
+    if (targetChannel != MultipleTrackPlayer::drumChannel && tr->instrumentAssociated != TrackEntryDefaults::notSet)
     {
         scaledSequence.addEvent(
             juce::MidiMessage::programChange(targetChannel, tr->instrumentAssociated)
-            .withTimeStamp(firstNoteOnTime - 0.002));
+            .withTimeStamp(firstNoteOnTime - programLeadTime));
     }
 
     tr->sequence = scaledSequence;
@@ -339,12 +357,12 @@ juce::DynamicObject* CurrentStyleComponent::getJson() const
 {
     auto* styleObj = new juce::DynamicObject{};
 
-    styleObj->setProperty("name", name);
-    styleObj->setProperty("BPM", currentTempo);
-    styleObj->setProperty("StyleID", styleID);
+    styleObj->setProperty(AllStylesJsonKeys::name, name);
+    styleObj->setProperty(AllStylesJsonKeys::bpm, currentTempo);
+    styleObj->setProperty(AllStylesJsonKeys::styleId, styleID);
 
     if (hasActiveArrangerConfig && activeArrangerConfigName.isNotEmpty())
-        styleObj->setProperty("arrangerConfig", activeArrangerConfigName);   // remembered selection
+        styleObj->setProperty(AllStylesJsonKeys::arrangerConfig, activeArrangerConfigName);   // remembered selection
 
     juce::Array<juce::var> tracksArray;
 
@@ -353,7 +371,7 @@ juce::DynamicObject* CurrentStyleComponent::getJson() const
         tracksArray.add(juce::var(track->getJson()));
     }
 
-    styleObj->setProperty("tracks", tracksArray);
+    styleObj->setProperty(AllStylesJsonKeys::tracks, tracksArray);
 
     return styleObj;
 }
@@ -368,9 +386,9 @@ void CurrentStyleComponent::loadJson(const juce::var& styleVar)
     if (!obj)
         return;
 
-    updateName(obj->getProperty("name").toString());
-    setTempo(static_cast<double>(obj->getProperty("BPM")));
-    setStyleID(obj->getProperty("StyleID").toString());
+    updateName(obj->getProperty(AllStylesJsonKeys::name).toString());
+    setTempo(static_cast<double>(obj->getProperty(AllStylesJsonKeys::bpm)));
+    setStyleID(obj->getProperty(AllStylesJsonKeys::styleId).toString());
 
     // Restore the remembered section configuration: selected (primed), not auto-playing.
     // Silent + graceful if the .style was since deleted/renamed (falls back to live tracks).
@@ -382,17 +400,17 @@ void CurrentStyleComponent::loadJson(const juce::var& styleVar)
         activeArrangerConfig     = {};
         activeArrangerConfigName = {};
 
-        const auto cfgName = obj->getProperty("arrangerConfig").toString();
+        const auto cfgName = obj->getProperty(AllStylesJsonKeys::arrangerConfig).toString();
         if (cfgName.isNotEmpty())
         {
-            auto file = IOHelper::getArrangerStylesFolder().getChildFile(cfgName + ".style");
-            ArrangerStyle s;
-            if (buildConfigFromFile(file, s, false))
+            auto file = IOHelper::getArrangerStylesFolder().getChildFile(cfgName + Text::styleExtension);
+            ArrangerStyle savedStyle;
+            if (buildConfigFromFile(file, savedStyle, false))
             {
-                activeArrangerConfig     = s;
+                activeArrangerConfig     = savedStyle;
                 hasActiveArrangerConfig  = true;
                 activeArrangerConfigName = cfgName;
-                if (arrangerEngine) { arrangerEngine->setStyle(s); arrangerEngine->setBpm(currentTempo); }
+                if (arrangerEngine) { arrangerEngine->setStyle(savedStyle); arrangerEngine->setBpm(currentTempo); }
             }
         }
 
@@ -400,17 +418,17 @@ void CurrentStyleComponent::loadJson(const juce::var& styleVar)
         arrangerStyleList.setActiveConfigName(hasActiveArrangerConfig ? activeArrangerConfigName : juce::String());
     }
 
-    auto tracksVar = obj->getProperty("tracks");
+    auto tracksVar = obj->getProperty(AllStylesJsonKeys::tracks);
 
     if (!tracksVar.isArray())
         return;
 
     auto* tracksArray = tracksVar.getArray();
-    int current = 2;
+    int current = MultipleTrackPlayer::firstTrackChannel;
 
-    for (int i = 0; i < allTracks.size() && i < tracksArray->size(); ++i)
+    for (int trackIndex {}; trackIndex < allTracks.size() && trackIndex < tracksArray->size(); ++trackIndex)
     {
-        auto trackVar = tracksArray->getReference(i);
+        auto trackVar = tracksArray->getReference(trackIndex);
         if (!trackVar.isObject())
             continue;
 
@@ -418,30 +436,30 @@ void CurrentStyleComponent::loadJson(const juce::var& styleVar)
         if (!trackObj)
             continue;
 
-        auto name = trackObj->getProperty("name").toString();
-        double volume = static_cast<double>(trackObj->getProperty("volume"));
-        int instrumentNumber = static_cast<int>(trackObj->getProperty("instrumentNumber"));
+        auto name = trackObj->getProperty(StyleTrackJsonKeys::name).toString();
+        double volume = static_cast<double>(trackObj->getProperty(StyleTrackJsonKeys::volume));
+        int instrumentNumber = static_cast<int>(trackObj->getProperty(StyleTrackJsonKeys::instrumentNumber));
 
-        auto uuidSTR = trackObj->getProperty("uuid");
+        auto uuidSTR = trackObj->getProperty(StyleTrackJsonKeys::uuid);
 
         juce::Uuid uuid{ uuidSTR };
-        allTracks[i]->addListener(trackPlayer.get());
-        auto type = trackObj->getProperty("type");
-        allTracks[i]->setTypeOfTrack(type);
+        allTracks[trackIndex]->addListener(trackPlayer.get());
+        auto type = trackObj->getProperty(StyleTrackJsonKeys::type);
+        allTracks[trackIndex]->setTypeOfTrack(type);
 
-        if (type == "percussion")
+        if (type == TrackTypeNames::percussion)
         {
-            allTracks[i]->setChannel(10);
+            allTracks[trackIndex]->setChannel(MultipleTrackPlayer::drumChannel);
         }
         else
         {
-            allTracks[i]->setChannel(current);
+            allTracks[trackIndex]->setChannel(current);
             current++;
         }
-        allTracks[i]->setNameLabel(name);
-        allTracks[i]->setVolumeSlider(volume);
-        allTracks[i]->setVolumeLabel(juce::String(volume));
-        allTracks[i]->setInstrumentNumber(instrumentNumber);
-        allTracks[i]->setUUID(uuid);
+        allTracks[trackIndex]->setNameLabel(name);
+        allTracks[trackIndex]->setVolumeSlider(volume);
+        allTracks[trackIndex]->setVolumeLabel(juce::String(volume));
+        allTracks[trackIndex]->setInstrumentNumber(instrumentNumber);
+        allTracks[trackIndex]->setUUID(uuid);
     }
 }

@@ -5,9 +5,32 @@
 #include "Arranger/ArrangerStyleIOHelper.h"
 #include "IOHelper.h"
 
+namespace
+{
+    namespace Text
+    {
+        const juce::String playingTracksTitle   = "Playing tracks";
+        const juce::String noOutputDevice       = "No output device selected.";
+        const juce::String noTracksToPlay       = "There are no tracks to play";
+        const juce::String pastingTitle         = "Pasting a track";
+        const juce::String copyFirst            = "First you have to copy!";
+        const juce::String bpmSuffix            = " BPM";
+        const juce::String sectionConfigTitle   = "Section configuration";
+        const juce::String recordTracksFirst    = "Record or add some tracks first.";
+        const juce::String loadingConfiguration = "Loading configuration...";
+    }
+
+    constexpr double beatsAtStart        = 0.0;
+    constexpr double minTempoBpm         = 60.0;
+    constexpr double maxTempoBpm         = 200.0;
+    constexpr double tempoStepBpm        = 1.0;
+    constexpr int    tempoTextBoxWidth   = 50;
+    constexpr int    tempoTextBoxHeight  = 20;
+}
+
 bool CurrentStyleComponent::startPlaying()
 {
-    int selectedID = lastPlayModeId;   // 1 = all tracks, 2 = solo; the active-config path below ignores this
+    int selectedID = lastPlayModeId;   // all tracks or solo; the active-config path below ignores this
 
     stopPlaying(false);
 
@@ -18,7 +41,7 @@ bool CurrentStyleComponent::startPlaying()
 
     if (!hasMidiOut && !hasAudioInject)
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Playing tracks", "No output device selected.");
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::playingTracksTitle, Text::noOutputDevice);
         return false;
     }
 
@@ -42,7 +65,7 @@ bool CurrentStyleComponent::startPlaying()
         return true;
     }
 
-    if (selectedID == 1)
+    if (selectedID == PlayModeIds::allTracks)
     {
         for (const auto& tr : allTracks)
         {
@@ -55,7 +78,7 @@ bool CurrentStyleComponent::startPlaying()
             }
         }
     }
-    else if (selectedID == 2)
+    else if (selectedID == PlayModeIds::soloTrack)
     {
         if (lastSelectedTrack)
         {
@@ -69,14 +92,14 @@ bool CurrentStyleComponent::startPlaying()
 
     if (selectedTracks.empty())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Playing tracks", "There are no tracks to play");
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::playingTracksTitle, Text::noTracksToPlay);
         return false;
     }
 
     if (arrangerModeEnabled)
     {
         // Phase 1: fixed 4/4; real time-signature wiring is Phase 2.
-        ArrangerStyle style = ArrangerPatternBuilder::buildDemoMultiSectionStyle(selectedTracks, 4, 4, currentTempo);
+        ArrangerStyle style = ArrangerPatternBuilder::buildDemoMultiSectionStyle(selectedTracks, ArrangerStyleDefaults::beatsPerBar, ArrangerStyleDefaults::beatUnit, currentTempo);
         arrangerEngine->setStyle(style);
         arrangerEngine->setBpm(currentTempo);   // user's tempo slider wins over the style's original tempo
         arrangerEngine->selectStartSection(pendingStartType, pendingStartName);  // begin on the chosen start
@@ -152,7 +175,7 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
     arrangerEngine->onStoppedItself = [this]()
     {
         isPlaying = false;
-        customBeatBar.setCurrentBeatsElapsed(0.0);
+        customBeatBar.setCurrentBeatsElapsed(beatsAtStart);
         customBeatBar.repaint();
         highlightPendingStartSection();   // back to the chosen start (Var 1 by default)
         if (arrangerModeEnabled) tempoSlider.setEnabled(true);   // unlock BPM after a self-stop (Ending)
@@ -161,12 +184,12 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
     // Phase 3: arranger-style authoring overlay (opened from the play-settings dropdown).
     addChildComponent(arrangerStyleList);
     arrangerStyleList.onCreateNew  = [this] { openStyleEditorNew(); };
-    arrangerStyleList.onEditStyle  = [this] (const juce::File& f) { openStyleEditorFromFile(f); };
-    arrangerStyleList.onLoadStyle  = [this] (const juce::File& f) { loadStyleFileIntoEngine(f); showStyleList(false); };
-    arrangerStyleList.onDeleteStyle = [this] (const juce::File& f)
+    arrangerStyleList.onEditStyle  = [this] (const juce::File& styleFile) { openStyleEditorFromFile(styleFile); };
+    arrangerStyleList.onLoadStyle  = [this] (const juce::File& styleFile) { loadStyleFileIntoEngine(styleFile); showStyleList(false); };
+    arrangerStyleList.onDeleteStyle = [this] (const juce::File& styleFile)
     {
         // If the deleted file was this style's active configuration, clear + persist that.
-        if (hasActiveArrangerConfig && activeArrangerConfigName == f.getFileNameWithoutExtension())
+        if (hasActiveArrangerConfig && activeArrangerConfigName == styleFile.getFileNameWithoutExtension())
         {
             hasActiveArrangerConfig  = false;
             activeArrangerConfigName = {};
@@ -216,7 +239,7 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
             });
     };
 
-    for (int i = 0; i < 8; i++)
+    for (int trackIndex {}; trackIndex < trackSlots; trackIndex++)
     {
         auto* newTrack = new Track{};
         newTrack->onChange = [this]()
@@ -236,7 +259,7 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
         {
             if (copiedTrack == nullptr)
             {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Pasting a track", "First you have to copy!");
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::pastingTitle, Text::copyFirst);
                 return;
             }
 
@@ -272,11 +295,11 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
         allTracks.add(newTrack);
     }
 
-    tempoSlider.setRange(60.0, 200.0, 1.0);
-    tempoSlider.setSkewFactorFromMidPoint(120.0);
+    tempoSlider.setRange(minTempoBpm, maxTempoBpm, tempoStepBpm);
+    tempoSlider.setSkewFactorFromMidPoint(ArrangerStyleDefaults::tempoBpm);
     tempoSlider.setValue(currentTempo);
     tempoSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    tempoSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
+    tempoSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, tempoTextBoxWidth, tempoTextBoxHeight);
 
     tempoSlider.setColour(juce::Slider::trackColourId, juce::Colours::cornflowerblue);
     tempoSlider.setColour(juce::Slider::backgroundColourId, juce::Colours::darkgrey);
@@ -284,7 +307,7 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
     tempoSlider.setColour(juce::Slider::thumbColourId, juce::Colours::orange);
     tempoSlider.textFromValueFunction = [](double value)
     {
-        return juce::String(static_cast<int>(value)) + " BPM";
+        return juce::String(static_cast<int>(value)) + Text::bpmSuffix;
     };
     tempoSlider.setValue(tempoSlider.getValue(), juce::sendNotificationSync);
     tempoSlider.updateText();
@@ -442,7 +465,7 @@ void CurrentStyleComponent::applyLiveTrackVolumes(ArrangerStyle& style) const
                 }
 }
 
-void CurrentStyleComponent::presentOverlay(juce::Component& c)
+void CurrentStyleComponent::presentOverlay(juce::Component& overlay)
 {
     // Authoring (browser/editor) is a separate mode from live performance and shares the single
     // ArrangerEngine. Stop any live playback before showing the overlay so the editor's preview
@@ -452,7 +475,7 @@ void CurrentStyleComponent::presentOverlay(juce::Component& c)
     {
         arrangerEngine->stop();
         isPlaying = false;
-        customBeatBar.setCurrentBeatsElapsed(0.0);
+        customBeatBar.setCurrentBeatsElapsed(beatsAtStart);
         customBeatBar.repaint();
     }
 
@@ -463,9 +486,9 @@ void CurrentStyleComponent::presentOverlay(juce::Component& c)
     auto* top = getTopLevelComponent();
     if (top == nullptr)
         top = this;
-    top->addAndMakeVisible(c);
-    c.setBounds(top->getLocalBounds());
-    c.toFront(true);
+    top->addAndMakeVisible(overlay);
+    overlay.setBounds(top->getLocalBounds());
+    overlay.toFront(true);
 }
 
 void CurrentStyleComponent::showStyleList(bool shouldShow)
@@ -489,14 +512,14 @@ void CurrentStyleComponent::openStyleEditorNew()
     if (tracks.empty())
     {
         juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-            "Section configuration", "Record or add some tracks first.");
+            Text::sectionConfigTitle, Text::recordTracksFirst);
         return;
     }
 
     arrangerStyleEditor = std::make_unique<ArrangerStyleEditor>(*arrangerEngine);
     configureEditorCallbacks();
     presentOverlay(*arrangerStyleEditor);
-    arrangerStyleEditor->loadRecording(tracks, currentTempo, 4, 4, juce::String()); // default generic config name
+    arrangerStyleEditor->loadRecording(tracks, currentTempo, ArrangerStyleDefaults::beatsPerBar, ArrangerStyleDefaults::beatUnit, juce::String()); // default generic config name
 }
 
 void CurrentStyleComponent::configureEditorCallbacks()
@@ -509,18 +532,18 @@ void CurrentStyleComponent::configureEditorCallbacks()
     // raw entries; the editor builds + writes them on its own background thread.
     arrangerStyleEditor->onRequestCurrentTracks = [this] { return collectSelectedTracks(); };
     // Refresh the active config from the style the editor already built (no file re-parse -> no freeze).
-    arrangerStyleEditor->onSaved = [this] (const juce::File& f, const ArrangerStyle& s)
+    arrangerStyleEditor->onSaved = [this] (const juce::File& styleFile, const ArrangerStyle& style)
     {
         arrangerStyleList.refresh();
-        applyActiveConfig(f, s);
+        applyActiveConfig(styleFile, style);
     };
 }
 
-void CurrentStyleComponent::applyActiveConfig(const juce::File& f, const ArrangerStyle& s)
+void CurrentStyleComponent::applyActiveConfig(const juce::File& styleFile, const ArrangerStyle& style)
 {
-    activeArrangerConfig     = s;          // this configuration is now what Start + section buttons use
+    activeArrangerConfig     = style;          // this configuration is now what Start + section buttons use
     hasActiveArrangerConfig  = true;
-    activeArrangerConfigName = f.getFileNameWithoutExtension();
+    activeArrangerConfigName = styleFile.getFileNameWithoutExtension();
     rebuildPlaySettingsItems();
     arrangerStyleList.setActiveConfigName(activeArrangerConfigName);
     if (anyTrackChanged) anyTrackChanged();   // persist the selection to allStyles.json
@@ -528,69 +551,69 @@ void CurrentStyleComponent::applyActiveConfig(const juce::File& f, const Arrange
     // A freshly-loaded config starts armed on Variation 1 (highlighted); the user can pick another
     // start section before pressing Start.
     pendingStartType = ArrangerSectionType::Variation;
-    pendingStartName = "Variation 1";
+    pendingStartName = DefaultSectionNames::variation;
     highlightPendingStartSection();
 }
 
-void CurrentStyleComponent::openStyleEditorFromFile(const juce::File& f)
+void CurrentStyleComponent::openStyleEditorFromFile(const juce::File& styleFile)
 {
     // Parse the (large) file off the message thread so the UI doesn't freeze; show the app overlay
     // meanwhile. Build the editor + present it back on the message thread once parsing is done.
-    if (onBusy) onBusy(true, "Loading configuration...");
+    if (onBusy) onBusy(true, Text::loadingConfiguration);
     juce::Component::SafePointer<CurrentStyleComponent> safe(this);
 
-    juce::Thread::launch([safe, f]
+    juce::Thread::launch([safe, styleFile]
     {
         auto sf = std::make_shared<ArrangerStyleFile>();
         juce::String err;
-        const bool ok = ArrangerStyleIOHelper::loadFromFile(f, *sf, err);
+        const bool ok = ArrangerStyleIOHelper::loadFromFile(styleFile, *sf, err);
 
-        juce::MessageManager::callAsync([safe, f, sf, ok, err]
+        juce::MessageManager::callAsync([safe, styleFile, sf, ok, err]
         {
             if (safe == nullptr)
                 return;
             if (safe->onBusy) safe->onBusy(false, {});
             if (! ok)
             {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Section configuration", err);
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::sectionConfigTitle, err);
                 return;
             }
             safe->arrangerStyleEditor = std::make_unique<ArrangerStyleEditor>(*safe->arrangerEngine);
             safe->configureEditorCallbacks();
             safe->presentOverlay(*safe->arrangerStyleEditor);
             safe->arrangerStyleEditor->loadFromFile(*sf);
-            safe->arrangerStyleEditor->setSourceFile(f);   // so Save renames this file instead of duplicating it
+            safe->arrangerStyleEditor->setSourceFile(styleFile);   // so Save renames this file instead of duplicating it
         });
     });
 }
 
-bool CurrentStyleComponent::buildConfigFromFile(const juce::File& f, ArrangerStyle& out, bool showError)
+bool CurrentStyleComponent::buildConfigFromFile(const juce::File& styleFile, ArrangerStyle& out, bool showError)
 {
     ArrangerStyleFile sf; juce::String err;
-    if (! ArrangerStyleIOHelper::loadFromFile(f, sf, err))
+    if (! ArrangerStyleIOHelper::loadFromFile(styleFile, sf, err))
     {
         if (showError)
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Section configuration", err);
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::sectionConfigTitle, err);
         return false;
     }
     out = ArrangerPatternBuilder::buildStyleFromFile(sf);
     return true;
 }
 
-void CurrentStyleComponent::loadStyleFileIntoEngine(const juce::File& f)
+void CurrentStyleComponent::loadStyleFileIntoEngine(const juce::File& styleFile)
 {
     // Parse the (large) file off the message thread (the hex-decode of every event is what froze the
     // UI); show the app overlay meanwhile. Build + apply back on the message thread when it's done.
-    if (onBusy) onBusy(true, "Loading configuration...");
+    if (onBusy) onBusy(true, Text::loadingConfiguration);
     juce::Component::SafePointer<CurrentStyleComponent> safe(this);
 
-    juce::Thread::launch([safe, f]
+    juce::Thread::launch([safe, styleFile]
     {
         auto sf = std::make_shared<ArrangerStyleFile>();
         juce::String err;
-        const bool ok = ArrangerStyleIOHelper::loadFromFile(f, *sf, err);
+        const bool ok = ArrangerStyleIOHelper::loadFromFile(styleFile, *sf, err);
 
-        juce::MessageManager::callAsync([safe, f, sf, ok]
+        juce::MessageManager::callAsync([safe, styleFile, sf, ok]
         {
             if (safe == nullptr)
                 return;
@@ -598,12 +621,12 @@ void CurrentStyleComponent::loadStyleFileIntoEngine(const juce::File& f)
             if (! ok)
                 return;
 
-            ArrangerStyle s = ArrangerPatternBuilder::buildStyleFromFile(*sf);
-            safe->applyActiveConfig(f, s);   // this configuration is now what Start + section buttons use
+            ArrangerStyle style = ArrangerPatternBuilder::buildStyleFromFile(*sf);
+            safe->applyActiveConfig(styleFile, style);   // this configuration is now what Start + section buttons use
 
             if (safe->arrangerEngine)
             {
-                safe->arrangerEngine->setStyle(s);          // prime the engine, but don't start:
+                safe->arrangerEngine->setStyle(style);          // prime the engine, but don't start:
                 safe->arrangerEngine->setBpm(safe->currentTempo); // Load only makes it active; user presses Start to play.
             }
         });
@@ -672,7 +695,7 @@ void CurrentStyleComponent::selectOrQueueSection (ArrangerSectionType type, cons
     pendingStartName = name;
     arrangerEngine->selectStartSection (type, name);
     if (onArrangerSectionChanged)
-        onArrangerSectionChanged (0, type, name);    // idx>=0 -> highlight by type + name
+        onArrangerSectionChanged (SectionHighlight::byTypeAndName, type, name);    // idx>=0 -> highlight by type + name
 }
 
 void CurrentStyleComponent::setTempo(double newTempo)

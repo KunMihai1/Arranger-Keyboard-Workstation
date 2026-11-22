@@ -18,11 +18,12 @@ namespace
     constexpr int   buttonHeight       = 20;
     constexpr int   spacing            = 10;
     constexpr int   columns            = 2;
-    constexpr int   gapsBetweenColumns = 1;       // two columns, one gap between them
+    constexpr int   gapsBetweenColumns = 1;       // keep at columns - 1 (two columns, one gap)
     constexpr int   paddedSides        = 2;       // left and right
     constexpr int   trailingGap        = 1;       // a gap after the last row too
     constexpr int   itemHeight         = 50;
     constexpr int   centringDivisor    = 2;
+    constexpr int   halvingDivisor     = 2;
     constexpr int   leftEdge           = 0;
     constexpr int   topEdge            = 0;
     constexpr int   separatorRowOffset = 1;       // the separator sits on the bar's last pixel row
@@ -58,7 +59,7 @@ void StylesListComponent::resized()
 
     this->widthSize = getWidth();
 
-    addButton.setBounds(spacing / centringDivisor, (controlBarHeight - buttonHeight) / centringDivisor, buttonWidth, buttonHeight);
+    addButton.setBounds(spacing / halvingDivisor, (controlBarHeight - buttonHeight) / centringDivisor, buttonWidth, buttonHeight);
     viewport.setBounds(leftEdge, controlBarHeight, getWidth(), getHeight() - controlBarHeight);
 
     layoutStyles();
