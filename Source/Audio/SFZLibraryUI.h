@@ -2,6 +2,15 @@
 
 #include <JuceHeader.h>
 #include "SFZlibrary.h"
+
+namespace SfzLibraryText
+{
+    inline const juce::String addFile       = "Add SFZ File";
+    inline const juce::String removeFile    = "Remove File";
+    inline const juce::String assignToStyle = "Assign to Style";
+    inline const juce::String importConfig  = "Import Config";
+    inline const juce::String close         = "X";
+}
 #include "InstrumentChooser.h"
 
 class SFZLibraryUI : public juce::Component, public juce::ListBoxModel
@@ -31,11 +40,11 @@ private:
 
     SFZLibraryManager& manager;
     juce::ListBox libraryList;
-    juce::TextButton addFileButton    { "Add SFZ File" };
-    juce::TextButton removeFileButton { "Remove File" };
-    juce::TextButton assignButton     { "Assign to Style" };
-    juce::TextButton importConfigButton { "Import Config" };
-    juce::TextButton closeButton      { "X" };
+    juce::TextButton addFileButton    { SfzLibraryText::addFile };
+    juce::TextButton removeFileButton { SfzLibraryText::removeFile };
+    juce::TextButton assignButton     { SfzLibraryText::assignToStyle };
+    juce::TextButton importConfigButton { SfzLibraryText::importConfig };
+    juce::TextButton closeButton      { SfzLibraryText::close };
     juce::Label statusLabel;
     std::unique_ptr<juce::FileChooser> fileChooser;
     juce::StringArray instrumentList;

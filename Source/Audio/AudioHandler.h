@@ -13,6 +13,29 @@
 #include <JuceHeader.h>
 #include "MidiHandler.h"
 
+namespace DspConstants
+{
+    constexpr int    midiChannelCount        = 16;
+    constexpr int    stereoChannelCount      = 2;
+    constexpr double fallbackSampleRate      = 44100.0;   // until the device reports its own
+    constexpr int    filterCutoffOpenCC      = 127;       // CC74 fully open: no filtering
+
+    // Smoothing: each sample covers this fraction of the remaining step, 1 - e^(-1 / samples), so that
+    // after `samples` samples one time constant (~63%) of a step is covered.
+    constexpr float  jumpStraightToTarget    = 1.0f;      // coefficient before a time constant is set
+    constexpr double fullStep                = 1.0;
+    constexpr double oneTimeConstant         = 1.0;
+    constexpr double fewestSmoothingSamples  = 1.0;
+    constexpr double secondsPerMillisecond   = 0.001;
+
+    // log(cosh(x)) = |x| + log1p(e^(-2|x|)) - ln 2, the overflow-safe form.
+    constexpr float  twiceTheMagnitude       = 2.0f;
+    constexpr float  naturalLogOfTwo         = 0.6931472f;
+    // Below this input change the ADAA quotient is cancellation noise: use the midpoint instead.
+    constexpr float  nearlyEqualInputs       = 1.0e-5f;
+    constexpr float  midpointWeight          = 0.5f;
+}
+
 /**
     One-pole parameter smoother.
 
@@ -30,15 +53,16 @@
 */
 struct SmoothedParam
 {
-    float current = 0.0f;
-    float target  = 0.0f;
-    float coeff   = 1.0f;
+    float current {};
+    float target  {};
+    float coeff   = DspConstants::jumpStraightToTarget;
 
     /** @param milliseconds  time to cover ~63% of a step. */
-    void setTimeConstant(double milliseconds, double sr)
+    void setTimeConstant(double milliseconds, double sampleRate)
     {
-        const double samples = juce::jmax(1.0, milliseconds * 0.001 * sr);
-        coeff = static_cast<float>(1.0 - std::exp(-1.0 / samples));
+        using namespace DspConstants;
+        const double samples = juce::jmax(fewestSmoothingSamples, milliseconds * secondsPerMillisecond * sampleRate);
+        coeff = static_cast<float>(fullStep - std::exp(-oneTimeConstant / samples));
     }
 
     /** Jump without smoothing. For prepare() and reset only - never for a CC. */
@@ -79,36 +103,37 @@ struct SmoothedParam
 */
 struct Adaa1Tanh
 {
-    float previousInput = 0.0f;
-    float previousAnti  = 0.0f;
+    float previousInput {};
+    float previousAnti  {};
     bool  primed        = false;
 
-    void reset() { previousInput = 0.0f; previousAnti = 0.0f; primed = false; }
+    void reset() { previousInput = {}; previousAnti = {}; primed = false; }
 
     /** log(cosh(x)), which is the antiderivative of tanh, computed so that it
         survives large arguments. The direct form overflows - cosh(400) is inf,
         and a drive of 16 on a loud sample reaches arguments like that. Factoring
         out e^|x| leaves an expression that is exact for large |x| and still
         accurate near zero, where log1p does the work log(1+y) would lose. */
-    static float logCosh(float x)
+    static float logCosh(float input)
     {
-        const float a = std::abs(x);
-        return a + std::log1p(std::exp(-2.0f * a)) - 0.6931472f;   // ln 2
+        using namespace DspConstants;
+        const float magnitude = std::abs(input);
+        return magnitude + std::log1p(std::exp(-twiceTheMagnitude * magnitude)) - naturalLogOfTwo;
     }
 
-    float process(float x)
+    float process(float input)
     {
-        const float anti = logCosh(x);
+        const float anti = logCosh(input);
 
         if (!primed)
         {
             primed = true;
-            previousInput = x;
+            previousInput = input;
             previousAnti  = anti;
-            return std::tanh(x);
+            return std::tanh(input);
         }
 
-        const float delta = x - previousInput;
+        const float delta = input - previousInput;
 
         // As x approaches its previous value the quotient becomes a difference of
         // two nearly equal numbers over a nearly zero divisor, and float
@@ -116,25 +141,25 @@ struct Adaa1Tanh
         // the midpoint - the limit the quotient is approaching. This runs on any
         // quiet or slow-moving signal, so it is not an edge case; it is most of a
         // decaying note.
-        const float y = (std::abs(delta) < 1.0e-5f)
-                          ? std::tanh(0.5f * (x + previousInput))
+        const float output = (std::abs(delta) < DspConstants::nearlyEqualInputs)
+                          ? std::tanh(DspConstants::midpointWeight * (input + previousInput))
                           : (anti - previousAnti) / delta;
 
-        previousInput = x;
+        previousInput = input;
         previousAnti  = anti;
-        return y;
+        return output;
     }
 };
 
 struct ChannelDSP
 {
-    float reverbMix            = 0.0f;
-    float chorusMix            = 0.0f;
-    float tremoloPhase         = 0.0f;
-    float tremoloPhaseInc      = 0.0f;   // cached: 2π*5/sampleRate
-    float randomModSmoothed    = 0.0f;
-    int   filterCutoffCC       = 127;    // raw CC74 value; 127 = neutral (no filtering)
-    int   filterResonanceCC    = 0;      // raw CC71 value; 0 = neutral
+    float reverbMix            {};
+    float chorusMix            {};
+    float tremoloPhase         {};
+    float tremoloPhaseInc      {};   // cached: 2π*5/sampleRate
+    float randomModSmoothed    {};
+    int   filterCutoffCC       = DspConstants::filterCutoffOpenCC;    // raw CC74 value; 127 = neutral (no filtering)
+    int   filterResonanceCC    {};      // raw CC71 value; 0 = neutral
 
     // Everything a CC can move during playback is smoothed. The reverb and chorus
     // mixes are not in this list because juce::Reverb and juce::dsp::Chorus each
@@ -182,12 +207,12 @@ struct ChannelDSP
     juce::Reverb::Parameters                 reverbParams;
     juce::dsp::Chorus<float>                 chorus;
 
-    Adaa1Tanh distortionAdaa[2];         // one per stereo side; state is per-signal
+    Adaa1Tanh distortionAdaa[DspConstants::stereoChannelCount];         // one per stereo side; state is per-signal
 
     std::vector<float> delayLineL, delayLineR;
-    int    delayWritePos  = 0;
-    int    delayReadOffset = 0;
-    double sampleRate     = 44100.0;
+    int    delayWritePos  {};
+    int    delayReadOffset {};
+    double sampleRate     = DspConstants::fallbackSampleRate;
 
     juce::Random rng;
 
@@ -215,22 +240,22 @@ public:
     std::function<void(int channelMask)> onNoSfzForChannels;
 
 private:
-    std::atomic<int>  pendingLoads      { 0 };
-    std::atomic<int>  noSfzChannelMask  { 0 };
+    std::atomic<int>  pendingLoads      {};
+    std::atomic<int>  noSfzChannelMask  {};
     std::atomic<bool> noSfzNotifyPending { false };
 
     MidiHandler& midiHandler;
-    sfzero::Synth sfzSynths[16];
+    sfzero::Synth sfzSynths[DspConstants::midiChannelCount];
     juce::AudioFormatManager formatManager;
-    double currentSampleRate = 44100.0;
+    double currentSampleRate = DspConstants::fallbackSampleRate;
 
-    std::atomic<bool> channelHasSfz[16];
-    juce::String      loadedSfzPath[16]; // message-thread only
+    std::atomic<bool> channelHasSfz[DspConstants::midiChannelCount];
+    juce::String      loadedSfzPath[DspConstants::midiChannelCount]; // message-thread only
 
     juce::AudioBuffer<float> tempBuffer;
-    float channelGains[16];
-    float channelPans[16];
-    ChannelDSP channelDSP[16];
+    float channelGains[DspConstants::midiChannelCount];
+    float channelPans[DspConstants::midiChannelCount];
+    ChannelDSP channelDSP[DspConstants::midiChannelCount];
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioHandler)
 };
