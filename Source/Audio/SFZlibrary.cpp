@@ -11,6 +11,13 @@
 #include "SFZlibrary.h"
 #include "IOHelper.h"
 
+namespace GeneralMidiRange
+{
+    constexpr int lowestInstrument  = 0;     // program numbers 0..127
+    constexpr int highestInstrument = 127;
+    const juce::String unnamedInstrumentPrefix = "Instrument ";   // shown for numbers outside the table
+}
+
 void SFZLibraryManager::load(const juce::File& file)
 {
     SFZLibraryIOHelper::loadFromFile(file, data);
@@ -93,7 +100,7 @@ void SFZLibraryManager::importMappingsFromStyle(const juce::String& sourceStyleI
 
 void SFZLibraryManager::assignToStyleInstrument(const juce::String& styleId, int instrumentNumber, const juce::String& entryId)
 {
-    if (styleId.isEmpty() || instrumentNumber < 0 || instrumentNumber > 127 || getEntryById(entryId) == nullptr)
+    if (styleId.isEmpty() || instrumentNumber < GeneralMidiRange::lowestInstrument || instrumentNumber > GeneralMidiRange::highestInstrument || getEntryById(entryId) == nullptr)
         return;
 
     data.styleMappings[styleId][instrumentNumber] = entryId;
@@ -180,8 +187,8 @@ const juce::StringArray& getGMInstrumentNames()
 juce::String getGMInstrumentName(int instrumentNumber)
 {
     const auto& names = getGMInstrumentNames();
-    if (instrumentNumber >= 0 && instrumentNumber < names.size())
+    if (instrumentNumber >= GeneralMidiRange::lowestInstrument && instrumentNumber < names.size())
         return names[instrumentNumber];
 
-    return "Instrument " + juce::String(instrumentNumber);
+    return GeneralMidiRange::unnamedInstrumentPrefix + juce::String(instrumentNumber);
 }
