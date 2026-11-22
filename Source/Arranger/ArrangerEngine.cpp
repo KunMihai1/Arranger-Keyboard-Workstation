@@ -193,32 +193,39 @@ void ArrangerEngine::dispatch (const juce::MidiMessage& m)
         onMidiMessage (m);
 }
 
-void ArrangerEngine::dispatchEmitted (const EmittedEvent& e)
+namespace
 {
-    juce::MidiMessage m = e.message;
+    // Note-offs sent when silencing go out immediately; their beat position is not used.
+    constexpr double flushNotesAtBeats = 0.0;
+}
 
-    if (m.isNoteOn() && m.getVelocity() > 0 && e.part != PartKind::Fixed)
+void ArrangerEngine::dispatchEmitted (const EmittedEvent& emitted)
+{
+    juce::MidiMessage message = emitted.message;
+
+    if (message.isNoteOn() && emitted.part != PartKind::Fixed)   // isNoteOn() excludes velocity 0
     {
         // Transpose the pitched note and remember the played pitch, keyed by its ORIGINAL note, so
         // the matching note-off (which carries the original pitch) closes the same sounding note even
         // if the chord changed in between.
-        const int orig   = m.getNoteNumber();
-        const int played = transposer.transpose (orig, e.part, e.ntt);
-        activePlayedNote[{ m.getChannel(), orig }] = played;
-        m = juce::MidiMessage::noteOn (m.getChannel(), played, m.getVelocity());
+        const int originalNote = message.getNoteNumber();
+        const int soundingNote = transposer.transpose (originalNote, emitted.part, emitted.ntt);
+        activePlayedNote[{ message.getChannel(), originalNote }].push_back (soundingNote);
+        message = juce::MidiMessage::noteOn (message.getChannel(), soundingNote, message.getVelocity());
     }
-    else if (m.isNoteOff() || (m.isNoteOn() && m.getVelocity() == 0))
+    else if (message.isNoteOff())   // JUCE counts a velocity-0 note-on as a note-off
     {
-        const auto key = std::make_pair (m.getChannel(), m.getNoteNumber());
-        const auto it  = activePlayedNote.find (key);
-        if (it != activePlayedNote.end())
+        const auto started = activePlayedNote.find (std::make_pair (message.getChannel(), message.getNoteNumber()));
+        if (started != activePlayedNote.end() && ! started->second.empty())
         {
-            m = juce::MidiMessage::noteOff (m.getChannel(), it->second);
-            activePlayedNote.erase (it);
+            message = juce::MidiMessage::noteOff (message.getChannel(), started->second.front());
+            started->second.pop_front();   // the oldest start of this pitch ends first
+            if (started->second.empty())
+                activePlayedNote.erase (started);
         }
     }
 
-    dispatch (m);
+    dispatch (message);
 }
 
 void ArrangerEngine::silenceArrangerNotes()
@@ -229,12 +236,13 @@ void ArrangerEngine::silenceArrangerNotes()
     // keyed by their ORIGINAL pitch; routing them through dispatchEmitted closes the matching SOUNDING
     // note for pitched parts (and clears activePlayedNote) while leaving drums/Fixed as-is. Any pitched
     // note still tracked (e.g. its scheduler was already reset) is then closed directly.
-    for (auto& s : schedulers)
-        for (auto& e : s.flushActiveNotes (0.0))
-            dispatchEmitted (e);
+    for (auto& scheduler : schedulers)
+        for (auto& emitted : scheduler.flushActiveNotes (flushNotesAtBeats))
+            dispatchEmitted (emitted);
 
-    for (const auto& entry : activePlayedNote)
-        dispatch (juce::MidiMessage::noteOff (entry.first.first, entry.second));
+    for (const auto& [channelAndOriginalNote, soundingNotes] : activePlayedNote)
+        for (const int soundingNote : soundingNotes)
+            dispatch (juce::MidiMessage::noteOff (channelAndOriginalNote.first, soundingNote));
     activePlayedNote.clear();
 }
 

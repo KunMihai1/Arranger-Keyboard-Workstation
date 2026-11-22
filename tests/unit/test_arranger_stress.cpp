@@ -61,12 +61,16 @@ namespace ArrangerStressValues
     constexpr int chanceDenominator = 4;   // "one time in four": change chord / section / option
 
     constexpr int pitchClassCount = 12;
-    constexpr int pitchClassC     = 0;
+    constexpr int pitchClassD     = 2;    // not the style's original root (C), so the first start is transposed
     constexpr int pitchClassFSharp = 6;    // a tritone away from C: the largest transposition
     constexpr int noBassNote      = -1;
     constexpr int noChordRoot     = -1;
     constexpr int heldHarmonyNote = 64;
     constexpr int atLeastOneWindow = 1;
+    // The most notes one section of makeFullStyle() sounds at once: kick, bass, and two overlapping
+    // harmony notes. More at any moment means a note leaked across a switch or a chord change.
+    constexpr int mostNotesSoundingAtOnce = 4;
+    constexpr int firstSectionIndex = 0;   // where the engine resets to when it halts
 
     const std::vector<ChordQuality> everyChordQuality {
         ChordQuality::None, ChordQuality::Maj, ChordQuality::Min, ChordQuality::Dom7, ChordQuality::Maj7,
@@ -103,6 +107,8 @@ namespace ArrangerStressText
     const juce::String noSectionActive    = "the active section is not one of the style's sections";
     const juce::String endingNeverStopped = "the Ending never stopped the arranger";
     const juce::String nothingPlayed      = "the arranger emitted no notes at all";
+    const juce::String notesLeaked        = "more notes sounding at once than a section can hold: a note leaked";
+    const juce::String endingDidNotReset  = "after the Ending the engine is not back on the first section";
 }
 
 class ArrangerStressTest : public juce::UnitTest
@@ -287,6 +293,7 @@ private:
         engine.setStyle (style);
 
         bool sectionAlwaysValid = true;
+        int mostSounding {};
         double playhead {};
         for (int window {}; window < stormWindows; ++window)
         {
@@ -300,6 +307,7 @@ private:
             engine.renderRange (playhead, playhead + windowLength);
             playhead += windowLength;
 
+            mostSounding = std::max (mostSounding, ledger.stillSounding());
             const int active = engine.getActiveSectionIndex();
             sectionAlwaysValid = sectionAlwaysValid && active >= int {} && active < (int) style.sections.size();
         }
@@ -307,6 +315,7 @@ private:
 
         expect (ledger.notesStarted > int {}, nothingPlayed);
         expect (sectionAlwaysValid, noSectionActive);
+        expect (mostSounding <= mostNotesSoundingAtOnce, notesLeaked + juce::String (mostSounding));
         expectAllMessagesValid (ledger);
         expectEquals (ledger.stillSounding(), int {}, stuckNote);
     }
@@ -387,6 +396,7 @@ private:
         }
 
         expect (ended, endingNeverStopped);
+        expectEquals (engine.getActiveSectionIndex(), firstSectionIndex, endingDidNotReset);
         expectEquals (soundingWhenEnded, int {}, stuckNote);
         expectAllMessagesValid (ledger);
     }
@@ -419,14 +429,14 @@ private:
         engine.onMidiMessage = [&] (const juce::MidiMessage& message) { ledger.record (message); };
         engine.setStyle (style);
 
-        ArrangerChord cMajor;
-        cMajor.root = pitchClassC;
-        cMajor.quality = ChordQuality::Maj;
-        ArrangerChord fSharpMajor = cMajor;
+        ArrangerChord dMajor;
+        dMajor.root = pitchClassD;
+        dMajor.quality = ChordQuality::Maj;
+        ArrangerChord fSharpMajor = dMajor;
         fSharpMajor.root = pitchClassFSharp;
 
-        engine.setActiveChord (cMajor);
-        engine.renderRange (onBeat, quarterBeat);          // first start sounds under C
+        engine.setActiveChord (dMajor);
+        engine.renderRange (onBeat, quarterBeat);          // first start sounds under D
         engine.setActiveChord (fSharpMajor);
         engine.renderRange (quarterBeat, beatsPerBar);     // second start under F#, then both releases
 
