@@ -13,6 +13,13 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Skipped tests are counted and listed
+- A test that can't run here logs `SKIPPED - <reason>`; the runner counts these per case and prints
+  `| skipped: N` on every line and the TOTAL, plus a list (test / case: reason). CI prints
+  `N passed, K skipped` per suite and writes both, with the reasons, to the GitHub run summary.
+- The list exposed a mis-gated HW test: the *output*-device name case skipped on *no input device*
+  and used the input index; fixed (it now runs: integration 130 passed / 7 skipped locally).
+
 ## 2026-11-22 — New house rule: names, not values (enforced by CI)
 - Owner's rule: no bare numbers (not even 0/1), no inline strings (incl. UI text, test names and
   messages), meaningful identifiers (only `g` in paint() and short loop indices). In AGENTS.md.
