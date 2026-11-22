@@ -5,15 +5,13 @@ namespace ArrangerTimelineGeometry
 {
     namespace
     {
-        constexpr int    marginSides   = 2;     // left and right
         constexpr double roundToNearest = 0.5;
         constexpr int    regionTop     = 0;
-        constexpr int    pastLastBar   = 1;     // the bar line after the last bar is a valid snap target
     }
 
     double pixelsPerBar (const Layout& layout)
     {
-        const int usable = juce::jmax (kMinimumPixels, layout.widthPx - marginSides * layout.marginPx);
+        const int usable = juce::jmax (kMinimumPixels, layout.widthPx - kMarginSides * layout.marginPx);
         return (double) usable / (double) juce::jmax (kMinimumBars, layout.totalBars);
     }
 
@@ -26,7 +24,7 @@ namespace ArrangerTimelineGeometry
     {
         const double bar = (pixelX - (double) layout.marginPx) / pixelsPerBar (layout) + kFirstBar;
         const int snapped = (int) std::floor (bar + roundToNearest);
-        return juce::jlimit (kFirstBar, layout.totalBars + pastLastBar, snapped);
+        return juce::jlimit (kFirstBar, layout.totalBars + kPastLastBar, snapped);
     }
 
     juce::Rectangle<int> regionBounds (int startBar, int lengthBars, const Layout& layout, int heightPx)

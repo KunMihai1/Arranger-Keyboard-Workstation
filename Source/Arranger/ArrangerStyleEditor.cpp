@@ -221,9 +221,9 @@ ArrangerStyleEditor::ArrangerStyleEditor (ArrangerEngine& engineToPreviewWith) :
         if (followPlayhead && viewWidth > int {}
             && (playheadX < viewX + followEdgeMargin || playheadX > viewX + viewWidth - followEdgeMargin))
         {
-            const int maxX = juce::jmax (noScroll, timeline.getWidth() - viewWidth);
+            const int maxScrollX = juce::jmax (noScroll, timeline.getWidth() - viewWidth);
             programmaticScroll = true;   // our own scroll: don't treat it as a manual one
-            timelineViewport.setViewPosition (juce::jlimit (noScroll, maxX, playheadX - viewWidth / halfViewDivisor), viewTop);
+            timelineViewport.setViewPosition (juce::jlimit (noScroll, maxScrollX, playheadX - viewWidth / halfViewDivisor), viewTop);
             programmaticScroll = false;
         }
     };

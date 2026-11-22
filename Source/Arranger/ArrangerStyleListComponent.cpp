@@ -121,15 +121,15 @@ void ArrangerStyleListComponent::paintListBoxItem (int row, juce::Graphics& g, i
         nameX = nameAfterCheckX;
     }
 
-    const int activeLabelW = isActive ? activeTagWidth : noWidth;
+    const int activeTagSpace = isActive ? activeTagWidth : noWidth;
     g.setColour (text);
-    g.drawText (rowName, nameX, rowTop, rowWidth - nameX - rowPadding - activeLabelW, rowHeight, juce::Justification::centredLeft);
+    g.drawText (rowName, nameX, rowTop, rowWidth - nameX - rowPadding - activeTagSpace, rowHeight, juce::Justification::centredLeft);
 
     if (isActive)                                        // trailing "active" tag
     {
         g.setColour (accent);
         g.setFont (juce::jmin (maxTagFontHeight, (float) rowHeight - tagFontInset));
-        g.drawText (activeTag, rowWidth - rowPadding - activeLabelW, rowTop, activeLabelW, rowHeight, juce::Justification::centredRight);
+        g.drawText (activeTag, rowWidth - rowPadding - activeTagSpace, rowTop, activeTagSpace, rowHeight, juce::Justification::centredRight);
     }
 }
 

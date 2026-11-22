@@ -7,10 +7,8 @@ using namespace ArrangerTimelineGeometry;
 
 namespace
 {
-    constexpr int   marginSides        = 2;      // left and right
     constexpr int   regionTop          = 18;     // regions sit below the bar numbers
     constexpr int   regionBottomSpace  = 26;     // ruler + bottom gap taken from the height
-    constexpr int   pastLastBar        = 1;      // the bar line after the last bar
     constexpr int   oneWindow          = 1;      // size() - oneWindow is the last window's index
     constexpr int   lastBarOffset      = 1;      // a region of N bars ends N - 1 bars after its start
     constexpr int   barNumberInsetX    = 3;
@@ -42,7 +40,7 @@ Layout ArrangerTimelineComponent::layout() const
 
 int ArrangerTimelineComponent::getPreferredWidth() const
 {
-    return marginPx * marginSides + juce::jmax (kMinimumBars, totalBars) * kPixelsPerBar;
+    return marginPx * kMarginSides + juce::jmax (kMinimumBars, totalBars) * kPixelsPerBar;
 }
 
 int ArrangerTimelineComponent::xForBar (double bar) const
@@ -108,8 +106,8 @@ void ArrangerTimelineComponent::paint (juce::Graphics& g)
     // bar grid + numbers — restricted to the visible bar range
     int firstBar = (int) std::floor (((double) clip.getX()     - marginPx) / barWidth) + kFirstBar;
     int lastBar  = (int) std::ceil  (((double) clip.getRight() - marginPx) / barWidth) + kFirstBar;
-    firstBar = juce::jlimit (kFirstBar, totalBars + pastLastBar, firstBar);
-    lastBar  = juce::jlimit (kFirstBar, totalBars + pastLastBar, lastBar);
+    firstBar = juce::jlimit (kFirstBar, totalBars + kPastLastBar, firstBar);
+    lastBar  = juce::jlimit (kFirstBar, totalBars + kPastLastBar, lastBar);
 
     for (int bar = firstBar; bar <= lastBar; ++bar)
     {
@@ -192,7 +190,7 @@ void ArrangerTimelineComponent::mouseDrag (const juce::MouseEvent& event)
     if (dragMode == Hit::Body)
     {
         // Absolute positioning via the grab offset stays correct while the view auto-scrolls.
-        window.startBar = juce::jlimit (kFirstBar, totalBars + pastLastBar - dragStartLenValue, barUnderCursor - dragGrabOffsetBars);
+        window.startBar = juce::jlimit (kFirstBar, totalBars + kPastLastBar - dragStartLenValue, barUnderCursor - dragGrabOffsetBars);
     }
     else if (dragMode == Hit::LeftEdge)
     {
@@ -202,7 +200,7 @@ void ArrangerTimelineComponent::mouseDrag (const juce::MouseEvent& event)
     }
     else if (dragMode == Hit::RightEdge)
     {
-        const int newEnd = juce::jlimit (window.startBar + kMinimumBars, totalBars + pastLastBar, barUnderCursor);
+        const int newEnd = juce::jlimit (window.startBar + kMinimumBars, totalBars + kPastLastBar, barUnderCursor);
         window.lengthBars = newEnd - window.startBar;
     }
 

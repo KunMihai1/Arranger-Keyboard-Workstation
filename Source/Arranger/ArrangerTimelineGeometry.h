@@ -6,6 +6,8 @@ namespace ArrangerTimelineGeometry
     constexpr int kFirstBar      = 1;   // bars are 1-based on the timeline
     constexpr int kMinimumBars   = 1;
     constexpr int kMinimumPixels = 1;
+    constexpr int kMarginSides   = 2;   // the margin is applied left and right
+    constexpr int kPastLastBar   = 1;   // the bar line after the last bar is a valid position
 
     struct Layout
     {
