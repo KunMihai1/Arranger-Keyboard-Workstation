@@ -5,48 +5,68 @@
 #include "InstrumentHandler.h"
 #include "MidiRecordPlayer.h"
 
+namespace InstrumentHandlerTestValues
+{
+    using Preset = std::vector<std::pair<int, int>>;
 
+    const juce::String testName     = "InstrumentHandler";
+    const juce::String testCategory = "Unit";
+
+    const juce::String grandPianoPreset     = "getPreset - program 0 is the grand-piano CC preset";
+    const juce::String knownProgramPreset   = "getPreset - a known program returns its 5-CC preset";
+    const juce::String unknownProgramEmpty  = "getPreset - an unknown program is empty";
+    const juce::String seededProgramsListed = "getInstrumentPresets - contains the seeded programs";
+
+    // {CC, value}; -1 leaves that controller untouched.
+    const Preset expectedGrandPiano { {91,-1}, {93,10}, {74,100}, {71,40}, {11,127} };
+    constexpr int grandPiano       = 0;
+    constexpr int electricPiano    = 4;
+    constexpr int violin           = 41;
+    constexpr int unknownProgram   = 9999;
+    constexpr int ccsPerPreset     = 5;
+    const std::pair<int, int> reverbSendFirst { 91, -1 };
+    constexpr size_t fewestSeeded  = 30;
+}
 
 //======================================================================================
-//  InstrumentHandler — predefined per-program CC presets (previously untested)
+//  InstrumentHandler - predefined per-program CC presets (previously untested)
 //======================================================================================
 class InstrumentHandlerTest : public juce::UnitTest
 {
 public:
-    InstrumentHandlerTest() : juce::UnitTest("InstrumentHandler", "Unit") {}
+    InstrumentHandlerTest() : juce::UnitTest(InstrumentHandlerTestValues::testName, InstrumentHandlerTestValues::testCategory) {}
 
     void runTest() override
     {
-        using Preset = std::vector<std::pair<int, int>>;
+        using namespace InstrumentHandlerTestValues;
 
-        beginTest("getPreset - program 0 is the grand-piano CC preset");
+        beginTest(grandPianoPreset);
         {
-            InstrumentHandler h;
-            const Preset expected { {91,-1}, {93,10}, {74,100}, {71,40}, {11,127} };
-            expect(h.getPreset(0) == expected);
+            InstrumentHandler handler;
+            expect(handler.getPreset(grandPiano) == expectedGrandPiano);
         }
 
-        beginTest("getPreset - a known program returns its 5-CC preset");
+        beginTest(knownProgramPreset);
         {
-            InstrumentHandler h;
-            const auto& p = h.getPreset(4);   // electric piano
-            expectEquals((int) p.size(), 5);
-            expect(p.front() == std::make_pair(91, -1));   // reverb-send CC first
+            InstrumentHandler handler;
+            const auto& preset = handler.getPreset(electricPiano);
+            expectEquals((int) preset.size(), ccsPerPreset);
+            expect(preset.front() == reverbSendFirst);   // reverb-send CC first
         }
 
-        beginTest("getPreset - an unknown program is empty");
+        beginTest(unknownProgramEmpty);
         {
-            InstrumentHandler h;
-            expect(h.getPreset(9999).empty());
+            InstrumentHandler handler;
+            expect(handler.getPreset(unknownProgram).empty());
         }
 
-        beginTest("getInstrumentPresets - contains the seeded programs");
+        beginTest(seededProgramsListed);
         {
-            InstrumentHandler h;
-            const auto& m = h.getInstrumentPresets();
-            expect(m.find(0)  != m.end());    // grand piano
-            expect(m.find(41) != m.end());    // violin
-            expect(m.size() >= 30);
+            InstrumentHandler handler;
+            const auto& presets = handler.getInstrumentPresets();
+            expect(presets.find(grandPiano) != presets.end());
+            expect(presets.find(violin)     != presets.end());
+            expect(presets.size() >= fewestSeeded);
         }
     }
 };

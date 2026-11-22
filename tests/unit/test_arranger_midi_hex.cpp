@@ -2,36 +2,58 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include "Arranger/ArrangerMidiHex.h"
 
+namespace ArrangerMidiHexTestValues
+{
+    const juce::String testName     = "ArrangerMidiHex";
+    const juce::String testCategory = "Arranger";
+
+    const juce::String noteOnRoundTrip  = "note-on round-trips through hex";
+    const juce::String noteOffRoundTrip = "note-off round-trips through hex";
+    const juce::String upperCaseNoSeparators = "hex string is uppercase bytes with no separators";
+
+    constexpr int         drumChannel   = 10;
+    constexpr int         kickNote      = 36;
+    constexpr juce::uint8 velocity      = 100;
+    constexpr int         bassChannel   = 2;
+    constexpr int         middleC       = 60;
+    constexpr int         firstChannel  = 1;
+    constexpr int         hexNote       = 0x24;
+    constexpr juce::uint8 hexVelocity   = 0x64;
+    const juce::String    expectedHex   = "902464";   // 90 24 64: note-on channel 1, note 0x24, velocity 0x64
+}
+
 class ArrangerMidiHexTest : public juce::UnitTest
 {
 public:
-    ArrangerMidiHexTest() : juce::UnitTest ("ArrangerMidiHex", "Arranger") {}
+    ArrangerMidiHexTest() : juce::UnitTest (ArrangerMidiHexTestValues::testName, ArrangerMidiHexTestValues::testCategory) {}
 
     void runTest() override
     {
-        beginTest ("note-on round-trips through hex");
+        using namespace ArrangerMidiHexTestValues;
+
+        beginTest (noteOnRoundTrip);
         {
-            auto m = juce::MidiMessage::noteOn (10, 36, (juce::uint8) 100);
-            auto back = ArrangerMidiHex::fromHex (ArrangerMidiHex::toHex (m));
+            auto message = juce::MidiMessage::noteOn (drumChannel, kickNote, velocity);
+            auto back = ArrangerMidiHex::fromHex (ArrangerMidiHex::toHex (message));
             expect (back.isNoteOn());
-            expectEquals (back.getChannel(), 10);
-            expectEquals (back.getNoteNumber(), 36);
-            expectEquals ((int) back.getVelocity(), 100);
+            expectEquals (back.getChannel(), drumChannel);
+            expectEquals (back.getNoteNumber(), kickNote);
+            expectEquals ((int) back.getVelocity(), (int) velocity);
         }
 
-        beginTest ("note-off round-trips through hex");
+        beginTest (noteOffRoundTrip);
         {
-            auto m = juce::MidiMessage::noteOff (2, 60);
-            auto back = ArrangerMidiHex::fromHex (ArrangerMidiHex::toHex (m));
+            auto message = juce::MidiMessage::noteOff (bassChannel, middleC);
+            auto back = ArrangerMidiHex::fromHex (ArrangerMidiHex::toHex (message));
             expect (back.isNoteOff());
-            expectEquals (back.getChannel(), 2);
-            expectEquals (back.getNoteNumber(), 60);
+            expectEquals (back.getChannel(), bassChannel);
+            expectEquals (back.getNoteNumber(), middleC);
         }
 
-        beginTest ("hex string is uppercase bytes with no separators");
+        beginTest (upperCaseNoSeparators);
         {
-            auto m = juce::MidiMessage::noteOn (1, 0x24, (juce::uint8) 0x64); // 90 24 64
-            expectEquals (ArrangerMidiHex::toHex (m), juce::String ("902464"));
+            auto message = juce::MidiMessage::noteOn (firstChannel, hexNote, hexVelocity);
+            expectEquals (ArrangerMidiHex::toHex (message), expectedHex);
         }
     }
 };

@@ -2,6 +2,34 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "OverlayComponent.h"
 
+namespace OverlayIntegrationTestValues
+{
+    const juce::String testName     = "OverlayComponent Integration";
+    const juce::String testCategory = "Integration";
+
+    const juce::String escCycle            = "Integration - ESC open/close cycle simulates MainComponent behavior";
+    const juce::String settingsCreatesMidi = "Integration - Settings button triggers MIDI window creation";
+    const juce::String windowFlagOnEsc     = "Integration - setWindowFlag updates external state on ESC without onRequestClose";
+    const juce::String bringWindowFront    = "Integration - bringSeparateWindowFront callback brings MIDI window to front";
+    const juce::String fullLifecycle       = "Integration - Full overlay lifecycle";
+    const juce::String focusControlsVisibility = "Integration - overlay visibility controlled by app focus state";
+    const juce::String cyclesDoNotLeak     = "Integration - multiple create/destroy cycles do not leak";
+    const juce::String settingsEveryClick  = "Integration - clicking settings multiple times calls callback each time";
+    const juce::String resizeGivesLayout   = "Integration - show then resize provides usable button layout";
+    const juce::String escClosesOverlay    = "Integration - ESC on overlay triggers keyPressed -> onRequestClose -> destroys overlay";
+
+    constexpr int screenLeft   = 0;
+    constexpr int screenTop    = 0;
+    constexpr int screenWidth  = 1920;
+    constexpr int screenHeight = 1080;
+    constexpr int createCycles = 10;
+    constexpr int threeClicks  = 3;
+    constexpr int noSize       = 0;
+}
+
+using namespace OverlayIntegrationTestValues;
+
+
 // ==================================================================
 // INTEGRATION TESTS
 // These tests verify OverlayComponent behavior in realistic
@@ -13,13 +41,13 @@ class OverlayComponentIntegrationTest : public juce::UnitTest
 {
 public:
     OverlayComponentIntegrationTest()
-        : juce::UnitTest("OverlayComponent Integration", "Integration") {}
+        : juce::UnitTest(testName, testCategory) {}
 
     void runTest() override
     {
         // ---- Simulated MainComponent integration: ESC open/close cycle ----
 
-        beginTest("Integration - ESC open/close cycle simulates MainComponent behavior");
+        beginTest(escCycle);
         {
             // Simulate the overlayWindow unique_ptr pattern from MainComponent
             std::unique_ptr<OverlayComponent> overlayWindow = nullptr;
@@ -27,7 +55,7 @@ public:
 
             // First ESC press: create and show overlay
             overlayWindow = std::make_unique<OverlayComponent>();
-            overlayWindow->setBounds(0, 0, 1920, 1080);
+            overlayWindow->setBounds(screenLeft, screenTop, screenWidth, screenHeight);
             overlayWindow->showOverlay();
             overlayShouldBeVisible = true;
 
@@ -54,7 +82,7 @@ public:
 
         // ---- Settings button opens settings window ----
 
-        beginTest("Integration - Settings button triggers MIDI window creation");
+        beginTest(settingsCreatesMidi);
         {
             OverlayComponent overlay;
             bool midiWindowCreated = false;
@@ -75,7 +103,7 @@ public:
 
         // ---- setWindowFlag callback integration ----
 
-        beginTest("Integration - setWindowFlag updates external state on ESC without onRequestClose");
+        beginTest(windowFlagOnEsc);
         {
             OverlayComponent overlay;
             bool overlayShouldBeVisible = true;
@@ -98,7 +126,7 @@ public:
 
         // ---- bringSeparateWindowFront callback integration ----
 
-        beginTest("Integration - bringSeparateWindowFront callback brings MIDI window to front");
+        beginTest(bringWindowFront);
         {
             OverlayComponent overlay;
             bool midiWindowBroughtToFront = false;
@@ -115,7 +143,7 @@ public:
 
         // ---- Full lifecycle: create, configure, show, interact, close ----
 
-        beginTest("Integration - Full overlay lifecycle");
+        beginTest(fullLifecycle);
         {
             std::unique_ptr<OverlayComponent> overlayWindow = nullptr;
             bool overlayShouldBeVisible = false;
@@ -124,7 +152,7 @@ public:
 
             // Step 1: Create overlay (simulating first ESC press)
             overlayWindow = std::make_unique<OverlayComponent>();
-            overlayWindow->setBounds(0, 0, 1920, 1080);
+            overlayWindow->setBounds(screenLeft, screenTop, screenWidth, screenHeight);
             overlayShouldBeVisible = true;
 
             // Step 2: Wire up all callbacks (like MainComponent does)
@@ -171,7 +199,7 @@ public:
 
         // ---- globalFocusChanged simulation: hide/show on app deactivate/activate ----
 
-        beginTest("Integration - overlay visibility controlled by app focus state");
+        beginTest(focusControlsVisibility);
         {
             std::unique_ptr<OverlayComponent> overlayWindow = std::make_unique<OverlayComponent>();
             bool overlayShouldBeVisible = true;
@@ -198,9 +226,9 @@ public:
 
         // ---- Multiple open/close cycles ----
 
-        beginTest("Integration - multiple create/destroy cycles do not leak");
+        beginTest(cyclesDoNotLeak);
         {
-            for (int i = 0; i < 10; ++i)
+            for (int cycle {}; cycle < createCycles; ++cycle)
             {
                 std::unique_ptr<OverlayComponent> overlayWindow = std::make_unique<OverlayComponent>();
                 bool overlayShouldBeVisible = true;
@@ -224,10 +252,10 @@ public:
 
         // ---- Settings button idempotency ----
 
-        beginTest("Integration - clicking settings multiple times calls callback each time");
+        beginTest(settingsEveryClick);
         {
             OverlayComponent overlay;
-            int callCount = 0;
+            int callCount {};
 
             overlay.onSettingsClick = [&callCount]() { callCount++; };
 
@@ -235,15 +263,15 @@ public:
             overlay.getSettingsButton().onClick();
             overlay.getSettingsButton().onClick();
 
-            expect(callCount == 3);
+            expect(callCount == threeClicks);
         }
 
         // ---- Resized after showOverlay sets valid button bounds ----
 
-        beginTest("Integration - show then resize provides usable button layout");
+        beginTest(resizeGivesLayout);
         {
             OverlayComponent overlay;
-            overlay.setBounds(0, 0, 1920, 1080);
+            overlay.setBounds(screenLeft, screenTop, screenWidth, screenHeight);
             overlay.setVisible(true);
             overlay.resized();
 
@@ -251,10 +279,10 @@ public:
             auto& exit = overlay.getExitButton();
 
             // Buttons should have been laid out
-            expect(settings.getWidth() > 0);
-            expect(settings.getHeight() > 0);
-            expect(exit.getWidth() > 0);
-            expect(exit.getHeight() > 0);
+            expect(settings.getWidth() > noSize);
+            expect(settings.getHeight() > noSize);
+            expect(exit.getWidth() > noSize);
+            expect(exit.getHeight() > noSize);
 
             // Settings button should be above exit button
             expect(settings.getY() < exit.getY());
@@ -262,7 +290,7 @@ public:
 
         // ---- ESC keyPressed dispatches correctly through onRequestClose ----
 
-        beginTest("Integration - ESC on overlay triggers keyPressed -> onRequestClose -> destroys overlay");
+        beginTest(escClosesOverlay);
         {
             std::unique_ptr<OverlayComponent> overlayWindow = std::make_unique<OverlayComponent>();
             bool overlayShouldBeVisible = true;

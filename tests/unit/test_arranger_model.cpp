@@ -2,14 +2,34 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include "Arranger/ArrangerModel.h"
 
+namespace ArrangerModelTestValues
+{
+    const juce::String testName     = "ArrangerModel";
+    const juce::String testCategory = "Arranger";
+
+    const juce::String defaultsAndAssembly         = "defaults and assembly";
+    const juce::String schemaAndAfterCompleteDefaults = "schema v2 and after-complete defaults";
+
+    constexpr int          bassChannel    = 2;
+    constexpr double       patternStart   = 0.0;
+    constexpr int          middleC        = 60;
+    constexpr juce::uint8  velocity       = 100;
+    constexpr int          twoBars        = 2;
+    constexpr int          oneItem        = 1;
+    constexpr int          firstItem      = 0;
+    constexpr int          schemaVersion2 = 2;
+}
+
 class ArrangerModelTest : public juce::UnitTest
 {
 public:
-    ArrangerModelTest() : juce::UnitTest ("ArrangerModel", "Arranger") {}
+    ArrangerModelTest() : juce::UnitTest (ArrangerModelTestValues::testName, ArrangerModelTestValues::testCategory) {}
 
     void runTest() override
     {
-        beginTest ("defaults and assembly");
+        using namespace ArrangerModelTestValues;
+
+        beginTest (defaultsAndAssembly);
         {
             ArrangerStyle style;
             expect (style.schemaVersion == ARRANGER_SCHEMA_VERSION);
@@ -17,31 +37,31 @@ public:
 
             ArrangerTrack track;
             track.partType = ArrangerPartType::Bass;
-            track.channel  = 2;
-            track.pattern.push_back ({ 0.0, juce::MidiMessage::noteOn (2, 60, (juce::uint8) 100) });
+            track.channel  = bassChannel;
+            track.pattern.push_back ({ patternStart, juce::MidiMessage::noteOn (bassChannel, middleC, velocity) });
 
             ArrangerSection section;
             section.type = ArrangerSectionType::Variation;
-            section.lengthBars = 2;
+            section.lengthBars = twoBars;
             section.tracks.push_back (track);
 
             style.sections.push_back (section);
 
-            expectEquals ((int) style.sections.size(), 1);
-            expectEquals (style.sections[0].lengthBars, 2);
-            expectEquals ((int) style.sections[0].tracks[0].pattern.size(), 1);
-            expect (style.sections[0].tracks[0].partType == ArrangerPartType::Bass);
+            expectEquals ((int) style.sections.size(), oneItem);
+            expectEquals (style.sections[firstItem].lengthBars, twoBars);
+            expectEquals ((int) style.sections[firstItem].tracks[firstItem].pattern.size(), oneItem);
+            expect (style.sections[firstItem].tracks[firstItem].partType == ArrangerPartType::Bass);
         }
 
-        beginTest ("schema v2 and after-complete defaults");
+        beginTest (schemaAndAfterCompleteDefaults);
         {
-            expectEquals (ARRANGER_SCHEMA_VERSION, 2);
+            expectEquals (ARRANGER_SCHEMA_VERSION, schemaVersion2);
 
-            ArrangerSection s;
-            expect (s.afterComplete == ArrangerAfterComplete::Loop); // sections loop unless told otherwise
+            ArrangerSection section;
+            expect (section.afterComplete == ArrangerAfterComplete::Loop); // sections loop unless told otherwise
 
-            s.afterComplete = ArrangerAfterComplete::Stop;
-            expect (s.afterComplete == ArrangerAfterComplete::Stop);
+            section.afterComplete = ArrangerAfterComplete::Stop;
+            expect (section.afterComplete == ArrangerAfterComplete::Stop);
         }
     }
 };

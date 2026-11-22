@@ -1,29 +1,47 @@
 #include <juce_core/juce_core.h>
 #include "Arranger/ArrangerDefaults.h"
 
+namespace ArrangerDefaultsTestValues
+{
+    const juce::String testName     = "ArrangerDefaults";
+    const juce::String testCategory = "Arranger";
+
+    const juce::String singleVariationCoversRecording = "default is a single Variation covering the whole recording";
+    const juce::String emptyClampsToOneBar            = "zero or negative bars clamps to a 1-bar Variation";
+
+    constexpr int recordingBars = 8;
+    constexpr int noBars        = 0;
+    constexpr int oneWindow     = 1;
+    constexpr int firstWindow   = 0;
+    constexpr int firstBar      = 1;
+    constexpr int oneBar        = 1;
+}
+
 class ArrangerDefaultsTest : public juce::UnitTest
 {
 public:
-    ArrangerDefaultsTest() : juce::UnitTest ("ArrangerDefaults", "Arranger") {}
+    ArrangerDefaultsTest() : juce::UnitTest (ArrangerDefaultsTestValues::testName, ArrangerDefaultsTestValues::testCategory) {}
 
     void runTest() override
     {
-        beginTest ("default is a single Variation covering the whole recording");
+        using namespace ArrangerDefaultsTestValues;
+
+        beginTest (singleVariationCoversRecording);
         {
-            auto w = ArrangerDefaults::defaultWindowsForBars (8);
-            expectEquals ((int) w.size(), 1);
-            expect (w[0].type == ArrangerSectionType::Variation);
-            expectEquals (w[0].startBar, 1);
-            expectEquals (w[0].lengthBars, 8);
-            expect (w[0].afterComplete == ArrangerAfterComplete::Loop);
-            expect (w[0].id.isNotEmpty());
+            auto windows = ArrangerDefaults::defaultWindowsForBars (recordingBars);
+            expectEquals ((int) windows.size(), oneWindow);
+            expect (windows[firstWindow].type == ArrangerSectionType::Variation);
+            expectEquals (windows[firstWindow].startBar, firstBar);
+            expectEquals (windows[firstWindow].lengthBars, recordingBars);
+            expect (windows[firstWindow].afterComplete == ArrangerAfterComplete::Loop);
+            expect (windows[firstWindow].id.isNotEmpty());
         }
 
-        beginTest ("zero or negative bars clamps to a 1-bar Variation");
+        beginTest (emptyClampsToOneBar);
         {
-            auto w = ArrangerDefaults::defaultWindowsForBars (0);
-            expectEquals ((int) w.size(), 1);
-            expectEquals (w[0].lengthBars, 1);
+            auto windows = ArrangerDefaults::defaultWindowsForBars (noBars);
+            expectEquals ((int) windows.size(), oneWindow);
+            expectEquals (windows[firstWindow].lengthBars, oneBar);
         }
     }
 };

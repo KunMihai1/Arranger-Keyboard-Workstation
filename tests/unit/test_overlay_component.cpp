@@ -2,28 +2,79 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "OverlayComponent.h"
 
+namespace OverlayComponentTestValues
+{
+    const juce::String testName     = "OverlayComponent Unit";
+    const juce::String testCategory = "Unit";
+
+    const juce::String constructorStartsInvisible = "Constructor - starts invisible";
+    const juce::String constructorIsNotOpaque = "Constructor - is not opaque";
+    const juce::String constructorWantsKeyboardFocus = "Constructor - wants keyboard focus";
+    const juce::String settingsButtonTextIsSettings = "Settings button - text is 'Settings'";
+    const juce::String settingsButtonHasPointingHandCursor = "Settings button - has pointing hand cursor";
+    const juce::String settingsButtonTextColourIsWhite = "Settings button - text colour is white";
+    const juce::String exitButtonTextIsExit = "Exit button - text is 'Exit'";
+    const juce::String exitButtonHasPointingHandCursor = "Exit button - has pointing hand cursor";
+    const juce::String exitButtonTextColourIsWhite = "Exit button - text colour is white";
+    const juce::String showOverlaySetVisibleTrueMakesComponentVisible = "showOverlay - setVisible true makes component visible";
+    const juce::String hideOverlayMakesComponentInvisible = "hideOverlay - makes component invisible";
+    const juce::String showThenHideThenShowTogglesCorrectly = "show then hide then show - toggles correctly";
+    const juce::String getExitButtonReturnsAValidReference = "getExitButton returns a valid reference";
+    const juce::String getSettingsButtonReturnsAValidReference = "getSettingsButton returns a valid reference";
+    const juce::String settingsButtonClickInvokesOnSettingsClickCallback = "Settings button click - invokes onSettingsClick callback";
+    const juce::String settingsButtonClickNoCrashWhenOnSettingsClick = "Settings button click - no crash when onSettingsClick is null";
+    const juce::String keyPressedEscapeKeyReturnsTrue = "keyPressed - escape key returns true";
+    const juce::String keyPressedNonEscapeKeyReturnsFalse = "keyPressed - non-escape key returns false";
+    const juce::String keyPressedEscapeCallsOnRequestCloseWhenSet = "keyPressed - escape calls onRequestClose when set";
+    const juce::String keyPressedEscapeWithoutOnRequestCloseCallsSetWindowFlagAnd = "keyPressed - escape without onRequestClose calls setWindowFlag and hides";
+    const juce::String keyPressedEscapeWithoutOnRequestCloseAndWithoutSetWindowFlag = "keyPressed - escape without onRequestClose and without setWindowFlag still hides";
+    const juce::String bringSeparateWindowFrontCallableWhenSet = "bringSeparateWindowFront - callable when set";
+    const juce::String bringSeparateWindowFrontNullCheckPreventsCrash = "bringSeparateWindowFront - null check prevents crash";
+    const juce::String paintExecutesWithoutCrash = "paint - executes without crash";
+    const juce::String resizedExecutesWithoutCrash = "resized - executes without crash";
+    const juce::String resizedSettingsButtonGetsNonZeroBounds = "resized - settings button gets non-zero bounds";
+    const juce::String resizedExitButtonGetsNonZeroBounds = "resized - exit button gets non-zero bounds";
+    const juce::String callbacksAreNullByDefault = "Callbacks are null by default";
+
+    const juce::String settingsText = "Settings";
+    const juce::String exitText = "Exit";
+
+    constexpr int letterKey = 'a';
+    constexpr int noModifiers = 0;
+    constexpr juce::juce_wchar noCharacter = 0;
+    constexpr int boundsLeft = 0;
+    constexpr int boundsTop = 0;
+    constexpr int smallWidth = 400;
+    constexpr int smallHeight = 300;
+    constexpr int largeWidth = 800;
+    constexpr int largeHeight = 600;
+    constexpr int noSize = 0;
+}
+
+using namespace OverlayComponentTestValues;
+
 class OverlayComponentUnitTest : public juce::UnitTest
 {
 public:
-    OverlayComponentUnitTest() : juce::UnitTest("OverlayComponent Unit", "Unit") {}
+    OverlayComponentUnitTest() : juce::UnitTest (OverlayComponentTestValues::testName, OverlayComponentTestValues::testCategory) {}
 
     void runTest() override
     {
         // ---- Constructor defaults ----
 
-        beginTest("Constructor - starts invisible");
+        beginTest(constructorStartsInvisible);
         {
             OverlayComponent overlay;
             expect(overlay.isVisible() == false);
         }
 
-        beginTest("Constructor - is not opaque");
+        beginTest(constructorIsNotOpaque);
         {
             OverlayComponent overlay;
             expect(overlay.isOpaque() == false);
         }
 
-        beginTest("Constructor - wants keyboard focus");
+        beginTest(constructorWantsKeyboardFocus);
         {
             OverlayComponent overlay;
             expect(overlay.getWantsKeyboardFocus() == true);
@@ -31,19 +82,19 @@ public:
 
         // ---- Settings button ----
 
-        beginTest("Settings button - text is 'Settings'");
+        beginTest(settingsButtonTextIsSettings);
         {
             OverlayComponent overlay;
-            expect(overlay.getSettingsButton().getButtonText() == "Settings");
+            expect(overlay.getSettingsButton().getButtonText() == settingsText);
         }
 
-        beginTest("Settings button - has pointing hand cursor");
+        beginTest(settingsButtonHasPointingHandCursor);
         {
             OverlayComponent overlay;
             expect(overlay.getSettingsButton().getMouseCursor() == juce::MouseCursor::PointingHandCursor);
         }
 
-        beginTest("Settings button - text colour is white");
+        beginTest(settingsButtonTextColourIsWhite);
         {
             OverlayComponent overlay;
             auto colour = overlay.getSettingsButton().findColour(juce::TextButton::textColourOffId);
@@ -52,19 +103,19 @@ public:
 
         // ---- Exit button ----
 
-        beginTest("Exit button - text is 'Exit'");
+        beginTest(exitButtonTextIsExit);
         {
             OverlayComponent overlay;
-            expect(overlay.getExitButton().getButtonText() == "Exit");
+            expect(overlay.getExitButton().getButtonText() == exitText);
         }
 
-        beginTest("Exit button - has pointing hand cursor");
+        beginTest(exitButtonHasPointingHandCursor);
         {
             OverlayComponent overlay;
             expect(overlay.getExitButton().getMouseCursor() == juce::MouseCursor::PointingHandCursor);
         }
 
-        beginTest("Exit button - text colour is white");
+        beginTest(exitButtonTextColourIsWhite);
         {
             OverlayComponent overlay;
             auto colour = overlay.getExitButton().findColour(juce::TextButton::textColourOffId);
@@ -73,7 +124,7 @@ public:
 
         // ---- showOverlay / hideOverlay ----
 
-        beginTest("showOverlay - setVisible true makes component visible");
+        beginTest(showOverlaySetVisibleTrueMakesComponentVisible);
         {
             OverlayComponent overlay;
             expect(overlay.isVisible() == false);
@@ -81,7 +132,7 @@ public:
             expect(overlay.isVisible() == true);
         }
 
-        beginTest("hideOverlay - makes component invisible");
+        beginTest(hideOverlayMakesComponentInvisible);
         {
             OverlayComponent overlay;
             overlay.showOverlay();
@@ -90,7 +141,7 @@ public:
             expect(overlay.isVisible() == false);
         }
 
-        beginTest("show then hide then show - toggles correctly");
+        beginTest(showThenHideThenShowTogglesCorrectly);
         {
             OverlayComponent overlay;
             overlay.showOverlay();
@@ -103,23 +154,23 @@ public:
 
         // ---- getExitButton / getSettingsButton accessors ----
 
-        beginTest("getExitButton returns a valid reference");
+        beginTest(getExitButtonReturnsAValidReference);
         {
             OverlayComponent overlay;
             auto& btn = overlay.getExitButton();
-            expect(btn.getButtonText() == "Exit");
+            expect(btn.getButtonText() == exitText);
         }
 
-        beginTest("getSettingsButton returns a valid reference");
+        beginTest(getSettingsButtonReturnsAValidReference);
         {
             OverlayComponent overlay;
             auto& btn = overlay.getSettingsButton();
-            expect(btn.getButtonText() == "Settings");
+            expect(btn.getButtonText() == settingsText);
         }
 
         // ---- Settings button callback ----
 
-        beginTest("Settings button click - invokes onSettingsClick callback");
+        beginTest(settingsButtonClickInvokesOnSettingsClickCallback);
         {
             OverlayComponent overlay;
             bool called = false;
@@ -128,7 +179,7 @@ public:
             expect(called == true);
         }
 
-        beginTest("Settings button click - no crash when onSettingsClick is null");
+        beginTest(settingsButtonClickNoCrashWhenOnSettingsClick);
         {
             OverlayComponent overlay;
             overlay.onSettingsClick = nullptr;
@@ -138,21 +189,21 @@ public:
 
         // ---- keyPressed ----
 
-        beginTest("keyPressed - escape key returns true");
+        beginTest(keyPressedEscapeKeyReturnsTrue);
         {
             OverlayComponent overlay;
             bool result = overlay.keyPressed(juce::KeyPress(juce::KeyPress::escapeKey));
             expect(result == true);
         }
 
-        beginTest("keyPressed - non-escape key returns false");
+        beginTest(keyPressedNonEscapeKeyReturnsFalse);
         {
             OverlayComponent overlay;
-            bool result = overlay.keyPressed(juce::KeyPress('a', 0, 0));
+            bool result = overlay.keyPressed(juce::KeyPress(letterKey, noModifiers, noCharacter));
             expect(result == false);
         }
 
-        beginTest("keyPressed - escape calls onRequestClose when set");
+        beginTest(keyPressedEscapeCallsOnRequestCloseWhenSet);
         {
             OverlayComponent overlay;
             bool closeCalled = false;
@@ -161,7 +212,7 @@ public:
             expect(closeCalled == true);
         }
 
-        beginTest("keyPressed - escape without onRequestClose calls setWindowFlag and hides");
+        beginTest(keyPressedEscapeWithoutOnRequestCloseCallsSetWindowFlagAnd);
         {
             OverlayComponent overlay;
             overlay.onRequestClose = nullptr;
@@ -175,7 +226,7 @@ public:
             expect(overlay.isVisible() == false);
         }
 
-        beginTest("keyPressed - escape without onRequestClose and without setWindowFlag still hides");
+        beginTest(keyPressedEscapeWithoutOnRequestCloseAndWithoutSetWindowFlag);
         {
             OverlayComponent overlay;
             overlay.onRequestClose = nullptr;
@@ -189,7 +240,7 @@ public:
 
         // ---- bringSeparateWindowFront callback (tested via direct callback) ----
 
-        beginTest("bringSeparateWindowFront - callable when set");
+        beginTest(bringSeparateWindowFrontCallableWhenSet);
         {
             OverlayComponent overlay;
             bool called = false;
@@ -198,7 +249,7 @@ public:
             expect(called == true);
         }
 
-        beginTest("bringSeparateWindowFront - null check prevents crash");
+        beginTest(bringSeparateWindowFrontNullCheckPreventsCrash);
         {
             OverlayComponent overlay;
             overlay.bringSeparateWindowFront = nullptr;
@@ -208,12 +259,12 @@ public:
 
         // ---- paint ----
 
-        beginTest("paint - executes without crash");
+        beginTest(paintExecutesWithoutCrash);
         {
             OverlayComponent overlay;
-            overlay.setBounds(0, 0, 400, 300);
+            overlay.setBounds(boundsLeft, boundsTop, smallWidth, smallHeight);
 
-            juce::Image img(juce::Image::ARGB, 400, 300, true);
+            juce::Image img(juce::Image::ARGB, smallWidth, smallHeight, true);
             juce::Graphics g(img);
 
             overlay.paint(g);
@@ -222,37 +273,37 @@ public:
 
         // ---- resized ----
 
-        beginTest("resized - executes without crash");
+        beginTest(resizedExecutesWithoutCrash);
         {
             OverlayComponent overlay;
-            overlay.setBounds(0, 0, 800, 600);
+            overlay.setBounds(boundsLeft, boundsTop, largeWidth, largeHeight);
             overlay.resized();
             expect(true); // no crash
         }
 
-        beginTest("resized - settings button gets non-zero bounds");
+        beginTest(resizedSettingsButtonGetsNonZeroBounds);
         {
             OverlayComponent overlay;
-            overlay.setBounds(0, 0, 800, 600);
+            overlay.setBounds(boundsLeft, boundsTop, largeWidth, largeHeight);
             overlay.resized();
             auto& btn = overlay.getSettingsButton();
-            expect(btn.getWidth() > 0);
-            expect(btn.getHeight() > 0);
+            expect(btn.getWidth() > noSize);
+            expect(btn.getHeight() > noSize);
         }
 
-        beginTest("resized - exit button gets non-zero bounds");
+        beginTest(resizedExitButtonGetsNonZeroBounds);
         {
             OverlayComponent overlay;
-            overlay.setBounds(0, 0, 800, 600);
+            overlay.setBounds(boundsLeft, boundsTop, largeWidth, largeHeight);
             overlay.resized();
             auto& btn = overlay.getExitButton();
-            expect(btn.getWidth() > 0);
-            expect(btn.getHeight() > 0);
+            expect(btn.getWidth() > noSize);
+            expect(btn.getHeight() > noSize);
         }
 
         // ---- Callback defaults ----
 
-        beginTest("Callbacks are null by default");
+        beginTest(callbacksAreNullByDefault);
         {
             OverlayComponent overlay;
             expect(!overlay.onSettingsClick);

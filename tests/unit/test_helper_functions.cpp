@@ -1,38 +1,94 @@
 #include <juce_core/juce_core.h>
 #include "HelperFunctions.h"
+
+namespace HelperFunctionsTestValues
+{
+    const juce::String testName     = "MapHelper";
+    const juce::String testCategory = "Unit";
+
+    const juce::String intToStringNoteValidNotes = "intToStringNote - valid notes";
+    const juce::String intToStringNoteInvalidNotes = "intToStringNote - invalid notes";
+    const juce::String stringToIntNoteValidStrings = "stringToIntNote - valid strings";
+    const juce::String stringToIntNoteInvalidStrings = "stringToIntNote - invalid strings";
+    const juce::String intStringInt = "int-string-int";
+    const juce::String majorChordsReturnCorrectIntervalsRootMaj3 = "Major chords return correct intervals (root, maj3, perf5)";
+    const juce::String minorChordsReturnCorrectIntervalsRootMin3 = "Minor chords return correct intervals (root, min3, perf5)";
+    const juce::String diminishedChordsRootMin3Dim5 = "Diminished chords (root, min3, dim5)";
+    const juce::String augmentedChordsRootMaj3Aug5 = "Augmented chords (root, maj3, aug5)";
+    const juce::String sharpRootNotes = "Sharp root notes";
+    const juce::String invalidRootReturnsEmpty = "Invalid root returns empty";
+    const juce::String case7thChord = "7th chord";
+    const juce::String getNotesForChordUnknownRootReturnsEmptyForEvery = "getNotesForChord - unknown root returns empty for every quality";
+    const juce::String loadChordNeededAMatchedNameSetsImagesLoadedAnd = "loadChordNeeded - a matched name sets imagesLoaded and is idempotent";
+    const juce::String loadChordNeededUnknownChordStillMarksLoadedBut = "loadChordNeeded - unknown chord still marks loaded but assigns no image";
+
+    const juce::String chordHelperTestName = "ChordHelper";
+    constexpr int middleC = 60;
+    constexpr int concertA = 69;
+    constexpr int lowestNote = 0;
+    constexpr int highestNote = 127;
+    constexpr int belowRange = -1;
+    constexpr int aboveRange = 128;
+    constexpr int notANote = -1;
+    const juce::String middleCName = "C4";
+    const juce::String concertAName = "A4";
+    const juce::String lowestNoteName = "C-1";
+    const juce::String invalidName = "Invalid";
+    const juce::String nonsenseName = "XYZ";
+    const juce::String cMajor = "C Major";
+    const juce::String aMajor = "A Major";
+    const juce::String dMinor = "D Minor";
+    const juce::String cDiminished = "C Diminished";
+    const juce::String cAugmented = "C Augmented";
+    const juce::String fSharpMinor = "F# Minor";
+    const juce::String unknownRootChord = "X Major";
+    const juce::String cSeventh = "C7";
+    const juce::String unmatchedChord = "Z Wonky";
+    const juce::String notANoteRoot = "H ";
+    const juce::StringArray qualityNames { "Major", "Minor", "Diminished", "Augmented" };
+    const std::vector<int> cMajorNotes { 60, 64, 67 };
+    const std::vector<int> aMajorNotes { 69, 73, 76 };
+    const std::vector<int> dMinorNotes { 62, 65, 69 };
+    const std::vector<int> cDiminishedNotes { 60, 63, 66 };
+    const std::vector<int> cAugmentedNotes { 60, 64, 68 };
+    const std::vector<int> fSharpMinorNotes { 66, 69, 73 };
+    const std::vector<int> cSeventhNotes { 60, 64, 67, 70 };
+}
+
+using namespace HelperFunctionsTestValues;
 class MapHelperTest : public juce::UnitTest
 {
 public:
-    MapHelperTest() : juce::UnitTest("MapHelper", "Unit") {}
+    MapHelperTest() : juce::UnitTest (HelperFunctionsTestValues::testName, HelperFunctionsTestValues::testCategory) {}
     void runTest() override
     {
-        beginTest("intToStringNote - valid notes");
-        expect(MapHelper::intToStringNote(60) == "C4");   
-        expect(MapHelper::intToStringNote(69) == "A4");   
-        expect(MapHelper::intToStringNote(0) == "C-1");  
+        beginTest(intToStringNoteValidNotes);
+        expect(MapHelper::intToStringNote(middleC) == middleCName);   
+        expect(MapHelper::intToStringNote(concertA) == concertAName);   
+        expect(MapHelper::intToStringNote(lowestNote) == lowestNoteName);  
 
 
-        beginTest("intToStringNote - invalid notes");
-        expect(MapHelper::intToStringNote(-1) == "Invalid");
-        expect(MapHelper::intToStringNote(128) == "Invalid");
+        beginTest(intToStringNoteInvalidNotes);
+        expect(MapHelper::intToStringNote(belowRange) == invalidName);
+        expect(MapHelper::intToStringNote(aboveRange) == invalidName);
 
 
-        beginTest("stringToIntNote - valid strings");
-        expect(MapHelper::stringToIntNote("C4") == 60);
-        expect(MapHelper::stringToIntNote("A4") == 69);
+        beginTest(stringToIntNoteValidStrings);
+        expect(MapHelper::stringToIntNote(middleCName) == middleC);
+        expect(MapHelper::stringToIntNote(concertAName) == concertA);
 
 
-        beginTest("stringToIntNote - invalid strings");
-        expect(MapHelper::stringToIntNote("XYZ") == -1);
-        expect(MapHelper::stringToIntNote("") == -1);
+        beginTest(stringToIntNoteInvalidStrings);
+        expect(MapHelper::stringToIntNote(nonsenseName) == notANote);
+        expect(MapHelper::stringToIntNote({}) == notANote);
 
 
-        beginTest("int-string-int");
+        beginTest(intStringInt);
         
-        for (int i = 0; i <= 127; ++i)
+        for (int note = lowestNote; note <= highestNote; ++note)
         {
-            auto str = MapHelper::intToStringNote(i);
-            expect(MapHelper::stringToIntNote(str) == i);
+            auto str = MapHelper::intToStringNote(note);
+            expect(MapHelper::stringToIntNote(str) == note);
         }
     }
 };
@@ -40,69 +96,69 @@ public:
 class ChordHelperTest : public juce::UnitTest
 {
 public:
-    ChordHelperTest() : juce::UnitTest("ChordHelper", "Unit") {}
+    ChordHelperTest() : juce::UnitTest(chordHelperTestName, testCategory) {}
 
     void runTest() override
     {
-        beginTest("Major chords return correct intervals (root, maj3, perf5)");
+        beginTest(majorChordsReturnCorrectIntervalsRootMaj3);
         {
-            Chord c; c.name = "C Major";
-            auto notes = ChordHelper::getNotesForChord(c);
-            expect(notes == std::vector<int>({ 60, 64, 67 }));  
+            Chord chord; chord.name = cMajor;
+            auto notes = ChordHelper::getNotesForChord(chord);
+            expect(notes == cMajorNotes);  
         }
         {
-            Chord c; c.name = "A Major";
-            auto notes = ChordHelper::getNotesForChord(c);
-            expect(notes == std::vector<int>({ 69, 73, 76 }));  
+            Chord chord; chord.name = aMajor;
+            auto notes = ChordHelper::getNotesForChord(chord);
+            expect(notes == aMajorNotes);  
         }
-        beginTest("Minor chords return correct intervals (root, min3, perf5)");
+        beginTest(minorChordsReturnCorrectIntervalsRootMin3);
         {
-            Chord c; c.name = "D Minor";
-            auto notes = ChordHelper::getNotesForChord(c);
-            expect(notes == std::vector<int>({ 62, 65, 69 }));  
-        }
-
-        beginTest("Diminished chords (root, min3, dim5)");
-        {
-            Chord c; c.name = "C Diminished";
-            auto notes = ChordHelper::getNotesForChord(c);
-            expect(notes == std::vector<int>({ 60, 63, 66 }));
+            Chord chord; chord.name = dMinor;
+            auto notes = ChordHelper::getNotesForChord(chord);
+            expect(notes == dMinorNotes);  
         }
 
-        beginTest("Augmented chords (root, maj3, aug5)");
+        beginTest(diminishedChordsRootMin3Dim5);
         {
-            Chord c; c.name = "C Augmented";
-            auto notes = ChordHelper::getNotesForChord(c);
-            expect(notes == std::vector<int>({ 60, 64, 68 }));
+            Chord chord; chord.name = cDiminished;
+            auto notes = ChordHelper::getNotesForChord(chord);
+            expect(notes == cDiminishedNotes);
         }
 
-        beginTest("Sharp root notes");
+        beginTest(augmentedChordsRootMaj3Aug5);
         {
-            Chord c; c.name = "F# Minor";
-            auto notes = ChordHelper::getNotesForChord(c);
-            expect(notes == std::vector<int>({ 66, 69, 73 }));  
+            Chord chord; chord.name = cAugmented;
+            auto notes = ChordHelper::getNotesForChord(chord);
+            expect(notes == cAugmentedNotes);
         }
 
-        beginTest("Invalid root returns empty");
+        beginTest(sharpRootNotes);
         {
-            Chord c; c.name = "X Major";
-            auto notes = ChordHelper::getNotesForChord(c);
+            Chord chord; chord.name = fSharpMinor;
+            auto notes = ChordHelper::getNotesForChord(chord);
+            expect(notes == fSharpMinorNotes);  
+        }
+
+        beginTest(invalidRootReturnsEmpty);
+        {
+            Chord chord; chord.name = unknownRootChord;
+            auto notes = ChordHelper::getNotesForChord(chord);
             expect(notes.empty());
         }
 
-        beginTest("7th chord");
+        beginTest(case7thChord);
         {
-            Chord c; c.name = "C7";
-            auto notes = ChordHelper::getNotesForChord(c);
-            expect(notes == std::vector<int>({ 60, 64, 67, 70 }));
+            Chord chord; chord.name = cSeventh;
+            auto notes = ChordHelper::getNotesForChord(chord);
+            expect(notes == cSeventhNotes);
         }
 
-        beginTest("getNotesForChord - unknown root returns empty for every quality");
+        beginTest(getNotesForChordUnknownRootReturnsEmptyForEvery);
         {
-            for (const char* q : { "Major", "Minor", "Diminished", "Augmented" })
+            for (const auto& quality : qualityNames)
             {
-                Chord c; c.name = juce::String("H ") + q;   // H is not a note
-                expect(ChordHelper::getNotesForChord(c).empty());
+                Chord chord; chord.name = notANoteRoot + quality;   // H is not a note
+                expect(ChordHelper::getNotesForChord(chord).empty());
             }
         }
 
@@ -111,22 +167,22 @@ public:
         // not our code. We only test OUR control flow: the matched-branch flag, the early-return guard,
         // and the unknown-name fallback.
 
-        beginTest("loadChordNeeded - a matched name sets imagesLoaded and is idempotent");
+        beginTest(loadChordNeededAMatchedNameSetsImagesLoadedAnd);
         {
-            Chord c; c.name = "C Major";
-            expect(! c.imagesLoaded);
-            ChordHelper::loadChordNeeded(c);
-            expect(c.imagesLoaded);
-            ChordHelper::loadChordNeeded(c);     // already loaded -> early-return guard, no change
-            expect(c.imagesLoaded);
+            Chord chord; chord.name = cMajor;
+            expect(! chord.imagesLoaded);
+            ChordHelper::loadChordNeeded(chord);
+            expect(chord.imagesLoaded);
+            ChordHelper::loadChordNeeded(chord);     // already loaded -> early-return guard, no change
+            expect(chord.imagesLoaded);
         }
 
-        beginTest("loadChordNeeded - unknown chord still marks loaded but assigns no image");
+        beginTest(loadChordNeededUnknownChordStillMarksLoadedBut);
         {
-            Chord c; c.name = "Z Wonky";         // no branch matches
-            ChordHelper::loadChordNeeded(c);
-            expect(c.imagesLoaded);              // flag is still set (our fallback path)
-            expect(! c.imgRoot.isValid());       // ...and no image was assigned
+            Chord chord; chord.name = unmatchedChord;    // no branch matches
+            ChordHelper::loadChordNeeded(chord);
+            expect(chord.imagesLoaded);              // flag is still set (our fallback path)
+            expect(! chord.imgRoot.isValid());       // ...and no image was assigned
         }
     }
 
