@@ -16,14 +16,16 @@ namespace TemporaryTabsTestValues
     const juce::String leavingTracksClosesIt                 = "selecting another tab closes My tracks";
     const juce::String stylesClosesPlaybackSettings          = "selecting Styles closes Playback Settings";
     const juce::String styleTabKeepsPlaybackSettings         = "selecting the style tab keeps Playback Settings open";
+    const juce::String homeClosesBothTemporaryTabs           = "Home with both temporary tabs open closes both and keeps the style tab";
 
     const juce::String styleTab = "Style 1";
     const juce::Colour tabColour = juce::Colours::black;
-    constexpr int stylesIndex      = 0;
+    constexpr int stylesIndex      = StylePanelTabs::stylesIndex;
     constexpr int styleIndex       = 1;
     constexpr int temporaryIndex   = 2;
     constexpr int twoTabs          = 2;
     constexpr int threeTabs        = 3;
+    constexpr int fourTabs         = 4;
 }
 
 class TemporaryTabsTest : public juce::UnitTest
@@ -41,6 +43,7 @@ public:
             panel.openTemporary (StylePanelTabs::playbackSettings);
             panel.temporary.homePressed();
             expectEquals (panel.tabs.getNumTabs(), twoTabs);
+            expect (panel.settingsClosed);
 
             panel.select (stylesIndex);   // back on the play screen, the user picks "Styles"
             expectEquals (panel.tabs.getNumTabs(), twoTabs);
@@ -53,6 +56,7 @@ public:
             panel.openTemporary (StylePanelTabs::myTracks);
             panel.temporary.homePressed();
             expectEquals (panel.tabs.getNumTabs(), twoTabs);
+            expect (panel.tracksClosed);
 
             panel.select (stylesIndex);
             expectEquals (panel.tabs.getNumTabs(), twoTabs);
@@ -85,6 +89,18 @@ public:
             expectEquals (panel.tabs.getNumTabs(), threeTabs);
             expect (! panel.settingsClosed);
         }
+
+        beginTest (homeClosesBothTemporaryTabs);
+        {
+            Panel panel;
+            panel.openTemporary (StylePanelTabs::playbackSettings);
+            panel.openTemporary (StylePanelTabs::myTracks, panel.tabs.getNumTabs());   // the index the new tab gets
+            expectEquals (panel.tabs.getNumTabs(), fourTabs);
+            panel.temporary.homePressed();
+            expectEquals (panel.tabs.getNumTabs(), twoTabs);
+            expectEquals (panel.tabs.getTabNames()[styleIndex], styleTab);
+            expect (panel.tracksClosed && panel.settingsClosed);
+        }
     }
 
 private:
@@ -102,17 +118,17 @@ private:
         }
 
         /** Open a temporary tab the way Display does: register it, add it, select it. */
-        void openTemporary (const juce::String& name)
+        void openTemporary (const juce::String& name, int index = TemporaryTabsTestValues::temporaryIndex)
         {
             if (name == StylePanelTabs::playbackSettings) temporary.playbackSettingsOpened();
-            tabs.addTab (name, TemporaryTabsTestValues::tabColour, &temporaryContent, false);
-            select (TemporaryTabsTestValues::temporaryIndex);
+            tabs.addTab (name, TemporaryTabsTestValues::tabColour, name == StylePanelTabs::myTracks ? &tracksContent : &temporaryContent, false);
+            select (index);
             if (name == StylePanelTabs::myTracks) temporary.tracksOpened();
         }
 
         void select (int index) { tabs.setCurrentTabIndex (index); }
 
-        juce::Component stylesContent, styleContent, temporaryContent;
+        juce::Component stylesContent, styleContent, temporaryContent, tracksContent;
         MyTabbedComponent tabs { juce::TabbedButtonBar::TabsAtLeft };
         TemporaryTabs temporary { tabs };
         bool settingsClosed = false;

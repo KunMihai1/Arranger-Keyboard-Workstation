@@ -104,7 +104,7 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
     //auto* scrollableView = new juce::Viewport();
     //scrollableView->setScrollBarsShown(true, false); // only vertical
     //scrollableView->setViewedComponent(list, true);
-    tabComp->addTab("Styles", juce::Colour::fromRGB(10, 15, 10), list.get(), false);
+    tabComp->addTab(StylePanelTabs::styles, juce::Colour::fromRGB(10, 15, 10), list.get(), false);
 
     stylesListComponent = std::move(list);
     //list->resized();
@@ -127,7 +127,7 @@ void Display::changeListenerCallback(juce::ChangeBroadcaster* source)
     if (tabbedCast == tabComp.get())
     {
         int currentIndex = tabComp->getCurrentTabIndex();
-        int tracksTabIndex = getTabIndexByName("My tracks");
+        int tracksTabIndex = getTabIndexByName(StylePanelTabs::myTracks);
 
         if (tracksTabIndex >= 0 && currentIndex != tracksTabIndex)
         {
@@ -185,7 +185,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
         currentStyleComponent->keybindTabStarting = [this]()
         {
 
-            int existingIndex = getTabIndexByName("Playback Settings");
+            int existingIndex = getTabIndexByName(StylePanelTabs::playbackSettings);
 
             if (existingIndex >= 0)
             {
@@ -211,7 +211,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
             };
 
             temporaryTabs->playbackSettingsOpened();
-            tabComp->addTab("Playback Settings", juce::Colour::fromRGB(10, 15, 10), playBackSettings.get(), false);
+            tabComp->addTab(StylePanelTabs::playbackSettings, juce::Colour::fromRGB(10, 15, 10), playBackSettings.get(), false);
 
             existingIndex = tabComp->getNumTabs() - 1;
 
@@ -385,7 +385,7 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
         mapUuidToTrack[newEntry->getUniqueID()] = newEntry;
     };
 
-    tabComp->addTab("My tracks", juce::Colour::fromRGB(10, 15, 10), trackListComp.get(), false);
+    tabComp->addTab(StylePanelTabs::myTracks, juce::Colour::fromRGB(10, 15, 10), trackListComp.get(), false);
     tabComp->setCurrentTabIndex(tabComp->getNumTabs() - 1);
 
     temporaryTabs->tracksOpened();
