@@ -13,6 +13,16 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Arranger hard testing, part A: headless stress tests
+- `test_arranger_stress.cpp` (category Arranger, fixed seed, `renderRange` instead of the timer):
+  20,000 render windows of chord/section/option storms (every quality incl. none, slash chords, unknown
+  section labels, NTT/bass-inversion/minor-scale toggles, notes at the MIDI range edges); 600 stops at
+  random moments; an Ending completing; the same pitch started twice across a chord change.
+- Invariants on every emitted message: note/channel/velocity in range, no note left sounding after a
+  stop or an Ending, the active section always real. All hold — no arranger bug found at this level.
+- Mutation check: removing `silenceArrangerNotes()` from `haltAudio` makes them fail. Arranger suite
+  721/0 in 0.8 s. Part B (live in-app scenarios) still needs an unlocked screen.
+
 ## 2026-11-22 — Names cleanup: Source/Common done; checker closes a loophole
 - `HelperFunctions.cpp`: note helpers use named MIDI facts; the 48-branch chord-diagram if/else chain
   became one named table (generated from the old chain) + a lookup loop.
