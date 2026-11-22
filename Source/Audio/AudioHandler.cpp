@@ -10,50 +10,147 @@
 
 #include "AudioHandler.h"
 
+namespace ChannelLayout
+{
+    constexpr int leftChannel      = 0;
+    constexpr int rightChannel     = 1;
+    constexpr int bufferStart      = 0;   // sample offset where a block begins
+    constexpr int firstMidiChannel = 1;   // MIDI channels are 1..16; the per-channel arrays are 0..15
+    constexpr int noOutputChannels = 0;
+    constexpr int firstChannelBit  = 1;   // bit for channel index 0 in the no-SFZ channel mask
+    constexpr int noChannels       = 0;
+    constexpr int noLoadsPending   = 0;
+}
+
+namespace ControllerNumber   // MIDI CC numbers this engine reacts to
+{
+    constexpr int volume     = 7;
+    constexpr int pan        = 10;
+    constexpr int expression = 11;
+    constexpr int resonance  = 71;
+    constexpr int cutoff     = 74;
+    constexpr int distortion = 80;
+    constexpr int reverb     = 91;
+    constexpr int tremolo    = 92;
+    constexpr int chorus     = 93;
+    constexpr int delay      = 94;
+    constexpr int randomMod  = 95;
+}
+
+namespace EffectSettings
+{
+    constexpr float ccMaximum             = 127.0f;   // a CC value of 127 is the full setting
+    constexpr int   filterResonanceNeutralCC = 0;
+
+    // Filter: a lowpass at the top of hearing with a Butterworth Q (1 / sqrt 2) is no filter at all.
+    constexpr float openCutoffHz          = 20000.0f;
+    constexpr float butterworthQ          = 0.707f;
+    constexpr float lowestResonanceQ      = 0.5f;     // CC71 sweeps Q from here...
+    constexpr float resonanceQRange       = 9.5f;     // ...up to 10
+    constexpr float lowestCutoffHz        = 100.0f;   // CC74 sweeps 100 Hz * 200^value = 100 Hz..20 kHz
+    constexpr float cutoffSweepRatio      = 200.0f;
+    constexpr float lowestAudibleHz       = 20.0f;
+    constexpr float highestAudibleHz      = 20000.0f;
+    constexpr float filterOn              = 1.0f;
+    constexpr float filterOff             = 0.0f;
+
+    constexpr float reverbRoomSize        = 0.5f;
+    constexpr float reverbDamping         = 0.5f;
+    constexpr float reverbWetOff          = 0.0f;
+    constexpr float reverbDryFull         = 1.0f;
+    constexpr float reverbFullWidth       = 1.0f;
+    constexpr float reverbMaxWet          = 0.85f;
+
+    constexpr float chorusRateHz          = 1.5f;
+    constexpr float chorusDepth           = 0.3f;
+    constexpr float chorusCentreDelayMs   = 15.0f;
+    constexpr float chorusFeedback        = 0.1f;
+    constexpr float chorusMixOff          = 0.0f;
+
+    constexpr double longestDelaySeconds  = 0.5;
+    constexpr double initialDelaySeconds  = 0.25;
+    constexpr double shortestDelaySeconds = 0.05;     // CC94 sets the time from here...
+    constexpr double delayTimeRangeSeconds = 0.35;    // ...up to 0.4 s
+    constexpr float  delayMaxMix          = 0.8f;
+    constexpr int    shortestDelaySamples = 1;        // the read head stays at least one sample behind
+    constexpr float  silentSample         = 0.0f;
+
+    constexpr float tremoloRateHz         = 5.0f;
+    constexpr float fullLevel             = 1.0f;
+    constexpr float halfDepth             = 0.5f;     // the LFO swings between full level and 1 - depth
+
+    constexpr float neutralDrive          = 1.0f;
+    constexpr float driveRange            = 15.0f;    // CC80 sweeps the drive from 1 to 16
+    constexpr float noModulation          = 0.0f;
+    constexpr float unityGain             = 1.0f;
+    constexpr float centrePan             = 0.5f;
+
+    // Random modulation: a one-pole low-pass on white noise (keep this much of the last value).
+    constexpr float randomModRetain       = 0.998f;
+    constexpr float randomModNewNoise     = 0.002f;
+
+    // Smoothing time constants (ms) - see the comment in prepare() for why each differs.
+    constexpr double expressionSmoothingMs = 8.0;
+    constexpr double toneSmoothingMs       = 20.0;
+    constexpr double mixSmoothingMs        = 25.0;
+
+    // Below these a stage is inaudible, so it is skipped (once its ramp has settled).
+    constexpr float filterAudibleMix      = 0.0005f;
+    constexpr float effectAudibleLevel    = 0.005f;
+    constexpr float driveAudibleAbove     = 1.005f;
+    constexpr float nearlyUnity           = 0.999f;
+}
+
+namespace VoiceAllocation
+{
+    constexpr int voicesPerChannel = 16;
+}
+
 //==============================================================================
 // ChannelDSP
 
-void ChannelDSP::prepare(double sr, int blockSize)
+void ChannelDSP::prepare(double newSampleRate, int blockSize)
 {
-    sampleRate = sr;
+    using namespace EffectSettings;
+    sampleRate = newSampleRate;
 
     juce::dsp::ProcessSpec spec;
-    spec.sampleRate       = sr;
+    spec.sampleRate       = newSampleRate;
     spec.maximumBlockSize = static_cast<juce::uint32>(blockSize);
-    spec.numChannels      = 2;
+    spec.numChannels      = DspConstants::stereoChannelCount;
 
     filter.prepare(spec);
     filter.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
-    filter.setCutoffFrequency(20000.0f);
-    filter.setResonance(0.707f);
+    filter.setCutoffFrequency(openCutoffHz);
+    filter.setResonance(butterworthQ);
 
     reverbParams          = juce::Reverb::Parameters{};
-    reverbParams.roomSize = 0.5f;
-    reverbParams.damping  = 0.5f;
-    reverbParams.wetLevel = 0.0f;
-    reverbParams.dryLevel = 1.0f;
-    reverbParams.width    = 1.0f;
+    reverbParams.roomSize = reverbRoomSize;
+    reverbParams.damping  = reverbDamping;
+    reverbParams.wetLevel = reverbWetOff;
+    reverbParams.dryLevel = reverbDryFull;
+    reverbParams.width    = reverbFullWidth;
     reverb.setParameters(reverbParams);
-    reverb.setSampleRate(sr);
+    reverb.setSampleRate(newSampleRate);
     reverb.reset();
 
     chorus.prepare(spec);
-    chorus.setRate(1.5f);
-    chorus.setDepth(0.3f);
-    chorus.setCentreDelay(15.0f);
-    chorus.setFeedback(0.1f);
-    chorus.setMix(0.0f);
+    chorus.setRate(chorusRateHz);
+    chorus.setDepth(chorusDepth);
+    chorus.setCentreDelay(chorusCentreDelayMs);
+    chorus.setFeedback(chorusFeedback);
+    chorus.setMix(chorusMixOff);
 
-    const int maxDelaySamples = static_cast<int>(sr * 0.5);
-    delayLineL.assign(maxDelaySamples, 0.0f);
-    delayLineR.assign(maxDelaySamples, 0.0f);
-    delayWritePos      = 0;
-    delayReadOffset    = static_cast<int>(sr * 0.25);
-    tremoloPhase       = 0.0f;
-    tremoloPhaseInc    = juce::MathConstants<float>::twoPi * 5.0f / static_cast<float>(sr);
-    randomModSmoothed  = 0.0f;
-    filterCutoffCC     = 127;
-    filterResonanceCC  = 0;
+    const int maxDelaySamples = static_cast<int>(newSampleRate * longestDelaySeconds);
+    delayLineL.assign(maxDelaySamples, silentSample);
+    delayLineR.assign(maxDelaySamples, silentSample);
+    delayWritePos      = {};
+    delayReadOffset    = static_cast<int>(newSampleRate * initialDelaySeconds);
+    tremoloPhase       = {};
+    tremoloPhaseInc    = juce::MathConstants<float>::twoPi * tremoloRateHz / static_cast<float>(newSampleRate);
+    randomModSmoothed  = {};
+    filterCutoffCC     = DspConstants::filterCutoffOpenCC;
+    filterResonanceCC  = filterResonanceNeutralCC;
 
     // Smoothing time constants. These are chosen per parameter rather than shared,
     // because what counts as "fast enough to feel responsive" and "slow enough not
@@ -66,27 +163,27 @@ void ChannelDSP::prepare(double sr, int blockSize)
     //   drive        changes timbre rather than level; a slower ramp reads as
     //                intentional rather than as a glitch
     //   mixes/depths dry-to-wet transitions are the most exposed, so slowest
-    expression          .setTimeConstant( 8.0, sr);
-    filterCutoffLog2    .setTimeConstant(20.0, sr);
-    filterResonance     .setTimeConstant(20.0, sr);
-    filterMix           .setTimeConstant(20.0, sr);
-    distortionDrive     .setTimeConstant(20.0, sr);
-    distortionNormFactor.setTimeConstant(20.0, sr);
-    tremoloDepth        .setTimeConstant(25.0, sr);
-    randomModDepth      .setTimeConstant(25.0, sr);
-    delayMix            .setTimeConstant(25.0, sr);
+    expression          .setTimeConstant(expressionSmoothingMs, newSampleRate);
+    filterCutoffLog2    .setTimeConstant(toneSmoothingMs, newSampleRate);
+    filterResonance     .setTimeConstant(toneSmoothingMs, newSampleRate);
+    filterMix           .setTimeConstant(toneSmoothingMs, newSampleRate);
+    distortionDrive     .setTimeConstant(toneSmoothingMs, newSampleRate);
+    distortionNormFactor.setTimeConstant(toneSmoothingMs, newSampleRate);
+    tremoloDepth        .setTimeConstant(mixSmoothingMs, newSampleRate);
+    randomModDepth      .setTimeConstant(mixSmoothingMs, newSampleRate);
+    delayMix            .setTimeConstant(mixSmoothingMs, newSampleRate);
 
     // prepare() is not a parameter change, so these start where they belong
     // rather than ramping up from silence on the first block.
-    expression          .snap(1.0f);
-    filterCutoffLog2    .snap(std::log2(20000.0f));
-    filterResonance     .snap(0.707f);
-    filterMix           .snap(0.0f);
-    distortionDrive     .snap(1.0f);
-    distortionNormFactor.snap(1.0f / std::tanh(1.0f));
-    tremoloDepth        .snap(0.0f);
-    randomModDepth      .snap(0.0f);
-    delayMix            .snap(0.0f);
+    expression          .snap(unityGain);
+    filterCutoffLog2    .snap(std::log2(openCutoffHz));
+    filterResonance     .snap(butterworthQ);
+    filterMix           .snap(filterOff);
+    distortionDrive     .snap(neutralDrive);
+    distortionNormFactor.snap(unityGain / std::tanh(neutralDrive));
+    tremoloDepth        .snap(noModulation);
+    randomModDepth      .snap(noModulation);
+    delayMix            .snap(noModulation);
 
     for (auto& adaa : distortionAdaa)
         adaa.reset();
@@ -94,72 +191,73 @@ void ChannelDSP::prepare(double sr, int blockSize)
 
 void ChannelDSP::updateCC(int ccNumber, int value)
 {
-    const float norm = value / 127.0f;
+    using namespace EffectSettings;
+    const float norm = value / ccMaximum;
 
     // Every case below sets a *target*. Nothing here touches a value the audio
     // loop reads directly; process() walks each parameter toward its target one
     // sample at a time.
     switch (ccNumber)
     {
-        case 11: // expression
+        case ControllerNumber::expression:
             expression.target = norm;
             break;
 
-        case 71: // resonance → filter Q
+        case ControllerNumber::resonance: // → filter Q
             filterResonanceCC = value;
-            filterResonance.target = 0.5f + norm * 9.5f;
+            filterResonance.target = lowestResonanceQ + norm * resonanceQRange;
             break;
 
-        case 74: // brightness → LP filter cutoff (100 Hz – 20 kHz, log)
+        case ControllerNumber::cutoff: // brightness → LP filter cutoff (100 Hz – 20 kHz, log)
         {
             filterCutoffCC = value;
-            const float hz = 100.0f * std::pow(200.0f, norm);
-            filterCutoffLog2.target = std::log2(juce::jlimit(20.0f, 20000.0f, hz));
+            const float hz = lowestCutoffHz * std::pow(cutoffSweepRatio, norm);
+            filterCutoffLog2.target = std::log2(juce::jlimit(lowestAudibleHz, highestAudibleHz, hz));
             break;
         }
 
-        case 80: // distortion drive
+        case ControllerNumber::distortion: // drive
         {
-            const float drive = 1.0f + norm * 15.0f;
+            const float drive = neutralDrive + norm * driveRange;
             distortionDrive.target = drive;
 
             // The normalisation factor is smoothed alongside the drive rather than
             // recomputed from the smoothed drive per sample. Both are monotonic in
             // the same CC, so the two ramps stay consistent with each other, and
             // this avoids a second tanh and a divide in the inner loop.
-            distortionNormFactor.target = 1.0f / std::tanh(drive);
+            distortionNormFactor.target = unityGain / std::tanh(drive);
             break;
         }
 
-        case 91: // reverb wet amount
-            reverbMix = norm * 0.85f;
+        case ControllerNumber::reverb: // wet amount
+            reverbMix = norm * reverbMaxWet;
             reverbParams.wetLevel = reverbMix;
             reverb.setParameters(reverbParams);
             break;
 
-        case 92: // tremolo depth
+        case ControllerNumber::tremolo: // depth
             tremoloDepth.target = norm;
             break;
 
-        case 93: // chorus mix
+        case ControllerNumber::chorus: // mix
             chorusMix = norm;
             chorus.setMix(norm);
             break;
 
-        case 94: // delay — mix + time
-            delayMix.target = norm * 0.8f;
+        case ControllerNumber::delay: // mix + time
+            delayMix.target = norm * delayMaxMix;
             if (!delayLineL.empty())
             {
                 // NOTE: the read offset still jumps. Changing a delay length
                 // instantly moves the read head, which is a pitch discontinuity -
                 // it clicks. Smoothing it properly requires fractional
                 // interpolation on the read position, which is a separate change.
-                int offset = static_cast<int>(sampleRate * (0.05 + norm * 0.35));
-                delayReadOffset = juce::jlimit(1, static_cast<int>(delayLineL.size()) - 1, offset);
+                int offset = static_cast<int>(sampleRate * (shortestDelaySeconds + norm * delayTimeRangeSeconds));
+                delayReadOffset = juce::jlimit(shortestDelaySamples, static_cast<int>(delayLineL.size()) - shortestDelaySamples, offset);
             }
             break;
 
-        case 95: // random mod depth
+        case ControllerNumber::randomMod: // depth
             randomModDepth.target = norm;
             break;
 
@@ -174,16 +272,18 @@ void ChannelDSP::updateCC(int ccNumber, int value)
 void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
 {
     // tempBuffer is always prepared with 2 channels
-    float* left  = buffer.getWritePointer(0);
-    float* right = buffer.getWritePointer(1);
+    using namespace EffectSettings;
+    using namespace ChannelLayout;
+    float* left  = buffer.getWritePointer(leftChannel);
+    float* right = buffer.getWritePointer(rightChannel);
 
     // --- LP filter (CC74 brightness + CC71 resonance) ---
     // Runs while the CCs are away from neutral OR while a ramp is still settling;
     // stopping the moment the CC returns to neutral would cut the ramp off and
     // reintroduce the step this smoothing exists to remove.
-    filterMix.target = (filterCutoffCC < 127 || filterResonanceCC > 0) ? 1.0f : 0.0f;
+    filterMix.target = (filterCutoffCC < DspConstants::filterCutoffOpenCC || filterResonanceCC > filterResonanceNeutralCC) ? filterOn : filterOff;
 
-    if (filterMix.isActive(0.0005f))
+    if (filterMix.isActive(filterAudibleMix))
     {
         // Per-sample rather than filter.process() on a block. The coefficients are
         // recomputed every sample so that a moving cutoff is a continuous sweep
@@ -192,19 +292,19 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
         // which stay meaningful when the coefficients change underneath them. A
         // biquad's state is delayed signal that belongs to the coefficients that
         // produced it, and modulating one that way diverges.
-        for (int i = 0; i < numSamples; ++i)
+        for (int sampleIndex {}; sampleIndex < numSamples; ++sampleIndex)
         {
             filter.setCutoffFrequency(std::exp2(filterCutoffLog2.nextValue()));
             filter.setResonance(filterResonance.nextValue());
 
-            const float dryL = left[i];
-            const float dryR = right[i];
-            const float wetL = filter.processSample(0, dryL);
-            const float wetR = filter.processSample(1, dryR);
+            const float dryL = left[sampleIndex];
+            const float dryR = right[sampleIndex];
+            const float wetL = filter.processSample(leftChannel, dryL);
+            const float wetR = filter.processSample(rightChannel, dryR);
             const float mix  = filterMix.nextValue();
 
-            left[i]  = dryL + mix * (wetL - dryL);
-            right[i] = dryR + mix * (wetR - dryR);
+            left[sampleIndex]  = dryL + mix * (wetL - dryL);
+            right[sampleIndex] = dryR + mix * (wetR - dryR);
         }
 
         filter.snapToZero();
@@ -222,15 +322,15 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
     }
 
     // --- Distortion (CC80), antialiased ---
-    if (distortionDrive.isActive(1.005f) || distortionNormFactor.current < 0.999f)
+    if (distortionDrive.isActive(driveAudibleAbove) || distortionNormFactor.current < nearlyUnity)
     {
-        for (int i = 0; i < numSamples; ++i)
+        for (int sampleIndex {}; sampleIndex < numSamples; ++sampleIndex)
         {
             const float drive = distortionDrive.nextValue();
             const float norm  = distortionNormFactor.nextValue();
 
-            left[i]  = distortionAdaa[0].process(left[i]  * drive) * norm;
-            right[i] = distortionAdaa[1].process(right[i] * drive) * norm;
+            left[sampleIndex]  = distortionAdaa[leftChannel].process(left[sampleIndex]  * drive) * norm;
+            right[sampleIndex] = distortionAdaa[rightChannel].process(right[sampleIndex] * drive) * norm;
         }
     }
     else
@@ -245,7 +345,7 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
     }
 
     // --- Chorus (CC93) ---
-    if (chorusMix > 0.005f)
+    if (chorusMix > effectAudibleLevel)
     {
         juce::dsp::AudioBlock<float> block(buffer.getArrayOfWritePointers(),
                                            (size_t)buffer.getNumChannels(),
@@ -254,18 +354,18 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
     }
 
     // --- Reverb (CC91) ---
-    if (reverbMix > 0.005f)
+    if (reverbMix > effectAudibleLevel)
         reverb.processStereo(left, right, numSamples);
 
     // --- Tremolo (CC92) — 5 Hz amplitude LFO ---
-    if (tremoloDepth.isActive(0.005f))
+    if (tremoloDepth.isActive(effectAudibleLevel))
     {
-        for (int i = 0; i < numSamples; ++i)
+        for (int sampleIndex {}; sampleIndex < numSamples; ++sampleIndex)
         {
             const float depth = tremoloDepth.nextValue();
-            const float mod = 1.0f - depth * 0.5f * (1.0f + std::sin(tremoloPhase));
-            left[i]  *= mod;
-            right[i] *= mod;
+            const float mod = fullLevel - depth * halfDepth * (fullLevel + std::sin(tremoloPhase));
+            left[sampleIndex]  *= mod;
+            right[sampleIndex] *= mod;
             tremoloPhase += tremoloPhaseInc;
             if (tremoloPhase >= juce::MathConstants<float>::twoPi)
                 tremoloPhase -= juce::MathConstants<float>::twoPi;
@@ -287,10 +387,10 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
     {
         const int delaySize = static_cast<int>(delayLineL.size());
 
-        for (int i = 0; i < numSamples; ++i)
+        for (int sampleIndex {}; sampleIndex < numSamples; ++sampleIndex)
         {
             int readPos = delayWritePos - delayReadOffset;
-            if (readPos < 0)
+            if (readPos < int {})
                 readPos += delaySize;
 
             // Read before write. The two positions cannot coincide while the read
@@ -299,31 +399,31 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
             const float delayedL = delayLineL[readPos];
             const float delayedR = delayLineR[readPos];
 
-            delayLineL[delayWritePos] = left[i];
-            delayLineR[delayWritePos] = right[i];
+            delayLineL[delayWritePos] = left[sampleIndex];
+            delayLineR[delayWritePos] = right[sampleIndex];
 
             const float mix = delayMix.nextValue();
-            left[i]  += mix * delayedL;
-            right[i] += mix * delayedR;
+            left[sampleIndex]  += mix * delayedL;
+            right[sampleIndex] += mix * delayedR;
 
             // Compare-and-wrap rather than %. Modulo is an integer division, and
             // this loop now runs on every channel on every block rather than only
             // when the delay is audible, so the two divisions it removes pay for
             // most of the cost the unconditional write adds.
             if (++delayWritePos >= delaySize)
-                delayWritePos = 0;
+                delayWritePos = {};
         }
     }
 
     // --- Random Mod (CC95) — smoothed noise amplitude flutter ---
-    if (randomModDepth.isActive(0.005f))
+    if (randomModDepth.isActive(effectAudibleLevel))
     {
-        for (int i = 0; i < numSamples; ++i)
+        for (int sampleIndex {}; sampleIndex < numSamples; ++sampleIndex)
         {
-            randomModSmoothed = 0.998f * randomModSmoothed + 0.002f * rng.nextFloat();
-            const float mod = 1.0f - randomModDepth.nextValue() * randomModSmoothed;
-            left[i]  *= mod;
-            right[i] *= mod;
+            randomModSmoothed = randomModRetain * randomModSmoothed + randomModNewNoise * rng.nextFloat();
+            const float mod = fullLevel - randomModDepth.nextValue() * randomModSmoothed;
+            left[sampleIndex]  *= mod;
+            right[sampleIndex] *= mod;
         }
     }
     else
@@ -335,13 +435,13 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
     // applyGain() with a single value would step once per block; the per-sample
     // ramp is the whole point. Runs whenever the gain is below unity or still on
     // its way back to it.
-    if (expression.current < 0.999f || expression.target < 0.999f)
+    if (expression.current < nearlyUnity || expression.target < nearlyUnity)
     {
-        for (int i = 0; i < numSamples; ++i)
+        for (int sampleIndex {}; sampleIndex < numSamples; ++sampleIndex)
         {
             const float gain = expression.nextValue();
-            left[i]  *= gain;
-            right[i] *= gain;
+            left[sampleIndex]  *= gain;
+            right[sampleIndex] *= gain;
         }
     }
 }
@@ -352,13 +452,13 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
 AudioHandler::AudioHandler(MidiHandler& mh) : midiHandler(mh)
 {
     formatManager.registerBasicFormats();
-    for (int i = 0; i < 16; ++i)
+    for (int channelIndex {}; channelIndex < DspConstants::midiChannelCount; ++channelIndex)
     {
-        for (int v = 0; v < 16; ++v)
-            sfzSynths[i].addVoice(new sfzero::Voice());
-        channelGains[i] = 1.0f;
-        channelPans[i]  = 0.5f;
-        channelHasSfz[i].store(false, std::memory_order_relaxed);
+        for (int voiceIndex {}; voiceIndex < VoiceAllocation::voicesPerChannel; ++voiceIndex)
+            sfzSynths[channelIndex].addVoice(new sfzero::Voice());
+        channelGains[channelIndex] = EffectSettings::unityGain;
+        channelPans[channelIndex]  = EffectSettings::centrePan;
+        channelHasSfz[channelIndex].store(false, std::memory_order_relaxed);
     }
 }
 
@@ -370,12 +470,12 @@ void AudioHandler::audioDeviceAboutToStart (juce::AudioIODevice* device)
 {
     currentSampleRate = device->getCurrentSampleRate();
     const int bufferSize = device->getCurrentBufferSizeSamples();
-    tempBuffer.setSize(2, bufferSize, false, true);
+    tempBuffer.setSize(DspConstants::stereoChannelCount, bufferSize, false, true);
 
-    for (int i = 0; i < 16; ++i)
+    for (int channelIndex {}; channelIndex < DspConstants::midiChannelCount; ++channelIndex)
     {
-        sfzSynths[i].setCurrentPlaybackSampleRate(currentSampleRate);
-        channelDSP[i].prepare(currentSampleRate, bufferSize);
+        sfzSynths[channelIndex].setCurrentPlaybackSampleRate(currentSampleRate);
+        channelDSP[channelIndex].prepare(currentSampleRate, bufferSize);
     }
 }
 
@@ -389,15 +489,16 @@ void AudioHandler::audioDeviceIOCallbackWithContext (const float* const* inputCh
 {
     juce::ignoreUnused(inputChannelData, numInputChannels, context);
 
-    for (int i = 0; i < numOutputChannels; ++i)
-        if (outputChannelData[i] != nullptr)
-            juce::FloatVectorOperations::clear(outputChannelData[i], numSamples);
+    using namespace ChannelLayout;
+    for (int outputIndex {}; outputIndex < numOutputChannels; ++outputIndex)
+        if (outputChannelData[outputIndex] != nullptr)
+            juce::FloatVectorOperations::clear(outputChannelData[outputIndex], numSamples);
 
-    if (numOutputChannels == 0)
+    if (numOutputChannels == noOutputChannels)
         return;
 
     juce::MidiBuffer incomingMidi;
-    midiHandler.getNextMidiBlock(incomingMidi, 0, numSamples);
+    midiHandler.getNextMidiBlock(incomingMidi, bufferStart, numSamples);
 
     // Update per-channel state from incoming CCs before rendering;
     // also detect noteOns on channels with no SFZ loaded.
@@ -406,29 +507,30 @@ void AudioHandler::audioDeviceIOCallbackWithContext (const float* const* inputCh
         const auto msg = metadata.getMessage();
         if (msg.isController())
         {
-            const int ch  = msg.getChannel() - 1;
-            const int cc  = msg.getControllerNumber();
-            const int val = msg.getControllerValue();
-            if (ch >= 0 && ch < 16)
+            const int channelIndex = msg.getChannel() - firstMidiChannel;
+            const int controller   = msg.getControllerNumber();
+            const int value        = msg.getControllerValue();
+            if (channelIndex >= int {} && channelIndex < DspConstants::midiChannelCount)
             {
-                if      (cc == 7)  channelGains[ch] = val / 127.0f;
-                else if (cc == 10) channelPans[ch]  = val / 127.0f;
-                else               channelDSP[ch].updateCC(cc, val);
+                if      (controller == ControllerNumber::volume) channelGains[channelIndex] = value / EffectSettings::ccMaximum;
+                else if (controller == ControllerNumber::pan)    channelPans[channelIndex]  = value / EffectSettings::ccMaximum;
+                else                                             channelDSP[channelIndex].updateCC(controller, value);
             }
         }
         else if (msg.isNoteOn() && onNoSfzForChannels)
         {
-            const int ch = msg.getChannel() - 1;
-            if (ch >= 0 && ch < 16 && !channelHasSfz[ch].load(std::memory_order_relaxed))
+            const int channelIndex = msg.getChannel() - firstMidiChannel;
+            if (channelIndex >= int {} && channelIndex < DspConstants::midiChannelCount
+                && !channelHasSfz[channelIndex].load(std::memory_order_relaxed))
             {
-                noSfzChannelMask.fetch_or(1 << ch, std::memory_order_relaxed);
+                noSfzChannelMask.fetch_or(firstChannelBit << channelIndex, std::memory_order_relaxed);
                 bool expected = false;
                 if (noSfzNotifyPending.compare_exchange_strong(expected, true))
                 {
                     juce::MessageManager::callAsync([this]() {
-                        const int mask = noSfzChannelMask.exchange(0);
+                        const int mask = noSfzChannelMask.exchange(noChannels);
                         noSfzNotifyPending.store(false);
-                        if (onNoSfzForChannels && mask != 0)
+                        if (onNoSfzForChannels && mask != noChannels)
                             onNoSfzForChannels(mask);
                     });
                 }
@@ -437,13 +539,13 @@ void AudioHandler::audioDeviceIOCallbackWithContext (const float* const* inputCh
     }
 
     // tempBuffer is always 2-channel; reuse its allocation if large enough
-    tempBuffer.setSize(2, numSamples, false, false, true);
+    tempBuffer.setSize(DspConstants::stereoChannelCount, numSamples, false, false, true);
 
     juce::AudioBuffer<float> mainBuffer(outputChannelData, numOutputChannels, numSamples);
 
-    for (int channel = 1; channel <= 16; ++channel)
+    for (int channel = firstMidiChannel; channel <= DspConstants::midiChannelCount; ++channel)
     {
-        if (!channelHasSfz[channel - 1].load(std::memory_order_acquire))
+        if (!channelHasSfz[channel - firstMidiChannel].load(std::memory_order_acquire))
             continue;
 
         juce::MidiBuffer channelMidi;
@@ -455,49 +557,50 @@ void AudioHandler::audioDeviceIOCallbackWithContext (const float* const* inputCh
         }
 
         tempBuffer.clear();
-        sfzSynths[channel - 1].renderNextBlock(tempBuffer, channelMidi, 0, numSamples);
+        sfzSynths[channel - firstMidiChannel].renderNextBlock(tempBuffer, channelMidi, bufferStart, numSamples);
 
-        channelDSP[channel - 1].process(tempBuffer, numSamples);
+        channelDSP[channel - firstMidiChannel].process(tempBuffer, numSamples);
 
-        const float gain = channelGains[channel - 1];
-        const float pan  = channelPans[channel - 1];
+        const float gain = channelGains[channel - firstMidiChannel];
+        const float pan  = channelPans[channel - firstMidiChannel];
 
-        if (numOutputChannels >= 2)
+        if (numOutputChannels >= DspConstants::stereoChannelCount)
         {
             const float leftGain  = gain * std::cos(pan * juce::MathConstants<float>::halfPi);
             const float rightGain = gain * std::sin(pan * juce::MathConstants<float>::halfPi);
-            mainBuffer.addFrom(0, 0, tempBuffer, 0, 0, numSamples, leftGain);
-            mainBuffer.addFrom(1, 0, tempBuffer, 1, 0, numSamples, rightGain);
+            mainBuffer.addFrom(leftChannel, bufferStart, tempBuffer, leftChannel, bufferStart, numSamples, leftGain);
+            mainBuffer.addFrom(rightChannel, bufferStart, tempBuffer, rightChannel, bufferStart, numSamples, rightGain);
         }
         else
         {
-            mainBuffer.addFrom(0, 0, tempBuffer, 0, 0, numSamples, gain);
+            mainBuffer.addFrom(leftChannel, bufferStart, tempBuffer, leftChannel, bufferStart, numSamples, gain);
         }
     }
 }
 
 void AudioHandler::loadSfz(const juce::File& sfzFile, int midiChannel)
 {
-    if (midiChannel < 1 || midiChannel > 16)
+    using namespace ChannelLayout;
+    if (midiChannel < firstMidiChannel || midiChannel > DspConstants::midiChannelCount)
         return;
 
     if (!sfzFile.existsAsFile())
     {
         // No SFZ mapped for this channel — silence it so the previous instrument
         // doesn't keep playing when the new style has no mapping.
-        if (channelHasSfz[midiChannel - 1].load(std::memory_order_relaxed)
-            || loadedSfzPath[midiChannel - 1].isNotEmpty())
+        if (channelHasSfz[midiChannel - firstMidiChannel].load(std::memory_order_relaxed)
+            || loadedSfzPath[midiChannel - firstMidiChannel].isNotEmpty())
         {
-            channelHasSfz[midiChannel - 1].store(false, std::memory_order_release);
-            sfzSynths[midiChannel - 1].clearSounds();
-            loadedSfzPath[midiChannel - 1] = juce::String();
+            channelHasSfz[midiChannel - firstMidiChannel].store(false, std::memory_order_release);
+            sfzSynths[midiChannel - firstMidiChannel].clearSounds();
+            loadedSfzPath[midiChannel - firstMidiChannel] = juce::String();
         }
         return;
     }
 
-    if (sfzFile.getFullPathName() == loadedSfzPath[midiChannel - 1])
+    if (sfzFile.getFullPathName() == loadedSfzPath[midiChannel - firstMidiChannel])
         return;
-    loadedSfzPath[midiChannel - 1] = sfzFile.getFullPathName();
+    loadedSfzPath[midiChannel - firstMidiChannel] = sfzFile.getFullPathName();
 
     ++pendingLoads;
     if (onSfzLoadStart)
@@ -508,11 +611,11 @@ void AudioHandler::loadSfz(const juce::File& sfzFile, int midiChannel)
         auto* sound = new sfzero::Sound(sfzFile);
         sound->loadRegions();
         sound->loadSamples(&formatManager);
-        sfzSynths[midiChannel - 1].clearSounds();
-        sfzSynths[midiChannel - 1].addSound(sound);
-        channelHasSfz[midiChannel - 1].store(true, std::memory_order_release);
+        sfzSynths[midiChannel - firstMidiChannel].clearSounds();
+        sfzSynths[midiChannel - firstMidiChannel].addSound(sound);
+        channelHasSfz[midiChannel - firstMidiChannel].store(true, std::memory_order_release);
 
-        if (--pendingLoads == 0)
+        if (--pendingLoads == noLoadsPending)
             juce::MessageManager::callAsync([this]() {
                 if (onSfzLoadComplete) onSfzLoadComplete();
             });

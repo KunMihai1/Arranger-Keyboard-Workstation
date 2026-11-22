@@ -1,5 +1,76 @@
 #include "SFZLibraryUI.h"
 
+namespace SfzLibraryLayout
+{
+    // Style picker (Import Config)
+    constexpr int   pickerRowHeight     = 28;
+    constexpr int   pickerWidth         = 320;
+    constexpr int   pickerHeight        = 360;
+    constexpr int   pickerMargin        = 6;
+    constexpr int   pickerHeaderHeight  = 22;
+    constexpr int   pickerHeaderGap     = 4;
+    constexpr int   pickerPromptHeight  = 34;
+    constexpr int   pickerPromptInsetX  = 8;
+    constexpr int   pickerPromptInsetY  = 6;
+    constexpr float pickerPromptFontSize = 13.0f;
+    constexpr float pickerRowFontSize   = 15.0f;
+    constexpr int   pickerRowTextInset  = 8;
+    const juce::Colour pickerBackground { 0xff2a2a2a };
+
+    // Instrument chooser (Assign to Style)
+    constexpr int instrumentChooserWidth  = 300;
+    constexpr int instrumentChooserHeight = 400;
+
+    // Library window
+    constexpr float titleFontSize      = 16.0f;
+    constexpr int   titleHeight        = 30;
+    constexpr int   closeButtonFromRight = 35;
+    constexpr int   closeButtonTop     = 5;
+    constexpr int   closeButtonWidth   = 30;
+    constexpr int   closeButtonHeight  = 20;
+    constexpr int   statusHeight       = 30;
+    constexpr int   statusInsetX       = 5;
+    constexpr int   noInset            = 0;
+    constexpr int   buttonAreaHeight   = 84;    // two rows of two buttons
+    constexpr int   buttonAreaMargin   = 5;
+    constexpr int   buttonRowHeight    = 40;
+    constexpr int   buttonsPerRow      = 2;
+    constexpr int   buttonGap          = 2;
+    constexpr int   listMargin         = 5;
+    constexpr int   rowTextInset       = 10;
+    constexpr int   textFromTop        = 0;
+}
+
+namespace SfzLibraryStrings
+{
+    // A style without an id stores its mappings under this id in SFZLibrary.json: keep the text.
+    const juce::String defaultStyleId   = "style_default";
+    const juce::String defaultStyleName = "DEFAULT Style";
+
+    const juce::String pickerPrompt     = "Click a style to import its mappings:";
+    const juce::String title            = "SFZ Library";
+    const juce::String currentStyle     = "Current Style: ";
+
+    const juce::String noFileTitle      = "No file selected";
+    const juce::String noFileMessage    = "Please select an SFZ file from the list first.";
+    const juce::String assignedTitle    = "Assigned";
+    const juce::String assignedToStyle  = "SFZ assigned to style: ";
+    const juce::String assignedInstrument = "\nInstrument: ";
+    const juce::String nothingTitle     = "Nothing to import";
+    const juce::String nothingMessage   = "No other styles with mappings found.";
+    const juce::String doneTitle        = "Done";
+    const juce::String importedInto     = "Mappings imported into: ";
+
+    const juce::String chooseFileTitle  = "Select SFZ File";
+    const juce::String sfzFilePattern   = "*.sfz";
+
+    const juce::String openBracket      = " (";
+    const juce::String closeBracket     = ")";
+    const juce::String assignedPrefix   = "   [Assigned: ";
+    const juce::String assignedSuffix   = "]";
+    const juce::String listSeparator    = ", ";
+}
+
 //==============================================================================
 // Inline style picker used by the Import Config button
 
@@ -15,49 +86,55 @@ public:
     StyleChooserComponent(std::vector<std::pair<juce::String, juce::String>> styles)
         : styles(std::move(styles))
     {
+        using namespace SfzLibraryLayout;
         listBox.setModel(this);
-        listBox.setRowHeight(28);
+        listBox.setRowHeight(pickerRowHeight);
         addAndMakeVisible(listBox);
-        setSize(320, 360);
+        setSize(pickerWidth, pickerHeight);
     }
 
     ~StyleChooserComponent() override { listBox.setModel(nullptr); }
 
     void resized() override
     {
-        auto b = getLocalBounds().reduced(6);
-        headerLabel.setBounds(b.removeFromTop(22));
-        b.removeFromTop(4);
-        listBox.setBounds(b);
+        using namespace SfzLibraryLayout;
+        auto area = getLocalBounds().reduced(pickerMargin);
+        headerLabel.setBounds(area.removeFromTop(pickerHeaderHeight));
+        area.removeFromTop(pickerHeaderGap);
+        listBox.setBounds(area);
     }
 
     void paint(juce::Graphics& g) override
     {
-        g.fillAll(juce::Colour(0xff2a2a2a));
+        using namespace SfzLibraryLayout;
+        g.fillAll(pickerBackground);
         g.setColour(juce::Colours::lightgrey);
-        g.setFont(13.0f);
-        g.drawText("Click a style to import its mappings:", getLocalBounds().removeFromTop(34).reduced(8, 6),
+        g.setFont(pickerPromptFontSize);
+        g.drawText(SfzLibraryStrings::pickerPrompt,
+                   getLocalBounds().removeFromTop(pickerPromptHeight).reduced(pickerPromptInsetX, pickerPromptInsetY),
                    juce::Justification::centredLeft, true);
     }
 
     int getNumRows() override { return (int)styles.size(); }
 
-    void paintListBoxItem(int row, juce::Graphics& g, int w, int h, bool selected) override
+    void paintListBoxItem(int row, juce::Graphics& g, int width, int height, bool selected) override
     {
+        using namespace SfzLibraryLayout;
         if (selected) g.fillAll(juce::Colours::coral);
         g.setColour(selected ? juce::Colours::black : juce::Colours::peachpuff);
-        g.setFont(15.0f);
+        g.setFont(pickerRowFontSize);
         if (row < (int)styles.size())
-            g.drawText(styles[row].second, 8, 0, w - 16, h, juce::Justification::centredLeft, true);
+            g.drawText(styles[row].second, pickerRowTextInset, textFromTop, width - pickerRowTextInset - pickerRowTextInset,
+                       height, juce::Justification::centredLeft, true);
     }
 
     void listBoxItemClicked(int row, const juce::MouseEvent&) override
     {
-        if (row >= 0 && row < (int)styles.size() && onStyleChosen)
+        if (row >= int {} && row < (int)styles.size() && onStyleChosen)
         {
             onStyleChosen(styles[row].first);
-            if (auto* cb = findParentComponentOfClass<juce::CallOutBox>())
-                cb->dismiss();
+            if (auto* callOutBox = findParentComponentOfClass<juce::CallOutBox>())
+                callOutBox->dismiss();
         }
     }
 
@@ -92,20 +169,20 @@ SFZLibraryUI::SFZLibraryUI(SFZLibraryManager& managerRef) : manager(managerRef)
     addAndMakeVisible(assignButton);
     assignButton.onClick = [this]
     {
+        using namespace SfzLibraryStrings;
         int selectedRow = libraryList.getSelectedRow();
-        if (selectedRow < 0 || selectedRow >= (int)manager.getEntries().size())
+        if (selectedRow < int {} || selectedRow >= (int)manager.getEntries().size())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No file selected", "Please select an SFZ file from the list first.");
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, noFileTitle, noFileMessage);
             return;
         }
 
         const auto& entryId = manager.getEntries()[selectedRow].id;
         juce::String styleId = getCurrentStyleId ? getCurrentStyleId() : juce::String();
         if (styleId.isEmpty())
-            styleId = "style_default";
+            styleId = defaultStyleId;
 
-        juce::String styleName = getCurrentStyleName ? getCurrentStyleName() : juce::String("DEFAULT Style");
+        juce::String styleName = getCurrentStyleName ? getCurrentStyleName() : defaultStyleName;
 
         auto chooser = std::make_unique<InstrumentChooserComponent>(instrumentList);
         chooser->instrumentSelectedFunction = [this, styleId, styleName, entryId](int instrumentIndex, const juce::String& name)
@@ -115,14 +192,14 @@ SFZLibraryUI::SFZLibraryUI(SFZLibraryManager& managerRef) : manager(managerRef)
             updateStatusLabel();
             libraryList.repaint();
 
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                "Assigned", "SFZ assigned to style: " + styleName + "\nInstrument: " + name + " (" + juce::String(instrumentIndex) + ")");
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, assignedTitle,
+                assignedToStyle + styleName + assignedInstrument + name + openBracket + juce::String(instrumentIndex) + closeBracket);
         };
 
         if (auto* display = findParentComponentOfClass<juce::Component>())
         {
             auto bounds = getScreenBounds();
-            chooser->setSize(300, 400);
+            chooser->setSize(SfzLibraryLayout::instrumentChooserWidth, SfzLibraryLayout::instrumentChooserHeight);
             juce::CallOutBox::launchAsynchronously(std::move(chooser), bounds, nullptr);
         }
     };
@@ -144,36 +221,38 @@ SFZLibraryUI::~SFZLibraryUI()
 
 void SFZLibraryUI::paint(juce::Graphics& g)
 {
+    using namespace SfzLibraryLayout;
     g.fillAll(juce::Colours::darkgrey);
     g.setColour(juce::Colours::white);
-    g.setFont(16.0f);
-    g.drawText("SFZ Library", getLocalBounds().removeFromTop(30), juce::Justification::centred, true);
+    g.setFont(titleFontSize);
+    g.drawText(SfzLibraryStrings::title, getLocalBounds().removeFromTop(titleHeight), juce::Justification::centred, true);
 
     updateStatusLabel();
 }
 
 void SFZLibraryUI::resized()
 {
+    using namespace SfzLibraryLayout;
     auto bounds = getLocalBounds();
-    closeButton.setBounds(bounds.getRight() - 35, 5, 30, 20);
-    bounds.removeFromTop(30);
+    closeButton.setBounds(bounds.getRight() - closeButtonFromRight, closeButtonTop, closeButtonWidth, closeButtonHeight);
+    bounds.removeFromTop(titleHeight);
 
-    statusLabel.setBounds(bounds.removeFromTop(30).reduced(5, 0));
+    statusLabel.setBounds(bounds.removeFromTop(statusHeight).reduced(statusInsetX, noInset));
 
     // Two rows of two buttons each
-    auto buttonArea = bounds.removeFromBottom(84).reduced(5);
+    auto buttonArea = bounds.removeFromBottom(buttonAreaHeight).reduced(buttonAreaMargin);
 
-    auto topRow = buttonArea.removeFromTop(40);
-    int btnW = topRow.getWidth() / 2;
-    addFileButton.setBounds(topRow.removeFromLeft(btnW).reduced(2));
-    removeFileButton.setBounds(topRow.reduced(2));
+    auto topRow = buttonArea.removeFromTop(buttonRowHeight);
+    int buttonWidth = topRow.getWidth() / buttonsPerRow;
+    addFileButton.setBounds(topRow.removeFromLeft(buttonWidth).reduced(buttonGap));
+    removeFileButton.setBounds(topRow.reduced(buttonGap));
 
-    auto botRow = buttonArea;
-    btnW = botRow.getWidth() / 2;
-    assignButton.setBounds(botRow.removeFromLeft(btnW).reduced(2));
-    importConfigButton.setBounds(botRow.reduced(2));
+    auto bottomRow = buttonArea;
+    buttonWidth = bottomRow.getWidth() / buttonsPerRow;
+    assignButton.setBounds(bottomRow.removeFromLeft(buttonWidth).reduced(buttonGap));
+    importConfigButton.setBounds(bottomRow.reduced(buttonGap));
 
-    libraryList.setBounds(bounds.reduced(5));
+    libraryList.setBounds(bounds.reduced(listMargin));
 }
 
 int SFZLibraryUI::getNumRows()
@@ -183,6 +262,7 @@ int SFZLibraryUI::getNumRows()
 
 void SFZLibraryUI::paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected)
 {
+    using namespace SfzLibraryStrings;
     if (rowIsSelected)
         g.fillAll(juce::Colours::coral);
 
@@ -192,9 +272,9 @@ void SFZLibraryUI::paintListBoxItem(int rowNumber, juce::Graphics& g, int width,
 
         juce::String styleId = getCurrentStyleId ? getCurrentStyleId() : juce::String();
         if (styleId.isEmpty())
-            styleId = "style_default";
+            styleId = defaultStyleId;
 
-        juce::String assignedInsts = "";
+        juce::String assignedInsts;
         bool isAssigned = false;
         auto styleIt = manager.getData().styleMappings.find(styleId);
         if (styleIt != manager.getData().styleMappings.end())
@@ -202,17 +282,17 @@ void SFZLibraryUI::paintListBoxItem(int rowNumber, juce::Graphics& g, int width,
             for (const auto& pair : styleIt->second) {
                 if (pair.second == entry.id) {
                     isAssigned = true;
-                    assignedInsts += juce::String(pair.first) + ", ";
+                    assignedInsts += juce::String(pair.first) + listSeparator;
                 }
             }
         }
 
-        juce::String textToDraw = entry.name + " (" + entry.sfzPath + ")";
+        juce::String textToDraw = entry.name + openBracket + entry.sfzPath + closeBracket;
 
         if (isAssigned)
         {
-            assignedInsts = assignedInsts.dropLastCharacters(2);
-            textToDraw += "   [Assigned: " + assignedInsts + "]";
+            assignedInsts = assignedInsts.dropLastCharacters(listSeparator.length());
+            textToDraw += assignedPrefix + assignedInsts + assignedSuffix;
         }
 
         if (rowIsSelected)
@@ -222,18 +302,20 @@ void SFZLibraryUI::paintListBoxItem(int rowNumber, juce::Graphics& g, int width,
         else
             g.setColour(juce::Colours::peachpuff);
 
-        g.drawText(textToDraw, 10, 0, width - 20, height, juce::Justification::centredLeft, true);
+        using namespace SfzLibraryLayout;
+        g.drawText(textToDraw, rowTextInset, textFromTop, width - rowTextInset - rowTextInset, height,
+                   juce::Justification::centredLeft, true);
     }
 }
 
 void SFZLibraryUI::addFileButtonClicked()
 {
-    fileChooser = std::make_unique<juce::FileChooser>("Select SFZ File", juce::File(), "*.sfz");
+    fileChooser = std::make_unique<juce::FileChooser>(SfzLibraryStrings::chooseFileTitle, juce::File(), SfzLibraryStrings::sfzFilePattern);
     auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
-    fileChooser->launchAsync(chooserFlags, [this](const juce::FileChooser& fc)
+    fileChooser->launchAsync(chooserFlags, [this](const juce::FileChooser& chooser)
     {
-        auto file = fc.getResult();
+        auto file = chooser.getResult();
         if (file.existsAsFile())
         {
             manager.addFile(file);
@@ -246,7 +328,7 @@ void SFZLibraryUI::addFileButtonClicked()
 void SFZLibraryUI::removeFileButtonClicked()
 {
     int selectedRow = libraryList.getSelectedRow();
-    if (selectedRow >= 0 && selectedRow < (int)manager.getEntries().size())
+    if (selectedRow >= int {} && selectedRow < (int)manager.getEntries().size())
     {
         manager.removeEntry(manager.getEntries()[selectedRow].id);
         libraryList.updateContent();
@@ -257,8 +339,9 @@ void SFZLibraryUI::removeFileButtonClicked()
 
 void SFZLibraryUI::importConfigButtonClicked()
 {
+    using namespace SfzLibraryStrings;
     juce::String currentStyleId = getCurrentStyleId ? getCurrentStyleId() : juce::String();
-    if (currentStyleId.isEmpty()) currentStyleId = "style_default";
+    if (currentStyleId.isEmpty()) currentStyleId = defaultStyleId;
 
     const auto& mappings = manager.getData().styleMappings;
 
@@ -280,8 +363,7 @@ void SFZLibraryUI::importConfigButtonClicked()
 
     if (sourceStyles.empty())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Nothing to import", "No other styles with mappings found.");
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, nothingTitle, nothingMessage);
         return;
     }
 
@@ -295,8 +377,7 @@ void SFZLibraryUI::importConfigButtonClicked()
         libraryList.repaint();
         updateStatusLabel();
 
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Done", "Mappings imported into: " + currentStyleName);
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, doneTitle, importedInto + currentStyleName);
     };
 
     juce::CallOutBox::launchAsynchronously(std::move(chooser), getScreenBounds(), nullptr);
@@ -304,8 +385,9 @@ void SFZLibraryUI::importConfigButtonClicked()
 
 void SFZLibraryUI::updateStatusLabel()
 {
-    juce::String styleName = getCurrentStyleName ? getCurrentStyleName() : juce::String("DEFAULT Style");
-    statusLabel.setText("Current Style: " + styleName, juce::dontSendNotification);
+    using namespace SfzLibraryStrings;
+    juce::String styleName = getCurrentStyleName ? getCurrentStyleName() : defaultStyleName;
+    statusLabel.setText(currentStyle + styleName, juce::dontSendNotification);
 }
 
 void SFZLibraryUI::buildInstrumentList()
