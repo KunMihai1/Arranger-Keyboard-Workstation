@@ -5,10 +5,39 @@
 #include "Arranger/ArrangerStyleIOHelper.h"
 #include "IOHelper.h"
 
-
-void CurrentStyleComponent::mouseDown(const juce::MouseEvent& ev)
+namespace
 {
-    auto* clickedComponent = ev.originalComponent;
+    namespace Text
+    {
+        const juce::String allTracks             = "All tracks";
+        const juce::String soloTrack             = "Solo track(last selected)";
+        const juce::String sectionConfigurations = "Section Configurations";
+        const juce::String settings              = "Settings";
+        const juce::String playModeTooltip       = "Play mode - manage configurations in Section Configurations";
+        const juce::String start                 = "Start";
+        const juce::String stop                  = "Stop";
+    }
+
+    constexpr int   soloTrackIndex      = 1;      // comboBoxChangeIndex(): 0 = all tracks, 1 = solo
+    constexpr float trackRowHeight      = 80.0f;
+    constexpr int   topEdge             = 0;
+    constexpr int   leftEdge            = 0;
+    constexpr int   styleLabelWidth     = 50;
+    constexpr int   playSettingsWidth   = 40;
+    constexpr int   controlRowHeight    = 20;
+    constexpr int   startStopWidth      = 35;
+    constexpr int   padding             = 2;
+    constexpr int   paddedSides         = 2;      // above and below
+    constexpr int   centringDivisor     = 2;
+    constexpr int   nameWidthDivisor    = 6;      // the style name takes a sixth of the width...
+    constexpr int   nameWidthTrim       = 15;     // ...minus this
+    constexpr int   startButtonTrim     = 2;
+    constexpr int   controlGap          = 5;
+}
+
+void CurrentStyleComponent::mouseDown(const juce::MouseEvent& event)
+{
+    auto* clickedComponent = event.originalComponent;
 
     while (clickedComponent != nullptr)
     {
@@ -27,11 +56,11 @@ void CurrentStyleComponent::comboBoxChanged(juce::ComboBox* comboBoxThatHasChang
     if (comboBoxThatHasChanged != &playSettingsTracks)
         return;
 
-    const int id = playSettingsTracks.getSelectedId();
+    const int selectedId = playSettingsTracks.getSelectedId();
 
-    if (id == 1 || id == 2)            // live-track play mode -> also means "play from live tracks"
+    if (selectedId == PlayModeIds::allTracks || selectedId == PlayModeIds::soloTrack)          // live-track play mode -> also means "play from live tracks"
     {
-        lastPlayModeId = id;
+        lastPlayModeId = selectedId;
         if (hasActiveArrangerConfig)   // choosing live tracks clears the active configuration
         {
             hasActiveArrangerConfig  = false;
@@ -41,12 +70,12 @@ void CurrentStyleComponent::comboBoxChanged(juce::ComboBox* comboBoxThatHasChang
             if (anyTrackChanged) anyTrackChanged();   // persist the cleared selection to allStyles.json
         }
     }
-    else if (id == 4)                  // action: open the config browser; keep the tick on the play mode
+    else if (selectedId == PlayModeIds::sectionConfigurations)   // action: open the config browser; keep the tick on the play mode
     {
         showStyleList(true);
         playSettingsTracks.setSelectedId(lastPlayModeId, juce::dontSendNotification);
     }
-    else if (id == 3)                  // action: open the settings/keybinds tab
+    else if (selectedId == PlayModeIds::settings)                // action: open the settings/keybinds tab
     {
         keybindTabStarting();
         playSettingsTracks.setSelectedId(lastPlayModeId, juce::dontSendNotification);
@@ -58,21 +87,21 @@ void CurrentStyleComponent::rebuildPlaySettingsItems()
     // The active configuration is no longer shown here: it lives in the Section
     // Configurations browser (marked active). This dropdown is play-mode + actions only.
     playSettingsTracks.clear(juce::dontSendNotification);
-    playSettingsTracks.addItem("All tracks", 1);
-    playSettingsTracks.addItem("Solo track(last selected)", 2);
+    playSettingsTracks.addItem(Text::allTracks, PlayModeIds::allTracks);
+    playSettingsTracks.addItem(Text::soloTrack, PlayModeIds::soloTrack);
     playSettingsTracks.addSeparator();
-    playSettingsTracks.addItem("Section Configurations", 4);   // opens the config browser/editor overlay
-    playSettingsTracks.addItem("Settings", 3);
+    playSettingsTracks.addItem(Text::sectionConfigurations, PlayModeIds::sectionConfigurations);   // opens the config browser/editor overlay
+    playSettingsTracks.addItem(Text::settings, PlayModeIds::settings);
 
     playSettingsTracks.setSelectedId(lastPlayModeId, juce::dontSendNotification);
 
-    playSettingsTracks.setTooltip("Play mode - manage configurations in Section Configurations");
+    playSettingsTracks.setTooltip(Text::playModeTooltip);
 }
 
-void CurrentStyleComponent::comboBoxChangeIndex(int Index)
+void CurrentStyleComponent::comboBoxChangeIndex(int playModeIndex)
 {
     // Visual play-mode reset (e.g. on Home). Does not touch the active arranger configuration.
-    lastPlayModeId = (Index == 1 ? 2 : 1);
+    lastPlayModeId = (playModeIndex == soloTrackIndex ? PlayModeIds::soloTrack : PlayModeIds::allTracks);
     playSettingsTracks.setSelectedId(lastPlayModeId, juce::dontSendNotification);
 }
 
@@ -84,7 +113,7 @@ void CurrentStyleComponent::highlightPendingStartSection()
 
     arrangerEngine->selectStartSection (pendingStartType, pendingStartName);
     if (onArrangerSectionChanged)
-        onArrangerSectionChanged (0, pendingStartType, pendingStartName);
+        onArrangerSectionChanged (SectionHighlight::byTypeAndName, pendingStartType, pendingStartName);
 }
 
 void CurrentStyleComponent::handleIntroCurrentStyle(const juce::String& name, const std::unordered_map<juce::String, StyleSection>& section)
@@ -151,50 +180,46 @@ void CurrentStyleComponent::handleBreakCurrentStyle(const juce::String& name, co
 
 void CurrentStyleComponent::resized()
 {
-    float width = getWidth() / 8.0f;
-    float height = 80.0f;
-    float initialX = 0;
-    float y = getHeight() - height;
-    int yInt = static_cast<int>(y);
+    float width = getWidth() / static_cast<float>(trackSlots);
+    float height = trackRowHeight;
+    float trackRowY = getHeight() - height;
+    int yInt = static_cast<int>(trackRowY);
 
-    int labelWidth = 50;
-    int playSettingsWidth = 40;
-    int heightFirst = 20;
-    int startStopWidth = 35;
-    int padding = 2;
+    int labelWidth = styleLabelWidth;
+    int heightFirst = controlRowHeight;
 
     // Clamp heights so they never go below or above the track start y
     int playSettingsHeight = juce::jmin(heightFirst, yInt)-padding;
     int nameOfStyleHeight = juce::jmin(heightFirst, yInt)-padding;
-    int startStopHeight = juce::jmin(heightFirst - padding * 2, yInt)-padding;
-    int beatBarHeight = juce::jmin(heightFirst - padding * 2, yInt)-padding;
+    int startStopHeight = juce::jmin(heightFirst - padding * paddedSides, yInt)-padding;
+    int beatBarHeight = juce::jmin(heightFirst - padding * paddedSides, yInt)-padding;
     int tempoSliderHeight = juce::jmin(heightFirst, yInt)-padding;
 
-    playSettingsTracks.setBounds(getWidth() - playSettingsWidth, 0, playSettingsWidth, playSettingsHeight);
+    playSettingsTracks.setBounds(getWidth() - playSettingsWidth, topEdge, playSettingsWidth, playSettingsHeight);
     playSettingsTracks.setMouseCursor(juce::MouseCursor::PointingHandCursor);
 
-    nameOfStyle.setBounds((getWidth() - labelWidth) / 2, 0, getWidth() / 6 - 15, nameOfStyleHeight);
+    nameOfStyle.setBounds((getWidth() - labelWidth) / centringDivisor, topEdge, getWidth() / nameWidthDivisor - nameWidthTrim, nameOfStyleHeight);
 
-    startPlayingTracks.setBounds(0, padding, startStopWidth - 2, startStopHeight);
-    startPlayingTracks.setButtonText("Start");
+    startPlayingTracks.setBounds(leftEdge, padding, startStopWidth - startButtonTrim, startStopHeight);
+    startPlayingTracks.setButtonText(Text::start);
     startPlayingTracks.setMouseCursor(juce::MouseCursor::PointingHandCursor);
 
-    stopPlayingTracks.setBounds(startPlayingTracks.getWidth() + 5, padding, startStopWidth, startStopHeight);
-    stopPlayingTracks.setButtonText("Stop");
+    stopPlayingTracks.setBounds(startPlayingTracks.getWidth() + controlGap, padding, startStopWidth, startStopHeight);
+    stopPlayingTracks.setButtonText(Text::stop);
     stopPlayingTracks.setMouseCursor(juce::MouseCursor::PointingHandCursor);
 
-    int xStarting = stopPlayingTracks.getX() + stopPlayingTracks.getWidth() + 5;
+    int xStarting = stopPlayingTracks.getX() + stopPlayingTracks.getWidth() + controlGap;
     customBeatBar.setBounds(xStarting, padding, nameOfStyle.getX() - xStarting, beatBarHeight);
 
-    int paddingBetween = 5;
+    int paddingBetween = controlGap;
     int sliderX = nameOfStyle.getX() + nameOfStyle.getWidth() + paddingBetween;
     int sliderWidth = playSettingsTracks.getX() - sliderX - paddingBetween;
-    tempoSlider.setBounds(sliderX, 0, sliderWidth, tempoSliderHeight);
+    tempoSlider.setBounds(sliderX, topEdge, sliderWidth, tempoSliderHeight);
 
-    for (int i = 0; i < allTracks.size(); i++)
+    for (int trackIndex {}; trackIndex < allTracks.size(); trackIndex++)
     {
-        allTracks[i]->setBounds(juce::Rectangle<int>(
-            static_cast<int>(i * width),
+        allTracks[trackIndex]->setBounds(juce::Rectangle<int>(
+            static_cast<int>(trackIndex * width),
             yInt,
             static_cast<int>(width),
             static_cast<int>(height)

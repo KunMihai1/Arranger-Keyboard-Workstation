@@ -19,8 +19,10 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 
 ## 1. Standing work (do these first)
 - 🟡 **Names, not values in every file** (owner's rule, `docs/names-not-values.md`). One subsystem per PR,
-  behaviour-identical. Done: Common, Audio, Midi, Arranger, Playback. Left (98 files on
-  `ci/named-values-allowlist.txt`): Styles (11) → Backend (9) → UI (37) → tests.
+  behaviour-identical. Done: Common, Audio, Midi, Arranger, Playback, Styles. Left (87 files on
+  `ci/named-values-allowlist.txt`): Backend (9) → UI (37) → tests. When UI is converted, its
+  `"DEFAULT Style"` copies (Display, DisplayStyleStore, SettingsWindow) and `SFZLibraryUI`'s should use
+  `StyleNames::defaultStyle`.
 - ✅ **Faster builds** (research agent, 2026-11-22): 64-bit compiler/linker + one batch for the JUCE
   module files. Local: clean build 44 → 30 s, header edit 7.1 → 5.5 s. On GitHub's runners the warm
   build step barely moved (41–47 s → 40–41 s, within noise).

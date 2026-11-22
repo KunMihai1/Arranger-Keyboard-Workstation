@@ -13,6 +13,12 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: Styles (Styles done)
+- All 11 `Source/Styles` files converted (98 → 87). New shared names: `StyleDialogText`, `SectionGroupNames`,
+  `PlayModeIds`, `SectionHighlight`; persisted `StyleNames::defaultStyle` ("DEFAULT Style") and
+  `AllStylesJsonKeys` (allStyles.json keys, exact text kept); `SoundSettings::setValue` uses
+  `EffectSettingsKeys`. Two reviews: no defects; nits applied. Suites 870 / 770 / 130 (+7 skipped).
+
 ## 2026-11-22 — CI once per PR; build-time result on GitHub
 - `ci.yml`: `push` runs only on `main` (owner approved); PRs keep their `pull_request` run, so each PR
   commit builds once instead of twice. The post-merge `main` run still fills the caches.

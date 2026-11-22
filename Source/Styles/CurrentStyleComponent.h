@@ -9,6 +9,21 @@
 #include "StyleSection.h"
 #include "CustomBeatBar.h"
 
+/** Item ids of the play-settings dropdown. 1 and 2 are play modes (kept ticked); 3 and 4 are actions. */
+namespace PlayModeIds
+{
+    constexpr int allTracks             = 1;
+    constexpr int soloTrack             = 2;
+    constexpr int settings              = 3;
+    constexpr int sectionConfigurations = 4;
+}
+
+/** onArrangerSectionChanged's index: 0 or more highlights the named section, a negative one clears it. */
+namespace SectionHighlight
+{
+    constexpr int byTypeAndName = 0;
+}
+
 /**
  * @class CurrentStyleComponent
  * @brief Manages and displays all tracks within a musical style.
@@ -317,14 +332,15 @@ private:
     bool          hasActiveArrangerConfig = false;              ///< When set, Start + section buttons use activeArrangerConfig.
     ArrangerStyle activeArrangerConfig;                         ///< The loaded/saved configuration in effect (vs. a demo from live tracks).
     juce::String  activeArrangerConfigName;                     ///< File name (no ext) of the active config; persisted so the style reopens with it selected.
-    int           lastPlayModeId = 1;                           ///< Live-track play mode: 1 = all tracks, 2 = solo. Survives menu-action picks.
+    static constexpr int trackSlots = 8;                        ///< Track slots per style (one row).
+    int           lastPlayModeId = PlayModeIds::allTracks;      ///< Live-track play mode (all tracks or solo). Survives menu-action picks.
 
     ArrangerSectionType pendingStartType = ArrangerSectionType::Variation;  ///< Section Start begins on (chosen pre-play).
-    juce::String        pendingStartName = "Variation 1";                   ///< ...defaults to Variation 1, highlighted while stopped.
+    juce::String        pendingStartName = DefaultSectionNames::variation;  ///< ...defaults to Variation 1, highlighted while stopped.
 
     /** Load a .style file and build a runtime style; returns false on failure (showing an error
         unless showError is false, e.g. silent restore during loadJson). */
-    bool buildConfigFromFile (const juce::File& f, ArrangerStyle& out, bool showError = true);
+    bool buildConfigFromFile (const juce::File& styleFile, ArrangerStyle& out, bool showError = true);
     /** Rebuild the play-settings dropdown (adds the active-config row when present) and tick the active entry. */
     void rebuildPlaySettingsItems();
 
@@ -336,12 +352,12 @@ private:
     void applyLiveTrackVolumes (ArrangerStyle& style) const;
     void showStyleList (bool shouldShow);
     void openStyleEditorNew();
-    void openStyleEditorFromFile (const juce::File& f);
-    void loadStyleFileIntoEngine (const juce::File& f);
+    void openStyleEditorFromFile (const juce::File& styleFile);
+    void loadStyleFileIntoEngine (const juce::File& styleFile);
     /** Wire the standard editor callbacks (close / current-tracks / saved) onto arrangerStyleEditor. */
     void configureEditorCallbacks();
     /** Make a loaded/built style the active arranger configuration and refresh the UI selection. */
-    void applyActiveConfig (const juce::File& f, const ArrangerStyle& s);
+    void applyActiveConfig (const juce::File& styleFile, const ArrangerStyle& style);
     /** Section-button click in arranger mode: queue the switch if playing, else arm + highlight it as
         the section Start will begin on. */
     void selectOrQueueSection (ArrangerSectionType type, const juce::String& name);
@@ -351,15 +367,15 @@ private:
     /** Re-point the engine's elapsed-beats callback at our beat bar (the editor hijacks it). */
     void restoreEngineBeatBar();
     /** Parent an authoring overlay to the top-level window so it fills the whole screen. */
-    void presentOverlay (juce::Component& c);
+    void presentOverlay (juce::Component& overlay);
     std::unordered_map<juce::Uuid, TrackEntry*>& mapUuidToTrackEntry; ///< Global map of all track entries.
     Track* lastSelectedTrack = nullptr;                     ///< Last track selected by the user.
     std::weak_ptr<std::vector<StyleSection>> sections;
 
     juce::Slider tempoSlider;                               ///< Slider for controlling BPM.
-    int oldTempo = 120.0;                                   ///< Previously stored tempo.
-    double currentTempo = 120.0;                            ///< Current tempo in BPM.
-    double baseTempo = 120.0;                               ///< Base tempo for playback ratio.
+    int oldTempo = ArrangerStyleDefaults::tempoBpm;         ///< Previously stored tempo.
+    double currentTempo = ArrangerStyleDefaults::tempoBpm;  ///< Current tempo in BPM.
+    double baseTempo = ArrangerStyleDefaults::tempoBpm;     ///< Base tempo for playback ratio.
     bool isPlaying = false;                                 ///< Indicates whether playback is active.
     juce::String styleID;                                   ///< Unique ID of the current style.
 

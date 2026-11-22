@@ -77,6 +77,22 @@ namespace PlaybackSettingsKeys
     inline constexpr int semitonesPerOctave = 12;
 }
 
+// allStyles.json: one object per style (its tracks use StyleTrackJsonKeys).
+namespace AllStylesJsonKeys
+{
+    inline const juce::String name           = "name";
+    inline const juce::String bpm            = "BPM";
+    inline const juce::String styleId        = "StyleID";
+    inline const juce::String arrangerConfig = "arrangerConfig";
+    inline const juce::String tracks         = "tracks";
+}
+
+// The built-in style; per-style settings are stored under this name.
+namespace StyleNames
+{
+    inline const juce::String defaultStyle = "DEFAULT Style";
+}
+
 // mySections.json
 namespace SectionJsonKeys
 {
