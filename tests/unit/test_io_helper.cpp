@@ -2,32 +2,133 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include "IOHelper.h"
 
+namespace TrackIOHelperTestValues
+{
+    const juce::String testName     = "TrackIOHelper";
+    const juce::String testCategory = "Unit";
+
+    const juce::String foundPercussionReturnsTrueForChannel10Notes = "foundPercussion - returns true for channel 10 notes";
+    const juce::String foundPercussionReturnsFalseForNonChannel10 = "foundPercussion - returns false for non-channel-10 notes";
+    const juce::String foundPercussionReturnsFalseForEmptySequence = "foundPercussion - returns false for empty sequence";
+    const juce::String foundPercussionMixedChannelsOneIsChannel10 = "foundPercussion - mixed channels, one is channel 10";
+    const juce::String getOriginalBpmFromFileReturns120ForEmptyMIDIFile = "getOriginalBpmFromFile - returns 120 for empty MIDI file";
+    const juce::String getOriginalBpmFromFileReadsTempoFromFirstTrack = "getOriginalBpmFromFile - reads tempo from first track";
+    const juce::String getOriginalBpmFromFileReturns120IfNoTempoEvent = "getOriginalBpmFromFile - returns 120 if no tempo event";
+    const juce::String convertTicksToSecondsConvertsCorrectlyAt120BPM = "convertTicksToSeconds - converts correctly at 120 BPM";
+    const juce::String convertTicksToSecondsTick0StaysAt0 = "convertTicksToSeconds - tick 0 stays at 0";
+    const juce::String applyChangesToASequenceNotePairAppliesNoteAndVelocityChanges = "applyChangesToASequence (NotePair) - applies note and velocity changes";
+    const juce::String applyChangesToASequenceNotePairShiftsTimestampByDelta = "applyChangesToASequence (NotePair) - shifts timestamp by delta";
+    const juce::String applyChangesToASequenceNotePairClampsTo0WhenShifted = "applyChangesToASequence (NotePair) - clamps to 0 when shifted before start";
+    const juce::String applyChangesToASequenceNotePairOutOfRangeRowIs = "applyChangesToASequence (NotePair) - out of range row is ignored";
+    const juce::String applyChangesToASequenceAppliesNoteNumberAndVelocityChanges = "applyChangesToASequence - applies note number and velocity changes";
+    const juce::String applyChangesToASequenceOutOfRangeRowIsIgnored = "applyChangesToASequence - out of range row is ignored";
+    const juce::String extractNotePairEventsExtractsMatchedNoteOnOffPairs = "extractNotePairEvents - extracts matched note on/off pairs";
+    const juce::String extractNotePairEventsEmptySequenceGivesEmptyResult = "extractNotePairEvents - empty sequence gives empty result";
+    const juce::String saveToFileAndLoadFromFileBasicRoundtrip = "saveToFile and loadFromFile - basic roundtrip";
+    const juce::String saveToFileAndLoadFromFileWithNonEmptyChanges = "saveToFile and loadFromFile - with non empty changes map";
+    const juce::String saveToFileAndLoadFromFileEmptyFolderSurvivesSave = "saveToFile and loadFromFile - empty folder survives save-load";
+    const juce::String loadFromFileNonExistentFileDoesNothing = "loadFromFile - non-existent file does nothing";
+    const juce::String saveToFileAndLoadFromFileMultipleFoldersWithTracks = "saveToFile and loadFromFile - multiple folders with tracks";
+
+    constexpr int         melodicChannel = 1;
+    constexpr int         drumChannel    = 10;
+    constexpr int         kickNote       = 36;
+    constexpr int         closedHiHat    = 42;
+    constexpr int         middleC        = 60;
+    constexpr int         noteEFlat4     = 63;
+    constexpr int         noteE4         = 64;
+    constexpr int         noteG4         = 67;
+    constexpr int         noteC5         = 72;
+    constexpr juce::uint8 velocity       = 100;
+    constexpr juce::uint8 softerVelocity = 90;
+    constexpr juce::uint8 softVelocity   = 80;
+    constexpr int keyVelocity       = 100;
+    constexpr int louderVelocity    = 110;
+    constexpr int softerKeyVelocity = 90;
+    constexpr int softKeyVelocity   = 80;
+    constexpr int quietKeyVelocity  = 50;
+
+    constexpr double atStart            = 0.0;
+    constexpr double halfSecond         = 0.5;
+    constexpr double oneSecond          = 1.0;
+    constexpr double oneAndAHalfSeconds = 1.5;
+    constexpr double twoSeconds         = 2.0;
+    constexpr double threeSeconds       = 3.0;
+    constexpr double fourSeconds        = 4.0;
+    constexpr double fiveSeconds        = 5.0;
+    constexpr double sixSeconds         = 6.0;
+    constexpr double changeTime         = 20.5;
+    constexpr double timeTolerance      = 0.001;
+
+    constexpr int    standardResolution = 480;    // ticks per quarter note
+    constexpr int    fineResolution     = 960;
+    constexpr double eighthNoteTicks    = 240.0;  // at 480 ticks per quarter note
+    constexpr double quarterNoteTicks   = 480.0;
+    constexpr double halfNoteTicks      = 960.0;  // also one quarter note at 960 ticks
+
+    constexpr double defaultTempo        = 120.0;
+    constexpr double fileTempo           = 140.0;
+    constexpr double changedTempo        = 150.0;
+    constexpr double tempoTolerance      = 0.5;
+    constexpr double secondsPerMinute    = 60.0;
+    constexpr double microsecondsPerSecond = 1000000.0;
+
+    constexpr int    firstTrack   = 0;
+    constexpr int    firstEvent   = 0;
+    constexpr int    firstRow     = 0;
+    constexpr int    changedRow   = 1;
+    constexpr int    missingRow   = 99;
+    constexpr size_t firstPair    = 0;
+    constexpr size_t secondPair   = 1;
+    constexpr int    twoPairs     = 2;
+    constexpr size_t firstKey     = 0;
+    constexpr size_t firstEntry   = 0;
+    constexpr int    oneFolder    = 1;
+    constexpr int    twoFolders   = 2;
+    constexpr int    oneTrack     = 1;
+    constexpr size_t present      = 1;
+
+    const juce::String midiExtension   = ".mid";
+    const juce::String jsonExtension   = ".json";
+    const juce::String pianoName       = "Piano";
+    const juce::String folderName      = "MyFolder";
+    const juce::String styleName       = "Style1";
+    const juce::String emptyFolderName = "EmptyFolder";
+    const juce::String melodyName      = "Melody";
+    const juce::String songsFolder     = "Songs";
+    const juce::String drumsName       = "Drums";
+    const juce::String beatsFolder     = "Beats";
+    const juce::String missingTrackFile = "C:\\this_track_file_does_not_exist.json";
+}
+
+using namespace TrackIOHelperTestValues;
+
 
 class TrackIOHelperTest : public juce::UnitTest
 {
 public:
-    TrackIOHelperTest() : juce::UnitTest("TrackIOHelper", "Unit") {}
+    TrackIOHelperTest() : juce::UnitTest (TrackIOHelperTestValues::testName, TrackIOHelperTestValues::testCategory) {}
 
     void runTest() override
     {
 
-        beginTest("foundPercussion - returns true for channel 10 notes");
+        beginTest(foundPercussionReturnsTrueForChannel10Notes);
         {
             juce::MidiMessageSequence seq;
-            seq.addEvent(juce::MidiMessage::noteOn(10, 36, (juce::uint8)100), 0.0);
-            seq.addEvent(juce::MidiMessage::noteOff(10, 36), 0.5);
+            seq.addEvent(juce::MidiMessage::noteOn(drumChannel, kickNote, velocity), atStart);
+            seq.addEvent(juce::MidiMessage::noteOff(drumChannel, kickNote), halfSecond);
             expect(TrackIOHelper::foundPercussion(&seq) == true);
         }
 
-        beginTest("foundPercussion - returns false for non-channel-10 notes");
+        beginTest(foundPercussionReturnsFalseForNonChannel10);
         {
             juce::MidiMessageSequence seq;
-            seq.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0.0);
-            seq.addEvent(juce::MidiMessage::noteOff(1, 60), 0.5);
+            seq.addEvent(juce::MidiMessage::noteOn(melodicChannel, middleC, velocity), atStart);
+            seq.addEvent(juce::MidiMessage::noteOff(melodicChannel, middleC), halfSecond);
             expect(TrackIOHelper::foundPercussion(&seq) == false);
         }
 
-        beginTest("foundPercussion - returns false for empty sequence");
+        beginTest(foundPercussionReturnsFalseForEmptySequence);
         {
             juce::MidiMessageSequence seq;
             expect(TrackIOHelper::foundPercussion(&seq) == false);
@@ -40,13 +141,13 @@ public:
         //a percussion sequence of events or a normal one
         //check can be added so that when a user wants to add his midi file, a check for correctness of tracks
         //can be made
-        beginTest("foundPercussion - mixed channels, one is channel 10");
+        beginTest(foundPercussionMixedChannelsOneIsChannel10);
         {
             juce::MidiMessageSequence seq;
-            seq.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0.0);
-            seq.addEvent(juce::MidiMessage::noteOff(1, 60), 0.5);
-            seq.addEvent(juce::MidiMessage::noteOn(10, 42, (juce::uint8)80), 1.0);
-            seq.addEvent(juce::MidiMessage::noteOff(10, 42), 1.5);
+            seq.addEvent(juce::MidiMessage::noteOn(melodicChannel, middleC, velocity), atStart);
+            seq.addEvent(juce::MidiMessage::noteOff(melodicChannel, middleC), halfSecond);
+            seq.addEvent(juce::MidiMessage::noteOn(drumChannel, closedHiHat, softVelocity), oneSecond);
+            seq.addEvent(juce::MidiMessage::noteOff(drumChannel, closedHiHat), oneAndAHalfSeconds);
             expect(TrackIOHelper::foundPercussion(&seq) == true);
         }
 
@@ -54,195 +155,195 @@ public:
 
 
 
-        beginTest("getOriginalBpmFromFile - returns 120 for empty MIDI file");
+        beginTest(getOriginalBpmFromFileReturns120ForEmptyMIDIFile);
         {
             juce::MidiFile midiFile;
-            expect(TrackIOHelper::getOriginalBpmFromFile(midiFile) == 120.0);
+            expect(TrackIOHelper::getOriginalBpmFromFile(midiFile) == defaultTempo);
         }
 
-        beginTest("getOriginalBpmFromFile - reads tempo from first track");
+        beginTest(getOriginalBpmFromFileReadsTempoFromFirstTrack);
         {
             juce::MidiFile midiFile;
             juce::MidiMessageSequence tempoTrack;
 
             // 140 BPM = 60/140 seconds per quarter note
-            double spqn = 60.0 / 140.0;
+            double spqn = secondsPerMinute / fileTempo;
             auto tempoMsg = juce::MidiMessage::tempoMetaEvent(
-                static_cast<int>(spqn * 1000000.0)  // microseconds per quarter note
+                static_cast<int>(spqn * microsecondsPerSecond)  // microseconds per quarter note
             );
-            tempoMsg.setTimeStamp(0.0);
+            tempoMsg.setTimeStamp(atStart);
             tempoTrack.addEvent(tempoMsg);
 
             midiFile.addTrack(tempoTrack);
             double bpm = TrackIOHelper::getOriginalBpmFromFile(midiFile);
             
             //0.5 tolerance
-            expect(std::abs(bpm - 140.0) < 0.5);
+            expect(std::abs(bpm - fileTempo) < tempoTolerance);
         }
 
-        beginTest("getOriginalBpmFromFile - returns 120 if no tempo event");
+        beginTest(getOriginalBpmFromFileReturns120IfNoTempoEvent);
         {
             juce::MidiFile midiFile;
             juce::MidiMessageSequence track;
-            track.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0.0);
+            track.addEvent(juce::MidiMessage::noteOn(melodicChannel, middleC, velocity), atStart);
             midiFile.addTrack(track);
-            expect(TrackIOHelper::getOriginalBpmFromFile(midiFile) == 120.0);
+            expect(TrackIOHelper::getOriginalBpmFromFile(midiFile) == defaultTempo);
         }
 
         
 
-        beginTest("convertTicksToSeconds - converts correctly at 120 BPM");
+        beginTest(convertTicksToSecondsConvertsCorrectlyAt120BPM);
         {
             juce::MidiFile midiFile;
-            midiFile.setTicksPerQuarterNote(960);
+            midiFile.setTicksPerQuarterNote(fineResolution);
 
             juce::MidiMessageSequence track;
             // A note at tick 960 = 1 quarter note = 0.5 seconds at 120 BPM
-            auto noteOn = juce::MidiMessage::noteOn(1, 60, (juce::uint8)100);
-            noteOn.setTimeStamp(960.0);
+            auto noteOn = juce::MidiMessage::noteOn(melodicChannel, middleC, velocity);
+            noteOn.setTimeStamp(halfNoteTicks);
             track.addEvent(noteOn);
             midiFile.addTrack(track);
 
-            TrackIOHelper::convertTicksToSeconds(midiFile, 120.0);
+            TrackIOHelper::convertTicksToSeconds(midiFile, defaultTempo);
 
-            auto* seq = midiFile.getTrack(0);
-            double convertedTime = seq->getEventPointer(0)->message.getTimeStamp();
+            auto* seq = midiFile.getTrack(firstTrack);
+            double convertedTime = seq->getEventPointer(firstEvent)->message.getTimeStamp();
             // At 120 BPM, 960 ticks = 0.5 seconds
-            expect(std::abs(convertedTime - 0.5) < 0.001);
+            expect(std::abs(convertedTime - halfSecond) < timeTolerance);
         }
 
-        beginTest("convertTicksToSeconds - tick 0 stays at 0");
+        beginTest(convertTicksToSecondsTick0StaysAt0);
         {
             juce::MidiFile midiFile;
-            midiFile.setTicksPerQuarterNote(480);
+            midiFile.setTicksPerQuarterNote(standardResolution);
 
             juce::MidiMessageSequence track;
-            auto noteOn = juce::MidiMessage::noteOn(1, 60, (juce::uint8)100);
-            noteOn.setTimeStamp(0.0);
+            auto noteOn = juce::MidiMessage::noteOn(melodicChannel, middleC, velocity);
+            noteOn.setTimeStamp(atStart);
             track.addEvent(noteOn);
             midiFile.addTrack(track);
 
-            TrackIOHelper::convertTicksToSeconds(midiFile, 120.0);
+            TrackIOHelper::convertTicksToSeconds(midiFile, defaultTempo);
 
-            auto* seq = midiFile.getTrack(0);
-            expect(seq->getEventPointer(0)->message.getTimeStamp() == 0.0);
+            auto* seq = midiFile.getTrack(firstTrack);
+            expect(seq->getEventPointer(firstEvent)->message.getTimeStamp() == atStart);
         }
 
-        beginTest("applyChangesToASequence (NotePair) - applies note and velocity changes");
+        beginTest(applyChangesToASequenceNotePairAppliesNoteAndVelocityChanges);
         {
             juce::MidiMessageSequence seq;
-            seq.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 1.0);
-            seq.addEvent(juce::MidiMessage::noteOff(1, 60), 2.0);
+            seq.addEvent(juce::MidiMessage::noteOn(melodicChannel, middleC, velocity), oneSecond);
+            seq.addEvent(juce::MidiMessage::noteOff(melodicChannel, middleC), twoSeconds);
             seq.updateMatchedPairs();
             std::vector<TrackIOHelper::NotePair> pairs;
             TrackIOHelper::extractNotePairEvents(seq, pairs);
             std::unordered_map<int, MidiChangeInfo> changes;
             MidiChangeInfo info;
-            info.oldTimeStamp = 1.0;
-            info.newTimeStamp = 1.0; 
-            info.newNumber = 67;
-            info.newVelocity = 110;
-            changes[0] = info;
+            info.oldTimeStamp = oneSecond;
+            info.newTimeStamp = oneSecond; 
+            info.newNumber = noteG4;
+            info.newVelocity = louderVelocity;
+            changes[firstRow] = info;
             TrackIOHelper::applyChangesToASequence(pairs, changes);
-            expect(pairs[0].noteOn->getNoteNumber() == 67);
-            expect(pairs[0].noteOn->getVelocity() == 110);
-            expect(pairs[0].noteOff->getNoteNumber() == 67);
+            expect(pairs[firstPair].noteOn->getNoteNumber() == noteG4);
+            expect(pairs[firstPair].noteOn->getVelocity() == louderVelocity);
+            expect(pairs[firstPair].noteOff->getNoteNumber() == noteG4);
         }
-        beginTest("applyChangesToASequence (NotePair) - shifts timestamp by delta");
+        beginTest(applyChangesToASequenceNotePairShiftsTimestampByDelta);
         {
             juce::MidiMessageSequence seq;
-            seq.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 5.0);
-            seq.addEvent(juce::MidiMessage::noteOff(1, 60), 6.0);
+            seq.addEvent(juce::MidiMessage::noteOn(melodicChannel, middleC, velocity), fiveSeconds);
+            seq.addEvent(juce::MidiMessage::noteOff(melodicChannel, middleC), sixSeconds);
             seq.updateMatchedPairs();
             std::vector<TrackIOHelper::NotePair> pairs;
             TrackIOHelper::extractNotePairEvents(seq, pairs);
             std::unordered_map<int, MidiChangeInfo> changes;
             MidiChangeInfo info;
-            info.oldTimeStamp = 5.0;
-            info.newTimeStamp = 3.0;  
-            info.newNumber = 60;
-            info.newVelocity = 100;
-            changes[0] = info;
+            info.oldTimeStamp = fiveSeconds;
+            info.newTimeStamp = threeSeconds;  
+            info.newNumber = middleC;
+            info.newVelocity = keyVelocity;
+            changes[firstRow] = info;
             TrackIOHelper::applyChangesToASequence(pairs, changes);
-            expect(std::abs(pairs[0].noteOn->getTimeStamp() - 3.0) < 0.001);
-            expect(std::abs(pairs[0].noteOff->getTimeStamp() - 4.0) < 0.001); 
+            expect(std::abs(pairs[firstPair].noteOn->getTimeStamp() - threeSeconds) < timeTolerance);
+            expect(std::abs(pairs[firstPair].noteOff->getTimeStamp() - fourSeconds) < timeTolerance); 
         }
-        beginTest("applyChangesToASequence (NotePair) - clamps to 0 when shifted before start");
+        beginTest(applyChangesToASequenceNotePairClampsTo0WhenShifted);
         {
             juce::MidiMessageSequence seq;
-            seq.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 1.0);
-            seq.addEvent(juce::MidiMessage::noteOff(1, 60), 2.0);
+            seq.addEvent(juce::MidiMessage::noteOn(melodicChannel, middleC, velocity), oneSecond);
+            seq.addEvent(juce::MidiMessage::noteOff(melodicChannel, middleC), twoSeconds);
             seq.updateMatchedPairs();
             std::vector<TrackIOHelper::NotePair> pairs;
             TrackIOHelper::extractNotePairEvents(seq, pairs);
             std::unordered_map<int, MidiChangeInfo> changes;
             MidiChangeInfo info;
-            info.oldTimeStamp = 1.0;
-            info.newTimeStamp = 5.0;  
+            info.oldTimeStamp = oneSecond;
+            info.newTimeStamp = fiveSeconds;  
 
-            info.oldTimeStamp = 1.0;
-            info.newTimeStamp = 3.0;  
+            info.oldTimeStamp = oneSecond;
+            info.newTimeStamp = threeSeconds;  
 
-            info.oldTimeStamp = 5.0;
-            info.newTimeStamp = 0.0;
-            info.newNumber = 60;
-            info.newVelocity = 100;
-            changes[0] = info;
+            info.oldTimeStamp = fiveSeconds;
+            info.newTimeStamp = atStart;
+            info.newNumber = middleC;
+            info.newVelocity = keyVelocity;
+            changes[firstRow] = info;
             TrackIOHelper::applyChangesToASequence(pairs, changes);
-            expect(pairs[0].noteOn->getTimeStamp() == 0.0);        
-            expect(std::abs(pairs[0].noteOff->getTimeStamp() - 1.0) < 0.001); 
+            expect(pairs[firstPair].noteOn->getTimeStamp() == atStart);        
+            expect(std::abs(pairs[firstPair].noteOff->getTimeStamp() - oneSecond) < timeTolerance); 
         }
-        beginTest("applyChangesToASequence (NotePair) - out of range row is ignored");
+        beginTest(applyChangesToASequenceNotePairOutOfRangeRowIs);
         {
             juce::MidiMessageSequence seq;
-            seq.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0.0);
-            seq.addEvent(juce::MidiMessage::noteOff(1, 60), 1.0);
+            seq.addEvent(juce::MidiMessage::noteOn(melodicChannel, middleC, velocity), atStart);
+            seq.addEvent(juce::MidiMessage::noteOff(melodicChannel, middleC), oneSecond);
             seq.updateMatchedPairs();
             std::vector<TrackIOHelper::NotePair> pairs;
             TrackIOHelper::extractNotePairEvents(seq, pairs);
             std::unordered_map<int, MidiChangeInfo> changes;
             MidiChangeInfo info;
-            info.newNumber = 72;
-            info.newVelocity = 50;
-            info.oldTimeStamp = 0.0;
-            info.newTimeStamp = 0.0;
-            changes[99] = info;
+            info.newNumber = noteC5;
+            info.newVelocity = quietKeyVelocity;
+            info.oldTimeStamp = atStart;
+            info.newTimeStamp = atStart;
+            changes[missingRow] = info;
             TrackIOHelper::applyChangesToASequence(pairs, changes);
-            expect(pairs[0].noteOn->getNoteNumber() == 60);  
+            expect(pairs[firstPair].noteOn->getNoteNumber() == middleC);  
         }
 
-        beginTest("applyChangesToASequence - applies note number and velocity changes");
+        beginTest(applyChangesToASequenceAppliesNoteNumberAndVelocityChanges);
         {
             juce::MidiMessageSequence seq;
-            auto on = juce::MidiMessage::noteOn(1, 60, (juce::uint8)100);
-            on.setTimeStamp(1.0);
-            auto off = juce::MidiMessage::noteOff(1, 60);
-            off.setTimeStamp(2.0);
+            auto on = juce::MidiMessage::noteOn(melodicChannel, middleC, velocity);
+            on.setTimeStamp(oneSecond);
+            auto off = juce::MidiMessage::noteOff(melodicChannel, middleC);
+            off.setTimeStamp(twoSeconds);
             seq.addEvent(on);
             seq.addEvent(off);
             seq.updateMatchedPairs();
 
             std::unordered_map<int, MidiChangeInfo> changes;
             MidiChangeInfo info;
-            info.oldNumber = 60;
-            info.oldTimeStamp = 1.0;
-            info.oldVelocity = 100;
-            info.newNumber = 64;        
-            info.newTimeStamp = 1.0;    
-            info.newVelocity = 80;
-            changes[0] = info;
+            info.oldNumber = middleC;
+            info.oldTimeStamp = oneSecond;
+            info.oldVelocity = keyVelocity;
+            info.newNumber = noteE4;        
+            info.newTimeStamp = oneSecond;    
+            info.newVelocity = softKeyVelocity;
+            changes[firstRow] = info;
 
             TrackIOHelper::applyChangesToASequence(seq, changes);
 
             
             bool found = false;
-            for (int i = 0; i < seq.getNumEvents(); ++i)
+            for (int eventIndex {}; eventIndex < seq.getNumEvents(); ++eventIndex)
             {
-                auto& msg = seq.getEventPointer(i)->message;
+                auto& msg = seq.getEventPointer(eventIndex)->message;
                 if (msg.isNoteOn())
                 {
-                    expect(msg.getNoteNumber() == 64);
-                    expect(msg.getVelocity() == 80);
+                    expect(msg.getNoteNumber() == noteE4);
+                    expect(msg.getVelocity() == softKeyVelocity);
                     found = true;
                     break;
                 }
@@ -250,52 +351,52 @@ public:
             expect(found);
         }
 
-        beginTest("applyChangesToASequence - out of range row is ignored");
+        beginTest(applyChangesToASequenceOutOfRangeRowIsIgnored);
         {
             juce::MidiMessageSequence seq;
-            auto on = juce::MidiMessage::noteOn(1, 60, (juce::uint8)100);
-            on.setTimeStamp(0.0);
-            auto off = juce::MidiMessage::noteOff(1, 60);
-            off.setTimeStamp(1.0);
+            auto on = juce::MidiMessage::noteOn(melodicChannel, middleC, velocity);
+            on.setTimeStamp(atStart);
+            auto off = juce::MidiMessage::noteOff(melodicChannel, middleC);
+            off.setTimeStamp(oneSecond);
             seq.addEvent(on);
             seq.addEvent(off);
             seq.updateMatchedPairs();
 
             std::unordered_map<int, MidiChangeInfo> changes;
             MidiChangeInfo info;
-            info.newNumber = 64;
-            info.newVelocity = 80;
-            info.oldTimeStamp = 0.0;
-            info.newTimeStamp = 0.0;
-            changes[99] = info;  
+            info.newNumber = noteE4;
+            info.newVelocity = softKeyVelocity;
+            info.oldTimeStamp = atStart;
+            info.newTimeStamp = atStart;
+            changes[missingRow] = info;  
 
             TrackIOHelper::applyChangesToASequence(seq, changes);
 
-            expect(seq.getEventPointer(0)->message.getNoteNumber() == 60);
+            expect(seq.getEventPointer(firstEvent)->message.getNoteNumber() == middleC);
         }
 
         
 
-        beginTest("extractNotePairEvents - extracts matched note on/off pairs");
+        beginTest(extractNotePairEventsExtractsMatchedNoteOnOffPairs);
         {
             juce::MidiMessageSequence seq;
-            seq.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0.0);
-            seq.addEvent(juce::MidiMessage::noteOff(1, 60), 1.0);
-            seq.addEvent(juce::MidiMessage::noteOn(1, 64, (juce::uint8)90), 1.0);
-            seq.addEvent(juce::MidiMessage::noteOff(1, 64), 2.0);
+            seq.addEvent(juce::MidiMessage::noteOn(melodicChannel, middleC, velocity), atStart);
+            seq.addEvent(juce::MidiMessage::noteOff(melodicChannel, middleC), oneSecond);
+            seq.addEvent(juce::MidiMessage::noteOn(melodicChannel, noteE4, softerVelocity), oneSecond);
+            seq.addEvent(juce::MidiMessage::noteOff(melodicChannel, noteE4), twoSeconds);
             seq.updateMatchedPairs();
 
             std::vector<TrackIOHelper::NotePair> pairs;
             TrackIOHelper::extractNotePairEvents(seq, pairs);
 
-            expect((int)pairs.size() == 2);
-            expect(pairs[0].noteOn->getNoteNumber() == 60);
-            expect(pairs[0].noteOff->getNoteNumber() == 60);
-            expect(pairs[1].noteOn->getNoteNumber() == 64);
-            expect(pairs[1].noteOff->getNoteNumber() == 64);
+            expect((int)pairs.size() == twoPairs);
+            expect(pairs[firstPair].noteOn->getNoteNumber() == middleC);
+            expect(pairs[firstPair].noteOff->getNoteNumber() == middleC);
+            expect(pairs[secondPair].noteOn->getNoteNumber() == noteE4);
+            expect(pairs[secondPair].noteOff->getNoteNumber() == noteE4);
         }
 
-        beginTest("extractNotePairEvents - empty sequence gives empty result");
+        beginTest(extractNotePairEventsEmptySequenceGivesEmptyResult);
         {
             juce::MidiMessageSequence seq;
             std::vector<TrackIOHelper::NotePair> pairs;
@@ -305,19 +406,19 @@ public:
 
         
 
-        beginTest("saveToFile and loadFromFile - basic roundtrip");
+        beginTest(saveToFileAndLoadFromFileBasicRoundtrip);
         {
             
-            auto tempMidiFile = juce::File::createTempFile(".mid");
+            auto tempMidiFile = juce::File::createTempFile(midiExtension);
             {
                 juce::MidiFile midiFile;
-                midiFile.setTicksPerQuarterNote(480);
+                midiFile.setTicksPerQuarterNote(standardResolution);
 
                 juce::MidiMessageSequence track;
-                track.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0.0);
-                track.addEvent(juce::MidiMessage::noteOff(1, 60), 480.0);
-                track.addEvent(juce::MidiMessage::noteOn(1, 64, (juce::uint8)90), 480.0);
-                track.addEvent(juce::MidiMessage::noteOff(1, 64), 960.0);
+                track.addEvent(juce::MidiMessage::noteOn(melodicChannel, middleC, velocity), atStart);
+                track.addEvent(juce::MidiMessage::noteOff(melodicChannel, middleC), quarterNoteTicks);
+                track.addEvent(juce::MidiMessage::noteOn(melodicChannel, noteE4, softerVelocity), quarterNoteTicks);
+                track.addEvent(juce::MidiMessage::noteOff(melodicChannel, noteE4), halfNoteTicks);
 
                 midiFile.addTrack(track);
 
@@ -331,15 +432,15 @@ public:
 
             TrackEntry entry;
             entry.file = tempMidiFile;
-            entry.trackIndex = 0;
-            entry.displayName = "Piano";
-            entry.folderName = "MyFolder";
+            entry.trackIndex = firstTrack;
+            entry.displayName = pianoName;
+            entry.folderName = folderName;
             entry.uuid = TrackEntry::generateUUID();
 
-            groupedTracks["MyFolder"].push_back(entry);
+            groupedTracks[folderName].push_back(entry);
 
             
-            auto tempJsonFile = juce::File::createTempFile(".json");
+            auto tempJsonFile = juce::File::createTempFile(jsonExtension);
             TrackIOHelper::saveToFile(tempJsonFile, groupedTracks);
 
             
@@ -348,33 +449,33 @@ public:
             TrackIOHelper::loadFromFile(tempJsonFile, loadedTracks, loadedKeys);
 
             
-            expect((int)loadedKeys.size() == 1);
-            expect(loadedKeys[0] == "MyFolder");
-            expect(loadedTracks.count("MyFolder") == 1);
-            expect((int)loadedTracks["MyFolder"].size() == 1);
+            expect((int)loadedKeys.size() == oneFolder);
+            expect(loadedKeys[firstKey] == folderName);
+            expect(loadedTracks.count(folderName) == present);
+            expect((int)loadedTracks[folderName].size() == oneTrack);
 
-            auto& loadedEntry = loadedTracks["MyFolder"][0];
-            expect(loadedEntry.displayName == "Piano");
-            expect(loadedEntry.trackIndex == 0);
-            expect(loadedEntry.folderName == "MyFolder");
+            auto& loadedEntry = loadedTracks[folderName][firstEntry];
+            expect(loadedEntry.displayName == pianoName);
+            expect(loadedEntry.trackIndex == firstTrack);
+            expect(loadedEntry.folderName == folderName);
 
             tempJsonFile.deleteFile();
             tempMidiFile.deleteFile();
         }
 
-        beginTest("saveToFile and loadFromFile - with non empty changes map");
+        beginTest(saveToFileAndLoadFromFileWithNonEmptyChanges);
         {
 
-            auto tempMidiFile = juce::File::createTempFile(".mid");
+            auto tempMidiFile = juce::File::createTempFile(midiExtension);
             {
                 juce::MidiFile midiFile;
-                midiFile.setTicksPerQuarterNote(480);
+                midiFile.setTicksPerQuarterNote(standardResolution);
 
                 juce::MidiMessageSequence track;
-                track.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0.0);
-                track.addEvent(juce::MidiMessage::noteOff(1, 60), 480.0);
-                track.addEvent(juce::MidiMessage::noteOn(1, 64, (juce::uint8)90), 480.0);
-                track.addEvent(juce::MidiMessage::noteOff(1, 64), 960.0);
+                track.addEvent(juce::MidiMessage::noteOn(melodicChannel, middleC, velocity), atStart);
+                track.addEvent(juce::MidiMessage::noteOff(melodicChannel, middleC), quarterNoteTicks);
+                track.addEvent(juce::MidiMessage::noteOn(melodicChannel, noteE4, softerVelocity), quarterNoteTicks);
+                track.addEvent(juce::MidiMessage::noteOff(melodicChannel, noteE4), halfNoteTicks);
 
                 midiFile.addTrack(track);
 
@@ -388,36 +489,36 @@ public:
 
             TrackEntry entry;
             entry.file = tempMidiFile;
-            entry.trackIndex = 0;
-            entry.displayName = "Piano";
-            entry.folderName = "MyFolder";
+            entry.trackIndex = firstTrack;
+            entry.displayName = pianoName;
+            entry.folderName = folderName;
             entry.uuid = TrackEntry::generateUUID();
 
             std::unordered_map<juce::String, std::unordered_map<int, MidiChangeInfo>> changesMap;
 
             MidiChangeInfo newChange;
 
-            newChange.oldVelocity = 80;
-            newChange.oldNumber = 63;
-            newChange.oldTimeStamp = 20.5;
+            newChange.oldVelocity = softKeyVelocity;
+            newChange.oldNumber = noteEFlat4;
+            newChange.oldTimeStamp = changeTime;
 
-            newChange.oldBPMchange = 120.0;
+            newChange.oldBPMchange = defaultTempo;
 
-            newChange.newBPMchange = 150.0;
-            newChange.newTimeStamp = 20.5;
-            newChange.newNumber = 63;
-            newChange.newVelocity = 90;
+            newChange.newBPMchange = changedTempo;
+            newChange.newTimeStamp = changeTime;
+            newChange.newNumber = noteEFlat4;
+            newChange.newVelocity = softerKeyVelocity;
 
             std::unordered_map<int, MidiChangeInfo> innerMap;
-            innerMap[1] = newChange;
+            innerMap[changedRow] = newChange;
 
-            changesMap["Style1"] = innerMap;
+            changesMap[styleName] = innerMap;
             entry.styleChangesMap = changesMap;
 
-            groupedTracks["MyFolder"].push_back(entry);
+            groupedTracks[folderName].push_back(entry);
 
 
-            auto tempJsonFile = juce::File::createTempFile(".json");
+            auto tempJsonFile = juce::File::createTempFile(jsonExtension);
             TrackIOHelper::saveToFile(tempJsonFile, groupedTracks);
 
 
@@ -427,40 +528,40 @@ public:
 
 
 
-            expect((int)loadedKeys.size() == 1);
-            expect(loadedKeys[0] == "MyFolder");
-            expect(loadedTracks.count("MyFolder") == 1);
-            expect((int)loadedTracks["MyFolder"].size() == 1);
+            expect((int)loadedKeys.size() == oneFolder);
+            expect(loadedKeys[firstKey] == folderName);
+            expect(loadedTracks.count(folderName) == present);
+            expect((int)loadedTracks[folderName].size() == oneTrack);
 
-            auto& loadedEntry = loadedTracks["MyFolder"][0];
-            expect(loadedEntry.displayName == "Piano");
-            expect(loadedEntry.trackIndex == 0);
-            expect(loadedEntry.folderName == "MyFolder");
+            auto& loadedEntry = loadedTracks[folderName][firstEntry];
+            expect(loadedEntry.displayName == pianoName);
+            expect(loadedEntry.trackIndex == firstTrack);
+            expect(loadedEntry.folderName == folderName);
 
-            expect(loadedEntry.styleChangesMap.count("Style1") == 1);
-            expect(loadedEntry.styleChangesMap["Style1"].count(1) == 1);
+            expect(loadedEntry.styleChangesMap.count(styleName) == present);
+            expect(loadedEntry.styleChangesMap[styleName].count(changedRow) == present);
 
 
-            auto& loadedChange = loadedEntry.styleChangesMap["Style1"][1];
-            expect(loadedChange.oldVelocity == 80);
-            expect(loadedChange.oldNumber == 63);
-            expect(std::abs(loadedChange.oldTimeStamp - 20.5) < 0.001);
-            expect(std::abs(loadedChange.oldBPMchange - 120.0) < 0.001);
-            expect(std::abs(loadedChange.newBPMchange - 150.0) < 0.001);
-            expect(std::abs(loadedChange.newTimeStamp - 20.5) < 0.001);
-            expect(loadedChange.newNumber == 63);
-            expect(loadedChange.newVelocity == 90);
+            auto& loadedChange = loadedEntry.styleChangesMap[styleName][changedRow];
+            expect(loadedChange.oldVelocity == softKeyVelocity);
+            expect(loadedChange.oldNumber == noteEFlat4);
+            expect(std::abs(loadedChange.oldTimeStamp - changeTime) < timeTolerance);
+            expect(std::abs(loadedChange.oldBPMchange - defaultTempo) < timeTolerance);
+            expect(std::abs(loadedChange.newBPMchange - changedTempo) < timeTolerance);
+            expect(std::abs(loadedChange.newTimeStamp - changeTime) < timeTolerance);
+            expect(loadedChange.newNumber == noteEFlat4);
+            expect(loadedChange.newVelocity == softerKeyVelocity);
 
             tempJsonFile.deleteFile();
             tempMidiFile.deleteFile();
         }
 
-        beginTest("saveToFile and loadFromFile - empty folder survives save-load");
+        beginTest(saveToFileAndLoadFromFileEmptyFolderSurvivesSave);
         {
-            auto tempJsonFile = juce::File::createTempFile(".json");
+            auto tempJsonFile = juce::File::createTempFile(jsonExtension);
 
             std::unordered_map<juce::String, std::deque<TrackEntry>> groupedTracks;
-            groupedTracks["EmptyFolder"] = {};  // folder with no tracks
+            groupedTracks[emptyFolderName] = {};  // folder with no tracks
 
             TrackIOHelper::saveToFile(tempJsonFile, groupedTracks);
 
@@ -468,16 +569,16 @@ public:
             std::vector<juce::String> loadedKeys;
             TrackIOHelper::loadFromFile(tempJsonFile, loadedTracks, loadedKeys);
 
-            expect((int)loadedKeys.size() == 1);
-            expect(loadedKeys[0] == "EmptyFolder");
-            expect(loadedTracks["EmptyFolder"].empty());
+            expect((int)loadedKeys.size() == oneFolder);
+            expect(loadedKeys[firstKey] == emptyFolderName);
+            expect(loadedTracks[emptyFolderName].empty());
 
             tempJsonFile.deleteFile();
         }
 
-        beginTest("loadFromFile - non-existent file does nothing");
+        beginTest(loadFromFileNonExistentFileDoesNothing);
         {
-            juce::File nonExistent("C:\\this_track_file_does_not_exist.json");
+            juce::File nonExistent(missingTrackFile);
             std::unordered_map<juce::String, std::deque<TrackEntry>> loadedTracks;
             std::vector<juce::String> loadedKeys;
 
@@ -487,65 +588,65 @@ public:
             expect(loadedKeys.empty());
         }
 
-        beginTest("saveToFile and loadFromFile - multiple folders with tracks");
+        beginTest(saveToFileAndLoadFromFileMultipleFoldersWithTracks);
         {
             //create two temp MIDI files
-            auto tempMidi1 = juce::File::createTempFile(".mid");
-            auto tempMidi2 = juce::File::createTempFile(".mid");
+            auto tempMidi1 = juce::File::createTempFile(midiExtension);
+            auto tempMidi2 = juce::File::createTempFile(midiExtension);
             {
-                juce::MidiFile mf;
-                mf.setTicksPerQuarterNote(480);
-                juce::MidiMessageSequence t;
-                t.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0.0);
-                t.addEvent(juce::MidiMessage::noteOff(1, 60), 480.0);
-                mf.addTrack(t);
+                juce::MidiFile midiFile;
+                midiFile.setTicksPerQuarterNote(standardResolution);
+                juce::MidiMessageSequence sequence;
+                sequence.addEvent(juce::MidiMessage::noteOn(melodicChannel, middleC, velocity), atStart);
+                sequence.addEvent(juce::MidiMessage::noteOff(melodicChannel, middleC), quarterNoteTicks);
+                midiFile.addTrack(sequence);
 
-                juce::FileOutputStream os1(tempMidi1);
-                if (os1.openedOk()) mf.writeTo(os1);
+                juce::FileOutputStream melodyStream(tempMidi1);
+                if (melodyStream.openedOk()) midiFile.writeTo(melodyStream);
             }
             {
-                juce::MidiFile mf;
-                mf.setTicksPerQuarterNote(480);
-                juce::MidiMessageSequence t;
-                t.addEvent(juce::MidiMessage::noteOn(10, 36, (juce::uint8)80), 0.0);
-                t.addEvent(juce::MidiMessage::noteOff(10, 36), 240.0);
-                mf.addTrack(t);
+                juce::MidiFile midiFile;
+                midiFile.setTicksPerQuarterNote(standardResolution);
+                juce::MidiMessageSequence sequence;
+                sequence.addEvent(juce::MidiMessage::noteOn(drumChannel, kickNote, softVelocity), atStart);
+                sequence.addEvent(juce::MidiMessage::noteOff(drumChannel, kickNote), eighthNoteTicks);
+                midiFile.addTrack(sequence);
 
-                juce::FileOutputStream os2(tempMidi2);
-                if (os2.openedOk()) mf.writeTo(os2);
+                juce::FileOutputStream drumsStream(tempMidi2);
+                if (drumsStream.openedOk()) midiFile.writeTo(drumsStream);
             }
 
             std::unordered_map<juce::String, std::deque<TrackEntry>> groupedTracks;
 
-            TrackEntry e1;
-            e1.file = tempMidi1;
-            e1.trackIndex = 0;
-            e1.displayName = "Melody";
-            e1.folderName = "Songs";
-            groupedTracks["Songs"].push_back(e1);
+            TrackEntry melodyEntry;
+            melodyEntry.file = tempMidi1;
+            melodyEntry.trackIndex = firstTrack;
+            melodyEntry.displayName = melodyName;
+            melodyEntry.folderName = songsFolder;
+            groupedTracks[songsFolder].push_back(melodyEntry);
 
-            TrackEntry e2;
-            e2.file = tempMidi2;
-            e2.trackIndex = 0;
-            e2.displayName = "Drums";
-            e2.folderName = "Beats";
-            groupedTracks["Beats"].push_back(e2);
+            TrackEntry drumsEntry;
+            drumsEntry.file = tempMidi2;
+            drumsEntry.trackIndex = firstTrack;
+            drumsEntry.displayName = drumsName;
+            drumsEntry.folderName = beatsFolder;
+            groupedTracks[beatsFolder].push_back(drumsEntry);
 
-            auto tempJsonFile = juce::File::createTempFile(".json");
+            auto tempJsonFile = juce::File::createTempFile(jsonExtension);
             TrackIOHelper::saveToFile(tempJsonFile, groupedTracks);
 
             std::unordered_map<juce::String, std::deque<TrackEntry>> loadedTracks;
             std::vector<juce::String> loadedKeys;
             TrackIOHelper::loadFromFile(tempJsonFile, loadedTracks, loadedKeys);
 
-            expect((int)loadedKeys.size() == 2);
-            expect(loadedTracks.count("Songs") == 1);
-            expect(loadedTracks.count("Beats") == 1);
-            expect(loadedTracks["Songs"][0].displayName == "Melody");
-            expect(loadedTracks["Beats"][0].displayName == "Drums");
+            expect((int)loadedKeys.size() == twoFolders);
+            expect(loadedTracks.count(songsFolder) == present);
+            expect(loadedTracks.count(beatsFolder) == present);
+            expect(loadedTracks[songsFolder][firstEntry].displayName == melodyName);
+            expect(loadedTracks[beatsFolder][firstEntry].displayName == drumsName);
 
             //the drums track should be detected as percussion (channel 10)
-            expect(loadedTracks["Beats"][0].type == TrackType::Percussion);
+            expect(loadedTracks[beatsFolder][firstEntry].type == TrackType::Percussion);
 
             tempJsonFile.deleteFile();
             tempMidi1.deleteFile();
