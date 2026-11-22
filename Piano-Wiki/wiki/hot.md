@@ -46,8 +46,10 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - 🔴 **Bugs reproduced live 2026-11-22** (see [[log]]): ✅ Solo/None crash (PR #19); ✅ stale track
   map after picker browse / track or folder removal (PR #20); ✅ Start-while-playing BPM lock
   (PR #21). Open: "restore down" size = whole screen. Tests: categories table in AGENTS.md.
-- 🟡 **Names-not-values cleanup**: rule + CI ratchet in place; 158 files on
-  `ci/named-values-allowlist.txt`, converted one subsystem per PR.
+- 🟡 **Names-not-values cleanup**: rule (`docs/names-not-values.md`) + CI ratchet; 153 files on
+  the allowlist, converted one subsystem per PR.
+- 🔜 **Arranger: very hard live testing** (owner): stress + edge scenarios in the running app — needs
+  the screen unlocked; headless engine stress tests can go first.
   Watch: "Notes information" table holds refs into a library entry while open (unreachable today).
 - ✅ GPU note rendering: in-app test plan 12/12 (the Login button skips credentials).
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
