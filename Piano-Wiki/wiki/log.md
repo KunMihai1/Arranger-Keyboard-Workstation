@@ -13,6 +13,15 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — "Restore down" fits the work area
+- Measured: restored window was 1938x1077 at (0,0) on a 1920x1080 screen (work area 1920x1020): off the
+  right edge and under the taskbar. Cause: JUCE restores to the bounds before `setFullScreen`, which were
+  the content size (`MainComponent` = screen width x height-40) plus the frame.
+- Fix (`Source/Main.cpp`): create the native window hidden, size it to the work area minus the frame, then
+  go full screen. Restored now 1920x1020 at (0,0); maximise back -9,-9,1929,1029 as before.
+- Not smaller on purpose: at 1440 px wide the style panel overlaps the record/stop/Chord-helper buttons
+  (header needs near-full width). A smaller restorable window needs a header layout change (owner's call).
+
 ## 2026-11-22 — Live arranger run + SFZ queue backlog fix
 - GL display tests re-run on an unlocked desktop: 8/8.
 - Arranger plan part B run live with sound measured through WASAPI loopback (results table in

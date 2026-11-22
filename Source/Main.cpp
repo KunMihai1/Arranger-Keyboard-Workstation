@@ -78,6 +78,17 @@ public:
         #endif
 
         */
+            // "Restore down" returns to the bounds the window had just before it went full screen.
+            // Those used to be the content's size (whole screen width x height) plus the frame, so the
+            // restored window ran off the screen and under the taskbar. Create the native window hidden
+            // (that makes its frame size known), size it to the screen's work area, then go full screen.
+            // Narrower than the full width the header controls overlap, so it stays work-area sized.
+            addToDesktop(getDesktopWindowStyleFlags());
+            if (auto* peer = getPeer())
+                if (const auto* display = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
+                    if (const auto frame = peer->getFrameSizeIfPresent())
+                        setBounds(frame->subtractedFrom(display->userArea));
+
             setFullScreen(true);
             setVisible(true);
         }
