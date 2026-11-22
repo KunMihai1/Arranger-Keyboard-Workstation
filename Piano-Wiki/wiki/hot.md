@@ -43,8 +43,8 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 ## Active Threads / Next
 Full task list with states: [[Owner Backlog]].
 - 🟡 **Names-not-values cleanup**: rule (`docs/names-not-values.md`) + CI ratchet; 153 files on
-  the allowlist (now 116), converted one subsystem per PR; Midi and the arranger core done; next:
-  arranger editor UI.
+  the allowlist (now 107), converted one subsystem per PR; Midi and all of `Source/Arranger` done;
+  next: Playback. Full task list: [[Owner Backlog]].
 - ✅ **Arranger hard testing**: headless + live (sound measured by loopback), results in the test plan.
   Owner decided: a style switch while playing takes effect on the next Start, and any section (Ending
   too) may be the start section — both intended. Restore-down stays work-area sized: no scaled
