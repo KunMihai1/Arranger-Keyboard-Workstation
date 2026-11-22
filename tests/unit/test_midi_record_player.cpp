@@ -39,7 +39,7 @@ namespace MidiRecordPlayerTestValues
     constexpr int         noteE4        = 64;
     constexpr juce::uint8 velocity      = 100;
     constexpr juce::uint8 softVelocity  = 90;
-    constexpr juce::uint8 quietVelocity = 1;
+    constexpr juce::uint8 lowestVelocity = 1;
     constexpr int         volumeController = 7;
     constexpr int         controllerValue  = 100;
     constexpr int         programNumber    = 42;
@@ -144,7 +144,7 @@ public:
         {
             MidiRecordPlayer player;
             player.applyPresetFunction = [] {};                 // startRecording invokes this; stub it
-            player.getAllRecordedEvents().push_back(RecordedEvent{ juce::MidiMessage::noteOn(leftHandChannel,middleC,quietVelocity), recordingStart });
+            player.getAllRecordedEvents().push_back(RecordedEvent{ juce::MidiMessage::noteOn(leftHandChannel,middleC,lowestVelocity), recordingStart });
 
             expect(player.stopRecording() == false);            // not recording yet -> guard returns false
             player.startRecording();
