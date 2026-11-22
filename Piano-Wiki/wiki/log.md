@@ -13,6 +13,12 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — 800-line cap covers docs/
+- Owner: the cap applies to `docs/` too. Seven documents over 800 lines (six old arranger plans and
+  `docs/arranger_audio_system.md`, 971–1425 lines) split at their `##` headings, never inside a code
+  block: part 1 keeps the file name, part 2 is `<name>-part2.md`, each links to the other. Checked that
+  the parts rejoin to the original text exactly. CI's length check now scans `docs/**/*.md` (80 files, 0 over).
+
 ## 2026-11-22 — Auto Fill plays the fill of the variation you leave
 - Owner's rule: Var 2 → Var 1 plays Fill 2 (it used to pick the fill numbered like the target).
   `ArrangerSectionSequencer::queue` now looks the fill up by the active variation's name; fallback to

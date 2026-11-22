@@ -78,10 +78,10 @@ allowlist). **Full rule and idioms: `docs/names-not-values.md`.**
 - Schedulers/sequencers stay pure (no I/O) — ADR-001. No event bus; prefer small DI-style
   extractions only when a change forces it.
 - Colours come from `Source/Common/AppColours.h`. App name from `Source/Common/AppInfo.h`.
-- **No source, test or wiki file over 800 lines** (CI enforces it). When a class outgrows that, split its
-  definitions by responsibility into extra translation units of the same class
-  (`MainComponentInit.cpp`, `MainComponentOverlays.cpp`, …) — see ADR-003 in the wiki. A wiki page
-  splits by topic; `log.md` moves its oldest entries to `log-archive-<year>.md`.
+- **No source, test, docs or wiki file over 800 lines** (CI enforces it). When a class outgrows that,
+  split its definitions by responsibility into extra translation units of the same class
+  (`MainComponentInit.cpp`, `MainComponentOverlays.cpp`, …) — see ADR-003 in the wiki. A document
+  splits at its headings into `<name>-part2.md`…; `log.md` moves its oldest entries to `log-archive-<year>.md`.
 
 ## Git
 
