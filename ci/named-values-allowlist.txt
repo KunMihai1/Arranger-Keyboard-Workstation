@@ -30,8 +30,6 @@ Source/Arranger/ChordDetector.cpp
 Source/Arranger/ChordTransposer.cpp
 Source/Arranger/ChordTransposer.h
 Source/Arranger/NttScales.h
-Source/Audio/AudioHandler.cpp
-Source/Audio/SFZLibraryUI.cpp
 Source/Backend/LoginComponent.cpp
 Source/Backend/PlaytimeTracker.cpp
 Source/Backend/PlaytimeTracker.h
