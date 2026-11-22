@@ -96,7 +96,7 @@ public:
             expectWithinAbsoluteError (f.falling().front().top, 190.0f, (float) eps);
             expectWithinAbsoluteError (f.falling().front().height, 110.0f, (float) eps);
 
-            f.advance (0.5f);                      // would reach y -10: pinned at 0, 10 px shorter
+            f.advance (0.5f);                      // would reach top -10: pinned at 0, 10 px shorter
             expectWithinAbsoluteError (f.falling().front().top, 0.0f, (float) eps);
             expectWithinAbsoluteError (f.falling().front().height, 100.0f, (float) eps);
             expectWithinAbsoluteError (f.falling().front().alpha, 1.0f, (float) eps);
