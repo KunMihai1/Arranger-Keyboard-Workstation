@@ -48,8 +48,8 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
   (PR #21). Open: "restore down" size = whole screen. Tests: categories table in AGENTS.md.
 - 🟡 **Names-not-values cleanup**: rule (`docs/names-not-values.md`) + CI ratchet; 153 files on
   the allowlist, converted one subsystem per PR.
-- 🔜 **Arranger: very hard live testing** (owner): stress + edge scenarios in the running app — needs
-  the screen unlocked; headless engine stress tests can go first.
+- 🔜 **Arranger hard testing** (owner): plan in `docs/superpowers/test-plans/` — headless stress first;
+  the live part needs the screen unlocked.
   Watch: "Notes information" table holds refs into a library entry while open (unreachable today).
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.

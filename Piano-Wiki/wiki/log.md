@@ -13,6 +13,17 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: Source/Common done; checker closes a loophole
+- `HelperFunctions.cpp`: note helpers use named MIDI facts; the 48-branch chord-diagram if/else chain
+  became one named table (generated from the old chain) + a lookup loop.
+- `IOHelper.cpp`: every on-disk key named; the keys of all file/settings formats now live in
+  `Source/Common/PersistedKeys.h` (each key text unchanged and present exactly once). Single-letter
+  loop variables and parameters renamed. Kept under the 800-line cap by that split.
+- Checker: a constant may hold literals only if its initialiser is plain values, so
+  `const juce::String ch = channel == 1 ? "First" : "Second";` no longer hides a 1 and two strings.
+- Arranger hard-testing plan written: `docs/superpowers/test-plans/2026-11-22-arranger-stress-test-plan.md`
+  (A: headless stress, any time; B: live, needs an unlocked screen). Allowlist: 151 files.
+
 ## 2026-11-22 — AGENTS.md slimmed; no single-letter names; checker fixes
 - AGENTS.md 139 → 100 lines: build/test detail moved to `docs/build-and-test.md`, the full naming
   rule to `docs/names-not-values.md`; AGENTS.md keeps short summaries + one-line pointers.
