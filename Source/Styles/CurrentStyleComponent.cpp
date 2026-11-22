@@ -541,7 +541,7 @@ void CurrentStyleComponent::configureEditorCallbacks()
 
 void CurrentStyleComponent::applyActiveConfig(const juce::File& styleFile, const ArrangerStyle& style)
 {
-    activeArrangerConfig     = style;          // this configuration is now what Start + section buttons use
+    activeArrangerConfig     = style;      // this configuration is now what Start + section buttons use
     hasActiveArrangerConfig  = true;
     activeArrangerConfigName = styleFile.getFileNameWithoutExtension();
     rebuildPlaySettingsItems();

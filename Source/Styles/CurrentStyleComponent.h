@@ -333,7 +333,7 @@ private:
     ArrangerStyle activeArrangerConfig;                         ///< The loaded/saved configuration in effect (vs. a demo from live tracks).
     juce::String  activeArrangerConfigName;                     ///< File name (no ext) of the active config; persisted so the style reopens with it selected.
     static constexpr int trackSlots = 8;                        ///< Track slots per style (one row).
-    int           lastPlayModeId = PlayModeIds::allTracks;                         ///< Live-track play mode: 1 = all tracks, 2 = solo. Survives menu-action picks.
+    int           lastPlayModeId = PlayModeIds::allTracks;      ///< Live-track play mode (all tracks or solo). Survives menu-action picks.
 
     ArrangerSectionType pendingStartType = ArrangerSectionType::Variation;  ///< Section Start begins on (chosen pre-play).
     juce::String        pendingStartName = DefaultSectionNames::variation;  ///< ...defaults to Variation 1, highlighted while stopped.
@@ -373,9 +373,9 @@ private:
     std::weak_ptr<std::vector<StyleSection>> sections;
 
     juce::Slider tempoSlider;                               ///< Slider for controlling BPM.
-    int oldTempo = ArrangerStyleDefaults::tempoBpm;                               ///< Previously stored tempo.
-    double currentTempo = ArrangerStyleDefaults::tempoBpm;                         ///< Current tempo in BPM.
-    double baseTempo = ArrangerStyleDefaults::tempoBpm;                            ///< Base tempo for playback ratio.
+    int oldTempo = ArrangerStyleDefaults::tempoBpm;         ///< Previously stored tempo.
+    double currentTempo = ArrangerStyleDefaults::tempoBpm;  ///< Current tempo in BPM.
+    double baseTempo = ArrangerStyleDefaults::tempoBpm;     ///< Base tempo for playback ratio.
     bool isPlaying = false;                                 ///< Indicates whether playback is active.
     juce::String styleID;                                   ///< Unique ID of the current style.
 
