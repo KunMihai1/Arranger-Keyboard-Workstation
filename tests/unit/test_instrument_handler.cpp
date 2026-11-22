@@ -29,7 +29,7 @@ namespace InstrumentHandlerTestValues
 }
 
 //======================================================================================
-//  InstrumentHandler - predefined per-program CC presets (previously untested)
+//  InstrumentHandler — predefined per-program CC presets (previously untested)
 //======================================================================================
 class InstrumentHandlerTest : public juce::UnitTest
 {

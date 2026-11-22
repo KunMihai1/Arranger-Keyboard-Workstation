@@ -4,6 +4,61 @@
 #include "KeyboardUI.h"
 #include "NoteLayer.h"
 
+namespace NoteLayerIntegrationTestValues
+{
+    const juce::String testName     = "NoteLayer GL rendering (needs a display)";
+    const juce::String testCategory = "Integration-display";
+
+    const juce::String heldNotesAreDrawnInTheirOwn = "held notes are drawn in their own key's column, nowhere else";
+    const juce::String releasedNotesRiseOffTheScreenAnd = "released notes rise off the screen and the layer clears";
+    const juce::String drawingSurvivesTheHideShowCycleThat = "drawing survives the hide/show cycle that re-creates the GL context";
+    const juce::String resetStateActiveNotesReleasesHeldNotesResetStateClearsAt = "resetStateActiveNotes releases held notes; resetState clears at once";
+
+    constexpr juce::uint32 noMessageFilter = 0;
+    constexpr int pollIntervalMs = 2;
+    constexpr int bitmapOrigin = 0;
+    constexpr juce::uint16 singlePlane = 1;
+    constexpr juce::uint16 bitsPerPixel = 32;
+    constexpr size_t bytesPerPixel = 4;
+    constexpr juce::uint32 firstScanLine = 0;
+    constexpr size_t blueByte = 0;
+    constexpr size_t greenByte = 1;
+    constexpr size_t redByte = 2;
+    constexpr int hostX = 40;
+    constexpr int hostY = 40;
+    constexpr int hostWidth = 1040;
+    constexpr int hostHeight = 560;
+    constexpr int layerTop = 0;
+    constexpr int layerHeight = 400;
+    constexpr int keyboardHeight = 160;
+    constexpr int noDesktopFlags = 0;
+    constexpr int startUpMs = 800;
+    constexpr int notesSettleMs = 500;
+    constexpr int riseOffMs = 2500;
+    constexpr int hideMs = 300;
+    constexpr int noteAppearsMs = 400;
+    constexpr int clearMs = 200;
+    constexpr int closeMs = 100;
+    constexpr int semitonesPerOctave = 12;
+    constexpr int midiOctaveOffset = 1;   // MIDI note 0 is in octave -1
+    constexpr int notWhite = -1;
+    constexpr int whiteKeysBeforeC1 = 2;   // A0 and B0
+    constexpr int firstFullOctave = 1;
+    constexpr int whiteKeysPerOctave = 7;
+    constexpr float totalWhiteKeys = 52.0f;
+    constexpr int columnInset = 3;
+    constexpr int columnTrim = 6;
+    constexpr int litThreshold = 150;
+    constexpr int darkThreshold = 30;
+    constexpr int middleC = 60;
+    constexpr int noteE4 = 64;
+    constexpr int untouchedC7 = 96;
+    constexpr int noteC5 = 72;
+    constexpr int noteC3 = 48;
+}
+
+using namespace NoteLayerIntegrationTestValues;
+
 #if JUCE_WINDOWS
  #ifndef NOMINMAX
   #define NOMINMAX
@@ -30,12 +85,12 @@ namespace
         while (juce::Time::getMillisecondCounter() < end)
         {
             MSG msg;
-            while (PeekMessage (&msg, nullptr, 0, 0, PM_REMOVE))
+            while (PeekMessage (&msg, nullptr, noMessageFilter, noMessageFilter, PM_REMOVE))
             {
                 TranslateMessage (&msg);
                 DispatchMessage (&msg);
             }
-            juce::Thread::sleep (2);
+            juce::Thread::sleep (pollIntervalMs);
         }
     }
 
@@ -43,31 +98,31 @@ namespace
     int brightestOnScreen (juce::Rectangle<int> logical)
     {
         const double scale = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->scale;
-        const auto r = (logical.toDouble() * scale).toNearestInt();
+        const auto area = (logical.toDouble() * scale).toNearestInt();
 
         HDC screen = GetDC (nullptr);
         HDC mem = CreateCompatibleDC (screen);
-        HBITMAP bmp = CreateCompatibleBitmap (screen, r.getWidth(), r.getHeight());
+        HBITMAP bmp = CreateCompatibleBitmap (screen, area.getWidth(), area.getHeight());
         auto old = SelectObject (mem, bmp);
-        BitBlt (mem, 0, 0, r.getWidth(), r.getHeight(), screen, r.getX(), r.getY(), SRCCOPY);
+        BitBlt (mem, bitmapOrigin, bitmapOrigin, area.getWidth(), area.getHeight(), screen, area.getX(), area.getY(), SRCCOPY);
         SelectObject (mem, old);
 
         BITMAPINFO bi {};
         bi.bmiHeader.biSize = sizeof (BITMAPINFOHEADER);
-        bi.bmiHeader.biWidth = r.getWidth();
-        bi.bmiHeader.biHeight = -r.getHeight();
-        bi.bmiHeader.biPlanes = 1;
-        bi.bmiHeader.biBitCount = 32;
+        bi.bmiHeader.biWidth = area.getWidth();
+        bi.bmiHeader.biHeight = -area.getHeight();
+        bi.bmiHeader.biPlanes = singlePlane;
+        bi.bmiHeader.biBitCount = bitsPerPixel;
         bi.bmiHeader.biCompression = BI_RGB;
-        std::vector<juce::uint8> px ((size_t) r.getWidth() * (size_t) r.getHeight() * 4);
-        GetDIBits (mem, bmp, 0, (UINT) r.getHeight(), px.data(), &bi, DIB_RGB_COLORS);
+        std::vector<juce::uint8> px ((size_t) area.getWidth() * (size_t) area.getHeight() * bytesPerPixel);
+        GetDIBits (mem, bmp, firstScanLine, (UINT) area.getHeight(), px.data(), &bi, DIB_RGB_COLORS);
         DeleteObject (bmp);
         DeleteDC (mem);
         ReleaseDC (nullptr, screen);
 
-        int best = 0;
-        for (size_t i = 0; i < px.size(); i += 4)
-            best = std::max ({ best, (int) px[i], (int) px[i + 1], (int) px[i + 2] });
+        int best {};
+        for (size_t pixel {}; pixel < px.size(); pixel += bytesPerPixel)
+            best = std::max ({ best, (int) px[pixel + blueByte], (int) px[pixel + greenByte], (int) px[pixel + redByte] });
         return best;
     }
 
@@ -80,7 +135,7 @@ namespace
 class NoteLayerIntegrationTest : public juce::UnitTest
 {
 public:
-    NoteLayerIntegrationTest() : juce::UnitTest ("NoteLayer GL rendering (needs a display)", "Integration-display") {}
+    NoteLayerIntegrationTest() : juce::UnitTest (NoteLayerIntegrationTestValues::testName, NoteLayerIntegrationTestValues::testCategory) {}
 
     void runTest() override
     {
@@ -93,76 +148,76 @@ public:
         host.setOpaque (true);
         host.addAndMakeVisible (keyboard);
         host.addAndMakeVisible (layer);
-        host.setBounds (40, 40, 1040, 560);
-        layer.setBounds (0, 0, 1040, 400);
-        keyboard.setBounds (0, 400, 1040, 160);
-        host.addToDesktop (0);
+        host.setBounds (hostX, hostY, hostWidth, hostHeight);
+        layer.setBounds (layerTop, layerTop, hostWidth, layerHeight);
+        keyboard.setBounds (layerTop, layerHeight, hostWidth, keyboardHeight);
+        host.addToDesktop (noDesktopFlags);
         host.setAlwaysOnTop (true);
         host.setVisible (true);
         host.toFront (false);
-        pumpMessages (800); // window + GL context come up
+        pumpMessages (startUpMs); // window + GL context come up
 
         // A white key's column inside the note layer, in screen coordinates. Same rule as
         // KeyboardUI::resized(): 52 white keys across the width, A0 (MIDI 21) first.
         auto column = [&] (int midiNote)
         {
-            static const int whiteIndexInOctave[12] = { 0, -1, 1, -1, 2, 3, -1, 4, -1, 5, -1, 6 }; // from C
-            const int octave = midiNote / 12 - 1, pc = midiNote % 12;
-            jassert (whiteIndexInOctave[pc] >= 0);
-            const int whiteIndex = 2 + (octave - 1) * 7 + whiteIndexInOctave[pc]; // A0, B0, then C1 = 2
-            const float whiteWidth = (float) keyboard.getWidth() / 52.0f;
-            const int x = (int) (whiteIndex * whiteWidth);
-            return layer.getScreenBounds().withX (layer.getScreenX() + x + 3).withWidth ((int) whiteWidth - 6);
+            static const int whiteIndexInOctave[] = { 0, -1, 1, -1, 2, 3, -1, 4, -1, 5, -1, 6 }; // from C; -1 = black key
+            const int octave = midiNote / semitonesPerOctave - midiOctaveOffset, pc = midiNote % semitonesPerOctave;
+            jassert (whiteIndexInOctave[pc] > notWhite);
+            const int whiteIndex = whiteKeysBeforeC1 + (octave - firstFullOctave) * whiteKeysPerOctave + whiteIndexInOctave[pc]; // A0, B0, then C1 = 2
+            const float whiteWidth = (float) keyboard.getWidth() / totalWhiteKeys;
+            const int keyX = (int) (whiteIndex * whiteWidth);
+            return layer.getScreenBounds().withX (layer.getScreenX() + keyX + columnInset).withWidth ((int) whiteWidth - columnTrim);
         };
-        const int lit = 150, dark = 30;
+        const int lit = litThreshold, dark = darkThreshold;
 
-        beginTest ("held notes are drawn in their own key's column, nowhere else");
+        beginTest (heldNotesAreDrawnInTheirOwn);
         {
-            layer.noteOnReceived (60);
-            layer.noteOnReceived (64);
-            pumpMessages (500);
-            expectGreaterThan (brightestOnScreen (column (60)), lit);
-            expectGreaterThan (brightestOnScreen (column (64)), lit);
-            expectLessThan (brightestOnScreen (column (96)), dark);
+            layer.noteOnReceived (middleC);
+            layer.noteOnReceived (noteE4);
+            pumpMessages (notesSettleMs);
+            expectGreaterThan (brightestOnScreen (column (middleC)), lit);
+            expectGreaterThan (brightestOnScreen (column (noteE4)), lit);
+            expectLessThan (brightestOnScreen (column (untouchedC7)), dark);
         }
 
-        beginTest ("released notes rise off the screen and the layer clears");
+        beginTest (releasedNotesRiseOffTheScreenAnd);
         {
-            layer.noteOffReceived (60);
-            layer.noteOffReceived (64);
-            pumpMessages (2500);
+            layer.noteOffReceived (middleC);
+            layer.noteOffReceived (noteE4);
+            pumpMessages (riseOffMs);
             expectLessThan (brightestOnScreen (layer.getScreenBounds()), dark);
         }
 
-        beginTest ("drawing survives the hide/show cycle that re-creates the GL context");
+        beginTest (drawingSurvivesTheHideShowCycleThat);
         {
             layer.setVisible (false);
-            pumpMessages (300);
+            pumpMessages (hideMs);
             layer.setVisible (true);
             layer.resetState();
-            pumpMessages (500);
-            layer.noteOnReceived (72);
-            pumpMessages (500);
-            expectGreaterThan (brightestOnScreen (column (72)), lit);
+            pumpMessages (notesSettleMs);
+            layer.noteOnReceived (noteC5);
+            pumpMessages (notesSettleMs);
+            expectGreaterThan (brightestOnScreen (column (noteC5)), lit);
         }
 
-        beginTest ("resetStateActiveNotes releases held notes; resetState clears at once");
+        beginTest (resetStateActiveNotesReleasesHeldNotesResetStateClearsAt);
         {
             layer.resetStateActiveNotes();
-            pumpMessages (2500);
+            pumpMessages (riseOffMs);
             expectLessThan (brightestOnScreen (layer.getScreenBounds()), dark);
 
-            layer.noteOnReceived (48);
-            pumpMessages (400);
-            expectGreaterThan (brightestOnScreen (column (48)), lit);
+            layer.noteOnReceived (noteC3);
+            pumpMessages (noteAppearsMs);
+            expectGreaterThan (brightestOnScreen (column (noteC3)), lit);
             layer.resetState();
-            pumpMessages (200);
+            pumpMessages (clearMs);
             expectLessThan (brightestOnScreen (layer.getScreenBounds()), dark);
         }
 
         host.removeFromDesktop();
         host.removeAllChildren();
-        pumpMessages (100);
+        pumpMessages (closeMs);
     }
 };
 

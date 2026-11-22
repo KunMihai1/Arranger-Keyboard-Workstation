@@ -1,11 +1,52 @@
 #include <juce_core/juce_core.h>
 #include "SectionsComponent.h"
 
+namespace SectionsComponentIntegrationTestValues
+{
+    const juce::String testName     = "StyleSectionComponent - Integration";
+    const juce::String testCategory = "Integration";
+
+    const juce::String clickingAButtonInOneGroupDeactivates = "Clicking a button in one group deactivates the last button in the other group";
+    const juce::String resizedLaysOutSectionGroupsCorrectly = "resized() lays out section groups correctly";
+    const juce::String clickingAButtonActivatesIt = "Clicking a button activates it";
+    const juce::String clickingTheSameButtonAgainDeactivatesIt = "Clicking the same button again deactivates it";
+    const juce::String onlyOneButtonActiveAtATime = "Only one button active at a time";
+    const juce::String callbacksAreExecutedCorrectly = "Callbacks are executed correctly";
+    const juce::String deactivateLastClickedWorks = "deactivateLastClicked works";
+
+    const juce::String mainGroup = "Main";
+    const juce::String buttonA = "A";
+    const juce::String buttonB = "B";
+    const juce::String buttonC = "C";
+    const juce::String buttonD = "D";
+    const juce::String introsGroup = "Intros";
+    const juce::String introOne = "Intro 1";
+    const juce::String introTwo = "Intro 2";
+    const juce::String variationsGroup = "Variations";
+    const juce::String varOne = "Var 1";
+    const juce::String varTwo = "Var 2";
+    const juce::String firstGroupName = "Group1";
+    const juce::String secondGroupName = "Group2";
+    constexpr size_t firstGroup = 0;
+    constexpr size_t secondGroup = 1;
+    constexpr size_t firstButton = 0;
+    constexpr size_t secondButton = 1;
+    constexpr size_t twoGroups = 2;
+    constexpr size_t twoButtons = 2;
+    constexpr int layoutOrigin = 0;
+    constexpr int layoutWidth = 400;
+    constexpr int layoutHeight = 100;
+    constexpr int groupCount = 2;
+    constexpr int groupInsetTotal = 10;   // resized() uses reduced(5) on each side
+}
+
+using namespace SectionsComponentIntegrationTestValues;
+
 class SectionsComponentIntegrationTest : public juce::UnitTest
 {
 public:
     SectionsComponentIntegrationTest()
-        : juce::UnitTest("StyleSectionComponent - Integration", "Integration") {}
+        : juce::UnitTest (SectionsComponentIntegrationTestValues::testName, SectionsComponentIntegrationTestValues::testCategory) {}
 
     void runTest() override
     {
@@ -22,12 +63,12 @@ private:
     std::unique_ptr<StyleSectionComponent> createComponent(
         bool& callbackA, bool& callbackB)
     {
-        std::vector<juce::String> names = { "Main" };
-        std::vector<std::vector<juce::String>> groupNames = { {"A", "B"} };
+        std::vector<juce::String> names = { mainGroup };
+        std::vector<std::vector<juce::String>> groupNames = { {buttonA, buttonB} };
 
         std::unordered_map<juce::String, std::function<void()>> callbacks{
-            {"A", [&]() { callbackA = true; }},
-            {"B", [&]() { callbackB = true; }}
+            {buttonA, [&]() { callbackA = true; }},
+            {buttonB, [&]() { callbackB = true; }}
         };
 
         return std::make_unique<StyleSectionComponent>(names, groupNames, callbacks);
@@ -35,32 +76,32 @@ private:
 
     void testCrossGroupDeactivation()
     {
-        beginTest("Clicking a button in one group deactivates the last button in the other group");
+        beginTest(clickingAButtonInOneGroupDeactivates);
 
         bool intro1 = false, intro2 = false;
         bool var1 = false, var2 = false;
 
         // Create introsEndings component
         std::unordered_map<juce::String, std::function<void()>> callbacksIntros{
-            {"Intro 1", [&]() { intro1 = true; }},
-            {"Intro 2", [&]() { intro2 = true; }}
+            {introOne, [&]() { intro1 = true; }},
+            {introTwo, [&]() { intro2 = true; }}
         };
 
         auto introsEndings = std::make_unique<StyleSectionComponent>(
-            std::vector<juce::String>{"Intros"},
-            std::vector<std::vector<juce::String>>{ {"Intro 1", "Intro 2"}},
+            std::vector<juce::String>{introsGroup},
+            std::vector<std::vector<juce::String>>{ {introOne, introTwo}},
             callbacksIntros
             );
 
         // Create variationsFills component
         std::unordered_map<juce::String, std::function<void()>> callbacksVars{
-            {"Var 1", [&]() { var1 = true; }},
-            {"Var 2", [&]() { var2 = true; }}
+            {varOne, [&]() { var1 = true; }},
+            {varTwo, [&]() { var2 = true; }}
         };
 
         auto variationsFills = std::make_unique<StyleSectionComponent>(
-            std::vector<juce::String>{"Variations"},
-            std::vector<std::vector<juce::String>>{ {"Var 1", "Var 2"}},
+            std::vector<juce::String>{variationsGroup},
+            std::vector<std::vector<juce::String>>{ {varOne, varTwo}},
             callbacksVars
             );
 
@@ -75,20 +116,20 @@ private:
             introsEndings->deactivateLastClicked();
         };
 
-        auto& introButtons = introsEndings->getSectionGroups()[0]->getButtons();
-        auto& varButtons = variationsFills->getSectionGroups()[0]->getButtons();
+        auto& introButtons = introsEndings->getSectionGroups()[firstGroup]->getButtons();
+        auto& varButtons = variationsFills->getSectionGroups()[firstGroup]->getButtons();
 
         // Step 1: Click Intro 1
-        introButtons[0]->onClick();
-        expect(introsEndings->getLastUsedButton() == introButtons[0].get());
+        introButtons[firstButton]->onClick();
+        expect(introsEndings->getLastUsedButton() == introButtons[firstButton].get());
         expect(variationsFills->getLastUsedButton() == nullptr);
 
         // Step 2: Click Var 2 (from another component)
-        varButtons[1]->onClick();
+        varButtons[secondButton]->onClick();
 
         // Intro 1 should now be deactivated
         expect(introsEndings->getLastUsedButton() == nullptr);
-        expect(variationsFills->getLastUsedButton() == varButtons[1].get());
+        expect(variationsFills->getLastUsedButton() == varButtons[secondButton].get());
 
         // Callbacks should all have executed
         expect(intro1 == true);
@@ -97,82 +138,82 @@ private:
 
     void testResizedLayout()
     {
-        beginTest("resized() lays out section groups correctly");
+        beginTest(resizedLaysOutSectionGroupsCorrectly);
 
-        bool a = false, b = false;
-        auto comp = createComponent(a, b); // creates 1 group with 2 buttons
+        bool clickedA = false, clickedB = false;
+        auto comp = createComponent(clickedA, clickedB); // creates 1 group with 2 buttons
 
         // Add a second group manually to test multiple groups layout
-        std::vector<juce::String> names = { "Group1", "Group2" };
-        std::vector<std::vector<juce::String>> buttonsPerGroup = { {"A", "B"}, {"C", "D"} };
+        std::vector<juce::String> names = { firstGroupName, secondGroupName };
+        std::vector<std::vector<juce::String>> buttonsPerGroup = { {buttonA, buttonB}, {buttonC, buttonD} };
         std::unordered_map<juce::String, std::function<void()>> callbacks = {
-            {"A", [&]() { a = true; }}, {"B", [&]() { b = true; }},
-            {"C", [&]() {}}, {"D", [&]() {}}
+            {buttonA, [&]() { clickedA = true; }}, {buttonB, [&]() { clickedB = true; }},
+            {buttonC, [&]() {}}, {buttonD, [&]() {}}
         };
         auto compMulti = std::make_unique<StyleSectionComponent>(names, buttonsPerGroup, callbacks);
 
         // Trigger layout
-        compMulti->setBounds(0, 0, 400, 100);
+        compMulti->setBounds(layoutOrigin, layoutOrigin, layoutWidth, layoutHeight);
         compMulti->resized();
 
         auto& groups = compMulti->getSectionGroups();
-        expect(groups.size() == 2);
+        expect(groups.size() == twoGroups);
 
-        int groupWidth = 400 / 2;
-        int reducedWidth = groupWidth - 10; // because resized() uses reduced(5)
+        int groupWidth = layoutWidth / groupCount;
+        int reducedWidth = groupWidth - groupInsetTotal;
 
-        expect(groups[0]->getWidth() == reducedWidth);
-        expect(groups[1]->getWidth() == reducedWidth);
+        expect(groups[firstGroup]->getWidth() == reducedWidth);
+        expect(groups[secondGroup]->getWidth() == reducedWidth);
 
         // Check that buttons exist inside the groups
-        expect(groups[0]->getButtons().size() == 2);
-        expect(groups[1]->getButtons().size() == 2);
+        expect(groups[firstGroup]->getButtons().size() == twoButtons);
+        expect(groups[secondGroup]->getButtons().size() == twoButtons);
     }
 
     void testSingleButtonActivation()
     {
-        beginTest("Clicking a button activates it");
+        beginTest(clickingAButtonActivatesIt);
 
-        bool a = false, b = false;
-        auto comp = createComponent(a, b);
-        auto& buttons = comp->getSectionGroups()[0]->getButtons();
+        bool clickedA = false, clickedB = false;
+        auto comp = createComponent(clickedA, clickedB);
+        auto& buttons = comp->getSectionGroups()[firstGroup]->getButtons();
 
-        buttons[0]->onClick();
+        buttons[firstButton]->onClick();
 
-        expect(comp->getLastUsedButton() == buttons[0].get());
-        expect(a == true);
-        expect(b == false);
+        expect(comp->getLastUsedButton() == buttons[firstButton].get());
+        expect(clickedA == true);
+        expect(clickedB == false);
     }
 
     void testButtonToggle()
     {
-        beginTest("Clicking the same button again deactivates it");
+        beginTest(clickingTheSameButtonAgainDeactivatesIt);
 
-        bool a = false, b = false;
-        auto comp = createComponent(a, b);
-        auto& buttons = comp->getSectionGroups()[0]->getButtons();
+        bool clickedA = false, clickedB = false;
+        auto comp = createComponent(clickedA, clickedB);
+        auto& buttons = comp->getSectionGroups()[firstGroup]->getButtons();
 
-        buttons[0]->onClick(); // activate
-        buttons[0]->onClick(); // deactivate
+        buttons[firstButton]->onClick(); // activate
+        buttons[firstButton]->onClick(); // deactivate
 
         expect(comp->getLastUsedButton() == nullptr);
-        expect(a == true); // callback still executed
+        expect(clickedA == true); // callback still executed
     }
 
     void testOnlyOneActiveAtATime()
     {
-        beginTest("Only one button active at a time");
+        beginTest(onlyOneButtonActiveAtATime);
 
-        bool a = false, b = false;
-        auto comp = createComponent(a, b);
-        auto& buttons = comp->getSectionGroups()[0]->getButtons();
+        bool clickedA = false, clickedB = false;
+        auto comp = createComponent(clickedA, clickedB);
+        auto& buttons = comp->getSectionGroups()[firstGroup]->getButtons();
 
-        buttons[0]->onClick();
-        buttons[1]->onClick();
+        buttons[firstButton]->onClick();
+        buttons[secondButton]->onClick();
 
-        expect(comp->getLastUsedButton() == buttons[1].get());
-        expect(a == true);
-        expect(b == true);
+        expect(comp->getLastUsedButton() == buttons[secondButton].get());
+        expect(clickedA == true);
+        expect(clickedB == true);
 
         // First button should be deactivated
         // Check its colour state indirectly (optional)
@@ -180,35 +221,35 @@ private:
 
     void testCallbacksExecuted()
     {
-        beginTest("Callbacks are executed correctly");
+        beginTest(callbacksAreExecutedCorrectly);
 
-        bool a = false, b = false;
-        auto comp = createComponent(a, b);
-        auto& buttons = comp->getSectionGroups()[0]->getButtons();
+        bool clickedA = false, clickedB = false;
+        auto comp = createComponent(clickedA, clickedB);
+        auto& buttons = comp->getSectionGroups()[firstGroup]->getButtons();
 
-        buttons[0]->onClick();
-        buttons[1]->onClick();
+        buttons[firstButton]->onClick();
+        buttons[secondButton]->onClick();
 
-        expect(a == true);
-        expect(b == true);
+        expect(clickedA == true);
+        expect(clickedB == true);
     }
 
     void testDeactivateLastClicked()
     {
-        beginTest("deactivateLastClicked works");
+        beginTest(deactivateLastClickedWorks);
 
-        bool a = false, b = false;
-        auto comp = createComponent(a, b);
-        auto& buttons = comp->getSectionGroups()[0]->getButtons();
+        bool clickedA = false, clickedB = false;
+        auto comp = createComponent(clickedA, clickedB);
+        auto& buttons = comp->getSectionGroups()[firstGroup]->getButtons();
 
-        buttons[0]->onClick();
+        buttons[firstButton]->onClick();
         comp->deactivateLastClicked();
 
         expect(comp->getLastUsedButton() == nullptr);
 
         // Click again to ensure toggle works after deactivate
-        buttons[1]->onClick();
-        expect(comp->getLastUsedButton() == buttons[1].get());
+        buttons[secondButton]->onClick();
+        expect(comp->getLastUsedButton() == buttons[secondButton].get());
     }
 };
 

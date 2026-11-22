@@ -9,11 +9,16 @@ namespace AutoFillTestValues
     const juce::String fillFallsBackToAnyFill  = "Auto Fill falls back to any fill when the outgoing variation has none";
     const juce::String noFillSwitchesDirectly  = "Auto Fill switches directly when the style has no fill";
 
-    const juce::String variationOneId = "var_1",  variationOne = "Variation 1";
-    const juce::String variationTwoId = "var_2",  variationTwo = "Variation 2";
-    const juce::String fillOneId      = "fill_1", fillOne      = "Fill 1";
-    const juce::String fillTwoId      = "fill_2", fillTwo      = "Fill 2";
-    const juce::String fillThreeId    = "fill_3", fillThree    = "Fill 3";
+    const juce::String variationOneId = "var_1";
+    const juce::String variationOne   = "Variation 1";
+    const juce::String variationTwoId = "var_2";
+    const juce::String variationTwo   = "Variation 2";
+    const juce::String fillOneId      = "fill_1";
+    const juce::String fillOne        = "Fill 1";
+    const juce::String fillTwoId      = "fill_2";
+    const juce::String fillTwo        = "Fill 2";
+    const juce::String fillThreeId    = "fill_3";
+    const juce::String fillThree      = "Fill 3";
 
     constexpr int oneBar          = 1;
     constexpr int beatsPerBar     = 4;
@@ -32,145 +37,182 @@ namespace AutoFillTestValues
     constexpr double afterBarFour  = 17.0;
 }
 
+namespace SectionSequencerTestValues
+{
+    const juce::String testName     = "ArrangerSectionSequencer";
+    const juce::String testCategory = "Arranger";
+
+    const juce::String startsOnFirstVariation   = "starts on the first variation";
+    const juce::String switchAtNextBar          = "queued switch applies at the next bar boundary, not mid-bar";
+    const juce::String doublePressKeepsLast     = "double-press before the boundary keeps only the last request";
+    const juce::String loopNeverTransitions     = "a Loop section never auto-transitions";
+    const juce::String introFallsThrough        = "Intro plays once then falls into the variation";
+    const juce::String fillReturnsToVariation   = "Fill plays once then returns to the variation it was triggered from";
+    const juce::String endingRequestsStop       = "Ending plays once then requests stop";
+    const juce::String multiBarWindowInOrder    = "a multi-bar window resolves transitions in order";
+
+    const juce::String variationThreeId = "var_3";
+    const juce::String variationThree   = "Variation 3";
+    const juce::String introOneId       = "intro_1";
+    const juce::String introOne         = "Intro 1";
+    const juce::String endingOneId      = "ending_1";
+    const juce::String endingOne        = "Ending 1";
+
+    constexpr int firstSection  = 0;
+    constexpr int secondSection = 1;
+    constexpr int thirdSection  = 2;
+
+    constexpr double insideBarOne     = 2.0;
+    constexpr double oneBarOfBeats    = 4.0;
+    constexpr double threeBarsOfBeats = 12.0;
+    constexpr double twentyFiveBars   = 100.0;
+    constexpr double sectionStart     = 0.0;   // a new section enters at its bar 0
+    constexpr double tolerance        = 1e-9;
+    constexpr size_t twoSegments      = 2;
+}
+
+using namespace AutoFillTestValues;
+using namespace SectionSequencerTestValues;
+
 class ArrangerSectionSequencerTest : public juce::UnitTest
 {
 public:
-    ArrangerSectionSequencerTest() : juce::UnitTest ("ArrangerSectionSequencer", "Arranger") {}
+    ArrangerSectionSequencerTest() : juce::UnitTest (SectionSequencerTestValues::testName, SectionSequencerTestValues::testCategory) {}
 
     static ArrangerSection makeSection (const juce::String& id, const juce::String& name,
                                         ArrangerSectionType type, int bars,
                                         ArrangerAfterComplete after)
     {
-        ArrangerSection s;
-        s.id = id; s.name = name; s.type = type; s.lengthBars = bars; s.afterComplete = after;
-        return s;
+        ArrangerSection section;
+        section.id = id; section.name = name; section.type = type; section.lengthBars = bars; section.afterComplete = after;
+        return section;
     }
 
     static ArrangerStyle twoVariations()
     {
-        ArrangerStyle st; st.timeSigNum = 4; st.timeSigDenom = 4;
-        st.sections.push_back (makeSection ("var_1", "Variation 1", ArrangerSectionType::Variation, 1, ArrangerAfterComplete::Loop));
-        st.sections.push_back (makeSection ("var_2", "Variation 2", ArrangerSectionType::Variation, 1, ArrangerAfterComplete::Loop));
+        ArrangerStyle st; st.timeSigNum = beatsPerBar; st.timeSigDenom = beatUnit;
+        st.sections.push_back (makeSection (variationOneId, variationOne, ArrangerSectionType::Variation, oneBar, ArrangerAfterComplete::Loop));
+        st.sections.push_back (makeSection (variationTwoId, variationTwo, ArrangerSectionType::Variation, oneBar, ArrangerAfterComplete::Loop));
         return st;
     }
 
     void runTest() override
     {
-        beginTest ("starts on the first variation");
+        beginTest (startsOnFirstVariation);
         {
             ArrangerSectionSequencer seq;
             seq.setStyle (twoVariations());
-            expectEquals (seq.getActiveIndex(), 0);
+            expectEquals (seq.getActiveIndex(), firstSection);
         }
 
-        beginTest ("queued switch applies at the next bar boundary, not mid-bar");
+        beginTest (switchAtNextBar);
         {
             ArrangerSectionSequencer seq;
             seq.setStyle (twoVariations());
-            expect (seq.queue (ArrangerSectionType::Variation, "Variation 2"));
+            expect (seq.queue (ArrangerSectionType::Variation, variationTwo));
 
-            auto a = seq.advance (0.0, 2.0);   // still inside bar 1
-            expectEquals (seq.getActiveIndex(), 0);
-            for (auto& s : a.segments) expectEquals (s.sectionIndex, 0);
+            auto insideBar = seq.advance (startBeat, insideBarOne);   // still inside bar 1
+            expectEquals (seq.getActiveIndex(), firstSection);
+            for (auto& segment : insideBar.segments) expectEquals (segment.sectionIndex, firstSection);
 
-            auto b = seq.advance (2.0, 5.0);   // crosses the bar line at beat 4
-            expectEquals (seq.getActiveIndex(), 1);
+            auto acrossBar = seq.advance (insideBarOne, afterBarOne);   // crosses the bar line at beat 4
+            expectEquals (seq.getActiveIndex(), secondSection);
             // last segment is the new section, flagged as a change
-            expectEquals (b.segments.back().sectionIndex, 1);
-            expect (b.segments.back().sectionChanged);
-            expectWithinAbsoluteError (b.segments.back().localFromBeats, 0.0, 1e-9); // new section enters at its bar 0
+            expectEquals (acrossBar.segments.back().sectionIndex, secondSection);
+            expect (acrossBar.segments.back().sectionChanged);
+            expectWithinAbsoluteError (acrossBar.segments.back().localFromBeats, sectionStart, tolerance); // new section enters at its bar 0
         }
 
-        beginTest ("double-press before the boundary keeps only the last request");
+        beginTest (doublePressKeepsLast);
         {
             ArrangerSectionSequencer seq;
             ArrangerStyle st = twoVariations();
-            st.sections.push_back (makeSection ("var_3", "Variation 3", ArrangerSectionType::Variation, 1, ArrangerAfterComplete::Loop));
+            st.sections.push_back (makeSection (variationThreeId, variationThree, ArrangerSectionType::Variation, oneBar, ArrangerAfterComplete::Loop));
             seq.setStyle (st);
-            seq.queue (ArrangerSectionType::Variation, "Variation 2");
-            seq.queue (ArrangerSectionType::Variation, "Variation 3"); // replaces the pending one
-            seq.advance (0.0, 5.0);
-            expectEquals (seq.getActiveIndex(), 2);
+            seq.queue (ArrangerSectionType::Variation, variationTwo);
+            seq.queue (ArrangerSectionType::Variation, variationThree); // replaces the pending one
+            seq.advance (startBeat, afterBarOne);
+            expectEquals (seq.getActiveIndex(), thirdSection);
         }
 
-        beginTest ("a Loop section never auto-transitions");
+        beginTest (loopNeverTransitions);
         {
             ArrangerSectionSequencer seq;
             seq.setStyle (twoVariations());
-            auto out = seq.advance (0.0, 100.0); // 25 bars
-            expectEquals (seq.getActiveIndex(), 0);
+            auto out = seq.advance (startBeat, twentyFiveBars); // 25 bars
+            expectEquals (seq.getActiveIndex(), firstSection);
             expect (! out.stopRequested);
         }
 
-        beginTest ("Intro plays once then falls into the variation");
+        beginTest (introFallsThrough);
         {
-            ArrangerStyle st; st.timeSigNum = 4; st.timeSigDenom = 4;
-            st.sections.push_back (makeSection ("intro_1", "Intro 1", ArrangerSectionType::Intro, 1, ArrangerAfterComplete::FallThrough));
-            st.sections.push_back (makeSection ("var_1", "Variation 1", ArrangerSectionType::Variation, 1, ArrangerAfterComplete::Loop));
+            ArrangerStyle st; st.timeSigNum = beatsPerBar; st.timeSigDenom = beatUnit;
+            st.sections.push_back (makeSection (introOneId, introOne, ArrangerSectionType::Intro, oneBar, ArrangerAfterComplete::FallThrough));
+            st.sections.push_back (makeSection (variationOneId, variationOne, ArrangerSectionType::Variation, oneBar, ArrangerAfterComplete::Loop));
 
             ArrangerSectionSequencer seq;
             seq.setStyle (st);
-            seq.startAt (0);                 // begin on the intro
-            expectEquals (seq.getActiveIndex(), 0);
+            seq.startAt (firstSection);                 // begin on the intro
+            expectEquals (seq.getActiveIndex(), firstSection);
 
-            auto out = seq.advance (0.0, 4.0); // exactly the intro's length
-            expectEquals (seq.getActiveIndex(), 1); // fell through to the variation
-            for (auto& s : out.segments) expectEquals (s.sectionIndex, 0); // intro played the whole bar
+            auto out = seq.advance (startBeat, oneBarOfBeats); // exactly the intro's length
+            expectEquals (seq.getActiveIndex(), secondSection); // fell through to the variation
+            for (auto& segment : out.segments) expectEquals (segment.sectionIndex, firstSection); // intro played the whole bar
         }
 
-        beginTest ("Fill plays once then returns to the variation it was triggered from");
+        beginTest (fillReturnsToVariation);
         {
-            ArrangerStyle st; st.timeSigNum = 4; st.timeSigDenom = 4;
-            st.sections.push_back (makeSection ("var_1", "Variation 1", ArrangerSectionType::Variation, 1, ArrangerAfterComplete::Loop));
-            st.sections.push_back (makeSection ("var_2", "Variation 2", ArrangerSectionType::Variation, 1, ArrangerAfterComplete::Loop));
-            st.sections.push_back (makeSection ("fill_1", "Fill 1", ArrangerSectionType::Fill, 1, ArrangerAfterComplete::FallThrough));
+            ArrangerStyle st; st.timeSigNum = beatsPerBar; st.timeSigDenom = beatUnit;
+            st.sections.push_back (makeSection (variationOneId, variationOne, ArrangerSectionType::Variation, oneBar, ArrangerAfterComplete::Loop));
+            st.sections.push_back (makeSection (variationTwoId, variationTwo, ArrangerSectionType::Variation, oneBar, ArrangerAfterComplete::Loop));
+            st.sections.push_back (makeSection (fillOneId, fillOne, ArrangerSectionType::Fill, oneBar, ArrangerAfterComplete::FallThrough));
 
             ArrangerSectionSequencer seq;
             seq.setStyle (st);
-            seq.queue (ArrangerSectionType::Variation, "Variation 2");
-            seq.advance (0.0, 5.0);          // now on Variation 2
-            expectEquals (seq.getActiveIndex(), 1);
+            seq.queue (ArrangerSectionType::Variation, variationTwo);
+            seq.advance (startBeat, afterBarOne);          // now on Variation 2
+            expectEquals (seq.getActiveIndex(), secondSection);
 
-            seq.queue (ArrangerSectionType::Fill, "Fill 1");
-            seq.advance (5.0, 9.0);          // boundary at 8 -> enter fill
-            expectEquals (seq.getActiveIndex(), 2);
+            seq.queue (ArrangerSectionType::Fill, fillOne);
+            seq.advance (afterBarOne, afterBarTwo);          // boundary at 8 -> enter fill
+            expectEquals (seq.getActiveIndex(), thirdSection);
 
-            seq.advance (9.0, 13.0);         // boundary at 12 -> fill done -> back to Variation 2
-            expectEquals (seq.getActiveIndex(), 1);
+            seq.advance (afterBarTwo, afterBarThree);         // boundary at 12 -> fill done -> back to Variation 2
+            expectEquals (seq.getActiveIndex(), secondSection);
         }
 
-        beginTest ("Ending plays once then requests stop");
+        beginTest (endingRequestsStop);
         {
-            ArrangerStyle st; st.timeSigNum = 4; st.timeSigDenom = 4;
-            st.sections.push_back (makeSection ("var_1", "Variation 1", ArrangerSectionType::Variation, 1, ArrangerAfterComplete::Loop));
-            st.sections.push_back (makeSection ("ending_1", "Ending 1", ArrangerSectionType::Ending, 1, ArrangerAfterComplete::Stop));
+            ArrangerStyle st; st.timeSigNum = beatsPerBar; st.timeSigDenom = beatUnit;
+            st.sections.push_back (makeSection (variationOneId, variationOne, ArrangerSectionType::Variation, oneBar, ArrangerAfterComplete::Loop));
+            st.sections.push_back (makeSection (endingOneId, endingOne, ArrangerSectionType::Ending, oneBar, ArrangerAfterComplete::Stop));
 
             ArrangerSectionSequencer seq;
             seq.setStyle (st);
-            seq.queue (ArrangerSectionType::Ending, "Ending 1");
-            seq.advance (0.0, 5.0);          // boundary at 4 -> enter ending
-            expectEquals (seq.getActiveIndex(), 1);
+            seq.queue (ArrangerSectionType::Ending, endingOne);
+            seq.advance (startBeat, afterBarOne);          // boundary at 4 -> enter ending
+            expectEquals (seq.getActiveIndex(), secondSection);
 
-            auto out = seq.advance (5.0, 9.0); // boundary at 8 -> ending complete
+            auto out = seq.advance (afterBarOne, afterBarTwo); // boundary at 8 -> ending complete
             expect (out.stopRequested);
-            auto none = seq.advance (9.0, 13.0); // stopped: no further segments
+            auto none = seq.advance (afterBarTwo, afterBarThree); // stopped: no further segments
             expect (none.segments.empty());
         }
 
-        beginTest ("a multi-bar window resolves transitions in order");
+        beginTest (multiBarWindowInOrder);
         {
-            ArrangerStyle st; st.timeSigNum = 4; st.timeSigDenom = 4;
-            st.sections.push_back (makeSection ("intro_1", "Intro 1", ArrangerSectionType::Intro, 1, ArrangerAfterComplete::FallThrough));
-            st.sections.push_back (makeSection ("var_1", "Variation 1", ArrangerSectionType::Variation, 1, ArrangerAfterComplete::Loop));
+            ArrangerStyle st; st.timeSigNum = beatsPerBar; st.timeSigDenom = beatUnit;
+            st.sections.push_back (makeSection (introOneId, introOne, ArrangerSectionType::Intro, oneBar, ArrangerAfterComplete::FallThrough));
+            st.sections.push_back (makeSection (variationOneId, variationOne, ArrangerSectionType::Variation, oneBar, ArrangerAfterComplete::Loop));
 
             ArrangerSectionSequencer seq;
             seq.setStyle (st);
-            seq.startAt (0);
-            auto out = seq.advance (0.0, 12.0);  // intro bar, then 2 variation bars, all in one call
-            expect (out.segments.size() >= 2);
-            expectEquals (out.segments.front().sectionIndex, 0); // starts on intro
-            expectEquals (out.segments.back().sectionIndex, 1);  // ends on variation
-            expectEquals (seq.getActiveIndex(), 1);
+            seq.startAt (firstSection);
+            auto out = seq.advance (startBeat, threeBarsOfBeats);  // intro bar, then 2 variation bars, all in one call
+            expect (out.segments.size() >= twoSegments);
+            expectEquals (out.segments.front().sectionIndex, firstSection); // starts on intro
+            expectEquals (out.segments.back().sectionIndex, secondSection);  // ends on variation
+            expectEquals (seq.getActiveIndex(), secondSection);
         }
 
         runAutoFillTests();
@@ -178,7 +220,6 @@ public:
 
     static ArrangerStyle autoFillStyle (bool withFillOne, bool withFillTwo)
     {
-        using namespace AutoFillTestValues;
         ArrangerStyle style;
         style.timeSigNum   = beatsPerBar;
         style.timeSigDenom = beatUnit;
@@ -193,7 +234,6 @@ public:
 
     void runAutoFillTests()
     {
-        using namespace AutoFillTestValues;
 
         beginTest (fillOfOutgoingVariation);
         {

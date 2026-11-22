@@ -2,6 +2,43 @@
 #include <juce_audio_devices/juce_audio_devices.h>
 #include "MidiHandler.h"
 
+namespace MidiDeviceHwTestValues
+{
+    const juce::String testName     = "MidiDevice_HW";
+    const juce::String testCategory = "Integration";
+
+    const juce::String hwGetAvailableDevicesMidiINFindsAtLeastOneDevice = "[HW] getAvailableDevicesMidiIN - finds at least one device";
+    const juce::String hwGetAvailableDevicesMidiOUTFindsAtLeastOneDevice = "[HW] getAvailableDevicesMidiOUT - finds at least one device";
+    const juce::String hwGetDeviceNameBasedOnIndexReturnsNonEmptyNameFor = "[HW] getDeviceNameBasedOnIndex - returns non-empty name for valid input device";
+    const juce::String hwGetDeviceNameBasedOnIndexReturnsNonEmptyNameFor2 = "[HW] getDeviceNameBasedOnIndex - returns non-empty name for valid output device";
+    const juce::String hwGetDeviceIdentifierBasedOnIndexReturnsNonEmptyIdentifier = "[HW] getDeviceIdentifierBasedOnIndex - returns non-empty identifier";
+    const juce::String hwDeviceOpenINOpensARealDeviceSuccessfully = "[HW] deviceOpenIN - opens a real device successfully";
+    const juce::String hwDeviceOpenINOpensARealDeviceSuccessfully2 = "[HW] deviceOpenIN - opens a real device successfully with 2 consecutive calls";
+    const juce::String hwDeviceCloseINClosingAlreadyClosedDeviceIs = "[HW] deviceCloseIN - closing already closed device is safe";
+    const juce::String hwDeviceOpenOUTOpensARealOutputDevice = "[HW] deviceOpenOUT - opens a real output device successfully";
+    const juce::String hwDeviceCloseOUTClosingAlreadyClosedDeviceIs = "[HW] deviceCloseOUT - closing already closed device is safe";
+    const juce::String hwDeviceOpenINReopenAfterCloseWorks = "[HW] deviceOpenIN - reopen after close works";
+    const juce::String hwChangeVolumeInstrumentSendsVolumeCCToOutput = "[HW] changeVolumeInstrument - sends volume CC to output device";
+    const juce::String hwChangeReverbInstrumentSendsReverbCCToOutput = "[HW] changeReverbInstrument - sends reverb CC to output device";
+    const juce::String hwGetAvailableInputDevicesNameIdentifierReturnsNameIdentifierPairs = "[HW] getAvailableInputDevicesNameIdentifier - returns name+identifier pairs";
+
+    const juce::String skippedNoInput  = "SKIPPED - no MIDI input device connected";
+    const juce::String skippedNoOutput = "SKIPPED - no MIDI output device connected";
+    constexpr int noDevice = -1;
+    constexpr size_t oneDevice = 1;
+    constexpr int firstPair = 0;
+    constexpr int leftHand = 1;
+    constexpr int rightHand = 16;
+    constexpr int volumeController = 7;
+    constexpr int reverbController = 91;
+    constexpr int leftVolume = 75;
+    constexpr int rightVolume = 50;
+    constexpr int leftReverb = 60;
+    constexpr int rightReverb = 30;
+}
+
+using namespace MidiDeviceHwTestValues;
+
 // ==================================================================
 // HARDWARE-DEPENDENT TESTS (Integration)
 // These tests require a physical MIDI device to be connected.
@@ -11,7 +48,7 @@
 class MidiDeviceHWTest : public juce::UnitTest
 {
 public:
-    MidiDeviceHWTest() : juce::UnitTest("MidiDevice_HW", "Integration") {}
+    MidiDeviceHWTest() : juce::UnitTest (MidiDeviceHwTestValues::testName, MidiDeviceHwTestValues::testCategory) {}
 
     void runTest() override
     {
@@ -27,14 +64,14 @@ public:
 
         // Check if we have a real device (not just "PC Keyboard" or "No devices found!")
         bool hasInputDevice = false;
-        int inputDeviceIndex = -1;
-        for (int i = 0; i < (int)inputDevices.size(); ++i)
+        int inputDeviceIndex = noDevice;
+        for (int deviceIndex {}; deviceIndex < (int)inputDevices.size(); ++deviceIndex)
         {
-            juce::String name(inputDevices[i]);
-            if (name != "PC Keyboard" && name != "No devices found!")
+            juce::String name(inputDevices[deviceIndex]);
+            if (name != DeviceNames::pcKeyboard && name != DeviceNames::noDevicesFound)
             {
                 hasInputDevice = true;
-                inputDeviceIndex = i;
+                inputDeviceIndex = deviceIndex;
                 break;
             }
         }
@@ -43,14 +80,14 @@ public:
         hwDevice.getAvailableDevicesMidiOUT(outputDevices);
 
         bool hasOutputDevice = false;
-        int outputDeviceIndex = -1;
-        for (int i = 0; i < (int)outputDevices.size(); ++i)
+        int outputDeviceIndex = noDevice;
+        for (int deviceIndex {}; deviceIndex < (int)outputDevices.size(); ++deviceIndex)
         {
-            juce::String name(outputDevices[i]);
-            if (name != "No devices found!")
+            juce::String name(outputDevices[deviceIndex]);
+            if (name != DeviceNames::noDevicesFound)
             {
                 hasOutputDevice = true;
-                outputDeviceIndex = i;
+                outputDeviceIndex = deviceIndex;
                 break;
             }
         }
@@ -76,27 +113,27 @@ public:
 
         // ---- Device Discovery ----
 
-        beginTest("[HW] getAvailableDevicesMidiIN - finds at least one device");
+        beginTest(hwGetAvailableDevicesMidiINFindsAtLeastOneDevice);
         {
-            if (!hasInputDevice) { logMessage("SKIPPED - no MIDI input device connected"); }
+            if (!hasInputDevice) { logMessage(skippedNoInput); }
             else
             {
-                expect(inputDevices.size() > 1);  // at least one real device + "PC Keyboard"
+                expect(inputDevices.size() > oneDevice);  // at least one real device + "PC Keyboard"
             }
         }
 
-        beginTest("[HW] getAvailableDevicesMidiOUT - finds at least one device");
+        beginTest(hwGetAvailableDevicesMidiOUTFindsAtLeastOneDevice);
         {
-            if (!hasOutputDevice) { logMessage("SKIPPED - no MIDI output device connected"); }
+            if (!hasOutputDevice) { logMessage(skippedNoOutput); }
             else
             {
-                expect(outputDevices.size() >= 1);
+                expect(outputDevices.size() >= oneDevice);
             }
         }
 
-        beginTest("[HW] getDeviceNameBasedOnIndex - returns non-empty name for valid input device");
+        beginTest(hwGetDeviceNameBasedOnIndexReturnsNonEmptyNameFor);
         {
-            if (!hasInputDevice) { logMessage("SKIPPED - no MIDI input device connected"); }
+            if (!hasInputDevice) { logMessage(skippedNoInput); }
             else
             {
                 MidiDevice dev;
@@ -107,22 +144,22 @@ public:
             }
         }
 
-        beginTest("[HW] getDeviceNameBasedOnIndex - returns non-empty name for valid output device");
+        beginTest(hwGetDeviceNameBasedOnIndexReturnsNonEmptyNameFor2);
         {
-            if (!hasOutputDevice) { logMessage("SKIPPED - no MIDI output device connected"); }
+            if (!hasOutputDevice) { logMessage(skippedNoOutput); }
             else
             {
                 MidiDevice dev;
                 std::vector<std::string> devs;
                 dev.getAvailableDevicesMidiOUT(devs);
-                juce::String name = dev.getDeviceNameBasedOnIndex(outputDeviceIndex,1);
+                juce::String name = dev.getDeviceNameBasedOnIndex(outputDeviceIndex,DeviceListChoice::midiOutput);
                 expect(name.isNotEmpty());
             }
         }
 
-        beginTest("[HW] getDeviceIdentifierBasedOnIndex - returns non-empty identifier");
+        beginTest(hwGetDeviceIdentifierBasedOnIndexReturnsNonEmptyIdentifier);
         {
-            if (!hasInputDevice) { logMessage("SKIPPED - no MIDI input device connected"); }
+            if (!hasInputDevice) { logMessage(skippedNoInput); }
             else
             {
                 MidiDevice dev;
@@ -135,9 +172,9 @@ public:
 
         // ---- Open/Close INPUT ----
 
-        beginTest("[HW] deviceOpenIN - opens a real device successfully");
+        beginTest(hwDeviceOpenINOpensARealDeviceSuccessfully);
         {
-            if (!hasInputDevice) { logMessage("SKIPPED - no MIDI input device connected"); }
+            if (!hasInputDevice) { logMessage(skippedNoInput); }
             else
             {
                 MidiDevice dev;
@@ -155,9 +192,9 @@ public:
             }
         }
 
-        beginTest("[HW] deviceOpenIN - opens a real device successfully with 2 consecutive calls");
+        beginTest(hwDeviceOpenINOpensARealDeviceSuccessfully2);
         {
-            if (!hasInputDevice) { logMessage("SKIPPED - no MIDI input device connected"); }
+            if (!hasInputDevice) { logMessage(skippedNoInput); }
             else
             {
                 MidiDevice dev;
@@ -180,7 +217,7 @@ public:
             }
         }
 
-        beginTest("[HW] deviceCloseIN - closing already closed device is safe");
+        beginTest(hwDeviceCloseINClosingAlreadyClosedDeviceIs);
         {
             MidiDevice dev;
             dev.deviceCloseIN();  // should not crash
@@ -189,9 +226,9 @@ public:
 
         // ---- Open/Close OUTPUT ----
 
-        beginTest("[HW] deviceOpenOUT - opens a real output device successfully");
+        beginTest(hwDeviceOpenOUTOpensARealOutputDevice);
         {
-            if (!hasOutputDevice) { logMessage("SKIPPED - no MIDI output device connected"); }
+            if (!hasOutputDevice) { logMessage(skippedNoOutput); }
             else
             {
                 MidiDevice dev;
@@ -207,7 +244,7 @@ public:
             }
         }
 
-        beginTest("[HW] deviceCloseOUT - closing already closed device is safe");
+        beginTest(hwDeviceCloseOUTClosingAlreadyClosedDeviceIs);
         {
             MidiDevice dev;
             dev.deviceCloseOUT();  // should not crash
@@ -216,9 +253,9 @@ public:
 
         // ---- Reopen after close ----
 
-        beginTest("[HW] deviceOpenIN - reopen after close works");
+        beginTest(hwDeviceOpenINReopenAfterCloseWorks);
         {
-            if (!hasInputDevice) { logMessage("SKIPPED - no MIDI input device connected"); }
+            if (!hasInputDevice) { logMessage(skippedNoInput); }
             else
             {
                 MidiDevice dev;
@@ -246,9 +283,9 @@ public:
 
         // ---- changeVolumeInstrument / changeReverbInstrument ----
 
-        beginTest("[HW] changeVolumeInstrument - sends volume CC to output device");
+        beginTest(hwChangeVolumeInstrumentSendsVolumeCCToOutput);
         {
-            if (!hasOutputDevice) { logMessage("SKIPPED - no MIDI output device connected"); }
+            if (!hasOutputDevice) { logMessage(skippedNoOutput); }
             else
             {
                 MidiDevice dev;
@@ -256,19 +293,19 @@ public:
                 dev.getAvailableDevicesMidiOUT(devs);
                 dev.deviceOpenOUT(outputDeviceIndex);
 
-                dev.setVolume(75, 1);
-                dev.sendMidiCC(1,7,dev.getVolume(1));  // should not crash, sends CC7
+                dev.setVolume(leftVolume, leftHand);
+                dev.sendMidiCC(leftHand,volumeController,dev.getVolume(leftHand));  // should not crash, sends CC7
 
-                dev.setVolume(50, 16);
-                dev.sendMidiCC(16,7,dev.getVolume(16));  // sends CC7 on channel 16
+                dev.setVolume(rightVolume, rightHand);
+                dev.sendMidiCC(rightHand,volumeController,dev.getVolume(rightHand));  // sends CC7 on channel 16
 
                 dev.deviceCloseOUT();
             }
         }
 
-        beginTest("[HW] changeReverbInstrument - sends reverb CC to output device");
+        beginTest(hwChangeReverbInstrumentSendsReverbCCToOutput);
         {
-            if (!hasOutputDevice) { logMessage("SKIPPED - no MIDI output device connected"); }
+            if (!hasOutputDevice) { logMessage(skippedNoOutput); }
             else
             {
                 MidiDevice dev;
@@ -276,11 +313,11 @@ public:
                 dev.getAvailableDevicesMidiOUT(devs);
                 dev.deviceOpenOUT(outputDeviceIndex);
 
-                dev.setReverb(60, 1);
-                dev.sendMidiCC(1,91,dev.getReverb(1));  // should not crash, sends CC91
+                dev.setReverb(leftReverb, leftHand);
+                dev.sendMidiCC(leftHand,reverbController,dev.getReverb(leftHand));  // should not crash, sends CC91
 
-                dev.setReverb(30, 16);
-                dev.sendMidiCC(16,91,dev.getReverb(16));  // sends CC91 on channel 16
+                dev.setReverb(rightReverb, rightHand);
+                dev.sendMidiCC(rightHand,reverbController,dev.getReverb(rightHand));  // sends CC91 on channel 16
 
                 dev.deviceCloseOUT();
             }
@@ -288,17 +325,17 @@ public:
 
         // ---- getAvailableInputDevicesNameIdentifier ----
 
-        beginTest("[HW] getAvailableInputDevicesNameIdentifier - returns name+identifier pairs");
+        beginTest(hwGetAvailableInputDevicesNameIdentifierReturnsNameIdentifierPairs);
         {
-            if (!hasInputDevice) { logMessage("SKIPPED - no MIDI input device connected"); }
+            if (!hasInputDevice) { logMessage(skippedNoInput); }
             else
             {
                 MidiDevice dev;
                 auto pairs = dev.getAvailableInputDevicesNameIdentifier();
-                expect((int)pairs.size() >= 1);
+                expect(pairs.size() >= oneDevice);
                 // First real device should have non-empty name and identifier
-                expect(pairs[0].first.isNotEmpty());
-                expect(pairs[0].second.isNotEmpty());
+                expect(pairs[firstPair].first.isNotEmpty());
+                expect(pairs[firstPair].second.isNotEmpty());
             }
         }
     }
