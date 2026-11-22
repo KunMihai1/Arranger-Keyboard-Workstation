@@ -28,8 +28,6 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   `docs/superpowers/plans/` (850–1157 lines) by topic; add `docs/**/*.md` to the CI check.
 - ✅ **Auto-fill plays the fill of the variation you leave** (owner, 2026-11-22: Var 2 → Var 1 plays
   Fill 2). `ArrangerSectionSequencer::queue`; spec `2026-11-22-autofill-outgoing-variation-design.md`.
-- ⬜ **CI once per PR**: limit `push` runs to `main` (the PR run already tests branch + main), after the
-  build-time agent's `ci.yml` changes land.
 - ✅ **Arranger hard testing** (headless + live, `docs/superpowers/test-plans/2026-11-22-arranger-stress-test-plan.md`).
   Not run live: 🔒 style editor and Section Configurations while playing; 🔒 Synchro Start / Count-In
   from the UI (covered headless); SFZ instrument / audio output switch while playing (no SFZ library on
@@ -67,6 +65,12 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 | "Notes information" for arranger notes (timestamp based) | ✅ kept as is (explained to the owner: the right-click table of a track's notes) |
 | Var 2 → Var 1 plays Fill 1 | ✅ now plays Fill 2, the fill of the variation you leave |
 | Arranger starts again after the end | ✅ (owner: "good thing") |
+
+## Considered and not done
+- **CI once per PR** (push runs only on `main`): every PR shows a `push` and a `pull_request` run of the
+  same workflow. Not a real problem: the repo is public (Actions minutes free) and branch protection is
+  strict (a PR must contain the latest `main`), so both runs test practically the same code. Revisit if
+  the repo goes private (Windows minutes are billed).
 
 ## Owner decisions already taken (don't reopen)
 - A style switch while playing takes effect on the next Start; any section may be the start section.
