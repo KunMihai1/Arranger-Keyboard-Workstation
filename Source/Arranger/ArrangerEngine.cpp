@@ -14,6 +14,7 @@ namespace
     constexpr int    lowestProgram          = 0;
     constexpr int    firstSection           = 0;
     constexpr int    oneSection             = 1;
+    constexpr int    minimumBeatsPerBar     = 1;
     constexpr double noTempo                = 0.0;
     constexpr double noBeats                = 0.0;
 }
@@ -38,7 +39,7 @@ void ArrangerEngine::setBpm (double bpm)
 void ArrangerEngine::rebuildFromStyle()
 {
     schedulers.clear();
-    const double bpb = ArrangerTime::beatsPerBar (style.timeSigNum, style.timeSigDenom);
+    const double beatsPerBarValue = ArrangerTime::beatsPerBar (style.timeSigNum, style.timeSigDenom);
 
     for (const auto& section : style.sections)
     {
@@ -61,7 +62,7 @@ void ArrangerEngine::rebuildFromStyle()
 
         const double bars = (double) juce::jmax (ArrangerStyleDefaults::minimumLengthBars, section.lengthBars);
         ArrangerScheduler scheduler;
-        scheduler.setLoop (std::move (merged), std::move (parts), std::move (ntts), bars * bpb);
+        scheduler.setLoop (std::move (merged), std::move (parts), std::move (ntts), bars * beatsPerBarValue);
         schedulers.push_back (std::move (scheduler));
     }
 
@@ -77,9 +78,9 @@ void ArrangerEngine::updateActiveLoopLength()
         loopLengthBeats = noBeats;
         return;
     }
-    const double bpb = ArrangerTime::beatsPerBar (style.timeSigNum, style.timeSigDenom);
+    const double beatsPerBarValue = ArrangerTime::beatsPerBar (style.timeSigNum, style.timeSigDenom);
     const int activeIndex = juce::jlimit (firstSection, (int) style.sections.size() - oneSection, sequencer.getActiveIndex());
-    loopLengthBeats = (double) juce::jmax (ArrangerStyleDefaults::minimumLengthBars, style.sections[activeIndex].lengthBars) * bpb;
+    loopLengthBeats = (double) juce::jmax (ArrangerStyleDefaults::minimumLengthBars, style.sections[activeIndex].lengthBars) * beatsPerBarValue;
 }
 
 int ArrangerEngine::indexOfSection (ArrangerSectionType type, const juce::String& name) const
@@ -275,7 +276,7 @@ void ArrangerEngine::sendInstrumentSetup()
 void ArrangerEngine::armCountIn()
 {
     countInPlayhead    = noBeats;
-    countInLengthBeats = (double) juce::jmax (ArrangerStyleDefaults::minimumLengthBars, style.timeSigNum);   // one bar
+    countInLengthBeats = (double) juce::jmax (minimumBeatsPerBar, style.timeSigNum);   // one bar
     countingIn.store (true);
 }
 

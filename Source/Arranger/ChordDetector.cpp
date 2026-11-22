@@ -62,21 +62,21 @@ ArrangerChord ChordDetector::recognizeSet (const std::set<int>& notes)
 
     std::set<int> pitchClasses;
     for (int noteNumber : notes) pitchClasses.insert (noteNumber % semitonesPerOctave);
-    const int lowestPc = (*notes.begin()) % semitonesPerOctave;   // std::set is ascending
+    const int lowestPitchClass = (*notes.begin()) % semitonesPerOctave;   // std::set is ascending
 
     // Some pitch-class sets name two chords that are inversions of each other (e.g. C-F-G is both
     // Csus4 and Fsus2). Prefer the interpretation whose root IS the lowest (bass) note â€” the Fingered
     // convention. If no match is rooted on the bass (a true inversion like E-G-C = C major), fall back
     // to the highest-priority template match.
-    ArrangerChord firstMatch { PitchClasses::none, ChordQuality::None, lowestPc };
+    ArrangerChord firstMatch { PitchClasses::none, ChordQuality::None, lowestPitchClass };
     for (const auto& chordTemplate : templates())
         for (int root {}; root < semitonesPerOctave; ++root)
             if (matches (pitchClasses, root, chordTemplate.intervals))
             {
-                if (root == lowestPc)
-                    return { root, chordTemplate.quality, lowestPc };
+                if (root == lowestPitchClass)
+                    return { root, chordTemplate.quality, lowestPitchClass };
                 if (! firstMatch.isValid())
-                    firstMatch = { root, chordTemplate.quality, lowestPc };
+                    firstMatch = { root, chordTemplate.quality, lowestPitchClass };
             }
 
     return firstMatch;   // invalid if nothing matched
@@ -90,7 +90,7 @@ ArrangerChord ChordDetector::recognizeSingleFinger (const std::set<int>& notes)
     if (notes.empty()) return {};
 
     const int root   = *notes.rbegin();          // highest held note is the root
-    const int rootPc = pitchClassOf (root);
+    const int rootPitchClass = pitchClassOf (root);
 
     auto isBlack = [] (int noteNumber)
     {
@@ -108,7 +108,7 @@ ArrangerChord ChordDetector::recognizeSingleFinger (const std::set<int>& notes)
                          : hasWhiteBelow                    ? ChordQuality::Dom7
                          :                                    ChordQuality::Maj;
 
-    return { rootPc, quality, rootPc };   // bassNote = root (no slash in single-finger)
+    return { rootPitchClass, quality, rootPitchClass };   // bassNote = root (no slash in single-finger)
 }
 
 void ChordDetector::recompute()
@@ -164,8 +164,8 @@ ArrangerChord detectKeyFromEvents (const std::vector<TimedBeatEvent>& events)
     }
     if (total == int {}) return { PitchClasses::lowest, ChordQuality::Maj, PitchClasses::lowest };   // fallback C major
 
-    const int majThird = notesPerPitchClass[(root + majorThird) % semitonesPerOctave];
-    const int minThird = notesPerPitchClass[(root + minorThird) % semitonesPerOctave];
-    const ChordQuality quality = (minThird > majThird) ? ChordQuality::Min : ChordQuality::Maj;
+    const int majorThirdCount = notesPerPitchClass[(root + majorThird) % semitonesPerOctave];
+    const int minorThirdCount = notesPerPitchClass[(root + minorThird) % semitonesPerOctave];
+    const ChordQuality quality = (minorThirdCount > majorThirdCount) ? ChordQuality::Min : ChordQuality::Maj;
     return { root, quality, root };
 }

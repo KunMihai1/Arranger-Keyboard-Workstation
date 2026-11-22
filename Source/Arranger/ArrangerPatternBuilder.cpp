@@ -10,19 +10,19 @@ namespace ArrangerPatternBuilder
     constexpr int    demoEndingBars    = 4;     // the demo style's short wind-down
     constexpr double noTempo           = 0.0;
 
-    std::vector<TimedBeatEvent> buildBeatEvents (const juce::MidiMessageSequence& seq,
+    std::vector<TimedBeatEvent> buildBeatEvents (const juce::MidiMessageSequence& sequence,
                                                  double referenceBpm, int channel)
     {
         std::vector<TimedBeatEvent> out;
-        for (int eventIndex {}; eventIndex < seq.getNumEvents(); ++eventIndex)
+        for (int eventIndex {}; eventIndex < sequence.getNumEvents(); ++eventIndex)
         {
-            const auto& msg = seq.getEventPointer (eventIndex)->message;
-            if (! (msg.isNoteOn() || msg.isNoteOff()))
+            const auto& sourceMessage = sequence.getEventPointer (eventIndex)->message;
+            if (! (sourceMessage.isNoteOn() || sourceMessage.isNoteOff()))
                 continue;
 
-            juce::MidiMessage onChannel = msg;
+            juce::MidiMessage onChannel = sourceMessage;
             onChannel.setChannel (channel);
-            out.push_back ({ ArrangerTime::secondsToBeats (msg.getTimeStamp(), referenceBpm), onChannel });
+            out.push_back ({ ArrangerTime::secondsToBeats (sourceMessage.getTimeStamp(), referenceBpm), onChannel });
         }
         std::stable_sort (out.begin(), out.end(),
                           [] (const TimedBeatEvent& earlier, const TimedBeatEvent& later) { return earlier.beats < later.beats; });
@@ -41,7 +41,7 @@ namespace ArrangerPatternBuilder
         style.timeSigDenom = timeSigDenom;
         style.originalTempo = referenceBpm;
 
-        const double bpb = ArrangerTime::beatsPerBar (timeSigNum, timeSigDenom);
+        const double beatsPerBarValue = ArrangerTime::beatsPerBar (timeSigNum, timeSigDenom);
 
         ArrangerSection section;
         section.type = ArrangerSectionType::Variation;
@@ -70,7 +70,7 @@ namespace ArrangerPatternBuilder
             track.pattern = buildBeatEvents (trackEntry.sequence, referenceBpm, channel);
 
             double lastBeat = track.pattern.empty() ? ArrangerStyleDefaults::sectionStartBeat : track.pattern.back().beats;
-            maxBars = std::max (maxBars, ArrangerTime::barsForBeats (lastBeat, bpb));
+            maxBars = std::max (maxBars, ArrangerTime::barsForBeats (lastBeat, beatsPerBarValue));
 
             section.tracks.push_back (std::move (track));
         }
@@ -94,7 +94,7 @@ namespace ArrangerPatternBuilder
         if (base.sections.empty())
             return style;
 
-        const double bpb     = ArrangerTime::beatsPerBar (timeSigNum, timeSigDenom);
+        const double beatsPerBarValue     = ArrangerTime::beatsPerBar (timeSigNum, timeSigDenom);
         ArrangerSection var  = base.sections.front();     // the full loop, correct channels/length
         const int loopBars   = juce::jmax (ArrangerStyleDefaults::minimumLengthBars, var.lengthBars);
 
@@ -107,20 +107,20 @@ namespace ArrangerPatternBuilder
         // (intro-once, fill-once, ending-once-then-stop) is observable instead of replaying the
         // whole-song Variation loop. Lengths are a compromise until Phase 3 supplies real phrases.
         const int    endingBars   = juce::jmin (demoEndingBars, loopBars);     // a short wind-down
-        const double lastBarStart = (double) (loopBars - oneBar)     * bpb;
-        const double endingStart  = (double) (loopBars - endingBars) * bpb;
+        const double lastBarStart = (double) (loopBars - oneBar)     * beatsPerBarValue;
+        const double endingStart  = (double) (loopBars - endingBars) * beatsPerBarValue;
 
-        ArrangerSection intro = sliceSection (var, ArrangerStyleDefaults::sectionStartBeat, oneBar, bpb);   // first bar -> lead-in
+        ArrangerSection intro = sliceSection (var, ArrangerStyleDefaults::sectionStartBeat, oneBar, beatsPerBarValue);   // first bar -> lead-in
         intro.id = DefaultSectionNames::introId; intro.name = DefaultSectionNames::intro;
         intro.type = ArrangerSectionType::Intro;
         intro.afterComplete = ArrangerAfterComplete::FallThrough;
 
-        ArrangerSection fill = sliceSection (var, lastBarStart, oneBar, bpb); // last bar -> fill accent
+        ArrangerSection fill = sliceSection (var, lastBarStart, oneBar, beatsPerBarValue); // last bar -> fill accent
         fill.id = DefaultSectionNames::fillId; fill.name = DefaultSectionNames::fill;
         fill.type = ArrangerSectionType::Fill;
         fill.afterComplete = ArrangerAfterComplete::FallThrough;
 
-        ArrangerSection ending = sliceSection (var, endingStart, endingBars, bpb); // last few bars -> wind-down, then stop
+        ArrangerSection ending = sliceSection (var, endingStart, endingBars, beatsPerBarValue); // last few bars -> wind-down, then stop
         ending.id = DefaultSectionNames::endingId; ending.name = DefaultSectionNames::ending;
         ending.type = ArrangerSectionType::Ending;
         ending.afterComplete = ArrangerAfterComplete::Stop;
@@ -162,7 +162,7 @@ namespace ArrangerPatternBuilder
         style.timeSigDenom  = timeSigDenom;
         style.originalTempo = referenceBpm;
 
-        const double bpb = ArrangerTime::beatsPerBar (timeSigNum, timeSigDenom);
+        const double beatsPerBarValue = ArrangerTime::beatsPerBar (timeSigNum, timeSigDenom);
 
         // Master section = every source track as one full-length ArrangerTrack.
         ArrangerSection master;
@@ -178,8 +178,8 @@ namespace ArrangerPatternBuilder
 
         for (const auto& window : windows)
         {
-            const double startBeats = (double) (juce::jmax (ArrangerStyleDefaults::firstBar, window.startBar) - ArrangerStyleDefaults::firstBar) * bpb;
-            ArrangerSection section = sliceSection (master, startBeats, juce::jmax (ArrangerStyleDefaults::minimumLengthBars, window.lengthBars), bpb);
+            const double startBeats = (double) (juce::jmax (ArrangerStyleDefaults::firstBar, window.startBar) - ArrangerStyleDefaults::firstBar) * beatsPerBarValue;
+            ArrangerSection section = sliceSection (master, startBeats, juce::jmax (ArrangerStyleDefaults::minimumLengthBars, window.lengthBars), beatsPerBarValue);
             section.id            = window.id;
             section.name          = window.name;
             section.type          = window.type;

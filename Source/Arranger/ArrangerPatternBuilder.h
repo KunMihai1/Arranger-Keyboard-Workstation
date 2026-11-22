@@ -9,7 +9,7 @@
 namespace ArrangerPatternBuilder
 {
     /** Convert a seconds-timestamped sequence to note-on/off beat events on `channel`. */
-    std::vector<TimedBeatEvent> buildBeatEvents (const juce::MidiMessageSequence& seq,
+    std::vector<TimedBeatEvent> buildBeatEvents (const juce::MidiMessageSequence& sequence,
                                                  double referenceBpm, int channel);
 
     /** Wrap the selected tracks as one looped section. Channels: perc->10, melodic->2,3,4,…
