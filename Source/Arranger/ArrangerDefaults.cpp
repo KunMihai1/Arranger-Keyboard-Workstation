@@ -4,13 +4,13 @@ namespace ArrangerDefaults
 {
     std::vector<SectionWindow> defaultWindowsForBars (int totalBars)
     {
-        SectionWindow v;
-        v.id            = juce::Uuid().toString();
-        v.name          = "Variation 1";
-        v.type          = ArrangerSectionType::Variation;
-        v.startBar      = 1;
-        v.lengthBars    = juce::jmax (1, totalBars);
-        v.afterComplete = ArrangerAfterComplete::Loop;
-        return { v };
+        SectionWindow variation;
+        variation.id            = juce::Uuid().toString();
+        variation.name          = DefaultSectionNames::variation;
+        variation.type          = ArrangerSectionType::Variation;
+        variation.startBar      = ArrangerStyleDefaults::firstBar;
+        variation.lengthBars    = juce::jmax (ArrangerStyleDefaults::minimumLengthBars, totalBars);
+        variation.afterComplete = ArrangerAfterComplete::Loop;
+        return { variation };
     }
 }

@@ -16,7 +16,7 @@ public:
     void setBassInversion (bool shouldInvert)      { bassInversion = shouldInvert; }
     bool isBassInversionOn() const                 { return bassInversion; }
 
-    void setMinorScale (MinorScaleChoice c)        { minorScale = c; }
+    void setMinorScale (MinorScaleChoice choice)   { minorScale = choice; }
     void setNttEnabled (bool enabled)              { nttEnabled = enabled; }
 
     /** Map one note for a part using the given NTT type. Fixed parts and invalid chords return the
@@ -27,10 +27,10 @@ public:
     int transpose (int noteNumber, PartKind part) const { return transpose (noteNumber, part, NttType::Chord); }
 
 private:
-    int snapToScale  (int noteVal) const;
-    int wrapToOctave (int origin, int n) const;
+    int snapToScale  (int noteNumber) const;
+    int wrapToOctave (int origin, int noteNumber) const;
 
-    ArrangerChord    original   { 0, ChordQuality::Maj, 0 };   // default C major
+    ArrangerChord    original   { PitchClasses::lowest, ChordQuality::Maj, PitchClasses::lowest };   // default C major
     ArrangerChord    active;
     bool             bassInversion = false;
     MinorScaleChoice minorScale    = MinorScaleChoice::Dorian;

@@ -2,6 +2,14 @@
 #include <juce_core/juce_core.h>
 #include <vector>
 
+/** Facts of Western music and MIDI notes, shared by the arranger. */
+namespace MusicFacts
+{
+    constexpr int semitonesPerOctave = 12;
+    constexpr int lowestMidiNote     = 0;
+    constexpr int highestMidiNote    = 127;
+}
+
 /** Quality of a recognized chord (extensible; None = unrecognized). */
 enum class ChordQuality { None, Maj, Min, Dom7, Maj7, Min7, Dim, HalfDim, Aug, Sus2, Sus4 };
 
@@ -23,70 +31,110 @@ enum class NttType { NoTranspose, Parallel, Chord, Fixed };
 /** Curated minor scale used to snap passing tones over Min/Min7 chords (Phase 7a). */
 enum class MinorScaleChoice { Dorian, Aeolian, HarmonicMinor };
 
+namespace PitchClasses
+{
+    constexpr int lowest = 0;    // C
+    constexpr int none   = -1;   // no chord root / no bass note
+}
+
 /** A recognized chord: pitch-class root (0=C..11=B), quality, and the lowest fingered pitch
     class (for Bass Inversion). root=-1 / quality=None means "no chord". */
 struct ArrangerChord
 {
-    int          root     = -1;   // 0..11, -1 = none
+    int          root     = PitchClasses::none;   // 0..11, -1 = none
     ChordQuality quality  = ChordQuality::None;
-    int          bassNote = -1;   // pitch class of lowest note; -1 = use root
+    int          bassNote = PitchClasses::none;   // pitch class of lowest note; -1 = use root
 
-    bool isValid() const { return root >= 0 && quality != ChordQuality::None; }
-    bool operator== (const ArrangerChord& o) const
-        { return root == o.root && quality == o.quality && bassNote == o.bassNote; }
-    bool operator!= (const ArrangerChord& o) const { return ! (*this == o); }
+    bool isValid() const { return root >= PitchClasses::lowest && quality != ChordQuality::None; }
+    bool operator== (const ArrangerChord& other) const
+        { return root == other.root && quality == other.quality && bassNote == other.bassNote; }
+    bool operator!= (const ArrangerChord& other) const { return ! (*this == other); }
 };
 
-inline juce::String toString (ChordQuality q)
+/** Chord quality names as written to style files: the text must never change. */
+namespace ChordQualityNames
 {
-    switch (q) {
-        case ChordQuality::Maj:     return "Maj";
-        case ChordQuality::Min:     return "Min";
-        case ChordQuality::Dom7:    return "Dom7";
-        case ChordQuality::Maj7:    return "Maj7";
-        case ChordQuality::Min7:    return "Min7";
-        case ChordQuality::Dim:     return "Dim";
-        case ChordQuality::HalfDim: return "HalfDim";
-        case ChordQuality::Aug:     return "Aug";
-        case ChordQuality::Sus2:    return "Sus2";
-        case ChordQuality::Sus4:    return "Sus4";
-        case ChordQuality::None:    return "None";
-    }
-    return "None";
+    inline const juce::String majorChord     = "Maj";
+    inline const juce::String minorChord     = "Min";
+    inline const juce::String dominantSeventhChord    = "Dom7";
+    inline const juce::String majorSeventhChord    = "Maj7";
+    inline const juce::String minorSeventhChord    = "Min7";
+    inline const juce::String diminishedChord     = "Dim";
+    inline const juce::String halfDiminishedChord = "HalfDim";
+    inline const juce::String augmentedChord     = "Aug";
+    inline const juce::String suspendedSecondChord    = "Sus2";
+    inline const juce::String suspendedFourthChord    = "Sus4";
+    inline const juce::String noChord    = "None";
 }
 
-inline ChordQuality chordQualityFromString (const juce::String& s)
+inline juce::String toString (ChordQuality quality)
 {
-    if (s == "Maj")     return ChordQuality::Maj;
-    if (s == "Min")     return ChordQuality::Min;
-    if (s == "Dom7")    return ChordQuality::Dom7;
-    if (s == "Maj7")    return ChordQuality::Maj7;
-    if (s == "Min7")    return ChordQuality::Min7;
-    if (s == "Dim")     return ChordQuality::Dim;
-    if (s == "HalfDim") return ChordQuality::HalfDim;
-    if (s == "Aug")     return ChordQuality::Aug;
-    if (s == "Sus2")    return ChordQuality::Sus2;
-    if (s == "Sus4")    return ChordQuality::Sus4;
+    using namespace ChordQualityNames;
+    switch (quality) {
+        case ChordQuality::Maj:     return majorChord;
+        case ChordQuality::Min:     return minorChord;
+        case ChordQuality::Dom7:    return dominantSeventhChord;
+        case ChordQuality::Maj7:    return majorSeventhChord;
+        case ChordQuality::Min7:    return minorSeventhChord;
+        case ChordQuality::Dim:     return diminishedChord;
+        case ChordQuality::HalfDim: return halfDiminishedChord;
+        case ChordQuality::Aug:     return augmentedChord;
+        case ChordQuality::Sus2:    return suspendedSecondChord;
+        case ChordQuality::Sus4:    return suspendedFourthChord;
+        case ChordQuality::None:    return noChord;
+    }
+    return noChord;
+}
+
+inline ChordQuality chordQualityFromString (const juce::String& name)
+{
+    using namespace ChordQualityNames;
+    if (name == majorChord)     return ChordQuality::Maj;
+    if (name == minorChord)     return ChordQuality::Min;
+    if (name == dominantSeventhChord)    return ChordQuality::Dom7;
+    if (name == majorSeventhChord)    return ChordQuality::Maj7;
+    if (name == minorSeventhChord)    return ChordQuality::Min7;
+    if (name == diminishedChord)     return ChordQuality::Dim;
+    if (name == halfDiminishedChord) return ChordQuality::HalfDim;
+    if (name == augmentedChord)     return ChordQuality::Aug;
+    if (name == suspendedSecondChord)    return ChordQuality::Sus2;
+    if (name == suspendedFourthChord)    return ChordQuality::Sus4;
     return ChordQuality::None;
+}
+
+/** Semitones above the root (the root itself at 0) of each chord quality. */
+namespace ChordShapes
+{
+    inline const std::vector<int> majorTriad          { 0, 4, 7 };
+    inline const std::vector<int> minorTriad          { 0, 3, 7 };
+    inline const std::vector<int> dominantSeventh     { 0, 4, 7, 10 };
+    inline const std::vector<int> majorSeventh        { 0, 4, 7, 11 };
+    inline const std::vector<int> minorSeventh        { 0, 3, 7, 10 };
+    inline const std::vector<int> diminishedTriad     { 0, 3, 6 };
+    inline const std::vector<int> halfDiminished      { 0, 3, 6, 10 };
+    inline const std::vector<int> augmentedTriad      { 0, 4, 8 };
+    inline const std::vector<int> suspendedSecond     { 0, 2, 7 };
+    inline const std::vector<int> suspendedFourth     { 0, 5, 7 };
 }
 
 /** Root-relative semitone intervals (incl. the root at 0) that define each quality.
     Shared by ChordDetector (recognition templates) and ChordTransposer (NTT chord tones) so the
     two can never drift apart. */
-inline std::vector<int> chordIntervals (ChordQuality q)
+inline std::vector<int> chordIntervals (ChordQuality quality)
 {
-    switch (q) {
-        case ChordQuality::Maj:     return {0,4,7};
-        case ChordQuality::Min:     return {0,3,7};
-        case ChordQuality::Dom7:    return {0,4,7,10};
-        case ChordQuality::Maj7:    return {0,4,7,11};
-        case ChordQuality::Min7:    return {0,3,7,10};
-        case ChordQuality::Dim:     return {0,3,6};
-        case ChordQuality::HalfDim: return {0,3,6,10};
-        case ChordQuality::Aug:     return {0,4,8};
-        case ChordQuality::Sus2:    return {0,2,7};
-        case ChordQuality::Sus4:    return {0,5,7};
-        case ChordQuality::None:    return {0,4,7};   // safe default
+    using namespace ChordShapes;
+    switch (quality) {
+        case ChordQuality::Maj:     return majorTriad;
+        case ChordQuality::Min:     return minorTriad;
+        case ChordQuality::Dom7:    return dominantSeventh;
+        case ChordQuality::Maj7:    return majorSeventh;
+        case ChordQuality::Min7:    return minorSeventh;
+        case ChordQuality::Dim:     return diminishedTriad;
+        case ChordQuality::HalfDim: return halfDiminished;
+        case ChordQuality::Aug:     return augmentedTriad;
+        case ChordQuality::Sus2:    return suspendedSecond;
+        case ChordQuality::Sus4:    return suspendedFourth;
+        case ChordQuality::None:    return majorTriad;   // safe default
     }
-    return {0,4,7};
+    return majorTriad;
 }

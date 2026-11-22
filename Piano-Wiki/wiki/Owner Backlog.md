@@ -19,12 +19,15 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 
 ## 1. Standing work (do these first)
 - 🟡 **Names, not values in every file** (owner's rule, `docs/names-not-values.md`). One subsystem per PR,
-  behaviour-identical. Done: Common, Audio, Midi. Left (137 files on `ci/named-values-allowlist.txt`):
-  Arranger → Playback → Styles → Backend → UI → tests.
+  behaviour-identical. Done: Common, Audio, Midi, Arranger engine/model. Left (116 files on
+  `ci/named-values-allowlist.txt`): Arranger editor UI → Playback → Styles → Backend → UI → tests.
 - 🟡 **Faster builds**: a research agent measures and implements build-time improvements on
   `perf/build-time`; the orchestrator then reviews, opens the PR and syncs the wiki.
-- ✅ **800-line cap** for source, test and wiki files (CI enforces). ❓ Should `docs/` follow it too?
-  Five old plans in `docs/superpowers/plans/` are 850–1157 lines.
+- ✅ **800-line cap** for source, test and wiki files (CI enforces).
+- ⬜ **800-line cap for `docs/` too** (owner, 2026-11-22: yes). Split the five plans in
+  `docs/superpowers/plans/` (850–1157 lines) by topic; add `docs/**/*.md` to the CI check.
+- ⬜ **Auto-fill plays the fill of the variation you leave** (owner, 2026-11-22: Var 2 → Var 1 must play
+  Fill 2, not Fill 1). Behaviour change in `ArrangerSectionSequencer::queue`: spec + failing test first.
 - ✅ **Arranger hard testing** (headless + live, `docs/superpowers/test-plans/2026-11-22-arranger-stress-test-plan.md`).
   Not run live: 🔒 style editor and Section Configurations while playing; 🔒 Synchro Start / Count-In
   from the UI (covered headless); SFZ instrument / audio output switch while playing (no SFZ library on
@@ -37,6 +40,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - ⬜ Prune merged branches (`fix/sfz-integration`, `fix/dsp-quality`, `docs/wiki-sync-main`,
   `arhitecture/add-arhitecture-optimize-big-files`).
 - ❓ Instrument presets (reverb/chorus/cutoff… per instrument) are never sent — only the program change.
+  Owner unsure (2026-11-22); left as is until they decide.
 - ⬜ `AudioHandler` allocates a `juce::MidiBuffer` on every audio callback (audio thread must not allocate).
 
 ## 3. Owner's TODO file (last priority, owner's words summarised)
@@ -58,8 +62,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 | SFZ glitch when switching instrument mid-play (load time) | ⬜ not investigated (no SFZ library here) |
 | Arranger "sounds different" with SFZ / does it use SFZ | 🟡 doubled output ruled out; found and fixed the SFZ queue backlog (PR #33). Sound on a real SFZ library not checked |
 | Arranger beat bar on the beat | ✅ |
-| "Notes information" for arranger notes (timestamp based) | ❓ still useful? |
-| Var 2 → Var 1 plays Fill 1 | ❓ by design today: the fill is numbered after the variation you switch *to* (`ArrangerSectionSequencer::queue`). Should it be the one you leave? |
+| "Notes information" for arranger notes (timestamp based) | ✅ kept as is (explained to the owner: the right-click table of a track's notes) |
+| Var 2 → Var 1 plays Fill 1 | ⬜ owner: should be Fill 2 (the variation you leave) — see section 1 |
 | Arranger starts again after the end | ✅ (owner: "good thing") |
 
 ## Owner decisions already taken (don't reopen)

@@ -4,39 +4,52 @@
 
 namespace
 {
-    int mod12 (int x) { return ((x % 12) + 12) % 12; }
-    int clampMidi (int n) { while (n < 0) n += 12; while (n > 127) n -= 12; return n; }
+    using MusicFacts::semitonesPerOctave;
 
-    int indexOfDegree (const std::vector<int>& tones, int deg)
+    constexpr int degreeNotFound     = -1;
+    constexpr int fartherThanAnyNote = 1000;   // starting "best distance" before any candidate
+    constexpr int halfOctave         = 6;      // Fixed NTT: within this many semitones above, stay up
+    constexpr int sameRoot           = 0;
+
+    int pitchClassOf (int noteNumber) { return ((noteNumber % semitonesPerOctave) + semitonesPerOctave) % semitonesPerOctave; }
+
+    int clampMidi (int noteNumber)
     {
-        for (int i = 0; i < (int) tones.size(); ++i) if (tones[i] == deg) return i;
-        return -1;
+        while (noteNumber < MusicFacts::lowestMidiNote)  noteNumber += semitonesPerOctave;
+        while (noteNumber > MusicFacts::highestMidiNote) noteNumber -= semitonesPerOctave;
+        return noteNumber;
+    }
+
+    int indexOfDegree (const std::vector<int>& tones, int degree)
+    {
+        for (int toneIndex {}; toneIndex < (int) tones.size(); ++toneIndex) if (tones[toneIndex] == degree) return toneIndex;
+        return degreeNotFound;
     }
 }
 
-int ChordTransposer::snapToScale (int noteVal) const
+int ChordTransposer::snapToScale (int noteNumber) const
 {
-    const NttScale sc = scaleForQuality (active.quality, minorScale);
-    const int pc = mod12 (noteVal);
-    int best = noteVal, bestDist = 1000;
-    for (int i = 0; i < sc.count; ++i)
+    const NttScale scale = scaleForQuality (active.quality, minorScale);
+    const int pitchClass = pitchClassOf (noteNumber);
+    int bestNote = noteNumber, bestDistance = fartherThanAnyNote;
+    for (int degreeIndex {}; degreeIndex < scale.count; ++degreeIndex)
     {
-        const int spc = mod12 (active.root + sc.degrees[i]);
-        const int up  = noteVal + mod12 (spc - pc);   // nearest note >= noteVal with class spc
-        for (int cand : { up, up - 12 })
+        const int scalePitchClass = pitchClassOf (active.root + scale.degrees[degreeIndex]);
+        const int noteAbove  = noteNumber + pitchClassOf (scalePitchClass - pitchClass);   // nearest note >= noteNumber with class scalePitchClass
+        for (int candidate : { noteAbove, noteAbove - semitonesPerOctave })
         {
-            const int d = std::abs (cand - noteVal);
-            if (d < bestDist || (d == bestDist && cand < best)) { best = cand; bestDist = d; }
+            const int distance = std::abs (candidate - noteNumber);
+            if (distance < bestDistance || (distance == bestDistance && candidate < bestNote)) { bestNote = candidate; bestDistance = distance; }
         }
     }
-    return best;
+    return bestNote;
 }
 
-int ChordTransposer::wrapToOctave (int origin, int n) const
+int ChordTransposer::wrapToOctave (int origin, int noteNumber) const
 {
-    while (n - origin > 12) n -= 12;   // more than an octave above -> fold down
-    while (origin - n > 12) n += 12;   // more than an octave below -> fold up
-    return clampMidi (n);
+    while (noteNumber - origin > semitonesPerOctave) noteNumber -= semitonesPerOctave;   // more than an octave above -> fold down
+    while (origin - noteNumber > semitonesPerOctave) noteNumber += semitonesPerOctave;   // more than an octave below -> fold up
+    return clampMidi (noteNumber);
 }
 
 int ChordTransposer::transpose (int noteNumber, PartKind part, NttType ntt) const
@@ -54,7 +67,7 @@ int ChordTransposer::transpose (int noteNumber, PartKind part, NttType ntt) cons
     // Bass inversion (slash chords) layers on top, independent of NTT *type*: re-base the WHOLE bass
     // line onto the played bass note, preserving its shape (a C/E voicing moves the line down to E).
     // Independent of the per-track type, but NOT of the master switch above.
-    if (part == PartKind::Bass && bassInversion && active.bassNote >= 0)
+    if (part == PartKind::Bass && bassInversion && active.bassNote >= PitchClasses::lowest)
         return clampMidi (noteNumber + (active.bassNote - original.root));
 
     if (ntt == NttType::NoTranspose)
@@ -69,27 +82,27 @@ int ChordTransposer::transpose (int noteNumber, PartKind part, NttType ntt) cons
     // quality, the source is already correct, so return it verbatim instead of snapping its
     // chromatic passing tones (this is how Korg reproduces the source chord). Bass inversion, which
     // can differ while root/quality match, is handled above for the Bass part.
-    if (interval == 0 && active.quality == original.quality)
+    if (interval == sameRoot && active.quality == original.quality)
         return noteNumber;
 
     // Chord / Fixed: remap chord-tone roles onto the active chord; snap passing tones to its scale.
-    const int  deg  = mod12 (noteNumber - original.root);
-    const auto orig = chordIntervals (original.quality);
-    const auto act  = chordIntervals (active.quality);
-    const int  idx  = indexOfDegree (orig, deg);
+    const int  degree  = pitchClassOf (noteNumber - original.root);
+    const auto originalTones = chordIntervals (original.quality);
+    const auto activeTones  = chordIntervals (active.quality);
+    const int  roleIndex  = indexOfDegree (originalTones, degree);
 
     int result;
-    if (idx >= 0 && idx < (int) act.size())
-        result = noteNumber + interval + (act[idx] - orig[idx]);   // same role of the active chord
+    if (roleIndex >= int {} && roleIndex < (int) activeTones.size())
+        result = noteNumber + interval + (activeTones[roleIndex] - originalTones[roleIndex]);   // same role of the active chord
     else
         result = snapToScale (noteNumber + interval);              // passing tone -> active scale
 
     if (ntt == NttType::Fixed)
     {
         // Place the resulting pitch class in the octave nearest the original note (no register drift).
-        const int pc = mod12 (result);
-        const int up = noteNumber + mod12 (pc - mod12 (noteNumber));
-        result = (up - noteNumber <= 6) ? up : up - 12;
+        const int pitchClass = pitchClassOf (result);
+        const int noteAbove = noteNumber + pitchClassOf (pitchClass - pitchClassOf (noteNumber));
+        result = (noteAbove - noteNumber <= halfOctave) ? noteAbove : noteAbove - semitonesPerOctave;
         return clampMidi (result);
     }
 

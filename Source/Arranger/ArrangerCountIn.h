@@ -23,6 +23,8 @@ struct ArrangerCountIn
     static constexpr int  kNote          = 37;   // side stick
     static constexpr int  kAccentVel     = 110;  // beat 1
     static constexpr int  kVel           = 70;   // other beats
+    static constexpr double kBeatTolerance = 1e-9;  // a click exactly on the window start still fires
+    static constexpr int  kFirstBeat     = 0;
 
     /** Clicks whose beat lands in [fromBeats, toBeats), for a count-in bar of `beatsPerBar` beats.
         Half-open so adjacent windows never double-fire a beat at the seam. */
@@ -30,13 +32,13 @@ struct ArrangerCountIn
     {
         std::vector<ClickEvent> out;
         const int bars = (int) std::lround (beatsPerBar);
-        const int first = (int) std::ceil (fromBeats - 1e-9);
-        const int last  = (int) std::ceil (toBeats   - 1e-9);   // exclusive
-        for (int b = first; b < last; ++b)
+        const int first = (int) std::ceil (fromBeats - kBeatTolerance);
+        const int last  = (int) std::ceil (toBeats   - kBeatTolerance);   // exclusive
+        for (int beat = first; beat < last; ++beat)
         {
-            if (b < 0 || b >= bars)
+            if (beat < kFirstBeat || beat >= bars)
                 continue;
-            out.push_back ({ kChannel, kNote, (b == 0 ? kAccentVel : kVel), (double) b });
+            out.push_back ({ kChannel, kNote, (beat == kFirstBeat ? kAccentVel : kVel), (double) beat });
         }
         return out;
     }

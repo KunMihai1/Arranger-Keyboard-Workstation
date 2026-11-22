@@ -7,9 +7,9 @@
     `localFromBeats`/`localToBeats` are section-relative (feed the section's scheduler). */
 struct SectionSegment
 {
-    int    sectionIndex   = 0;
-    double localFromBeats = 0.0;
-    double localToBeats   = 0.0;
+    int    sectionIndex   {};
+    double localFromBeats = ArrangerStyleDefaults::sectionStartBeat;
+    double localToBeats   = ArrangerStyleDefaults::sectionStartBeat;
     bool   sectionChanged = false; // true when a switch happened at this segment's start
 };
 
@@ -52,22 +52,23 @@ private:
     {
         juce::String          id, name;
         ArrangerSectionType   type  = ArrangerSectionType::Variation;
-        int                   lengthBars = 1;
+        int                   lengthBars = ArrangerStyleDefaults::minimumLengthBars;
         ArrangerAfterComplete after = ArrangerAfterComplete::Loop;
     };
 
     int  firstVariationIndex() const;
+    int  lastSectionIndex() const;
     int  findSection (ArrangerSectionType type, const juce::String& name) const;
     void applyBoundary (double boundaryAbs, SequencerStep& step);
 
     std::vector<Info> sections;
-    double beatsPerBar    = 4.0;
+    double beatsPerBar    = ArrangerStyleDefaults::beatsPerBar;
 
-    int    activeIndex    = 0;
-    int    returnIndex    = 0;     // variation to fall back to after Intro/Fill
-    double activeStartAbs = 0.0;   // absolute beat where the active section began
-    int    pendingIndex   = -1;    // queued target, -1 = none
+    int    activeIndex    {};
+    int    returnIndex    {};      // variation to fall back to after Intro/Fill
+    double activeStartAbs = ArrangerStyleDefaults::sectionStartBeat;   // absolute beat where the active section began
+    int    pendingIndex   = ArrangerStyleDefaults::noIndex;    // queued target, -1 = none
     bool   stopped        = false;
     bool   autoFillEnabled   = false; // insert a Fill when switching variations
-    int    fillReturnOverride = -1;   // variation to land on after an auto-fill (-1 = normal fill return)
+    int    fillReturnOverride = ArrangerStyleDefaults::noIndex;   // variation to land on after an auto-fill (-1 = normal fill return)
 };

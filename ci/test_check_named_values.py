@@ -38,6 +38,7 @@ cases = {
     "for (int i {}; i < count; ++i)": True,
     "void paint (juce::Graphics& g) override;": False,
     "for (int trackIndex {}; trackIndex < count; ++trackIndex)": False,
+    '﻿#include "Chord.h"': False,   # a UTF-8 byte-order mark before the first #include
 }
 failures = [(line, expected) for line, expected in cases.items() if flagged(line) != expected]
 for line, expected in failures:
