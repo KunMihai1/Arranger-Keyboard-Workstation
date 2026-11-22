@@ -13,6 +13,11 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: Playback part 1
+- `TrackEntry.h`, `TrackPlayer`, `MidiNotesTableModel` converted (107 → 102). Shared names: `TrackTypeNames`
+  (persisted "melodic"/"percussion"), `TrackEntryDefaults`, `NoteTableColumns` (Notes-information column
+  ids), `NoteNames`. Behaviour unchanged; review found no defects.
+
 ## 2026-11-22 — Names cleanup: arranger editor UI and style IO
 - Style editor, timeline (component + geometry), configuration list and the `.style` reader/writer
   converted; `Source/Arranger` is now fully off the allowlist (116 → 107). Behaviour unchanged.

@@ -19,8 +19,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 
 ## 1. Standing work (do these first)
 - 🟡 **Names, not values in every file** (owner's rule, `docs/names-not-values.md`). One subsystem per PR,
-  behaviour-identical. Done: Common, Audio, Midi, Arranger (all of `Source/Arranger`). Left (107 files on
-  `ci/named-values-allowlist.txt`): Playback → Styles → Backend → UI → tests.
+  behaviour-identical. Done: Common, Audio, Midi, Arranger (all of `Source/Arranger`). Left (102 files on
+  `ci/named-values-allowlist.txt`): rest of Playback → Styles → Backend → UI → tests.
 - 🟡 **Faster builds**: a research agent measures and implements build-time improvements on
   `perf/build-time`; the orchestrator then reviews, opens the PR and syncs the wiki.
 - ✅ **800-line cap** for source, test and wiki files (CI enforces).
