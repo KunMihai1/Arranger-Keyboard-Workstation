@@ -41,12 +41,12 @@ class ChordRowComponent : public juce::Component
 {
 public:
     ChordRowComponent(Chord& chord,
-        std::function<void(Chord& c)> onClick,
-        std::function<void(Chord& c)> onHoverEnter,
+        std::function<void(Chord& chord)> onClick,
+        std::function<void(Chord& chord)> onHoverEnter,
         std::function<void()> onHoverExit);
 
     ~ChordRowComponent() override;
-    void updateChordData(const Chord& c);
+    void updateChordData(const Chord& chord);
     void paint(juce::Graphics& g) override;
     void mouseEnter(const juce::MouseEvent& ev) override;
     void mouseExit(const juce::MouseEvent& ev) override;
@@ -54,8 +54,8 @@ public:
 
 private:
     Chord chordData;
-    std::function<void(Chord& c)> onClick;
-    std::function<void(Chord& c)> onHoverEnter;
+    std::function<void(Chord& chord)> onClick;
+    std::function<void(Chord& chord)> onHoverEnter;
     std::function<void()> onHoverExit;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChordRowComponent)
@@ -68,7 +68,7 @@ class ChordBrowserComponent : public juce::Component,
     private juce::TextEditor::Listener
 {
 public:
-    std::function<void(const Chord& c)> onChordChosen;
+    std::function<void(const Chord& chord)> onChordChosen;
 
     ChordBrowserComponent(const std::vector<Chord>& allChords);
     ~ChordBrowserComponent() override;

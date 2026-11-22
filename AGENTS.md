@@ -53,60 +53,21 @@ The wiki is the architecture documentation. Keep it in sync (see *Finishing work
 
 - **App:** `Builds\VisualStudio2022\Arranger Workstation.sln`, Debug x64. Close the running app
   first (it locks `Arranger Workstation.pdb` → `C1041`), or redirect `/p:IntDir=… /p:OutDir=…`.
-- **Tests:** `ci/Tests.jucer` → `ci\Builds\VisualStudio2022\Project Tests.sln`, then
-  `Project Tests.exe --unit-tests` and `--arranger-tests`. **Exit code = number of failing
-  assertions.** Results go to `test-results.txt` in the *working directory*; check the
-  `TOTAL | passes: N` line. The app itself compiles **no** test code.
-- **Test categories** (the second argument of `juce::UnitTest`; `ci/test_main.cpp` maps each to a flag).
-  A test in any other category never runs, so pick one of these:
-
-  | Category | Flag | What goes there | Runs in CI |
-  |---|---|---|---|
-  | `Unit` | `--unit-tests` | logic and single components; files only in the temp folder | yes |
-  | `Arranger` | `--arranger-tests` | the arranger engine and model | yes |
-  | `Integration` | `--integration-tests` | several components together; MIDI-hardware tests skip without a device | yes |
-  | `Integration-display` | `--display-tests` | opens real windows and reads pixels: needs an unlocked desktop with a GPU | no (run locally) |
-  | `Integration-api` | `--api-tests` | real backend calls that **create accounts**: never by default | no |
-
-  No flag runs every category except `Integration-api`. Tests must never write to `%APPDATA%`.
+- **Tests:** `ci/Tests.jucer` → `Project Tests.exe --unit-tests` / `--arranger-tests` /
+  `--integration-tests`. **Exit code = failing assertions**; also read the `TOTAL | passes | failures |
+  skipped` line. A test whose category has no flag never runs.
 - **Projucer returns immediately** — always `Start-Process -Wait -NoNewWindow`.
 - **New `Source/` file** → add it to **both** `Arranger Workstation.jucer` and `ci/Tests.jucer`.
-- **Precompiled header:** `Source/PrecompiledHeader.h` (`<JuceHeader.h>`) is force-included into
-  every non-module file of both projects. It hides a missing `#include`, so still include what you
-  use. Put only stable headers in it. Projucer *copies* it into the build folder on save, so an
-  edit to it only takes effect after re-saving both `.jucer` files.
-- **JUCE modules:** only the ones the code uses are enabled. Using a class from another module
-  (e.g. `juce_osc`) means adding that module to **both** `.jucer` files.
-- **A header change that alters a type's layout → `/t:Rebuild`.** Incremental builds miss
-  `Source/Main.cpp`'s dependencies and the result is silent heap corruption, not a build error.
-- CI (`.github/workflows/ci.yml`) enforces assertion floors. Removing tests → lower the floor in
-  the same change; adding many → raise it.
-- **CI caches the compiled JUCE module objects** (the runs on `main` fill it; PRs read it). The test
-  project builds with `/Z7` (`ci/Directory.Build.targets`) so each `.obj` is self-contained. The key
-  hashes the generated `ci/JuceLibraryCode/` files, so changing modules or JUCE options just
-  rebuilds cold — no manual invalidation needed.
+- **A header change that alters a type's layout → `/t:Rebuild`** (silent heap corruption otherwise).
+- Categories, skipping, `%APPDATA%`-free tests, assertion floors, the precompiled header, JUCE modules
+  and the CI object cache: **read `docs/build-and-test.md` before touching the build, runner or CI.**
 
-## Names, not values (owner's rule, 2026-11-22)
+## Names, not values (owner's rule)
 
-Every value in the C++ code has a name that says what it means, and every name says what it holds.
-
-- **No bare numbers, not even 0 or 1.** Name the value (`constexpr int maxMidiVelocity = 127;`,
-  `constexpr float blackKeyLengthRatio = 0.6f;`) or use an idiom that needs no number:
-  `{}` value-initialisation for "start at zero", `empty()`, `front()`/`back()`, `++`, `begin()`.
-- **No inline strings.** Keys, IDs, file names, JSON and settings keys, URLs, user-visible text, test
-  names, test categories and test messages are all named constants. A persisted key keeps its exact
-  text: renaming the *constant* is fine, changing the *string* breaks saved files.
-- **Where names live:** values used in one file go in a namespace at the top of that file. Values shared
-  by a subsystem go in that subsystem's constants header (e.g. MIDI facts: velocity range, drum channel,
-  middle C). Don't create one global "constants" file.
-- **Meaningful identifiers:** no `tr`, `it`, `cfg`, `tmp`, `laf`, `c`, `x2`. The only short names allowed
-  are `g` for `juce::Graphics` in `paint()` and an index in a loop of a few lines.
-- **Enforced by CI:** `python ci/check_named_values.py` flags any literal outside a named-constant
-  definition (comments, `#include`, enumerator values and `true`/`false`/`nullptr` are fine).
-  `ci/named-values-allowlist.txt` lists the files not converted yet. It may only shrink, and a file that
-  becomes clean must leave it. New files are never added to it.
-- This rule beats "minimal diff" only inside dedicated cleanup PRs (one subsystem per PR, behaviour
-  and file formats unchanged). In any other change, the lines you add or touch must already comply.
+No bare numbers (not even 0 or 1), no inline strings (UI text, keys, test names and messages
+included), no single-letter or vague names — loop indices too; only JUCE's `g` in `paint()` stays.
+Persisted strings keep their exact text. CI enforces it (`ci/check_named_values.py`, with a shrinking
+allowlist). **Full rule and idioms: `docs/names-not-values.md`.**
 
 ## Codebase rules
 

@@ -28,6 +28,16 @@ CONSTANT_DEFINITION = re.compile(
     r"^\s*(?:static\s+|inline\s+|extern\s+)*(?:constexpr|const)\b[^;(]*?\b\w+\s*(?:\[[^\]]*\]\s*)?(?:=|\{)")
 ENUMERATOR = re.compile(r"^\s*\w+\s*=\s*[^;]*,?\s*$")
 DIRECTIVE = re.compile(r"^\s*(?:#\s*(?:include|pragma|define|error|warning|if|elif)|static_assert|extern\s+\"C\")")
+# A declaration whose name is a single letter: "int i =", "auto& t :", "(const Track& a," ...
+# The type part is a word (optionally qualified/templated); the name is followed by = ; , ) [ { :
+SINGLE_LETTER_DECLARATION = re.compile(r"\b([\w:]+(?:<[^;()]*?>)?)\s*[&*]*\s*[&*]?\s+([A-Za-z])\s*(?=[=;,)\[{:])")
+NOT_A_TYPE = {"return", "case", "delete", "new", "throw", "else", "goto", "using", "typename", "class",
+              "struct", "enum", "sizeof", "operator", "co_return", "co_yield", "co_await", "default"}
+# JUCE's own convention, the one short name the rule keeps.
+JUCE_GRAPHICS_TYPE = "Graphics"
+JUCE_GRAPHICS_NAME = "g"
+# "= 0" that makes a member function pure virtual is syntax, not a value.
+PURE_SPECIFIER = re.compile(r"\)\s*(?:const\s*)?(?:noexcept\s*)?(?:override\s*)?(?:final\s*)?=\s*0\s*;")
 
 
 def strip_comments(text):
@@ -63,27 +73,42 @@ def strip_comments(text):
 def violations(path):
     text = strip_comments(open(path, encoding="utf-8", errors="replace").read())
     found = []
-    inside_constant_braces = 0
+    in_constant_definition = False   # a constant's initialiser may run over several lines until its ";"
     in_enum = False
     for number, line in enumerate(text.split("\n"), start=1):
+        line = PURE_SPECIFIER.sub(");", line)
         stripped = line.strip()
         if re.match(r"^\s*enum\b", line):
             in_enum = True
-        allowed = (inside_constant_braces > 0 or bool(CONSTANT_DEFINITION.match(line))
+        starts_constant = bool(CONSTANT_DEFINITION.match(line))
+        allowed = (in_constant_definition or starts_constant
                    or bool(DIRECTIVE.match(line)) or (in_enum and bool(ENUMERATOR.match(line))))
-        if CONSTANT_DEFINITION.match(line) or inside_constant_braces > 0:
-            inside_constant_braces = max(0, inside_constant_braces + line.count("{") - line.count("}"))
+        if starts_constant or in_constant_definition:
+            in_constant_definition = not stripped.endswith(";")
         if in_enum and "}" in line:
             in_enum = False
-        if allowed or not stripped:
+        if not stripped or DIRECTIVE.match(line):
             continue
         without_strings = CHAR.sub("''", STRING.sub('""', line))
-        literals = [m for m in STRING.findall(line) if m != '""']
-        literals += CHAR.findall(line)
-        literals += NUMBER.findall(without_strings)
-        if literals:
-            found.append((number, stripped, literals))
+        problems = [] if allowed else ([m for m in STRING.findall(line) if m != '""']
+                                       + CHAR.findall(line) + NUMBER.findall(without_strings))
+        problems += [f"name '{name}'" for name in single_letter_names(without_strings)]
+        if problems:
+            found.append((number, stripped, problems))
     return found
+
+
+def single_letter_names(code_line):
+    """Single-letter variable / parameter / loop-index names declared on this line (except JUCE's `g`)."""
+    names = []
+    for match in SINGLE_LETTER_DECLARATION.finditer(code_line):
+        type_part, name = match.group(1), match.group(2)
+        if type_part in NOT_A_TYPE:
+            continue
+        if name == JUCE_GRAPHICS_NAME and type_part.endswith(JUCE_GRAPHICS_TYPE):
+            continue
+        names.append(name)
+    return names
 
 
 def project_files():

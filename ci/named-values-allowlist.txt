@@ -44,8 +44,6 @@ Source/Backend/ValidatorUI.cpp
 Source/Backend/ValidatorUI.h
 Source/Backend/addDeviceWindow.cpp
 Source/Backend/addDeviceWindow.h
-Source/Common/DisplayListener.h
-Source/Common/FileSystemInterface.h
 Source/Common/HelperFunctions.cpp
 Source/Common/IOHelper.cpp
 Source/Midi/InstrumentHandler.cpp
@@ -64,11 +62,8 @@ Source/Playback/Track.h
 Source/Playback/TrackEntry.h
 Source/Playback/TrackListComponent.cpp
 Source/Playback/TrackListComponent.h
-Source/Playback/TrackListener.h
 Source/Playback/TrackPlayer.cpp
 Source/Playback/TrackPlayer.h
-Source/Playback/TrackPlayerListener.h
-Source/Playback/trackListComponentListener.h
 Source/Styles/CurrentStyleComponent.cpp
 Source/Styles/CurrentStyleComponent.h
 Source/Styles/CurrentStyleComponentTracks.cpp
