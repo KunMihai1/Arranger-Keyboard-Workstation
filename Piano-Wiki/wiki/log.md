@@ -13,6 +13,13 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Fix: arranger left a note stuck when a pattern restarted the same pitch
+- Found by the stress tests (review pointed at it): `ArrangerEngine::activePlayedNote` kept ONE sounding
+  pitch per (channel, original note). A pattern that starts the same pitch again before releasing it,
+  with a chord change in between, overwrote the first transposed pitch — it never got a note-off.
+- Now a FIFO queue per key: each note-off releases the oldest start. Test (first start under D, second
+  under F#): 1 stuck note before, 0 after. Storm also checks every window for leaks (≤ 4 sounding).
+
 ## 2026-11-22 — Arranger hard testing, part A: headless stress tests
 - `test_arranger_stress.cpp` (category Arranger, fixed seed, `renderRange` instead of the timer):
   20,000 render windows of chord/section/option storms (every quality incl. none, slash chords, unknown
