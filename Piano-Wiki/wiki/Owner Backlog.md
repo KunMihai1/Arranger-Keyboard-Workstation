@@ -31,9 +31,19 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - ⬜ **CI once per PR** (owner approved 2026-11-22): `push` runs only on `main`; PRs keep their
   `pull_request` run. Do it after the build-time agent's `ci.yml` changes land (same file).
 - ✅ **Arranger hard testing** (headless + live, `docs/superpowers/test-plans/2026-11-22-arranger-stress-test-plan.md`).
-  Not run live: 🔒 style editor and Section Configurations while playing; 🔒 Synchro Start / Count-In
-  from the UI (covered headless); SFZ instrument / audio output switch while playing (no SFZ library on
-  this machine).
+  Live on 2026-11-22 too: Synchro Start, Count-In and the style editor while playing all work. Not run:
+  SFZ instrument / audio output switch while playing (no SFZ library on this machine).
+- ✅ **Style tab vanished after Home** (found live 2026-11-22): Settings tab → Home → Play → Styles removed
+  the style tab. Temporary tabs now close by name (`TemporaryTabs`); spec
+  `2026-11-22-temporary-tabs-after-home-design.md`.
+
+## 1b. UI refinement (owner, 2026-11-22) — after section 1, before the TODO file; owner reviews it first
+- ⬜ A refined, quality feel everywhere ("not AI-looking"): the piano keys as realistic as possible,
+  real-looking knobs on the Effects page, buttons and the rest of the UI to match; anything that adds
+  realism is welcome.
+- ⬜ **Piano skins**: decorative designs on the keyboard body (the owner's example was an art-wrapped
+  workstation). Original artwork only, no brand names or copied designs.
+- Show the owner the direction (mock-ups / screenshots) before building it.
 
 ## 2. Open engineering threads (from the wiki)
 - ⬜ Delay read offset still jumps on CC94 changes (needs a fractional read; `DelayLine` in `va-effects`).
@@ -54,7 +64,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 | Track playtime, send it for a website TOP list | ✅ sent to the backend; website side unknown |
 | Login / logout inside the app, persistent login (JSON in AppData) | ⬜ no logout or saved session in the code |
 | Chord recognition, accompaniment follows the key | ✅ |
-| Right-click glitch on a style while playing | ⬜ needs a reproduction |
+| Right-click glitch on a style while playing | ⬜ needs a reproduction. Lead: `MyTabbedComponent::mouseDown` "Close Tab" removes a tab without telling `Display` (same state problem as the Home bug) and picks the tab from `x` although the tabs are vertical |
 | JSON of last / most used styles | ⬜ |
 | Richer save dialog (track name, more fields) | ⬜ |
 | Detached threads → thread pool | ⬜ 9 sites: 4 `.detach()` (Login ×2, MainComponent, MainComponentActions), 5 `Thread::launch` (AudioHandler::loadSfz, ArrangerStyleEditor ×2, CurrentStyleComponent ×2) |

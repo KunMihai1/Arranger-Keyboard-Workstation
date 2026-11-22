@@ -8,6 +8,14 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
     sectionsPerStyleMap = std::make_shared<std::unordered_map<juce::String, std::unordered_map<juce::String,StyleSection>>>();
 
     tabComp = std::make_unique<MyTabbedComponent>(juce::TabbedButtonBar::TabsAtLeft);
+    temporaryTabs = std::make_unique<TemporaryTabs>(*tabComp);
+    temporaryTabs->onTracksClosed = [this]()
+    {
+        if (trackListComp)
+            trackListComp->removeListener(this);
+        trackListComp.reset();
+    };
+    temporaryTabs->onPlaybackSettingsClosed = [this]() { playBackSettings.reset(); };
 
 
     addAndMakeVisible(tabComp.get());
@@ -104,31 +112,7 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
 
     tabComp->onTabChanged = [this](int newIndex, juce::String tabName)
     {
-        if (createdTracksTab && tabName != "My tracks")
-        {
-            if (trackListComp)
-            {
-                trackListComp->removeListener(this);
-            }
-            int myTracksIndex = tabComp->getNumTabs() - 1;
-            tabComp->removeTab(myTracksIndex);
-
-            trackListComp.reset();
-            createdTracksTab = false;
-            return;
-        }
-
-        if (createdPlaybackSettingsTab && newIndex==0)
-        {
-            int mySettingsIndex = tabComp->getNumTabs() - 1;
-            tabComp->removeTab(mySettingsIndex);
-
-            playBackSettings.reset();
-            createdPlaybackSettingsTab = false;
-            return;
-        }
-
-
+        temporaryTabs->tabChanged(newIndex, tabName);
     };
 }
 
@@ -226,7 +210,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
                 displayListeners.call(&DisplayListener::playBackSettingsTransposeChanged, transposeValue);
             };
 
-            createdPlaybackSettingsTab = true;
+            temporaryTabs->playbackSettingsOpened();
             tabComp->addTab("Playback Settings", juce::Colour::fromRGB(10, 15, 10), playBackSettings.get(), false);
 
             existingIndex = tabComp->getNumTabs() - 1;
@@ -404,7 +388,7 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
     tabComp->addTab("My tracks", juce::Colour::fromRGB(10, 15, 10), trackListComp.get(), false);
     tabComp->setCurrentTabIndex(tabComp->getNumTabs() - 1);
 
-    createdTracksTab = true;
+    temporaryTabs->tracksOpened();
 }
 
 std::vector<TrackEntry> Display::getAvailableTracksFromFolder(const juce::File& folder)
@@ -565,8 +549,7 @@ void Display::readPlaybackSettingsFromProperties()
 
 void Display::homeButtonInteraction()
 {
-    tabComp->removeTab(tabComp->getNumTabs() - 1);
-    tabComp->setCurrentTabIndex(tabComp->getNumTabs() - 1);
+    temporaryTabs->homePressed();
     this->currentStyleComponent->comboBoxChangeIndex(0);
     this->playBackSettings.reset();
 }
