@@ -13,6 +13,17 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Live arranger run + SFZ queue backlog fix
+- GL display tests re-run on an unlocked desktop: 8/8.
+- Arranger plan part B run live with sound measured through WASAPI loopback (results table in
+  `docs/superpowers/test-plans/2026-11-22-arranger-stress-test-plan.md`): section, transport and chord
+  storms, held chord through Start/Stop spam, minimise during playback — no hang, no stuck note, beat bar on time.
+- B7 ("arranger doubled to MIDI out and SFZ"): not real. Found instead: `MidiHandler` queued every note
+  for the SFZ synth even with External MIDI, nothing drained it, and switching to SFZ fired the whole
+  backlog in one block. Now queued only while the synth's audio device runs (`setInternalSynthListening`,
+  switched by `AudioHandler` start/stop). Spec `2026-11-22-stale-synth-midi-backlog-design.md`; 4 new tests.
+- Owner questions: style switch while playing keeps the previous arrangement; an Ending can be a start section.
+
 ## 2026-11-22 — Names cleanup: Source/Midi, part 1
 - `InstrumentHandler.cpp`: the 33 per-instrument presets are one named table (values unchanged).
   Finding: `MidiHandler::applyInstrumentPreset` never sends the preset CCs (only the program change),

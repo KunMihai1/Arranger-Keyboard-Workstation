@@ -82,7 +82,7 @@ void MidiHandler::handleIncomingMidiMessage(juce::MidiInput* source, const juce:
 
 				// Feed the internal SFZ synth on the hand-split channel (transposed), matching noteOnKeyboard.
 				// midiMutex is already held for this whole function, so add directly (no re-lock).
-				incomingMidiMessages.addEvent(juce::MidiMessage::noteOn(channel, transposedNote, velocityByte), 0);
+				queueForInternalSynth(juce::MidiMessage::noteOn(channel, transposedNote, velocityByte));
 			}
 		}
 
@@ -108,13 +108,13 @@ void MidiHandler::handleIncomingMidiMessage(juce::MidiInput* source, const juce:
 		listeners.call(&MidiHandlerListener::handleIncomingMessage, juce::MidiMessage::noteOff(channel, note, velocityByte));
 
 		// Match the hand-split channel + transpose used for note-on so the internal synth releases it.
-		incomingMidiMessages.addEvent(juce::MidiMessage::noteOff(channel, transposedNote, velocityByte), 0);
+		queueForInternalSynth(juce::MidiMessage::noteOff(channel, transposedNote, velocityByte));
 	}
 
 	// Notes are fed to the internal synth on the correct hand-split channel above; pass everything
 	// else (CC, pitch bend, aftertouch, ...) through raw so the synth still receives it.
 	if (! message.isNoteOnOrOff())
-		incomingMidiMessages.addEvent(processedMessage, 0);
+		queueForInternalSynth(processedMessage);
 }
 
 void MidiHandler::getNextMidiBlock(juce::MidiBuffer& destBuffer, int startSample, int numSamples) {
@@ -169,7 +169,7 @@ void MidiHandler::noteOnKeyboard(int note, juce::uint8 velocity) {
 			listeners.call(&MidiHandlerListener::handleIncomingMessage, juce::MidiMessage::noteOn(channel, note, velocity));
 
 			const juce::ScopedLock lock(midiMutex);
-			incomingMidiMessages.addEvent(juce::MidiMessage::noteOn(channel, transposedNote, velocity), 0);
+			queueForInternalSynth(juce::MidiMessage::noteOn(channel, transposedNote, velocity));
 		}
 	}
 }
@@ -190,7 +190,7 @@ void MidiHandler::noteOffKeyboard(int note, juce::uint8 velocity) {
 	listeners.call(&MidiHandlerListener::handleIncomingMessage, juce::MidiMessage::noteOff(channel, note));
 
 	const juce::ScopedLock lock(midiMutex);
-	incomingMidiMessages.addEvent(juce::MidiMessage::noteOff(channel, transposedNote, velocity), 0);
+	queueForInternalSynth(juce::MidiMessage::noteOff(channel, transposedNote, velocity));
 } 
 
 void MidiHandler::allOffKeyboard()
@@ -338,8 +338,26 @@ void MidiHandler::applyInstrumentPreset(int programNumber, std::vector<std::pair
 
 void MidiHandler::injectMidiMessage(const juce::MidiMessage& msg)
 {
+	queueForInternalSynth(msg);
+}
+
+namespace InternalSynthQueue
+{
+	constexpr int queuedAtBlockStart = 0;   // every queued message plays at the start of the next block
+}
+
+void MidiHandler::queueForInternalSynth(const juce::MidiMessage& message)
+{
 	const juce::ScopedLock lock(midiMutex);
-	incomingMidiMessages.addEvent(msg, 0);
+	if (internalSynthListening.load())
+		incomingMidiMessages.addEvent(message, InternalSynthQueue::queuedAtBlockStart);
+}
+
+void MidiHandler::setInternalSynthListening(bool isListening)
+{
+	const juce::ScopedLock lock(midiMutex);
+	incomingMidiMessages.clear();
+	internalSynthListening.store(isListening);
 }
 
 void MidiHandler::injectCC(int channel, int ccNumber, int value)
