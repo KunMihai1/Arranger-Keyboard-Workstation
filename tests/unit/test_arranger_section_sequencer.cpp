@@ -13,6 +13,7 @@ namespace AutoFillTestValues
     const juce::String variationTwoId = "var_2",  variationTwo = "Variation 2";
     const juce::String fillOneId      = "fill_1", fillOne      = "Fill 1";
     const juce::String fillTwoId      = "fill_2", fillTwo      = "Fill 2";
+    const juce::String fillThreeId    = "fill_3", fillThree    = "Fill 3";
 
     constexpr int oneBar          = 1;
     constexpr int beatsPerBar     = 4;
@@ -21,6 +22,7 @@ namespace AutoFillTestValues
     constexpr int variationTwoIndex = 1;
     constexpr int fillOneIndex      = 2;
     constexpr int fillTwoIndex      = 3;
+    constexpr int firstAddedFillIndex = 2;   // the first fill after the two variations
 
     // Advance windows (beats) that each cross exactly one bar line: 4, 8, 12, 16.
     constexpr double startBeat   = 0.0;
@@ -214,13 +216,19 @@ public:
 
         beginTest (fillFallsBackToAnyFill);
         {
+            // Fills: Fill 3 first, then Fill 2. Leaving Variation 1 (no Fill 1) must fall back to the FIRST
+            // fill, Fill 3 - not to Fill 2, which the old target-numbered lookup would have picked.
+            ArrangerStyle style = autoFillStyle (false, false);
+            style.sections.push_back (makeSection (fillThreeId, fillThree, ArrangerSectionType::Fill, oneBar, ArrangerAfterComplete::FallThrough));
+            style.sections.push_back (makeSection (fillTwoId, fillTwo, ArrangerSectionType::Fill, oneBar, ArrangerAfterComplete::FallThrough));
+
             ArrangerSectionSequencer sequencer;
-            sequencer.setStyle (autoFillStyle (false, true));   // only Fill 2 exists
+            sequencer.setStyle (style);
             sequencer.setAutoFillEnabled (true);
 
-            sequencer.queue (ArrangerSectionType::Variation, variationTwo);   // leaving Variation 1: no Fill 1
+            sequencer.queue (ArrangerSectionType::Variation, variationTwo);   // leaving Variation 1
             sequencer.advance (startBeat, afterBarOne);
-            expectEquals (sequencer.getActiveIndex(), fillOneIndex);           // the only fill, at index 2
+            expectEquals (sequencer.getActiveIndex(), firstAddedFillIndex);    // Fill 3
             sequencer.advance (afterBarOne, afterBarTwo);
             expectEquals (sequencer.getActiveIndex(), variationTwoIndex);
         }

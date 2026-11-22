@@ -66,12 +66,6 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 | Var 2 → Var 1 plays Fill 1 | ✅ now plays Fill 2, the fill of the variation you leave |
 | Arranger starts again after the end | ✅ (owner: "good thing") |
 
-## Considered and not done
-- **CI once per PR** (push runs only on `main`): every PR shows a `push` and a `pull_request` run of the
-  same workflow. Not a real problem: the repo is public (Actions minutes free) and branch protection is
-  strict (a PR must contain the latest `main`), so both runs test practically the same code. Revisit if
-  the repo goes private (Windows minutes are billed).
-
 ## Owner decisions already taken (don't reopen)
 - A style switch while playing takes effect on the next Start; any section may be the start section.
 - Restore-down window stays work-area sized; no scaled smaller window ("over engineering").
