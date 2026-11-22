@@ -11,8 +11,9 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-22. PRs #19–#42: live bugs fixed, arranger stress tests, names cleanup, style tab after Home,
-faster builds (64-bit tools, one JUCE batch). Detail in [[log]].
+2026-11-22. PRs #19–#56: live bug fixes, arranger stress tests, style tab, faster builds,
+and the **names cleanup is finished** — every file, tests included; the allowlist is empty. Next: UI refinement
+(owner sees mock-ups first), then the TODO file. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;

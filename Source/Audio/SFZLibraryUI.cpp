@@ -1,4 +1,5 @@
 #include "SFZLibraryUI.h"
+#include "PersistedKeys.h"
 
 namespace SfzLibraryLayout
 {
@@ -45,7 +46,6 @@ namespace SfzLibraryStrings
 {
     // A style without an id stores its mappings under this id in SFZLibrary.json: keep the text.
     const juce::String defaultStyleId   = "style_default";
-    const juce::String defaultStyleName = "DEFAULT Style";
 
     const juce::String pickerPrompt     = "Click a style to import its mappings:";
     const juce::String title            = "SFZ Library";
@@ -182,7 +182,7 @@ SFZLibraryUI::SFZLibraryUI(SFZLibraryManager& managerRef) : manager(managerRef)
         if (styleId.isEmpty())
             styleId = defaultStyleId;
 
-        juce::String styleName = getCurrentStyleName ? getCurrentStyleName() : defaultStyleName;
+        juce::String styleName = getCurrentStyleName ? getCurrentStyleName() : StyleNames::defaultStyle;
 
         auto chooser = std::make_unique<InstrumentChooserComponent>(instrumentList);
         chooser->instrumentSelectedFunction = [this, styleId, styleName, entryId](int instrumentIndex, const juce::String& name)
@@ -386,7 +386,7 @@ void SFZLibraryUI::importConfigButtonClicked()
 void SFZLibraryUI::updateStatusLabel()
 {
     using namespace SfzLibraryStrings;
-    juce::String styleName = getCurrentStyleName ? getCurrentStyleName() : defaultStyleName;
+    juce::String styleName = getCurrentStyleName ? getCurrentStyleName() : StyleNames::defaultStyle;
     statusLabel.setText(currentStyle + styleName, juce::dontSendNotification);
 }
 

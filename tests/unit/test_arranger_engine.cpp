@@ -7,23 +7,136 @@
 #include <map>
 #include <utility>
 
+namespace ArrangerEngineTestValues
+{
+    const juce::String testName     = "ArrangerEngine";
+    const juce::String testCategory = "Arranger";
+
+    const juce::String renderRangeDispatchesScheduledEventsThroughOnMidiMessage = "renderRange dispatches scheduled events through onMidiMessage";
+    const juce::String loopLengthInBeatsReflectsTheSection = "loop length in beats reflects the section bars";
+    const juce::String stopSilencesSoundingNotesAndClearsIsPlaying = "stop silences sounding notes and clears isPlaying";
+    const juce::String queueSectionSwitchesActiveSectionOnlyAfterThe = "queueSection switches active section only after the bar boundary";
+    const juce::String aSectionSwapFlushesTheOutgoingSection = "a section swap flushes the outgoing section's held note (no hung notes)";
+    const juce::String anEndingCompletingSilencesOutputNoHung = "an Ending completing silences output (no hung notes)";
+    const juce::String synchroStartOnlyAValidChordReleases = "Synchro Start: only a valid chord releases the armed gate";
+    const juce::String synchroStartStopClearsTheArmedGate = "Synchro Start: stop clears the armed gate";
+    const juce::String countInHelperOne44Bar = "count-in helper: one 4/4 bar = 4 clicks, beat 0 accented, half-open seam";
+    const juce::String countInHelper34Bar3 = "count-in helper: 3/4 bar = 3 clicks; clamps to the bar; sub-beat windows";
+    const juce::String countInEmitsABarOfClicks = "count-in: emits a bar of clicks then ends, and the section plays after";
+    const juce::String countInStopCancelsAnInProgress = "count-in: stop cancels an in-progress count-in";
+    const juce::String selectStartSectionMakesStartBeginOnTheChosen = "selectStartSection makes start begin on the chosen section";
+    const juce::String activeChordTransposesAccNotesButLeaves = "active chord transposes Acc notes but leaves Drum notes unchanged";
+    const juce::String transposedNoteOffMatchesTheTransposedNote = "transposed note-off matches the transposed note-on pitch (no hung notes)";
+    const juce::String perTrackNttTypeReachesEmitTimeTransposition = "per-track NttType reaches emit-time transposition (Parallel != Chord)";
+
+    const juce::String expectedSoundingBeforeStop = "expected a sounding note before stop";
+    const juce::String stopLeftNotesHung          = "stop left notes hung";
+    const juce::String endingLeftNotesHung        = "ending left notes hung: ";
+    const juce::String sectionSilentAfterCountIn  = "section did not play after the count-in";
+    const juce::String accShouldShift             = "Acc note 60 should shift to 62 under D major";
+    const juce::String drumShouldStay             = "Drum note 36 should be unchanged";
+    const juce::String noteOnTransposed           = "note-on should sound the transposed pitch 62";
+    const juce::String seamNoteOffTransposed      = "the seam note-off must use the same transposed pitch 62";
+    const juce::String parallelShouldEmit66       = "Parallel-typed track should emit 66 (61 + interval)";
+    const juce::String parallelMustNotSnap        = "Parallel type must NOT snap to the Chord-type result 65";
+
+    const juce::String variationOneId   = "var_1";
+    const juce::String variationOne     = "Variation 1";
+    const juce::String variationTwoId   = "var_2";
+    const juce::String variationTwo     = "Variation 2";
+    const juce::String endingOneId      = "ending_1";
+    const juce::String endingOne        = "Ending 1";
+
+    constexpr int         accChannel   = 2;
+    constexpr int         drumChannel  = 10;
+    constexpr int         middleC      = 60;
+    constexpr int         cSharp4      = 61;
+    constexpr int         noteD4       = 62;
+    constexpr int         noteF4       = 65;
+    constexpr int         noteFSharp4  = 66;
+    constexpr int         noteG4       = 67;
+    constexpr int         noteC5       = 72;
+    constexpr int         kickNote     = 36;
+    constexpr juce::uint8 velocity     = 100;
+    constexpr int         silentVelocity = 0;
+
+    constexpr int    oneBar       = 1;
+    constexpr int    beatsPerBar  = 4;
+    constexpr int    beatUnit     = 4;
+    constexpr double tempo        = 120.0;
+    constexpr double tolerance    = 1e-9;
+
+    // Beat positions and render windows.
+    constexpr double barStart      = 0.0;
+    constexpr double tenthOfBeat   = 0.1;
+    constexpr double quarterBeat   = 0.25;
+    constexpr double halfBeat      = 0.5;
+    constexpr double nineTenths    = 0.9;
+    constexpr double oneBeat       = 1.0;
+    constexpr double beatAndAHalf  = 1.5;
+    constexpr double twoBeats      = 2.0;
+    constexpr double threeBeats    = 3.0;
+    constexpr double fourBeats     = 4.0;   // one 4/4 bar
+    constexpr double pastTheSeam   = 4.5;
+    constexpr double afterBarOne   = 5.0;
+    constexpr double eightBeats    = 8.0;
+    constexpr double afterBarTwo   = 9.0;
+
+    constexpr int    twoEvents       = 2;
+    constexpr size_t firstEvent      = 0;
+    constexpr size_t secondEvent     = 1;
+    constexpr int    firstSection    = 0;
+    constexpr int    secondSection   = 1;
+    constexpr int    notFound        = -1;
+    constexpr int    none            = 0;
+    constexpr int    atLeastOne      = 1;
+
+    // Count-in clicks.
+    constexpr int    clickChannel     = 10;
+    constexpr int    clickNote        = 37;
+    constexpr int    clicksPerBar     = 4;
+    constexpr int    clicksPerHalfBar = 2;
+    constexpr int    clicksIn34       = 3;
+    constexpr int    oneClick         = 1;
+    constexpr int    oneAccent        = 1;
+    constexpr int    plainClickLimit  = 100;   // accented clicks are louder than this
+    constexpr size_t firstClick       = 0;
+    constexpr size_t secondClick      = 1;
+
+    // Chords as { root, quality, bass note }.
+    constexpr int pitchC = 0;
+    constexpr int pitchD = 2;
+    constexpr int pitchF = 5;
+    const ArrangerChord cMajor { pitchC, ChordQuality::Maj, pitchC };
+    const ArrangerChord dMajor { pitchD, ChordQuality::Maj, pitchD };
+    const ArrangerChord fMajor { pitchF, ChordQuality::Maj, pitchF };
+}
+
+using namespace ArrangerEngineTestValues;
+
 class ArrangerEngineTest : public juce::UnitTest
 {
 public:
-    ArrangerEngineTest() : juce::UnitTest ("ArrangerEngine", "Arranger") {}
+    ArrangerEngineTest() : juce::UnitTest (ArrangerEngineTestValues::testName, ArrangerEngineTestValues::testCategory) {}
+
+    static ArrangerStyle fourFourStyle()
+    {
+        ArrangerStyle style; style.timeSigNum = beatsPerBar; style.timeSigDenom = beatUnit; style.originalTempo = tempo;
+        return style;
+    }
 
     static ArrangerStyle makeStyle()
     {
-        ArrangerTrack t;
-        t.channel = 2;
-        t.partType = ArrangerPartType::Acc;
-        t.pattern = {
-            { 0.0, juce::MidiMessage::noteOn  (2, 60, (juce::uint8) 100) },
-            { 0.5, juce::MidiMessage::noteOff (2, 60) },
+        ArrangerTrack track;
+        track.channel = accChannel;
+        track.partType = ArrangerPartType::Acc;
+        track.pattern = {
+            { barStart, juce::MidiMessage::noteOn  (accChannel, middleC, velocity) },
+            { halfBeat, juce::MidiMessage::noteOff (accChannel, middleC) },
         };
-        ArrangerSection s; s.lengthBars = 1; s.tracks.push_back (t);
-        ArrangerStyle style; style.timeSigNum = 4; style.timeSigDenom = 4; style.originalTempo = 120.0;
-        style.sections.push_back (s);
+        ArrangerSection section; section.lengthBars = oneBar; section.tracks.push_back (track);
+        ArrangerStyle style = fourFourStyle();
+        style.sections.push_back (section);
         return style;
     }
 
@@ -31,35 +144,35 @@ public:
     // (no note-off) so a section switch must flush it; Variation 2 plays a short note.
     static ArrangerStyle makeTwoVarStyle()
     {
-        ArrangerTrack v1; v1.channel = 2; v1.partType = ArrangerPartType::Acc;
-        v1.pattern = { { 0.0, juce::MidiMessage::noteOn (2, 60, (juce::uint8) 100) } }; // held
-        ArrangerSection s1; s1.id = "var_1"; s1.name = "Variation 1";
-        s1.type = ArrangerSectionType::Variation; s1.lengthBars = 1; s1.tracks.push_back (v1);
+        ArrangerTrack v1; v1.channel = accChannel; v1.partType = ArrangerPartType::Acc;
+        v1.pattern = { { barStart, juce::MidiMessage::noteOn (accChannel, middleC, velocity) } }; // held
+        ArrangerSection s1; s1.id = variationOneId; s1.name = variationOne;
+        s1.type = ArrangerSectionType::Variation; s1.lengthBars = oneBar; s1.tracks.push_back (v1);
 
-        ArrangerTrack v2; v2.channel = 2; v2.partType = ArrangerPartType::Acc;
-        v2.pattern = { { 0.0, juce::MidiMessage::noteOn  (2, 67, (juce::uint8) 100) },
-                       { 0.5, juce::MidiMessage::noteOff (2, 67) } };
-        ArrangerSection s2; s2.id = "var_2"; s2.name = "Variation 2";
-        s2.type = ArrangerSectionType::Variation; s2.lengthBars = 1; s2.tracks.push_back (v2);
+        ArrangerTrack v2; v2.channel = accChannel; v2.partType = ArrangerPartType::Acc;
+        v2.pattern = { { barStart, juce::MidiMessage::noteOn  (accChannel, noteG4, velocity) },
+                       { halfBeat, juce::MidiMessage::noteOff (accChannel, noteG4) } };
+        ArrangerSection s2; s2.id = variationTwoId; s2.name = variationTwo;
+        s2.type = ArrangerSectionType::Variation; s2.lengthBars = oneBar; s2.tracks.push_back (v2);
 
-        ArrangerStyle st; st.timeSigNum = 4; st.timeSigDenom = 4; st.originalTempo = 120.0;
+        ArrangerStyle st = fourFourStyle();
         st.sections.push_back (s1); st.sections.push_back (s2);
         return st;
     }
 
     static ArrangerStyle makeEndingStyle()
     {
-        ArrangerTrack v; v.channel = 2; v.partType = ArrangerPartType::Acc;
-        v.pattern = { { 0.0, juce::MidiMessage::noteOn  (2, 60, (juce::uint8) 100) },
-                      { 0.5, juce::MidiMessage::noteOff (2, 60) } };
-        ArrangerSection var; var.id = "var_1"; var.name = "Variation 1";
-        var.type = ArrangerSectionType::Variation; var.lengthBars = 1; var.tracks.push_back (v);
+        ArrangerTrack track; track.channel = accChannel; track.partType = ArrangerPartType::Acc;
+        track.pattern = { { barStart, juce::MidiMessage::noteOn  (accChannel, middleC, velocity) },
+                          { halfBeat, juce::MidiMessage::noteOff (accChannel, middleC) } };
+        ArrangerSection var; var.id = variationOneId; var.name = variationOne;
+        var.type = ArrangerSectionType::Variation; var.lengthBars = oneBar; var.tracks.push_back (track);
 
-        ArrangerSection end; end.id = "ending_1"; end.name = "Ending 1";
-        end.type = ArrangerSectionType::Ending; end.lengthBars = 1;
-        end.afterComplete = ArrangerAfterComplete::Stop; end.tracks.push_back (v);
+        ArrangerSection end; end.id = endingOneId; end.name = endingOne;
+        end.type = ArrangerSectionType::Ending; end.lengthBars = oneBar;
+        end.afterComplete = ArrangerAfterComplete::Stop; end.tracks.push_back (track);
 
-        ArrangerStyle st; st.timeSigNum = 4; st.timeSigDenom = 4; st.originalTempo = 120.0;
+        ArrangerStyle st = fourFourStyle();
         st.sections.push_back (var); st.sections.push_back (end);
         return st;
     }
@@ -67,154 +180,160 @@ public:
     // One section: an Acc track (ch2, note 60) + a Drum track (ch10, note 36), both short.
     static ArrangerStyle makeAccAndDrumStyle()
     {
-        ArrangerTrack acc; acc.channel = 2; acc.partType = ArrangerPartType::Acc;
-        acc.pattern = { { 0.0, juce::MidiMessage::noteOn  (2, 60, (juce::uint8) 100) },
-                        { 0.5, juce::MidiMessage::noteOff (2, 60) } };
-        ArrangerTrack drum; drum.channel = 10; drum.partType = ArrangerPartType::Drum;
-        drum.pattern = { { 0.0, juce::MidiMessage::noteOn  (10, 36, (juce::uint8) 100) },
-                         { 0.5, juce::MidiMessage::noteOff (10, 36) } };
-        ArrangerSection s; s.id = "var_1"; s.name = "Variation 1";
-        s.type = ArrangerSectionType::Variation; s.lengthBars = 1;
-        s.tracks.push_back (acc); s.tracks.push_back (drum);
-        ArrangerStyle st; st.timeSigNum = 4; st.timeSigDenom = 4; st.originalTempo = 120.0;
-        st.sections.push_back (s);
+        ArrangerTrack acc; acc.channel = accChannel; acc.partType = ArrangerPartType::Acc;
+        acc.pattern = { { barStart, juce::MidiMessage::noteOn  (accChannel, middleC, velocity) },
+                        { halfBeat, juce::MidiMessage::noteOff (accChannel, middleC) } };
+        ArrangerTrack drum; drum.channel = drumChannel; drum.partType = ArrangerPartType::Drum;
+        drum.pattern = { { barStart, juce::MidiMessage::noteOn  (drumChannel, kickNote, velocity) },
+                         { halfBeat, juce::MidiMessage::noteOff (drumChannel, kickNote) } };
+        ArrangerSection section; section.id = variationOneId; section.name = variationOne;
+        section.type = ArrangerSectionType::Variation; section.lengthBars = oneBar;
+        section.tracks.push_back (acc); section.tracks.push_back (drum);
+        ArrangerStyle st = fourFourStyle();
+        st.sections.push_back (section);
         return st;
     }
 
     // One section: an Acc track holding note 60 across the bar (no note-off) -> closed at the seam.
     static ArrangerStyle makeAccHeldNoteStyle()
     {
-        ArrangerTrack acc; acc.channel = 2; acc.partType = ArrangerPartType::Acc;
-        acc.pattern = { { 0.0, juce::MidiMessage::noteOn (2, 60, (juce::uint8) 100) } };
-        ArrangerSection s; s.id = "var_1"; s.name = "Variation 1";
-        s.type = ArrangerSectionType::Variation; s.lengthBars = 1; s.tracks.push_back (acc);
-        ArrangerStyle st; st.timeSigNum = 4; st.timeSigDenom = 4; st.originalTempo = 120.0;
-        st.sections.push_back (s);
+        ArrangerTrack acc; acc.channel = accChannel; acc.partType = ArrangerPartType::Acc;
+        acc.pattern = { { barStart, juce::MidiMessage::noteOn (accChannel, middleC, velocity) } };
+        ArrangerSection section; section.id = variationOneId; section.name = variationOne;
+        section.type = ArrangerSectionType::Variation; section.lengthBars = oneBar; section.tracks.push_back (acc);
+        ArrangerStyle st = fourFourStyle();
+        st.sections.push_back (section);
         return st;
+    }
+
+    // Counts note-ons minus note-offs per (channel, note).
+    using SoundingNotes = std::map<std::pair<int,int>, int>;
+    static void trackSounding (SoundingNotes& sounding, const juce::MidiMessage& message)
+    {
+        const std::pair<int,int> key { message.getChannel(), message.getNoteNumber() };
+        if (message.isNoteOn() && message.getVelocity() > silentVelocity)                     sounding[key]++;
+        else if (message.isNoteOff() || (message.isNoteOn() && message.getVelocity() == silentVelocity)) sounding[key]--;
+    }
+
+    static int countSounding (const SoundingNotes& sounding)
+    {
+        int count {};
+        for (auto& entry : sounding) if (entry.second > none) ++count;
+        return count;
     }
 
     void runTest() override
     {
-        beginTest ("renderRange dispatches scheduled events through onMidiMessage");
+        beginTest (renderRangeDispatchesScheduledEventsThroughOnMidiMessage);
         {
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             std::vector<juce::MidiMessage> captured;
-            engine.onMidiMessage = [&] (const juce::MidiMessage& m) { captured.push_back (m); };
+            engine.onMidiMessage = [&] (const juce::MidiMessage& message) { captured.push_back (message); };
 
             engine.setStyle (makeStyle());
-            engine.renderRange (0.0, 1.0);   // beats [0,1): note on then off
+            engine.renderRange (barStart, oneBeat);   // beats [0,1): note on then off
 
-            expectEquals ((int) captured.size(), 2);
-            expect (captured[0].isNoteOn());
-            expectEquals (captured[0].getNoteNumber(), 60);
-            expect (captured[1].isNoteOff());
+            expectEquals ((int) captured.size(), twoEvents);
+            expect (captured[firstEvent].isNoteOn());
+            expectEquals (captured[firstEvent].getNoteNumber(), middleC);
+            expect (captured[secondEvent].isNoteOff());
         }
 
-        beginTest ("loop length in beats reflects the section bars");
+        beginTest (loopLengthInBeatsReflectsTheSection);
         {
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             engine.setStyle (makeStyle());
-            expectWithinAbsoluteError (engine.getLoopLengthBeats(), 4.0, 1e-9); // 1 bar of 4/4
+            expectWithinAbsoluteError (engine.getLoopLengthBeats(), fourBeats, tolerance); // 1 bar of 4/4
         }
 
-        beginTest ("stop silences sounding notes and clears isPlaying");
+        beginTest (stopSilencesSoundingNotesAndClearsIsPlaying);
         {
             // The engine silences ONLY its own sounding notes (targeted note-offs), not a blanket
             // all-channels all-notes-off (which used to kill the player's manually-held notes too).
             // So we assert the real contract: a note that was sounding is closed, none left hung.
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
-            std::map<std::pair<int,int>, int> sounding;
-            engine.onMidiMessage = [&] (const juce::MidiMessage& m)
-            {
-                const std::pair<int,int> k { m.getChannel(), m.getNoteNumber() };
-                if (m.isNoteOn() && m.getVelocity() > 0)                     sounding[k]++;
-                else if (m.isNoteOff() || (m.isNoteOn() && m.getVelocity() == 0)) sounding[k]--;
-            };
+            SoundingNotes sounding;
+            engine.onMidiMessage = [&] (const juce::MidiMessage& message) { trackSounding (sounding, message); };
             engine.setStyle (makeStyle());
-            engine.renderRange (0.0, 0.25);     // note 60 on, not yet off -> sounding
-            int onBefore = 0; for (auto& kv : sounding) if (kv.second > 0) ++onBefore;
+            engine.renderRange (barStart, quarterBeat);     // note 60 on, not yet off -> sounding
+            int onBefore = countSounding (sounding);
             engine.stop();
-            int stillOn = 0; for (auto& kv : sounding) if (kv.second > 0) ++stillOn;
+            int stillOn = countSounding (sounding);
             expect (! engine.isPlaying());
-            expect (onBefore >= 1, "expected a sounding note before stop");
-            expect (stillOn == 0, "stop left notes hung");
+            expect (onBefore >= atLeastOne, expectedSoundingBeforeStop);
+            expect (stillOn == none, stopLeftNotesHung);
         }
 
-        beginTest ("queueSection switches active section only after the bar boundary");
+        beginTest (queueSectionSwitchesActiveSectionOnlyAfterThe);
         {
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             engine.setStyle (makeTwoVarStyle());
-            engine.queueSection (ArrangerSectionType::Variation, "Variation 2");
+            engine.queueSection (ArrangerSectionType::Variation, variationTwo);
 
-            expectEquals (engine.getActiveSectionIndex(), 0);
-            engine.renderRange (0.0, 2.0);                    // no boundary yet
-            expectEquals (engine.getActiveSectionIndex(), 0);
-            engine.renderRange (2.0, 5.0);                    // crosses beat 4
-            expectEquals (engine.getActiveSectionIndex(), 1);
+            expectEquals (engine.getActiveSectionIndex(), firstSection);
+            engine.renderRange (barStart, twoBeats);                    // no boundary yet
+            expectEquals (engine.getActiveSectionIndex(), firstSection);
+            engine.renderRange (twoBeats, afterBarOne);                 // crosses beat 4
+            expectEquals (engine.getActiveSectionIndex(), secondSection);
         }
 
-        beginTest ("a section swap flushes the outgoing section's held note (no hung notes)");
+        beginTest (aSectionSwapFlushesTheOutgoingSection);
         {
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             std::vector<juce::MidiMessage> captured;
-            engine.onMidiMessage = [&] (const juce::MidiMessage& m) { captured.push_back (m); };
+            engine.onMidiMessage = [&] (const juce::MidiMessage& message) { captured.push_back (message); };
 
             engine.setStyle (makeTwoVarStyle());
-            engine.queueSection (ArrangerSectionType::Variation, "Variation 2");
-            engine.renderRange (0.0, 1.0);   // Variation 1 note 60 on (held)
-            engine.renderRange (1.0, 5.0);   // boundary -> swap to Variation 2
+            engine.queueSection (ArrangerSectionType::Variation, variationTwo);
+            engine.renderRange (barStart, oneBeat);   // Variation 1 note 60 on (held)
+            engine.renderRange (oneBeat, afterBarOne);   // boundary -> swap to Variation 2
 
-            int offIdx = -1, onIdx = -1;
-            for (int i = 0; i < (int) captured.size(); ++i)
+            int offIdx = notFound, onIdx = notFound;
+            for (int messageIndex {}; messageIndex < (int) captured.size(); ++messageIndex)
             {
-                if (captured[i].isNoteOff() && captured[i].getNoteNumber() == 60) offIdx = i;
-                if (captured[i].isNoteOn()  && captured[i].getNoteNumber() == 67 && onIdx < 0) onIdx = i;
+                if (captured[(size_t) messageIndex].isNoteOff() && captured[(size_t) messageIndex].getNoteNumber() == middleC) offIdx = messageIndex;
+                if (captured[(size_t) messageIndex].isNoteOn()  && captured[(size_t) messageIndex].getNoteNumber() == noteG4 && onIdx < none) onIdx = messageIndex;
             }
-            expect (offIdx >= 0);            // held note 60 was closed at the swap
-            expect (onIdx  >= 0);            // Variation 2 note 67 started
+            expect (offIdx >= none);            // held note 60 was closed at the swap
+            expect (onIdx  >= none);            // Variation 2 note 67 started
             expect (offIdx < onIdx);         // closed before the new section sounded
         }
 
-        beginTest ("an Ending completing silences output (no hung notes)");
+        beginTest (anEndingCompletingSilencesOutputNoHung);
         {
             // Ending holds note 72 with no note-off, so completing the ending must flush it. Verifies
             // the targeted-silence path actually closes the ending's sounding notes (no all-notes-off).
-            ArrangerStyle st; st.timeSigNum = 4; st.timeSigDenom = 4; st.originalTempo = 120.0;
+            ArrangerStyle st = fourFourStyle();
             {
-                ArrangerTrack v; v.channel = 2; v.partType = ArrangerPartType::Acc;
-                v.pattern = { { 0.0, juce::MidiMessage::noteOn  (2, 60, (juce::uint8) 100) },
-                              { 0.5, juce::MidiMessage::noteOff (2, 60) } };
-                ArrangerSection var; var.id = "var_1"; var.name = "Variation 1";
-                var.type = ArrangerSectionType::Variation; var.lengthBars = 1; var.tracks.push_back (v);
+                ArrangerTrack track; track.channel = accChannel; track.partType = ArrangerPartType::Acc;
+                track.pattern = { { barStart, juce::MidiMessage::noteOn  (accChannel, middleC, velocity) },
+                                  { halfBeat, juce::MidiMessage::noteOff (accChannel, middleC) } };
+                ArrangerSection var; var.id = variationOneId; var.name = variationOne;
+                var.type = ArrangerSectionType::Variation; var.lengthBars = oneBar; var.tracks.push_back (track);
                 st.sections.push_back (var);
             }
             {
-                ArrangerTrack e; e.channel = 2; e.partType = ArrangerPartType::Acc;
-                e.pattern = { { 0.0, juce::MidiMessage::noteOn (2, 72, (juce::uint8) 100) } }; // held, no off
-                ArrangerSection end; end.id = "ending_1"; end.name = "Ending 1";
-                end.type = ArrangerSectionType::Ending; end.lengthBars = 1;
-                end.afterComplete = ArrangerAfterComplete::Stop; end.tracks.push_back (e);
+                ArrangerTrack endingTrack; endingTrack.channel = accChannel; endingTrack.partType = ArrangerPartType::Acc;
+                endingTrack.pattern = { { barStart, juce::MidiMessage::noteOn (accChannel, noteC5, velocity) } }; // held, no off
+                ArrangerSection end; end.id = endingOneId; end.name = endingOne;
+                end.type = ArrangerSectionType::Ending; end.lengthBars = oneBar;
+                end.afterComplete = ArrangerAfterComplete::Stop; end.tracks.push_back (endingTrack);
                 st.sections.push_back (end);
             }
 
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
-            std::map<std::pair<int,int>, int> sounding;
-            engine.onMidiMessage = [&] (const juce::MidiMessage& m)
-            {
-                const std::pair<int,int> k { m.getChannel(), m.getNoteNumber() };
-                if (m.isNoteOn() && m.getVelocity() > 0)                     sounding[k]++;
-                else if (m.isNoteOff() || (m.isNoteOn() && m.getVelocity() == 0)) sounding[k]--;
-            };
+            SoundingNotes sounding;
+            engine.onMidiMessage = [&] (const juce::MidiMessage& message) { trackSounding (sounding, message); };
             engine.setStyle (st);
-            engine.queueSection (ArrangerSectionType::Ending, "Ending 1");
-            engine.renderRange (0.0, 5.0);   // enter ending at beat 4 (note 72 on, held)
-            engine.renderRange (5.0, 9.0);   // ending completes at beat 8 -> stop -> must flush note 72
-            int stillOn = 0; for (auto& kv : sounding) if (kv.second > 0) ++stillOn;
+            engine.queueSection (ArrangerSectionType::Ending, endingOne);
+            engine.renderRange (barStart, afterBarOne);   // enter ending at beat 4 (note 72 on, held)
+            engine.renderRange (afterBarOne, afterBarTwo);   // ending completes at beat 8 -> stop -> must flush note 72
+            int stillOn = countSounding (sounding);
             expect (! engine.isPlaying());
-            expect (stillOn == 0, "ending left notes hung: " + juce::String (stillOn));
+            expect (stillOn == none, endingLeftNotesHung + juce::String (stillOn));
         }
 
-        beginTest ("Synchro Start: only a valid chord releases the armed gate");
+        beginTest (synchroStartOnlyAValidChordReleases);
         {
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             engine.setStyle (makeStyle());
@@ -225,11 +344,11 @@ public:
             engine.setActiveChord (ArrangerChord{});          // invalid -> stays armed
             expect (engine.isSynchroArmed());
 
-            engine.setActiveChord ({ 0, ChordQuality::Maj, 0 });   // C major -> releases the gate
+            engine.setActiveChord (cMajor);   // C major -> releases the gate
             expect (! engine.isSynchroArmed());
         }
 
-        beginTest ("Synchro Start: stop clears the armed gate");
+        beginTest (synchroStartStopClearsTheArmedGate);
         {
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             engine.setStyle (makeStyle());
@@ -239,52 +358,52 @@ public:
             expect (! engine.isSynchroArmed());
         }
 
-        beginTest ("count-in helper: one 4/4 bar = 4 clicks, beat 0 accented, half-open seam");
+        beginTest (countInHelperOne44Bar);
         {
-            auto c = ArrangerCountIn::clicksInWindow (0.0, 4.0, 4.0);
-            expectEquals ((int) c.size(), 4);
-            expect (c[0].beat == 0.0 && c[0].velocity > c[1].velocity);   // accent on beat 1
-            for (auto& e : c) { expectEquals (e.channel, 10); expectEquals (e.note, 37); }
-            expectEquals ((int) ArrangerCountIn::clicksInWindow (0.0, 2.0, 4.0).size(), 2);
-            expectEquals ((int) ArrangerCountIn::clicksInWindow (2.0, 4.0, 4.0).size(), 2);  // no seam dup
+            auto clicks = ArrangerCountIn::clicksInWindow (barStart, fourBeats, fourBeats);
+            expectEquals ((int) clicks.size(), clicksPerBar);
+            expect (clicks[firstClick].beat == barStart && clicks[firstClick].velocity > clicks[secondClick].velocity);   // accent on beat 1
+            for (auto& click : clicks) { expectEquals (click.channel, clickChannel); expectEquals (click.note, clickNote); }
+            expectEquals ((int) ArrangerCountIn::clicksInWindow (barStart, twoBeats, fourBeats).size(), clicksPerHalfBar);
+            expectEquals ((int) ArrangerCountIn::clicksInWindow (twoBeats, fourBeats, fourBeats).size(), clicksPerHalfBar);  // no seam dup
         }
 
-        beginTest ("count-in helper: 3/4 bar = 3 clicks; clamps to the bar; sub-beat windows");
+        beginTest (countInHelper34Bar3);
         {
-            expectEquals ((int) ArrangerCountIn::clicksInWindow (0.0, 3.0, 3.0).size(), 3);   // 3/4
-            expect (ArrangerCountIn::clicksInWindow (4.0, 8.0, 4.0).empty());                 // beyond the bar -> none
-            expect (ArrangerCountIn::clicksInWindow (0.1, 0.9, 4.0).empty());                 // inside a beat gap -> none
-            expectEquals ((int) ArrangerCountIn::clicksInWindow (0.5, 1.5, 4.0).size(), 1);   // crossing beat 1 -> one
+            expectEquals ((int) ArrangerCountIn::clicksInWindow (barStart, threeBeats, threeBeats).size(), clicksIn34);   // 3/4
+            expect (ArrangerCountIn::clicksInWindow (fourBeats, eightBeats, fourBeats).empty());                 // beyond the bar -> none
+            expect (ArrangerCountIn::clicksInWindow (tenthOfBeat, nineTenths, fourBeats).empty());                 // inside a beat gap -> none
+            expectEquals ((int) ArrangerCountIn::clicksInWindow (halfBeat, beatAndAHalf, fourBeats).size(), oneClick);   // crossing beat 1 -> one
         }
 
-        beginTest ("count-in: emits a bar of clicks then ends, and the section plays after");
+        beginTest (countInEmitsABarOfClicks);
         {
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             std::vector<juce::MidiMessage> captured;
-            engine.onMidiMessage = [&] (const juce::MidiMessage& m) { captured.push_back (m); };
+            engine.onMidiMessage = [&] (const juce::MidiMessage& message) { captured.push_back (message); };
             engine.setStyle (makeStyle());          // 4/4
 
             engine.armCountIn();
             expect (engine.isCountingIn());
-            engine.renderCountIn (4.0);             // one full bar
+            engine.renderCountIn (fourBeats);             // one full bar
             expect (! engine.isCountingIn());
 
-            int clicks = 0, accents = 0;
-            for (auto& m : captured)
-                if (m.isNoteOn() && m.getChannel() == 10 && m.getNoteNumber() == 37)
-                    { ++clicks; if (m.getVelocity() > 100) ++accents; }
-            expectEquals (clicks, 4);
-            expectEquals (accents, 1);             // only beat 1 accented
+            int clicks {}, accents {};
+            for (auto& message : captured)
+                if (message.isNoteOn() && message.getChannel() == clickChannel && message.getNoteNumber() == clickNote)
+                    { ++clicks; if (message.getVelocity() > plainClickLimit) ++accents; }
+            expectEquals (clicks, clicksPerBar);
+            expectEquals (accents, oneAccent);             // only beat 1 accented
 
             // After the count-in, the section plays normally.
             captured.clear();
-            engine.renderRange (0.0, 0.25);        // makeStyle: note 60 on at beat 0
+            engine.renderRange (barStart, quarterBeat);        // makeStyle: note 60 on at beat 0
             bool note60 = false;
-            for (auto& m : captured) if (m.isNoteOn() && m.getNoteNumber() == 60) note60 = true;
-            expect (note60, "section did not play after the count-in");
+            for (auto& message : captured) if (message.isNoteOn() && message.getNoteNumber() == middleC) note60 = true;
+            expect (note60, sectionSilentAfterCountIn);
         }
 
-        beginTest ("count-in: stop cancels an in-progress count-in");
+        beginTest (countInStopCancelsAnInProgress);
         {
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             engine.setStyle (makeStyle());
@@ -294,87 +413,87 @@ public:
             expect (! engine.isCountingIn());
         }
 
-        beginTest ("selectStartSection makes start begin on the chosen section");
+        beginTest (selectStartSectionMakesStartBeginOnTheChosen);
         {
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             engine.setStyle (makeTwoVarStyle());
-            engine.selectStartSection (ArrangerSectionType::Variation, "Variation 2");
-            expectEquals (engine.peekPendingStartIndex(), 1);
+            engine.selectStartSection (ArrangerSectionType::Variation, variationTwo);
+            expectEquals (engine.peekPendingStartIndex(), secondSection);
         }
 
-        beginTest ("active chord transposes Acc notes but leaves Drum notes unchanged");
+        beginTest (activeChordTransposesAccNotesButLeaves);
         {
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             std::vector<juce::MidiMessage> captured;
-            engine.onMidiMessage = [&] (const juce::MidiMessage& m) { captured.push_back (m); };
+            engine.onMidiMessage = [&] (const juce::MidiMessage& message) { captured.push_back (message); };
 
             engine.setStyle (makeAccAndDrumStyle());                 // original = C major (default)
-            engine.setActiveChord ({ 2, ChordQuality::Maj, 2 });    // play D major (+2)
-            engine.renderRange (0.0, 1.0);
+            engine.setActiveChord (dMajor);    // play D major (+2)
+            engine.renderRange (barStart, oneBeat);
 
             bool accShifted = false, drumKept = false;
-            for (auto& m : captured)
+            for (auto& message : captured)
             {
-                if (m.isNoteOn() && m.getChannel() == 2  && m.getNoteNumber() == 62) accShifted = true;
-                if (m.isNoteOn() && m.getChannel() == 10 && m.getNoteNumber() == 36) drumKept   = true;
+                if (message.isNoteOn() && message.getChannel() == accChannel  && message.getNoteNumber() == noteD4) accShifted = true;
+                if (message.isNoteOn() && message.getChannel() == drumChannel && message.getNoteNumber() == kickNote) drumKept   = true;
             }
-            expect (accShifted, "Acc note 60 should shift to 62 under D major");
-            expect (drumKept,   "Drum note 36 should be unchanged");
+            expect (accShifted, accShouldShift);
+            expect (drumKept,   drumShouldStay);
         }
 
-        beginTest ("transposed note-off matches the transposed note-on pitch (no hung notes)");
+        beginTest (transposedNoteOffMatchesTheTransposedNote);
         {
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             std::vector<juce::MidiMessage> captured;
-            engine.onMidiMessage = [&] (const juce::MidiMessage& m) { captured.push_back (m); };
+            engine.onMidiMessage = [&] (const juce::MidiMessage& message) { captured.push_back (message); };
 
             engine.setStyle (makeAccHeldNoteStyle());               // original C major
-            engine.setActiveChord ({ 2, ChordQuality::Maj, 2 });    // D major (+2): 60 -> 62
-            engine.renderRange (0.0, 4.5);                          // cross the seam -> synthetic off
+            engine.setActiveChord (dMajor);    // D major (+2): 60 -> 62
+            engine.renderRange (barStart, pastTheSeam);                          // cross the seam -> synthetic off
 
-            int on62 = 0, off62 = 0, on60 = 0, off60 = 0;
-            for (auto& m : captured)
+            int on62 {}, off62 {}, on60 {}, off60 {};
+            for (auto& message : captured)
             {
-                if (m.getChannel() == 2 && m.isNoteOn()  && m.getNoteNumber() == 62) ++on62;
-                if (m.getChannel() == 2 && m.isNoteOff() && m.getNoteNumber() == 62) ++off62;
-                if (m.getChannel() == 2 && m.isNoteOn()  && m.getNoteNumber() == 60) ++on60;
-                if (m.getChannel() == 2 && m.isNoteOff() && m.getNoteNumber() == 60) ++off60;
+                if (message.getChannel() == accChannel && message.isNoteOn()  && message.getNoteNumber() == noteD4) ++on62;
+                if (message.getChannel() == accChannel && message.isNoteOff() && message.getNoteNumber() == noteD4) ++off62;
+                if (message.getChannel() == accChannel && message.isNoteOn()  && message.getNoteNumber() == middleC) ++on60;
+                if (message.getChannel() == accChannel && message.isNoteOff() && message.getNoteNumber() == middleC) ++off60;
             }
-            expect (on62  >= 1, "note-on should sound the transposed pitch 62");
-            expect (off62 >= 1, "the seam note-off must use the same transposed pitch 62");
-            expectEquals (on60,  0);   // nothing at the original pitch
-            expectEquals (off60, 0);
+            expect (on62  >= atLeastOne, noteOnTransposed);
+            expect (off62 >= atLeastOne, seamNoteOffTransposed);
+            expectEquals (on60,  none);   // nothing at the original pitch
+            expectEquals (off60, none);
         }
 
-        beginTest ("per-track NttType reaches emit-time transposition (Parallel != Chord)");
+        beginTest (perTrackNttTypeReachesEmitTimeTransposition);
         {
             // One Acc track whose NTT type is Parallel, playing a chromatic seed note (61 = C#).
-            ArrangerTrack t; t.channel = 2; t.partType = ArrangerPartType::Acc;
-            t.nttType = NttType::Parallel;
-            t.pattern = { { 0.0, juce::MidiMessage::noteOn  (2, 61, (juce::uint8) 100) },
-                          { 0.5, juce::MidiMessage::noteOff (2, 61) } };
-            ArrangerSection s; s.lengthBars = 1; s.tracks.push_back (t);
-            ArrangerStyle style; style.timeSigNum = 4; style.timeSigDenom = 4; style.originalTempo = 120.0;
-            style.originalRoot = 0; style.originalQuality = ChordQuality::Maj;   // C major
-            style.sections.push_back (s);
+            ArrangerTrack track; track.channel = accChannel; track.partType = ArrangerPartType::Acc;
+            track.nttType = NttType::Parallel;
+            track.pattern = { { barStart, juce::MidiMessage::noteOn  (accChannel, cSharp4, velocity) },
+                              { halfBeat, juce::MidiMessage::noteOff (accChannel, cSharp4) } };
+            ArrangerSection section; section.lengthBars = oneBar; section.tracks.push_back (track);
+            ArrangerStyle style = fourFourStyle();
+            style.originalRoot = pitchC; style.originalQuality = ChordQuality::Maj;   // C major
+            style.sections.push_back (section);
 
             ArrangerEngine engine (std::weak_ptr<juce::MidiOutput>{});
             std::vector<juce::MidiMessage> captured;
-            engine.onMidiMessage = [&] (const juce::MidiMessage& m) { captured.push_back (m); };
+            engine.onMidiMessage = [&] (const juce::MidiMessage& message) { captured.push_back (message); };
             engine.setStyle (style);
-            engine.setActiveChord ({ 5, ChordQuality::Maj, 5 });   // F major (+5)
-            engine.renderRange (0.0, 1.0);
+            engine.setActiveChord (fMajor);   // F major (+5)
+            engine.renderRange (barStart, oneBeat);
 
             // Parallel: 61 + 5 = 66. Chord would snap the passing tone C# to F-Ionian -> 65.
             bool got66 = false, got65 = false;
-            for (auto& m : captured)
-                if (m.isNoteOn() && m.getChannel() == 2)
+            for (auto& message : captured)
+                if (message.isNoteOn() && message.getChannel() == accChannel)
                 {
-                    if (m.getNoteNumber() == 66) got66 = true;
-                    if (m.getNoteNumber() == 65) got65 = true;
+                    if (message.getNoteNumber() == noteFSharp4) got66 = true;
+                    if (message.getNoteNumber() == noteF4) got65 = true;
                 }
-            expect (got66,   "Parallel-typed track should emit 66 (61 + interval)");
-            expect (! got65, "Parallel type must NOT snap to the Chord-type result 65");
+            expect (got66,   parallelShouldEmit66);
+            expect (! got65, parallelMustNotSnap);
         }
     }
 };
