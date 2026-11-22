@@ -1,9 +1,73 @@
 #include "displayGUI.h"
+#include "PersistedKeys.h"
+
+namespace
+{
+    namespace Text
+    {
+        const juce::String instrumentButton  = "Instrument";
+        const juce::String percussionNoInstrument = "Since this is a track for percussion, the instrument change won't take effect!\n"
+                                                    "If you want to change anything, you must change the original notes!";
+        const juce::String renameItem        = "Rename";
+        const juce::String deleteItem        = "Delete";
+        const juce::String copyItem          = "Copy";
+        const juce::String pasteItem         = "Paste";
+        const juce::String notesInfoItem     = "Notes information";
+        const juce::String renameTitle       = "Rename track";
+        const juce::String renamePrompt      = "Enter a name for your track";
+        const juce::String nameField         = "nameEditor";
+        const juce::String nameFieldLabel    = "Track Name:";
+        const juce::String okButton          = "OK";
+        const juce::String cancelButton      = "Cancel";
+        const juce::String confirmRemove     = "Confirm Remove";
+        const juce::String sureRemoveTrack   = "Are you sure you want to remove the selected track?";
+        const juce::String removeButton      = "Remove";
+        const juce::String trackInfoTitle    = "Track info";
+        const juce::String trackCopied       = "The track has been succesfully copied!";
+    }
+
+    constexpr int    lowestVolume        = 0;
+    constexpr int    highestVolume       = 127;     // MIDI CC7 range
+    constexpr int    volumeStep          = 1;
+    constexpr int    firstTrackChannel   = 2;       // style tracks use channels 2..16
+    constexpr int    lastTrackChannel    = 16;
+    constexpr int    drumChannel         = 10;
+    constexpr int    dialogOk            = 1;
+    constexpr int    dialogCancel        = 0;
+    // Layout (pixels)
+    constexpr int    sliderHeightDivisor = 2;
+    constexpr int    sliderExtraHeight   = 20;
+    constexpr int    sliderLeft          = 0;
+    constexpr int    sliderRaise         = 10;
+    constexpr int    sliderWidth         = 15;
+    constexpr int    volumeLabelX        = 20;
+    constexpr int    volumeLabelY        = 0;
+    constexpr int    volumeLabelWidth    = 30;
+    constexpr int    volumeLabelHeight   = 40;
+    constexpr int    nameLabelInset      = 40;
+    constexpr int    centreDivisor       = 2;
+    constexpr int    nameLabelGap        = 20;
+    constexpr int    nameLabelHeight     = 20;
+    constexpr int    buttonGap           = 10;
+    constexpr int    buttonRightSpace    = 5;
+    constexpr int    buttonDesiredWidth  = 40;
+    constexpr int    buttonAboveName     = 25;
+    constexpr int    buttonWidthTrim     = 2;
+    constexpr int    buttonHeight        = 20;
+    constexpr int    borderThickness     = 1;
+    constexpr int    tooltipWidth        = 150;
+    constexpr int    tooltipHeight       = 24;
+    constexpr int    tooltipOffset       = 4;
+    constexpr int    noDesktopFlags      = 0;
+    constexpr int    infoBorder          = 2;
+    constexpr int    infoWidth           = 300;
+    constexpr int    infoHeight          = 100;
+}
 
 Track::Track()
 {
     volumeSlider.setSliderStyle(juce::Slider::LinearVertical);
-    volumeSlider.setRange(0, 127, 1); //changed from 100 to 127 recently
+    volumeSlider.setRange(lowestVolume, highestVolume, volumeStep); //changed from 100 to 127 recently
     volumeSlider.onValueChange = [this]()
     {
         volumeLabel.setText(juce::String(volumeSlider.getValue()), juce::dontSendNotification);
@@ -17,8 +81,8 @@ Track::Track()
         if (onChange)
             onChange();
 
-        if (static_cast<int>(volumeSlider.getValue()) != -1 && isPlaying())
-            notify(channel, static_cast<int>(volumeSlider.getValue()), -1);
+        if (static_cast<int>(volumeSlider.getValue()) != TrackEntryDefaults::keepCurrent && isPlaying())
+            notify(channel, static_cast<int>(volumeSlider.getValue()), TrackEntryDefaults::keepCurrent);
     };
 
     addAndMakeVisible(volumeSlider);
@@ -28,7 +92,7 @@ Track::Track()
     volumeLabel.setColour(juce::Label::textColourId, juce::Colours::crimson);
     addAndMakeVisible(volumeLabel);
 
-    nameLabel.setText("None", juce::dontSendNotification);
+    nameLabel.setText(StyleTrackJsonKeys::emptySlot, juce::dontSendNotification);
     //nameLabel.setTooltip(nameLabel.getText());
     nameLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
@@ -38,17 +102,16 @@ Track::Track()
 
     addAndMakeVisible(nameLabel);
 
-    instrumentChooserButton.setButtonText("Instrument");
+    instrumentChooserButton.setButtonText(Text::instrumentButton);
 
     instrumentChooserButton.onClick = [this] {
-        if (channel >= 2 && channel <= 16)
+        if (channel >= firstTrackChannel && channel <= lastTrackChannel)
         {
-            if (channel != 10)
+            if (channel != drumChannel)
                 openInstrumentChooser();
             else
             {
-                juce::String toShow = "Since this is a track for percussion, the instrument change won't take effect!\nIf you want to change anything, you must change the original notes!";
-                showInstantInfo(toShow);
+                showInstantInfo(Text::percussionNoInstrument);
             }
         }
     };
@@ -68,24 +131,24 @@ Track::~Track()
 
 void Track::resized()
 {
-    auto heightOfSlider = getHeight() / 2 + 20;
-    auto startY = (getHeight() - heightOfSlider) / 2;
-    volumeSlider.setBounds(0, startY - 10, 15, heightOfSlider);
-    volumeLabel.setBounds(20, 0, 30, 40);
-    nameLabel.setBounds((getWidth() - 40) / 2, volumeLabel.getHeight() + volumeLabel.getY() + 20, getWidth(), 20);
+    auto heightOfSlider = getHeight() / sliderHeightDivisor + sliderExtraHeight;
+    auto startY = (getHeight() - heightOfSlider) / centreDivisor;
+    volumeSlider.setBounds(sliderLeft, startY - sliderRaise, sliderWidth, heightOfSlider);
+    volumeLabel.setBounds(volumeLabelX, volumeLabelY, volumeLabelWidth, volumeLabelHeight);
+    nameLabel.setBounds((getWidth() - nameLabelInset) / centreDivisor, volumeLabel.getHeight() + volumeLabel.getY() + nameLabelGap, getWidth(), nameLabelHeight);
 
 
-    int x = volumeSlider.getX() + volumeSlider.getWidth() + 10;
-    int maxWidth = getWidth() - x - 5;
-    int desiredWidth = 40;
+    int buttonX = volumeSlider.getX() + volumeSlider.getWidth() + buttonGap;
+    int maxWidth = getWidth() - buttonX - buttonRightSpace;
+    int desiredWidth = buttonDesiredWidth;
     int actualWidth = juce::jmin(desiredWidth, maxWidth);
-    instrumentChooserButton.setBounds(x, nameLabel.getY() - 25, maxWidth - 2, 20);
+    instrumentChooserButton.setBounds(buttonX, nameLabel.getY() - buttonAboveName, maxWidth - buttonWidthTrim, buttonHeight);
 }
 
 void Track::paint(juce::Graphics& g)
 {
     g.setColour(juce::Colours::lightgrey);
-    g.drawRect(getLocalBounds(), 1);
+    g.drawRect(getLocalBounds(), borderThickness);
 }
 
 void Track::mouseEnter(const juce::MouseEvent& ev)
@@ -93,14 +156,14 @@ void Track::mouseEnter(const juce::MouseEvent& ev)
     if (ev.eventComponent == &nameLabel && toolTipWindow == nullptr)
     {
         toolTipWindow = std::make_unique<CustomToolTip>(nameLabel.getText());
-        toolTipWindow->setSize(150, 24);
+        toolTipWindow->setSize(tooltipWidth, tooltipHeight);
 
         auto labelBounds = nameLabel.getScreenBounds();
-        int x = labelBounds.getX() + 4;
-        int y = labelBounds.getBottom() + 4;
+        int tooltipX = labelBounds.getX() + tooltipOffset;
+        int tooltipY = labelBounds.getBottom() + tooltipOffset;
 
-        toolTipWindow->setTopLeftPosition(x, y);
-        toolTipWindow->addToDesktop(0);
+        toolTipWindow->setTopLeftPosition(tooltipX, tooltipY);
+        toolTipWindow->addToDesktop(noDesktopFlags);
         toolTipWindow->toFront(true);
         toolTipWindow->setVisible(true);
     }
@@ -125,11 +188,11 @@ juce::DynamicObject* Track::getJson() const
 
     auto* obj = new juce::DynamicObject{};
 
-    obj->setProperty("name", nameLabel.getText());
-    obj->setProperty("type", typeOfTrack);
-    obj->setProperty("volume", volumeSlider.getValue());
-    obj->setProperty("instrumentNumber", usedInstrumentNumber);
-    obj->setProperty("uuid", uniqueIdentifierTrack.toString());
+    obj->setProperty(StyleTrackJsonKeys::name, nameLabel.getText());
+    obj->setProperty(StyleTrackJsonKeys::type, typeOfTrack);
+    obj->setProperty(StyleTrackJsonKeys::volume, volumeSlider.getValue());
+    obj->setProperty(StyleTrackJsonKeys::instrumentNumber, usedInstrumentNumber);
+    obj->setProperty(StyleTrackJsonKeys::uuid, uniqueIdentifierTrack.toString());
 
     return obj;
 }
@@ -141,8 +204,8 @@ void Track::showInstantInfo(const juce::String& text)
     label->setJustificationType(juce::Justification::centred);
     label->setColour(juce::Label::backgroundColourId, juce::Colours::lightyellow);
     label->setColour(juce::Label::textColourId, juce::Colours::black);
-    label->setBorderSize(juce::BorderSize<int>(2));
-    label->setSize(300, 100);
+    label->setBorderSize(juce::BorderSize<int>(infoBorder));
+    label->setSize(infoWidth, infoHeight);
 
     auto* display = findParentComponentOfClass<Display>();
     if (display != nullptr)
@@ -187,7 +250,8 @@ void Track::openInstrumentChooser()
 
 juce::StringArray Track::instrumentListBuild()
 {
-    juce::StringArray instrumentListLocal = {
+    // The 128 General MIDI program names, in program order.
+    static const juce::StringArray generalMidiInstrumentNames = {
     "Acoustic Grand Piano",
     "Bright Acoustic Piano",
     "Electric Grand Piano",
@@ -317,14 +381,14 @@ juce::StringArray Track::instrumentListBuild()
     "Applause",
     "Gunshot"
     };
-    return instrumentListLocal;
+    return generalMidiInstrumentNames;
 }
 
 void Track::setInstrumentNumber(int newInstrumentNumber, bool shouldNotify)
 {
     this->usedInstrumentNumber = newInstrumentNumber;
-    if (usedInstrumentNumber != -1 && shouldNotify)
-        notify(channel, -1, usedInstrumentNumber);
+    if (usedInstrumentNumber != noInstrument && shouldNotify)
+        notify(channel, TrackEntryDefaults::keepCurrent, usedInstrumentNumber);
 }
 
 int Track::getInstrumentNumber() const
@@ -340,8 +404,8 @@ void Track::setVolumeSlider(double value)
 void Track::setVolumeLabel(const juce::String& value, bool shouldNotify)
 {
     volumeLabel.setText(value, juce::dontSendNotification);
-    if (value.getIntValue() != -1 && shouldNotify)
-        notify(channel, value.getIntValue(), -1);
+    if (value.getIntValue() != TrackEntryDefaults::keepCurrent && shouldNotify)
+        notify(channel, value.getIntValue(), TrackEntryDefaults::keepCurrent);
 }
 
 void Track::setNameLabel(const juce::String& name)
@@ -362,33 +426,33 @@ void Track::mouseDown(const juce::MouseEvent& event)
                         setNameLabel(selectedTrack);
                         setUUID(uuid);
                         setTypeOfTrack(type);
-                        if (type.trim() == "percussion")
-                            this->channel = 10;
+                        if (type.trim() == TrackTypeNames::percussion)
+                            this->channel = drumChannel;
                     }
                 );
             }
         }
         else if(event.mods.isRightButtonDown()){
             juce::PopupMenu menu;
-            menu.addItem("Rename", [this]()
+            menu.addItem(Text::renameItem, [this]()
                 {
                     renameOneTrack();
                 });
-            menu.addItem("Delete", [this]()
+            menu.addItem(Text::deleteItem, [this]()
                 {
                     deleteOneTrack();
                 });
-            menu.addItem("Copy", [this]()
+            menu.addItem(Text::copyItem, [this]()
                 {
                     copyOneTrack();
                 });
 
-            menu.addItem("Paste", [this]()
+            menu.addItem(Text::pasteItem, [this]()
                 {
                     pasteOneTrack();
                 });
 
-            menu.addItem("Notes information", [this]()
+            menu.addItem(Text::notesInfoItem, [this]()
                 {
                    showNotesInformation();
                 });
@@ -450,22 +514,22 @@ void Track::pasteFrom(const Track& source)
 
 void Track::renameOneTrack()
 {
-    auto* window = new juce::AlertWindow{ "Rename track","Enter a name for your track",juce::AlertWindow::NoIcon};
+    auto* window = new juce::AlertWindow{ Text::renameTitle, Text::renamePrompt, juce::AlertWindow::NoIcon};
 
-    window->addTextEditor("nameEditor", nameLabel.getText(), "Track Name:");
+    window->addTextEditor(Text::nameField, nameLabel.getText(), Text::nameFieldLabel);
 
-    window->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+    window->addButton(Text::okButton, dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
+    window->addButton(Text::cancelButton, dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
 
     window->enterModalState(true, juce::ModalCallbackFunction::create([this, window](int result)
         {
             std::unique_ptr<juce::AlertWindow> cleanup{ window };
-            if (result != 1)
+            if (result != dialogOk)
                 return;
 
 
 
-            juce::String newNameToPut=window->getTextEditor("nameEditor")->getText().trim();
+            juce::String newNameToPut=window->getTextEditor(Text::nameField)->getText().trim();
             setNameLabel(newNameToPut);
             if (onChange)
                 onChange();
@@ -474,7 +538,7 @@ void Track::renameOneTrack()
 
     juce::MessageManager::callAsync([window]()
         {
-            if (auto* editor = window->getTextEditor("nameEditor"))
+            if (auto* editor = window->getTextEditor(Text::nameField))
                 editor->grabKeyboardFocus();
         });
 }
@@ -483,21 +547,21 @@ void Track::deleteOneTrack()
 {
     juce::AlertWindow::showOkCancelBox(
         juce::AlertWindow::WarningIcon,
-        "Confirm Remove",
-        "Are you sure you want to remove the selected track?",
-        "Remove",
-        "Cancel",
+        Text::confirmRemove,
+        Text::sureRemoveTrack,
+        Text::removeButton,
+        Text::cancelButton,
         this,
         juce::ModalCallbackFunction::create(
             [this](int result)
             {
-                if (result == 0)
+                if (result == dialogCancel)
                     return;
 
-                setNameLabel("None");
-                setTypeOfTrack("None");
-                setInstrumentNumber(-1);
-                setUUID(juce::Uuid{ "noID" });
+                setNameLabel(StyleTrackJsonKeys::emptySlot);
+                setTypeOfTrack(StyleTrackJsonKeys::emptySlot);
+                setInstrumentNumber(noInstrument);
+                setUUID(juce::Uuid{ StyleTrackJsonKeys::noTrackId });
 
                 if (onChange)
                     onChange();
@@ -510,7 +574,7 @@ void Track::copyOneTrack()
     if (onCopy)
         onCopy(this);
 
-    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Track info", "The track has been succesfully copied!");
+    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::trackInfoTitle, Text::trackCopied);
 }
 
 void Track::pasteOneTrack()

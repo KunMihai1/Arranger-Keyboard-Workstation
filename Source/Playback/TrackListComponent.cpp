@@ -1,4 +1,9 @@
 #include "displayGUI.h"
+#include "PersistedKeys.h"
+
+#include "TrackListComponentNames.h"
+
+using namespace TrackListNames;
 
 TrackListComponent::TrackListComponent(std::shared_ptr<std::deque<TrackEntry>> tracks,
     std::shared_ptr<std::unordered_map<juce::String, std::deque<TrackEntry>>> groupedTracksMap,
@@ -47,7 +52,6 @@ void TrackListComponent::resized()
 {
     auto area = getLocalBounds();
 
-    int controlBarHeight = 36;
     auto controlBarArea = area.removeFromTop(controlBarHeight);
 
     const int backWidth = 100;
@@ -65,19 +69,19 @@ void TrackListComponent::resized()
         renameButtonFolder.setBounds(controlBarArea.removeFromLeft(smallButtonWidth).reduced(spacing));
 
     if (backButton)
-        backButton->setBounds(controlBarArea.removeFromLeft(60).reduced(spacing));
+        backButton->setBounds(controlBarArea.removeFromLeft(backButtonWidth).reduced(spacing));
 
     if (sortComboBox)
-        sortComboBox->setBounds(controlBarArea.removeFromLeft(120).reduced(spacing));
+        sortComboBox->setBounds(controlBarArea.removeFromLeft(sortBoxWidth).reduced(spacing));
 
     if (addButton)
-        addButton->setBounds(controlBarArea.removeFromLeft(80).reduced(spacing));
+        addButton->setBounds(controlBarArea.removeFromLeft(trackButtonWidth).reduced(spacing));
 
     if (removeButton)
-        removeButton->setBounds(controlBarArea.removeFromLeft(80).reduced(spacing));
+        removeButton->setBounds(controlBarArea.removeFromLeft(trackButtonWidth).reduced(spacing));
 
     if (renameButton)
-        renameButton->setBounds(controlBarArea.removeFromLeft(80).reduced(spacing));
+        renameButton->setBounds(controlBarArea.removeFromLeft(trackButtonWidth).reduced(spacing));
 
     listBox.setBounds(area);
 }
@@ -94,21 +98,21 @@ void TrackListComponent::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged)
     if (comboBoxThatHasChanged == sortComboBox.get())
     {
         int id = sortComboBox->getSelectedId();
-        if (id == 1)
+        if (id == SortIds::byName)
         {
             std::sort(availableTracks->begin(), availableTracks->end(), [](const TrackEntry& first, const TrackEntry& second)
                 {
                     return first.getDisplayName().toLowerCase() < second.getDisplayName().toLowerCase();
                 });
         }
-        else if (id == 2)
+        else if (id == SortIds::newestFirst)
         {
             std::sort(availableTracks->begin(), availableTracks->end(), [](const TrackEntry& first, const TrackEntry& second)
                 {
                     return first.file.getLastModificationTime() > second.file.getLastModificationTime();
                 });
         }
-        else if (id == 3)
+        else if (id == SortIds::oldestFirst)
         {
             std::sort(availableTracks->begin(), availableTracks->end(), [](const TrackEntry& first, const TrackEntry& second)
                 {
@@ -124,7 +128,7 @@ void TrackListComponent::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged)
 void TrackListComponent::paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected)
 {
     if (rowIsSelected)
-        g.fillAll(AppColours::accent2.withAlpha(0.35f));
+        g.fillAll(AppColours::accent2.withAlpha(selectedRowAlpha));
     else
         g.fillAll(AppColours::panelBg);
 
@@ -143,15 +147,15 @@ void TrackListComponent::paintListBoxItem(int rowNumber, juce::Graphics& g, int 
             label = (*groupedTrackKeys)[rowNumber];
     }
 
-    g.drawText(label, 5, 0, width - 10, height, juce::Justification::centredLeft);
+    g.drawText(label, rowTextInset, rowTop, width - rowTextSpare, height, juce::Justification::centredLeft);
 
     g.setColour(AppColours::separator);
-    g.drawRect(0, 0, width, height, 1);
+    g.drawRect(rowLeft, rowTop, width, height, rowBorder);
 }
 
 void TrackListComponent::listBoxItemClicked(int row, const juce::MouseEvent& event)
 {
-    if (event.getNumberOfClicks() == 2)
+    if (event.getNumberOfClicks() == doubleClick)
     {
         if (viewMode == ViewMode::TrackView && juce::isPositiveAndBelow(row, availableTracks->size()))
         {
@@ -185,7 +189,7 @@ void TrackListComponent::listBoxItemClicked(int row, const juce::MouseEvent& eve
 
 void TrackListComponent::addToTrackList()
 {
-    auto chooser = std::make_shared<juce::FileChooser>("Select a MIDI file to add", juce::File{}, "*.mid");
+    auto chooser = std::make_shared<juce::FileChooser>(Text::chooseMidiFile, juce::File{}, Text::midiFilePattern);
 
     chooser->launchAsync(
         juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
@@ -199,8 +203,8 @@ void TrackListComponent::addToTrackList()
                 {
                     juce::AlertWindow::showMessageBoxAsync(
                         juce::AlertWindow::WarningIcon,
-                        "Failed parsing",
-                        "Could not open the selected file");
+                        Text::failedParsing,
+                        Text::couldNotOpen);
                     return;
                 }
 
@@ -209,8 +213,8 @@ void TrackListComponent::addToTrackList()
                 {
                     juce::AlertWindow::showMessageBoxAsync(
                         juce::AlertWindow::WarningIcon,
-                        "Failed parsing",
-                        "Could not read the selected file");
+                        Text::failedParsing,
+                        Text::couldNotRead);
                     return;
                 }
 
@@ -218,15 +222,15 @@ void TrackListComponent::addToTrackList()
                 TrackIOHelper::convertTicksToSeconds(midiFile, originalBpm);
 
                 int totalTracks = midiFile.getNumTracks();
-                int addedTracks = 0;
-                int duplicateTracks = 0;
+                int addedTracks {};
+                int duplicateTracks {};
 
-                for (int i = 0; i < totalTracks; ++i)
+                for (int trackIndex {}; trackIndex < totalTracks; ++trackIndex)
                 {
                     bool duplicate = false;
                     for (const auto& trackEntry : *availableTracks)
                     {
-                        if (trackEntry.file == file && trackEntry.trackIndex == i)
+                        if (trackEntry.file == file && trackEntry.trackIndex == trackIndex)
                         {
                             duplicate = true;
                             break;
@@ -238,12 +242,12 @@ void TrackListComponent::addToTrackList()
                         continue;
                     }
 
-                    auto* trackSequence = midiFile.getTrack(i);
+                    auto* trackSequence = midiFile.getTrack(trackIndex);
                     juce::String displayName = extractDisplayNameFromTrack(*trackSequence);
 
                     TrackEntry newEntry;
                     newEntry.file = file;
-                    newEntry.trackIndex = i;
+                    newEntry.trackIndex = trackIndex;
                     newEntry.displayName = displayName;
                     newEntry.originalSequenceTicks = *trackSequence;
 
@@ -275,7 +279,7 @@ void TrackListComponent::addToTrackList()
                 listBox.repaint();
                 auto appDataFolder = IOHelper::getAppDataFolder();
 
-                auto jsonFile = IOHelper::getFile("myTracks.json");
+                auto jsonFile = IOHelper::getFile(AppDataNames::tracksFile);
 
                 TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
 
@@ -287,10 +291,10 @@ void TrackListComponent::addToTrackList()
 
                 juce::AlertWindow::showMessageBoxAsync(
                     juce::AlertWindow::InfoIcon,
-                    "Add Tracks",
-                    "Selected MIDI file has " + juce::String(totalTracks) + " tracks.\n"
-                    + juce::String(addedTracks) + " tracks added.\n"
-                    + juce::String(duplicateTracks) + " tracks were already in the list."
+                    Text::addTracksTitle,
+                    Text::fileHas + juce::String(totalTracks) + Text::tracksLine
+                    + juce::String(addedTracks) + Text::tracksAdded
+                    + juce::String(duplicateTracks) + Text::tracksAlreadyListed
                 );
             }
         }
@@ -304,7 +308,7 @@ void TrackListComponent::removeFromTrackList()
 
     if (selectedRows.isEmpty())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Remove Track(s)", "Please select at least one track to remove");
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::removeTracksTitle, Text::selectTrackToRemove);
         return;
     }
 
@@ -312,20 +316,20 @@ void TrackListComponent::removeFromTrackList()
 
     juce::AlertWindow::showOkCancelBox(
         juce::AlertWindow::WarningIcon,
-        "Confirm Remove",
-        "Are you sure you want to remove the selected track(s)?",
-        "Remove",
-        "Cancel",
+        Text::confirmRemove,
+        Text::sureRemoveTracks,
+        Text::removeButton,
+        Text::cancelButton,
         this,
         juce::ModalCallbackFunction::create(
             [this, selectedRows](int result)
             {
-                if (result == 0) // Cancel
+                if (result == dialogCancel)
                     return;
 
                 removeTracks(selectedRows);
 
-                auto jsonFile = IOHelper::getFile("myTracks.json");
+                auto jsonFile = IOHelper::getFile(AppDataNames::tracksFile);
                 TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
             }
         )
@@ -335,9 +339,9 @@ void TrackListComponent::removeFromTrackList()
 // The library change itself, kept apart from the confirmation dialog and the save to disk.
 void TrackListComponent::removeTracks(const juce::SparseSet<int>& selectedRows)
 {
-    for (int i = selectedRows.size() - 1; i >= 0; --i)
+    for (int selectionIndex = selectedRows.size() - oneRow; selectionIndex >= int {}; --selectionIndex)
     {
-        int rowIndex = selectedRows[i];
+        int rowIndex = selectedRows[selectionIndex];
         auto& track = (*availableTracks)[rowIndex];
         juce::Uuid uuid = track.getUniqueID();
 
@@ -369,38 +373,38 @@ void TrackListComponent::renameFromTrackList()
 
     if (selectedRows.isEmpty())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Rename Track", "Please select one track to rename");
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::renameTrackTitle, Text::selectOneTrack);
         return;
     }
 
-    if (selectedRows.size() > 1)
+    if (selectedRows.size() > oneRow)
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Rename track", "Please select only one track to rename");
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::renameTrackLower, Text::selectOnlyOneTrack);
         return;
     }
 
-    auto* window = new juce::AlertWindow("Rename track",
-        "Enter a new name for the track:",
+    auto* window = new juce::AlertWindow(Text::renameTrackLower,
+        Text::newTrackName,
         juce::AlertWindow::NoIcon);
 
-    const int selectedIndex = selectedRows[0];
+    const int selectedIndex = selectedRows[int {}];
 
     auto& track = (*availableTracks)[selectedIndex];
     juce::String oldName = track.displayName;
     juce::Uuid trackUuid = track.uuid;
 
-    window->addTextEditor("trackName", oldName);
-    window->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+    window->addTextEditor(Text::trackNameField, oldName);
+    window->addButton(Text::okButton, dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
+    window->addButton(Text::cancelButton, dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
 
     window->enterModalState(true, juce::ModalCallbackFunction::create([this, oldName, window, trackUuid](int result)
         {
             std::unique_ptr<juce::AlertWindow> cleanup(window);
-            if (result != 1)
+            if (result != dialogOk)
                 return;
 
 
-            juce::String newName = window->getTextEditor("trackName")->getText().trim();
+            juce::String newName = window->getTextEditor(Text::trackNameField)->getText().trim();
 
             if (oldName == newName)
                 return;
@@ -411,7 +415,7 @@ void TrackListComponent::renameFromTrackList()
                 if (tr.displayName == newName)  // no need for tr.displayName!=oldName cause of the previous check with return
                 {
                     juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                        "Rename track", "A track with this name already exists.");
+                        Text::renameTrackLower, Text::trackNameTaken);
                     return;
                 }
                 else if (tr.displayName == oldName)
@@ -442,7 +446,7 @@ void TrackListComponent::renameFromTrackList()
 
             auto appDataFolder = IOHelper::getAppDataFolder();
 
-            auto jsonFile = IOHelper::getFile("myTracks.json");
+            auto jsonFile = IOHelper::getFile(AppDataNames::tracksFile);
             TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
 
             if (onRenameTrackFromList)
@@ -453,226 +457,12 @@ void TrackListComponent::renameFromTrackList()
 
     juce::MessageManager::callAsync([window]()
         {
-            if (auto* editor = window->getTextEditor("folderName"))
+            if (auto* editor = window->getTextEditor(Text::folderNameField))
                 editor->grabKeyboardFocus();
         });
 
 }
 
-
-void TrackListComponent::addToFolderList()
-{
-    auto* window = new juce::AlertWindow("Create Folder",
-        "Enter a name for the new folder:",
-        juce::AlertWindow::NoIcon);
-
-    window->addTextEditor("folderName", "");
-    window->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
-
-    window->enterModalState(true, juce::ModalCallbackFunction::create([this, window](int result)
-        {
-            std::unique_ptr<juce::AlertWindow> cleanup(window);
-            if (result != 1)
-                return;
-
-            juce::String folderName = window->getTextEditor("folderName")->getText().trim();
-            if (folderName.isEmpty())
-            {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                    "Invalid Name",
-                    "Folder name cannot be empty.");
-                return;
-            }
-
-            if (groupedTracks->count(folderName) > 0)
-            {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                    "Duplicate Name",
-                    "A folder with this name already exists.");
-                return;
-            }
-
-            groupedTrackKeys->push_back(folderName);
-            (*groupedTracks)[folderName] = {};
-            currentFolderName = folderName;
-
-            viewMode = ViewMode::FolderView;
-            listBox.updateContent();
-            listBox.repaint();
-
-            auto appDataFolder = IOHelper::getAppDataFolder();
-
-            auto jsonFile = IOHelper::getFile("myTracks.json");
-            TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
-
-        }));
-
-    juce::MessageManager::callAsync([window]()
-        {
-            if (auto* editor = window->getTextEditor("folderName"))
-                editor->grabKeyboardFocus();
-        });
-}
-
-void TrackListComponent::removeFromFolderList()
-{
-    juce::SparseSet<int> selectedRows = listBox.getSelectedRows();
-
-    if (selectedRows.isEmpty())
-    {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Remove Folder(s)", "Please select at least one folder to remove");
-        return;
-    }
-
-    juce::AlertWindow::showOkCancelBox(
-        juce::AlertWindow::WarningIcon,
-        "Confirm Remove",
-        "Are you sure you want to remove the selected folder(s)?",
-        "Remove",
-        "Cancel",
-        this,
-        juce::ModalCallbackFunction::create(
-            [this, selectedRows](int result)
-            {
-                if (result == 0) // Cancel
-                    return;
-
-                removeFolders(selectedRows);
-
-                auto jsonFile = IOHelper::getFile("myTracks.json");
-                TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
-            }
-        )
-    );
-}
-
-// The library change itself, kept apart from the confirmation dialog and the save to disk.
-void TrackListComponent::removeFolders(const juce::SparseSet<int>& selectedRows)
-{
-    for (int i = selectedRows.size() - 1; i >= 0; i--)
-    {
-        int rowIndex = selectedRows[i];
-        juce::String folderName = (*groupedTrackKeys)[rowIndex];
-
-        auto& tracks = (*groupedTracks)[folderName];
-        std::vector<juce::Uuid> uuidsToRemove;
-
-        for (auto& track : tracks)
-            uuidsToRemove.push_back(track.getUniqueID());
-
-        tracks.clear();
-
-        groupedTracks->erase(folderName);
-
-        auto it = std::find(groupedTrackKeys->begin(), groupedTrackKeys->end(), folderName);
-        if (it != groupedTrackKeys->end())
-            groupedTrackKeys->erase(it);
-
-        // Only now: the listener rebuilds its UUID -> entry map from the library, which must no
-        // longer contain this folder's (destroyed) entries.
-        if (onRemoveMultipleTracks)
-            onRemoveMultipleTracks(uuidsToRemove);
-
-        listBox.deselectAllRows();
-        listBox.updateContent();
-        listBox.repaint();
-    }
-}
-
-void TrackListComponent::renameFromFolderList()
-{
-    juce::SparseSet<int> selectedRows = listBox.getSelectedRows();
-
-    if (selectedRows.isEmpty())
-    {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Rename Folder", "Please select one folder to rename");
-        return;
-    }
-
-    if (selectedRows.size() > 1)
-    {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Rename folder", "Please select only one folder to rename");
-        return;
-    }
-
-    auto* window = new juce::AlertWindow("Rename Folder",
-        "Enter a name for the folder:",
-        juce::AlertWindow::NoIcon);
-
-    const int selectedIndex = selectedRows[0];
-
-    juce::String oldName = (* groupedTrackKeys)[selectedIndex];
-
-    window->addTextEditor("folderName", oldName);
-    window->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
-
-    window->enterModalState(true, juce::ModalCallbackFunction::create([this, oldName, window](int result)
-        {
-            std::unique_ptr<juce::AlertWindow> cleanup(window);
-            if (result != 1)
-                return;
-
-
-            juce::String newName = window->getTextEditor("folderName")->getText().trim();
-
-            if (oldName == newName)
-                return;
-
-            if (groupedTracks->find(newName) != groupedTracks->end())
-            {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                    "Rename folder", "A folder with this name already exists.");
-                return;
-            }
-
-            for (auto& folder : *groupedTrackKeys)
-            {
-                if (folder == oldName)
-                {
-                    folder = newName;
-                    break;
-                }
-            }
-
-            auto it = groupedTracks->find(oldName);
-            if (it != groupedTracks->end())
-            {
-                auto entries = std::move(it->second);
-                groupedTracks->erase(it);
-                (*groupedTracks)[newName] = std::move(entries);
-            }
-
-            listBox.deselectAllRows();
-            listBox.updateContent();
-            listBox.repaint();
-
-            auto appDataFolder = IOHelper::getAppDataFolder();
-
-            auto jsonFile = IOHelper::getFile("myTracks.json");
-            TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
-
-        }
-    ));
-
-    juce::MessageManager::callAsync([window]()
-        {
-            if (auto* editor = window->getTextEditor("folderName"))
-                editor->grabKeyboardFocus();
-        });
-}
-
-void TrackListComponent::backToFolderView()
-{
-    viewMode = ViewMode::FolderView;
-    deallocateTracksFromList();
-    addButtonFolder.setVisible(true);
-    removeButtonFolder.setVisible(true);
-    renameButtonFolder.setVisible(true);
-    listBox.updateContent();
-    listBox.repaint();
-}
 
 //the flat list availableTracks doesn't need to be built rn, because we have grouped tracks and that's structured, but for future if
 //i wanna change anything, like to have idk, something with all the tracks, i won't need to iterate again through every structured folder name to get all the available tracks
@@ -687,28 +477,28 @@ juce::String TrackListComponent::extractDisplayNameFromTrack(const juce::MidiMes
     juce::String trackName;
     juce::String instrumentName;
 
-    for (int i = 0; i < trackSeq.getNumEvents(); i++)
+    for (int eventIndex {}; eventIndex < trackSeq.getNumEvents(); eventIndex++)
     {
-        const auto& event = trackSeq.getEventPointer(i)->message;
+        const auto& event = trackSeq.getEventPointer(eventIndex)->message;
 
         if (event.isTrackNameEvent())
         {
             trackName = event.getTextFromTextMetaEvent();
         }
-        else if (event.isMetaEvent() && event.getMetaEventType() == 0x04)
+        else if (event.isMetaEvent() && event.getMetaEventType() == instrumentNameMetaEvent)
         {
             instrumentName = event.getTextFromTextMetaEvent();
         }
     }
 
     if (trackName.isNotEmpty() && instrumentName.isNotEmpty())
-        return trackName + " (" + instrumentName + ")";
+        return trackName + Text::instrumentOpen + instrumentName + Text::instrumentClose;
     else if (trackName.isNotEmpty())
         return trackName;
     else if (instrumentName.isNotEmpty())
         return instrumentName;
 
-    return "Unnamed Track";
+    return Text::unnamedTrack;
 }
 
 void TrackListComponent::initializeTracksFromList()
@@ -718,11 +508,11 @@ void TrackListComponent::initializeTracksFromList()
     removeButtonFolder.setVisible(false);
     renameButtonFolder.setVisible(false);
 
-    backButton = std::make_unique<juce::TextButton>("Back");
-    addButton = std::make_unique<juce::TextButton>("Add");
-    removeButton = std::make_unique<juce::TextButton>("Remove");
+    backButton = std::make_unique<juce::TextButton>(Text::backButton);
+    addButton = std::make_unique<juce::TextButton>(Text::addButton);
+    removeButton = std::make_unique<juce::TextButton>(Text::removeButton);
     sortComboBox = std::make_unique<juce::ComboBox>();
-    renameButton = std::make_unique<juce::TextButton>("Rename");
+    renameButton = std::make_unique<juce::TextButton>(Text::renameButton);
 
     sortComboBox->addListener(this);
 
@@ -766,11 +556,11 @@ void TrackListComponent::initializeTracksFromList()
     addAndMakeVisible(sortComboBox.get());
     addAndMakeVisible(renameButton.get());
 
-    sortComboBox->addItem("Sort by Name(ascending)", 1);
-    sortComboBox->addItem("Sort by Last Modified (Newest)", 2);
-    sortComboBox->addItem("Sort by Last Modified (Oldest)", 3);
+    sortComboBox->addItem(Text::sortByName, SortIds::byName);
+    sortComboBox->addItem(Text::sortNewestFirst, SortIds::newestFirst);
+    sortComboBox->addItem(Text::sortOldestFirst, SortIds::oldestFirst);
 
-    sortComboBox->setSelectedId(1);
+    sortComboBox->setSelectedId(SortIds::byName);
 }
 
 void TrackListComponent::deallocateTracksFromList()

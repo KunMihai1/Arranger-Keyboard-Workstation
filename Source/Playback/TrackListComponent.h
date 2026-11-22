@@ -170,9 +170,12 @@ private:
     std::unique_ptr<juce::TextButton> backButton = nullptr;     /**< Back to folders button. */
     std::unique_ptr<juce::TextButton> renameButton = nullptr;   /**< Rename track button. */
 
-    juce::TextButton addButtonFolder{ "Add folder" };           /**< Add folder button (visible in folder view). */
-    juce::TextButton removeButtonFolder{ "Remove folder" };     /**< Remove folder button (visible in folder view). */
-    juce::TextButton renameButtonFolder{ "Rename folder" };     /**< Rename folder button (visible in folder view). */
+    inline static const juce::String addFolderCaption    = "Add folder";
+    inline static const juce::String removeFolderCaption = "Remove folder";
+    inline static const juce::String renameFolderCaption = "Rename folder";
+    juce::TextButton addButtonFolder{ addFolderCaption };           /**< Add folder button (visible in folder view). */
+    juce::TextButton removeButtonFolder{ removeFolderCaption };     /**< Remove folder button (visible in folder view). */
+    juce::TextButton renameButtonFolder{ renameFolderCaption };     /**< Rename folder button (visible in folder view). */
 
     std::unique_ptr<juce::ComboBox> sortComboBox = nullptr;     /**< Sorting options dropdown. */
 

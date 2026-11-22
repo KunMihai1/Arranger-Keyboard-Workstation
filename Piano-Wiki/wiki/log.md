@@ -13,6 +13,13 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: Playback part 2 (Playback done)
+- `Track`, `TrackListComponent` converted (102 → 98); shared persisted names `AppDataNames::tracksFile`
+  ("myTracks.json") and `StyleTrackJsonKeys` (exact text kept). Review: no defects; follow-up gives each
+  value one name (`Track::defaultChannel`, reuse `TrackEntryDefaults::keepCurrent`).
+- Found, kept as is (behaviour-identical refactor), logged in [[Owner Backlog]]: renaming a track from
+  the track list focuses the wrong editor name. Suites 870 / 770 / 130 (+7 skipped).
+
 ## 2026-11-22 — Faster builds (MSBuild overrides)
 - Research agent measured where build time goes: JUCE module files compiled in two serial `/MP` batches
   (five have `/bigobj`), and MSBuild used the 32-bit-hosted compiler/linker.

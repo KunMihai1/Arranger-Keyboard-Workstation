@@ -9,10 +9,6 @@ Source/Backend/ValidatorUI.cpp
 Source/Backend/ValidatorUI.h
 Source/Backend/addDeviceWindow.cpp
 Source/Backend/addDeviceWindow.h
-Source/Playback/Track.cpp
-Source/Playback/Track.h
-Source/Playback/TrackListComponent.cpp
-Source/Playback/TrackListComponent.h
 Source/Styles/CurrentStyleComponent.cpp
 Source/Styles/CurrentStyleComponent.h
 Source/Styles/CurrentStyleComponentTracks.cpp

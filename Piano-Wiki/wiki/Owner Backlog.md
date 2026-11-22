@@ -19,8 +19,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 
 ## 1. Standing work (do these first)
 - 🟡 **Names, not values in every file** (owner's rule, `docs/names-not-values.md`). One subsystem per PR,
-  behaviour-identical. Done: Common, Audio, Midi, Arranger (all of `Source/Arranger`). Left (102 files on
-  `ci/named-values-allowlist.txt`): rest of Playback → Styles → Backend → UI → tests.
+  behaviour-identical. Done: Common, Audio, Midi, Arranger, Playback. Left (98 files on
+  `ci/named-values-allowlist.txt`): Styles (11) → Backend (9) → UI (37) → tests.
 - ✅ **Faster builds** (research agent, 2026-11-22): 64-bit compiler/linker + one batch for the JUCE
   module files. Clean build 44 → 30 s, header edit 7.1 → 5.5 s, CI-warm test build 25.6 → 16.5 s.
   Spec `2026-11-22-build-time-design.md`.
@@ -57,6 +57,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - ❓ Instrument presets (reverb/chorus/cutoff… per instrument) are never sent — only the program change.
   Owner unsure (2026-11-22); left as is until they decide.
 - ⬜ `AudioHandler` allocates a `juce::MidiBuffer` on every audio callback (audio thread must not allocate).
+- ⬜ Renaming a track from the track list doesn't focus the name box: `TrackListComponent::renameFromTrackList`
+  looks up the editor "folderName" although its editor is "trackName" (seen in the Playback names cleanup).
 
 ## 3. Owner's TODO file (last priority, owner's words summarised)
 | Item | State |
