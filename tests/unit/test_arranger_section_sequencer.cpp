@@ -1,6 +1,37 @@
 #include <juce_core/juce_core.h>
 #include "Arranger/ArrangerSectionSequencer.h"
 
+/** Auto Fill: the fill between two variations is the one numbered like the variation being LEFT
+    (owner, 2026-11-22: Var 2 -> Var 1 plays Fill 2). Spec: docs/superpowers/specs/2026-11-22-autofill-outgoing-variation-design.md */
+namespace AutoFillTestValues
+{
+    const juce::String fillOfOutgoingVariation = "Auto Fill plays the fill of the variation being left";
+    const juce::String fillFallsBackToAnyFill  = "Auto Fill falls back to any fill when the outgoing variation has none";
+    const juce::String noFillSwitchesDirectly  = "Auto Fill switches directly when the style has no fill";
+
+    const juce::String variationOneId = "var_1",  variationOne = "Variation 1";
+    const juce::String variationTwoId = "var_2",  variationTwo = "Variation 2";
+    const juce::String fillOneId      = "fill_1", fillOne      = "Fill 1";
+    const juce::String fillTwoId      = "fill_2", fillTwo      = "Fill 2";
+    const juce::String fillThreeId    = "fill_3", fillThree    = "Fill 3";
+
+    constexpr int oneBar          = 1;
+    constexpr int beatsPerBar     = 4;
+    constexpr int beatUnit        = 4;
+    constexpr int variationOneIndex = 0;   // section order in fourSectionStyle()
+    constexpr int variationTwoIndex = 1;
+    constexpr int fillOneIndex      = 2;
+    constexpr int fillTwoIndex      = 3;
+    constexpr int firstAddedFillIndex = 2;   // the first fill after the two variations
+
+    // Advance windows (beats) that each cross exactly one bar line: 4, 8, 12, 16.
+    constexpr double startBeat   = 0.0;
+    constexpr double afterBarOne = 5.0;
+    constexpr double afterBarTwo = 9.0;
+    constexpr double afterBarThree = 13.0;
+    constexpr double afterBarFour  = 17.0;
+}
+
 class ArrangerSectionSequencerTest : public juce::UnitTest
 {
 public:
@@ -140,6 +171,77 @@ public:
             expectEquals (out.segments.front().sectionIndex, 0); // starts on intro
             expectEquals (out.segments.back().sectionIndex, 1);  // ends on variation
             expectEquals (seq.getActiveIndex(), 1);
+        }
+
+        runAutoFillTests();
+    }
+
+    static ArrangerStyle autoFillStyle (bool withFillOne, bool withFillTwo)
+    {
+        using namespace AutoFillTestValues;
+        ArrangerStyle style;
+        style.timeSigNum   = beatsPerBar;
+        style.timeSigDenom = beatUnit;
+        style.sections.push_back (makeSection (variationOneId, variationOne, ArrangerSectionType::Variation, oneBar, ArrangerAfterComplete::Loop));
+        style.sections.push_back (makeSection (variationTwoId, variationTwo, ArrangerSectionType::Variation, oneBar, ArrangerAfterComplete::Loop));
+        if (withFillOne)
+            style.sections.push_back (makeSection (fillOneId, fillOne, ArrangerSectionType::Fill, oneBar, ArrangerAfterComplete::FallThrough));
+        if (withFillTwo)
+            style.sections.push_back (makeSection (fillTwoId, fillTwo, ArrangerSectionType::Fill, oneBar, ArrangerAfterComplete::FallThrough));
+        return style;
+    }
+
+    void runAutoFillTests()
+    {
+        using namespace AutoFillTestValues;
+
+        beginTest (fillOfOutgoingVariation);
+        {
+            ArrangerSectionSequencer sequencer;
+            sequencer.setStyle (autoFillStyle (true, true));
+            sequencer.setAutoFillEnabled (true);
+
+            sequencer.queue (ArrangerSectionType::Variation, variationTwo);   // leaving Variation 1
+            sequencer.advance (startBeat, afterBarOne);
+            expectEquals (sequencer.getActiveIndex(), fillOneIndex);
+            sequencer.advance (afterBarOne, afterBarTwo);
+            expectEquals (sequencer.getActiveIndex(), variationTwoIndex);
+
+            sequencer.queue (ArrangerSectionType::Variation, variationOne);   // leaving Variation 2
+            sequencer.advance (afterBarTwo, afterBarThree);
+            expectEquals (sequencer.getActiveIndex(), fillTwoIndex);
+            sequencer.advance (afterBarThree, afterBarFour);
+            expectEquals (sequencer.getActiveIndex(), variationOneIndex);
+        }
+
+        beginTest (fillFallsBackToAnyFill);
+        {
+            // Fills: Fill 3 first, then Fill 2. Leaving Variation 1 (no Fill 1) must fall back to the FIRST
+            // fill, Fill 3 - not to Fill 2, which the old target-numbered lookup would have picked.
+            ArrangerStyle style = autoFillStyle (false, false);
+            style.sections.push_back (makeSection (fillThreeId, fillThree, ArrangerSectionType::Fill, oneBar, ArrangerAfterComplete::FallThrough));
+            style.sections.push_back (makeSection (fillTwoId, fillTwo, ArrangerSectionType::Fill, oneBar, ArrangerAfterComplete::FallThrough));
+
+            ArrangerSectionSequencer sequencer;
+            sequencer.setStyle (style);
+            sequencer.setAutoFillEnabled (true);
+
+            sequencer.queue (ArrangerSectionType::Variation, variationTwo);   // leaving Variation 1
+            sequencer.advance (startBeat, afterBarOne);
+            expectEquals (sequencer.getActiveIndex(), firstAddedFillIndex);    // Fill 3
+            sequencer.advance (afterBarOne, afterBarTwo);
+            expectEquals (sequencer.getActiveIndex(), variationTwoIndex);
+        }
+
+        beginTest (noFillSwitchesDirectly);
+        {
+            ArrangerSectionSequencer sequencer;
+            sequencer.setStyle (autoFillStyle (false, false));
+            sequencer.setAutoFillEnabled (true);
+
+            sequencer.queue (ArrangerSectionType::Variation, variationTwo);
+            sequencer.advance (startBeat, afterBarOne);
+            expectEquals (sequencer.getActiveIndex(), variationTwoIndex);
         }
     }
 };
