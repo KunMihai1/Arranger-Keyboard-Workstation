@@ -36,6 +36,10 @@ NOT_A_TYPE = {"return", "case", "delete", "new", "throw", "else", "goto", "using
 # JUCE's own convention, the one short name the rule keeps.
 JUCE_GRAPHICS_TYPE = "Graphics"
 JUCE_GRAPHICS_NAME = "g"
+# What a constant's value may contain besides literals: names, braces, commas and the closing ";".
+# No operators, comparisons, indexing or calls - those compute with the literal, so it needs a name.
+LITERAL_PLACEHOLDER = "LITERAL"
+PLAIN_VALUES = re.compile(r"^[\s\w:{},;]*$")
 # "= 0" that makes a member function pure virtual is syntax, not a value.
 PURE_SPECIFIER = re.compile(r"\)\s*(?:const\s*)?(?:noexcept\s*)?(?:override\s*)?(?:final\s*)?=\s*0\s*;")
 
@@ -81,7 +85,12 @@ def violations(path):
         if re.match(r"^\s*enum\b", line):
             in_enum = True
         starts_constant = bool(CONSTANT_DEFINITION.match(line))
-        allowed = (in_constant_definition or starts_constant
+        if starts_constant:
+            initialiser = line[CONSTANT_DEFINITION.match(line).end() - 1:]
+        else:
+            initialiser = line
+        names_plain_values = (starts_constant or in_constant_definition) and is_plain_values(initialiser)
+        allowed = (names_plain_values
                    or bool(DIRECTIVE.match(line)) or (in_enum and bool(ENUMERATOR.match(line))))
         if starts_constant or in_constant_definition:
             in_constant_definition = not stripped.endswith(";")
@@ -96,6 +105,18 @@ def violations(path):
         if problems:
             found.append((number, stripped, problems))
     return found
+
+
+def is_plain_values(initialiser):
+    """True when a constant's initialiser only lists values: literals, names, braces, brackets, commas.
+    Operators, calls and conditions mean the literals inside are computed with, so they need names too:
+    `const juce::String suffix = channel == 1 ? "First" : "Second";` hides 1, "First" and "Second"."""
+    without_literals = NUMBER.sub(LITERAL_PLACEHOLDER, CHAR.sub(LITERAL_PLACEHOLDER, STRING.sub(LITERAL_PLACEHOLDER, initialiser)))
+    # The definition's own "=" is not part of the value.
+    value = re.sub(r"^\s*=", "", without_literals)
+    # A minus sign is a negative value only right after the start, "{" or "," - "base - 1" is arithmetic.
+    without_unary_minus = re.sub(r"(^|[{,])(\s*)-\s*" + LITERAL_PLACEHOLDER, r"\1\2" + LITERAL_PLACEHOLDER, value)
+    return PLAIN_VALUES.match(without_unary_minus) is not None
 
 
 def single_letter_names(code_line):

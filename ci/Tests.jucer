@@ -505,6 +505,7 @@
               file="../Source/Common/HelperFunctions.h"/>
         <FILE id="m1agKm" name="IOHelper.cpp" compile="1" resource="0" file="../Source/Common/IOHelper.cpp"/>
         <FILE id="A1Vj1F" name="IOHelper.h" compile="0" resource="0" file="../Source/Common/IOHelper.h"/>
+        <FILE id="prsKey" name="PersistedKeys.h" compile="0" resource="0" file="../Source/Common/PersistedKeys.h"/>
         <FILE id="ksM2Lf" name="AppColours.h" compile="0" resource="0" file="../Source/Common/AppColours.h"/>
         <FILE id="aPp1nF" name="AppInfo.h" compile="0" resource="0" file="../Source/Common/AppInfo.h"/>
       </GROUP>

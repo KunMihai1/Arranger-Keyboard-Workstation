@@ -49,7 +49,9 @@ jobs:
       # converted yet are allowlisted; the list may only shrink. Takes about a second.
       - name: Named values (no bare numbers or strings)
         shell: pwsh
-        run: python ci/check_named_values.py
+        run: |
+          python ci/test_check_named_values.py
+          python ci/check_named_values.py
 
       - name: Cache JUCE ${{ env.JUCE_VERSION }}
         id: juce-cache

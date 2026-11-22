@@ -44,8 +44,6 @@ Source/Backend/ValidatorUI.cpp
 Source/Backend/ValidatorUI.h
 Source/Backend/addDeviceWindow.cpp
 Source/Backend/addDeviceWindow.h
-Source/Common/HelperFunctions.cpp
-Source/Common/IOHelper.cpp
 Source/Midi/InstrumentHandler.cpp
 Source/Midi/MidiDevice.cpp
 Source/Midi/MidiDevicesDB.cpp

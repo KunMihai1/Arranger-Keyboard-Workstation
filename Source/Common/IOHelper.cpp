@@ -10,18 +10,38 @@
 
 #include "IOHelper.h"
 
+#include "PersistedKeys.h"
+
+namespace MidiFileFacts
+{
+    constexpr int    drumChannel                = 10;
+    constexpr int    tempoTrackIndex            = 0;     // a type-1 MIDI file keeps its tempo in track 0
+    constexpr double defaultTempoBpm            = 120.0;
+    constexpr double secondsPerMinute           = 60.0;
+    constexpr double noTempo                    = 0.0;
+    constexpr int    defaultTicksPerQuarterNote = 960;
+    constexpr int    noTicksPerQuarterNote      = 0;
+}
+
+namespace SequenceEditing
+{
+    constexpr int    firstRow             = 0;
+    constexpr double sequenceStartSeconds = 0.0;
+    constexpr double noDuration           = 0.0;
+}
+
 namespace
 {
     juce::String getDeviceSettingsKey(const juce::String& VID, const juce::String& PID)
     {
-        juce::String deviceKey = VID + "_" + PID;
-        if (deviceKey == "_") deviceKey = "default";
+        juce::String deviceKey = VID + DeviceSettingsKeys::vidPidSeparator + PID;
+        if (deviceKey == DeviceSettingsKeys::noDeviceKey) deviceKey = DeviceSettingsKeys::defaultDeviceKey;
         return deviceKey;
     }
 
     juce::String getStyleDeviceSettingsPrefix(const juce::String& styleID, const juce::String& VID, const juce::String& PID)
     {
-        return styleID + "." + getDeviceSettingsKey(VID, PID) + ".";
+        return styleID + DeviceSettingsKeys::prefixSeparator + getDeviceSettingsKey(VID, PID) + DeviceSettingsKeys::prefixSeparator;
     }
 
     void saveIfFileBacked(juce::PropertySet* properties)
@@ -52,7 +72,7 @@ juce::File IOHelper::getFile(const juce::String& name)
 
 juce::File IOHelper::getArrangerStylesFolder()
 {
-    return getFile("ArrangerStyles");   // <appName>/ArrangerStyles
+    return getFile(AppDataNames::arrangerStylesFolder);   // <appName>/ArrangerStyles
 }
 
 void TrackIOHelper::saveToFile(const juce::File& file, const std::unordered_map<juce::String, std::deque<TrackEntry>>& groupedTracks)
@@ -65,12 +85,12 @@ void TrackIOHelper::saveToFile(const juce::File& file, const std::unordered_map<
         auto* folderObj = new juce::DynamicObject{};
         juce::var folderVar(folderObj);
 
-        folderObj->setProperty("folderName", folderName);
+        folderObj->setProperty(TrackJsonKeys::folderName, folderName);
 
         if (!tracks.empty())
-            folderObj->setProperty("filePath", tracks[0].file.getFullPathName());
+            folderObj->setProperty(TrackJsonKeys::filePath, tracks.front().file.getFullPathName());
         else
-            folderObj->setProperty("filePath", juce::String());
+            folderObj->setProperty(TrackJsonKeys::filePath, juce::String());
 
         juce::Array<juce::var> trackArray;
 
@@ -79,9 +99,9 @@ void TrackIOHelper::saveToFile(const juce::File& file, const std::unordered_map<
             auto* trackObj = new juce::DynamicObject{};
             juce::var trackVar(trackObj);
 
-            trackObj->setProperty("trackIndex", tr.trackIndex);
-            trackObj->setProperty("displayName", tr.displayName);
-            trackObj->setProperty("uuid", tr.uuid.toString());
+            trackObj->setProperty(TrackJsonKeys::trackIndex, tr.trackIndex);
+            trackObj->setProperty(TrackJsonKeys::displayName, tr.displayName);
+            trackObj->setProperty(TrackJsonKeys::uuid, tr.uuid.toString());
 
             if (!tr.styleChangesMap.empty())
             {
@@ -99,31 +119,31 @@ void TrackIOHelper::saveToFile(const juce::File& file, const std::unordered_map<
                         auto* changeObj = new juce::DynamicObject();
                         juce::var changeVar(changeObj);
 
-                        changeObj->setProperty("oldBPMchange", change.oldBPMchange);
-                        changeObj->setProperty("oldNumber", change.oldNumber);
-                        changeObj->setProperty("oldTimeStamp", change.oldTimeStamp);
-                        changeObj->setProperty("oldVelocity", change.oldVelocity);
+                        changeObj->setProperty(NoteChangeJsonKeys::oldBpmChange, change.oldBPMchange);
+                        changeObj->setProperty(NoteChangeJsonKeys::oldNumber, change.oldNumber);
+                        changeObj->setProperty(NoteChangeJsonKeys::oldTimeStamp, change.oldTimeStamp);
+                        changeObj->setProperty(NoteChangeJsonKeys::oldVelocity, change.oldVelocity);
 
-                        changeObj->setProperty("newBPMchange", change.newBPMchange);
-                        changeObj->setProperty("newNumber", change.newNumber);
-                        changeObj->setProperty("newTimeStamp", change.newTimeStamp);
-                        changeObj->setProperty("newVelocity", change.newVelocity);
+                        changeObj->setProperty(NoteChangeJsonKeys::newBpmChange, change.newBPMchange);
+                        changeObj->setProperty(NoteChangeJsonKeys::newNumber, change.newNumber);
+                        changeObj->setProperty(NoteChangeJsonKeys::newTimeStamp, change.newTimeStamp);
+                        changeObj->setProperty(NoteChangeJsonKeys::newVelocity, change.newVelocity);
 
                         styleChangesObj->setProperty(juce::String(row), changeVar);
                     }
 
-                    if (styleChangesObj->getProperties().size() > 0)
+                    if (! styleChangesObj->getProperties().isEmpty())
                         stylesObj->setProperty(styleName, styleChangesVar);
                 }
 
-                if (stylesObj->getProperties().size() > 0)
-                    trackObj->setProperty("Styles", stylesVar);
+                if (! stylesObj->getProperties().isEmpty())
+                    trackObj->setProperty(TrackJsonKeys::styles, stylesVar);
             }
 
             trackArray.add(trackVar);
         }
 
-        folderObj->setProperty("Tracks", trackArray);
+        folderObj->setProperty(TrackJsonKeys::tracks, trackArray);
         foldersArray.add(folderVar);
     }
 
@@ -154,8 +174,8 @@ void TrackIOHelper::loadFromFile(const juce::File& fileParam, std::unordered_map
         if (folderObj == nullptr)
             continue;
 
-        juce::String filePath = folderObj->getProperty("filePath").toString();
-        juce::String folderName = folderObj->getProperty("folderName").toString();
+        juce::String filePath = folderObj->getProperty(TrackJsonKeys::filePath).toString();
+        juce::String folderName = folderObj->getProperty(TrackJsonKeys::folderName).toString();
 
         if (filePath.isEmpty())
         {
@@ -173,7 +193,7 @@ void TrackIOHelper::loadFromFile(const juce::File& fileParam, std::unordered_map
         groupedTrackKeys.push_back(folderName);
         groupedTracks[folderName] = {};
 
-        juce::var tracksVar = folderObj->getProperty("Tracks");
+        juce::var tracksVar = folderObj->getProperty(TrackJsonKeys::tracks);
 
         if (!tracksVar.isArray())
             continue;
@@ -199,8 +219,8 @@ void TrackIOHelper::loadFromFile(const juce::File& fileParam, std::unordered_map
             if (trackObj == nullptr)
                 continue;
 
-            int trackIndex = (int)trackObj->getProperty("trackIndex");
-            juce::String displayName = trackObj->getProperty("displayName").toString();
+            int trackIndex = (int)trackObj->getProperty(TrackJsonKeys::trackIndex);
+            juce::String displayName = trackObj->getProperty(TrackJsonKeys::displayName).toString();
 
             if (trackIndex >= midiFile.getNumTracks())
                 continue;
@@ -209,7 +229,7 @@ void TrackIOHelper::loadFromFile(const juce::File& fileParam, std::unordered_map
             if (sequence == nullptr)
                 continue;
 
-            juce::String uuidString = trackObj->getProperty("uuid").toString();
+            juce::String uuidString = trackObj->getProperty(TrackJsonKeys::uuid).toString();
 
             TrackEntry tr;
             tr.file = file;
@@ -230,13 +250,13 @@ void TrackIOHelper::loadFromFile(const juce::File& fileParam, std::unordered_map
             else tr.uuid = TrackEntry::generateUUID();
 
 
-            auto* stylesDynamicObj = trackObj->getProperty("Styles").getDynamicObject();
+            auto* stylesDynamicObj = trackObj->getProperty(TrackJsonKeys::styles).getDynamicObject();
             if (stylesDynamicObj != nullptr)
             {
-                for (int s = 0; s < stylesDynamicObj->getProperties().size(); ++s)
+                for (int styleIndex {}; styleIndex < stylesDynamicObj->getProperties().size(); ++styleIndex)
                 {
-                    juce::Identifier styleKey = stylesDynamicObj->getProperties().getName(s);
-                    juce::var styleVar = stylesDynamicObj->getProperties().getValueAt(s);
+                    juce::Identifier styleKey = stylesDynamicObj->getProperties().getName(styleIndex);
+                    juce::var styleVar = stylesDynamicObj->getProperties().getValueAt(styleIndex);
 
                     auto* styleChangesObj = styleVar.getDynamicObject();
                     if (styleChangesObj == nullptr)
@@ -244,10 +264,10 @@ void TrackIOHelper::loadFromFile(const juce::File& fileParam, std::unordered_map
 
                     std::unordered_map<int, MidiChangeInfo> styleChanges;
 
-                    for (int i = 0; i < styleChangesObj->getProperties().size(); ++i)
+                    for (int changeIndex {}; changeIndex < styleChangesObj->getProperties().size(); ++changeIndex)
                     {
-                        juce::Identifier key = styleChangesObj->getProperties().getName(i);
-                        juce::var changeVar = styleChangesObj->getProperties().getValueAt(i);
+                        juce::Identifier key = styleChangesObj->getProperties().getName(changeIndex);
+                        juce::var changeVar = styleChangesObj->getProperties().getValueAt(changeIndex);
 
                         auto* changeObj = changeVar.getDynamicObject();
                         if (changeObj == nullptr)
@@ -255,15 +275,15 @@ void TrackIOHelper::loadFromFile(const juce::File& fileParam, std::unordered_map
 
 
                         MidiChangeInfo changeInfo;
-                        changeInfo.oldBPMchange = (double)changeObj->getProperty("oldBPMchange");
-                        changeInfo.newBPMchange = (double)changeObj->getProperty("newBPMchange");
+                        changeInfo.oldBPMchange = (double)changeObj->getProperty(NoteChangeJsonKeys::oldBpmChange);
+                        changeInfo.newBPMchange = (double)changeObj->getProperty(NoteChangeJsonKeys::newBpmChange);
 
-                        changeInfo.oldNumber = (int)changeObj->getProperty("oldNumber");
-                        changeInfo.oldTimeStamp = (double)changeObj->getProperty("oldTimeStamp");
-                        changeInfo.oldVelocity = (int)changeObj->getProperty("oldVelocity");
-                        changeInfo.newNumber = (int)changeObj->getProperty("newNumber");
-                        changeInfo.newTimeStamp = (double)changeObj->getProperty("newTimeStamp");
-                        changeInfo.newVelocity = (int)changeObj->getProperty("newVelocity");
+                        changeInfo.oldNumber = (int)changeObj->getProperty(NoteChangeJsonKeys::oldNumber);
+                        changeInfo.oldTimeStamp = (double)changeObj->getProperty(NoteChangeJsonKeys::oldTimeStamp);
+                        changeInfo.oldVelocity = (int)changeObj->getProperty(NoteChangeJsonKeys::oldVelocity);
+                        changeInfo.newNumber = (int)changeObj->getProperty(NoteChangeJsonKeys::newNumber);
+                        changeInfo.newTimeStamp = (double)changeObj->getProperty(NoteChangeJsonKeys::newTimeStamp);
+                        changeInfo.newVelocity = (int)changeObj->getProperty(NoteChangeJsonKeys::newVelocity);
 
                         int row = key.toString().getIntValue();
                         styleChanges[row] = changeInfo;
@@ -281,10 +301,10 @@ void TrackIOHelper::loadFromFile(const juce::File& fileParam, std::unordered_map
 bool TrackIOHelper::foundPercussion(const juce::MidiMessageSequence* sequence)
 {
     bool perc = false;
-    for (int i = 0; i < sequence->getNumEvents(); ++i)
+    for (int eventIndex {}; eventIndex < sequence->getNumEvents(); ++eventIndex)
     {
-        auto msg = sequence->getEventPointer(i)->message;
-        if (msg.isNoteOnOrOff() && msg.getChannel() == 10)
+        auto msg = sequence->getEventPointer(eventIndex)->message;
+        if (msg.isNoteOnOrOff() && msg.getChannel() == MidiFileFacts::drumChannel)
         {
             perc = true;
             break;
@@ -295,45 +315,46 @@ bool TrackIOHelper::foundPercussion(const juce::MidiMessageSequence* sequence)
 
 double TrackIOHelper::getOriginalBpmFromFile(const juce::MidiFile& midiFile)
 {
-    if (midiFile.getNumTracks() == 0)
-        return 120.0;
+    using namespace MidiFileFacts;
+    if (midiFile.getNumTracks() <= tempoTrackIndex)
+        return defaultTempoBpm;
 
-    auto* firstTrack = midiFile.getTrack(0);
+    auto* firstTrack = midiFile.getTrack(tempoTrackIndex);
     if (firstTrack == nullptr)
-        return 120.0;
+        return defaultTempoBpm;
 
-    for (int i = 0; i < firstTrack->getNumEvents(); ++i)
+    for (int eventIndex {}; eventIndex < firstTrack->getNumEvents(); ++eventIndex)
     {
-        const auto& msg = firstTrack->getEventPointer(i)->message;
+        const auto& msg = firstTrack->getEventPointer(eventIndex)->message;
         if (msg.isTempoMetaEvent())
         {
             double bpm;
-            if (msg.getTempoSecondsPerQuarterNote() > 0.0)
-                bpm = 60.0 / msg.getTempoSecondsPerQuarterNote();
-            else bpm = 120.0;
+            if (msg.getTempoSecondsPerQuarterNote() > noTempo)
+                bpm = secondsPerMinute / msg.getTempoSecondsPerQuarterNote();
+            else bpm = defaultTempoBpm;
             return bpm;
         }
     }
-    return 120.0;
+    return defaultTempoBpm;
 }
 
 void TrackIOHelper::convertTicksToSeconds(juce::MidiFile& midiFile, double bpm)
 {
     int tpqn = midiFile.getTimeFormat();
-    if (tpqn <= 0)
-        tpqn = 960;
+    if (tpqn <= MidiFileFacts::noTicksPerQuarterNote)
+        tpqn = MidiFileFacts::defaultTicksPerQuarterNote;
 
     const double defaultTempoBPM = bpm; 
-    const double secondsPerQuarterNote = 60.0 / defaultTempoBPM;
+    const double secondsPerQuarterNote = MidiFileFacts::secondsPerMinute / defaultTempoBPM;
     const double secondsPerTick = secondsPerQuarterNote / double(tpqn);
 
-    for (int t = 0; t < midiFile.getNumTracks(); ++t)
+    for (int trackIndex {}; trackIndex < midiFile.getNumTracks(); ++trackIndex)
     {
-        if (auto* seq = midiFile.getTrack(t))
+        if (auto* seq = midiFile.getTrack(trackIndex))
         {
-            for (int e = 0; e < seq->getNumEvents(); ++e)
+            for (int eventIndex {}; eventIndex < seq->getNumEvents(); ++eventIndex)
             {
-                auto& msg = seq->getEventPointer(e)->message;
+                auto& msg = seq->getEventPointer(eventIndex)->message;
                 double ticks = msg.getTimeStamp();
                 msg.setTimeStamp(ticks * secondsPerTick);
             }
@@ -347,7 +368,7 @@ void TrackIOHelper::applyChangesToASequence(juce::MidiMessageSequence& sequence,
 
     for (const auto& [row, changeInfo] : changesMap)
     {
-        if (row < 0 || row >= sequence.getNumEvents())
+        if (row < SequenceEditing::firstRow || row >= sequence.getNumEvents())
             continue;
 
         auto* onEvent = sequence.getEventPointer(row);
@@ -372,8 +393,8 @@ void TrackIOHelper::applyChangesToASequence(juce::MidiMessageSequence& sequence,
         double delta = changeInfo.oldTimeStamp - changeInfo.newTimeStamp;
         double newTimeOn = onTime- delta;
 
-        if (duration < 0)
-            duration = 0.0;
+        if (duration < SequenceEditing::noDuration)
+            duration = SequenceEditing::noDuration;
 
         int channel = msgOn.getChannel();
 
@@ -402,7 +423,7 @@ void TrackIOHelper::applyChangesToASequence(std::vector<NotePair>& pairs, const 
 {
     for (const auto& [row, changeInfo] : changesMap)
     {
-        if (row < 0 || row >= pairs.size())
+        if (row < SequenceEditing::firstRow || row >= pairs.size())
             continue;
 
         auto& pair = pairs[row];
@@ -420,16 +441,16 @@ void TrackIOHelper::applyChangesToASequence(std::vector<NotePair>& pairs, const 
 
         double delta = changeInfo.oldTimeStamp - changeInfo.newTimeStamp;
         double newTimeOn = oldOn - delta;
-        bool shouldClamp = newTimeOn < 0;
+        bool shouldClamp = newTimeOn < SequenceEditing::sequenceStartSeconds;
 
-        if (duration < 0)
-            duration = 0; 
+        if (duration < SequenceEditing::noDuration)
+            duration = SequenceEditing::noDuration; 
 
         juce::MidiMessage newOn = juce::MidiMessage::noteOn(
             channel, changeInfo.newNumber, (juce::uint8)changeInfo.newVelocity
         );
         if (shouldClamp)
-            newOn.setTimeStamp(0.0);
+            newOn.setTimeStamp(SequenceEditing::sequenceStartSeconds);
         else newOn.setTimeStamp(newTimeOn);
 
         juce::MidiMessage newOff = juce::MidiMessage::noteOff(
@@ -447,9 +468,9 @@ void TrackIOHelper::applyChangesToASequence(std::vector<NotePair>& pairs, const 
 
 void TrackIOHelper::extractNotePairEvents(juce::MidiMessageSequence& sequence, std::vector<NotePair>& notesVector)
 {
-    for (int i = 0; i < sequence.getNumEvents(); i++)
+    for (int eventIndex {}; eventIndex < sequence.getNumEvents(); eventIndex++)
     {
-        auto* event = sequence.getEventPointer(i);
+        auto* event = sequence.getEventPointer(eventIndex);
         if (!event)
             continue;
 
@@ -468,25 +489,26 @@ void PlaybackSettingsIOHelper::savePlaybackSettings(juce::PropertySet* propertie
 {
     if (!properties) return;
 
-    int baseStart = 60;
+    using namespace PlaybackSettingsKeys;
+    int baseStart = middleC;
     bool keyboardInputCase = false;
-    if (highest - lowest < 49)
+    if (highest - lowest < smallestHardwareKeyboardKeys)
         keyboardInputCase = true;
 
     juce::String prefix = getStyleDeviceSettingsPrefix(styleID, settings.VID, settings.PID);
 
-    if (keyboardInputCase && lowest != 60)
+    if (keyboardInputCase && lowest != middleC)
     {
-        properties->setValue(prefix + "startNote", baseStart + settings.startNote % 12);
-        properties->setValue(prefix + "endNote", baseStart + settings.endNote % 12);
-        properties->setValue(prefix + "leftHandBound", baseStart + settings.leftHandBound % 12);
-        properties->setValue(prefix + "rightHandBound", baseStart + settings.rightHandBound % 12);
+        properties->setValue(prefix + PlaybackSettingsKeys::startNote, baseStart + settings.startNote % semitonesPerOctave);
+        properties->setValue(prefix + PlaybackSettingsKeys::endNote, baseStart + settings.endNote % semitonesPerOctave);
+        properties->setValue(prefix + PlaybackSettingsKeys::leftHandBound, baseStart + settings.leftHandBound % semitonesPerOctave);
+        properties->setValue(prefix + PlaybackSettingsKeys::rightHandBound, baseStart + settings.rightHandBound % semitonesPerOctave);
     }
     else {
-        properties->setValue(prefix + "startNote", settings.startNote);
-        properties->setValue(prefix + "endNote", settings.endNote);
-        properties->setValue(prefix + "leftHandBound", settings.leftHandBound);
-        properties->setValue(prefix + "rightHandBound", settings.rightHandBound);
+        properties->setValue(prefix + PlaybackSettingsKeys::startNote, settings.startNote);
+        properties->setValue(prefix + PlaybackSettingsKeys::endNote, settings.endNote);
+        properties->setValue(prefix + PlaybackSettingsKeys::leftHandBound, settings.leftHandBound);
+        properties->setValue(prefix + PlaybackSettingsKeys::rightHandBound, settings.rightHandBound);
     }
 
     saveIfFileBacked(properties);
@@ -494,16 +516,17 @@ void PlaybackSettingsIOHelper::savePlaybackSettings(juce::PropertySet* propertie
 
 PlayBackSettings PlaybackSettingsIOHelper::loadPlaybackSettings(const juce::PropertySet* properties, const juce::String& VID, const juce::String& PID, const juce::String& styleID)
 {
-    PlayBackSettings settings{ -1,-1,-1,-1, "", "" };
+    using PlaybackSettingsKeys::notSet;
+    PlayBackSettings settings{ notSet, notSet, notSet, notSet, juce::String(), juce::String() };
 
     if (properties)
     {
         juce::String prefix = getStyleDeviceSettingsPrefix(styleID, VID, PID);
 
-        settings.startNote = properties->getIntValue(prefix + "startNote", settings.startNote);
-        settings.endNote = properties->getIntValue(prefix + "endNote", settings.endNote);
-        settings.leftHandBound = properties->getIntValue(prefix + "leftHandBound", settings.leftHandBound);
-        settings.rightHandBound = properties->getIntValue(prefix + "rightHandBound", settings.rightHandBound);
+        settings.startNote = properties->getIntValue(prefix + PlaybackSettingsKeys::startNote, settings.startNote);
+        settings.endNote = properties->getIntValue(prefix + PlaybackSettingsKeys::endNote, settings.endNote);
+        settings.leftHandBound = properties->getIntValue(prefix + PlaybackSettingsKeys::leftHandBound, settings.leftHandBound);
+        settings.rightHandBound = properties->getIntValue(prefix + PlaybackSettingsKeys::rightHandBound, settings.rightHandBound);
     }
 
     settings.VID = VID;
@@ -525,12 +548,12 @@ void SectionIOHelper::saveToFile(const juce::File& file, const std::unordered_ma
             auto* sectionObj = new juce::DynamicObject();
             juce::var sectionVar(sectionObj);
 
-            sectionObj->setProperty("id", section.second.id);
-            sectionObj->setProperty("name", section.second.name);
-            sectionObj->setProperty("startTimeSeconds", section.second.startTimeSeconds);
-            sectionObj->setProperty("endTimeSeconds", section.second.endTimeSeconds);
-            sectionObj->setProperty("startBar", section.second.startBar);
-            sectionObj->setProperty("endBar", section.second.endBar);
+            sectionObj->setProperty(SectionJsonKeys::id, section.second.id);
+            sectionObj->setProperty(SectionJsonKeys::name, section.second.name);
+            sectionObj->setProperty(SectionJsonKeys::startTimeSeconds, section.second.startTimeSeconds);
+            sectionObj->setProperty(SectionJsonKeys::endTimeSeconds, section.second.endTimeSeconds);
+            sectionObj->setProperty(SectionJsonKeys::startBar, section.second.startBar);
+            sectionObj->setProperty(SectionJsonKeys::endBar, section.second.endBar);
 
             sectionsArray.add(sectionVar);
         }
@@ -580,12 +603,12 @@ void SectionIOHelper::loadFromFile(const juce::File& file, std::unordered_map<ju
 
             StyleSection section;
             
-            section.id = sectionObj->getProperty("id").toString();
-            section.name = sectionObj->getProperty("name").toString();
-            section.startTimeSeconds = (double)sectionObj->getProperty("startTimeSeconds");
-            section.endTimeSeconds = (double)sectionObj->getProperty("endTimeSeconds");
-            section.startBar = (int)sectionObj->getProperty("startBar");
-            section.endBar = (int)sectionObj->getProperty("endBar");
+            section.id = sectionObj->getProperty(SectionJsonKeys::id).toString();
+            section.name = sectionObj->getProperty(SectionJsonKeys::name).toString();
+            section.startTimeSeconds = (double)sectionObj->getProperty(SectionJsonKeys::startTimeSeconds);
+            section.endTimeSeconds = (double)sectionObj->getProperty(SectionJsonKeys::endTimeSeconds);
+            section.startBar = (int)sectionObj->getProperty(SectionJsonKeys::startBar);
+            section.endBar = (int)sectionObj->getProperty(SectionJsonKeys::endBar);
 
             sectionsMap[section.name] = section;
         }
@@ -594,34 +617,34 @@ void SectionIOHelper::loadFromFile(const juce::File& file, std::unordered_map<ju
     }
 }
 
-void EffectSettingsIOHelper::saveEffectsStyle(juce::PropertySet* properties, const juce::String& styleID, const juce::String& VID, const juce::String& PID, int channel, const SoundSettings& s)
+void EffectSettingsIOHelper::saveEffectsStyle(juce::PropertySet* properties, const juce::String& styleID, const juce::String& VID, const juce::String& PID, int channel, const SoundSettings& settings)
 {
     if (!properties) return;
 
-    const juce::String ch = (channel == 1 ? "First" : "Second");
-    const juce::String p = getStyleDeviceSettingsPrefix(styleID, VID, PID);
+    const juce::String handSuffix = (channel == DeviceSettingsKeys::firstHandChannel ? DeviceSettingsKeys::firstHandSuffix : DeviceSettingsKeys::secondHandSuffix);
+    const juce::String prefix = getStyleDeviceSettingsPrefix(styleID, VID, PID);
 
-    properties->setValue(p + "reverb" + ch, s.reverb);
-    properties->setValue(p + "volume" + ch, s.volume);
+    properties->setValue(prefix + EffectSettingsKeys::reverb + handSuffix, settings.reverb);
+    properties->setValue(prefix + EffectSettingsKeys::volume + handSuffix, settings.volume);
 
-    properties->setValue(p + "brightness" + ch, s.brightness);
-    properties->setValue(p + "chorus" + ch, s.chorus);
-    properties->setValue(p + "expression" + ch, s.expression);
-    properties->setValue(p + "resonance" + ch, s.resonance);
-    properties->setValue(p + "sustainToggle" + ch, s.sustainToggle ? 1 : 0);
+    properties->setValue(prefix + EffectSettingsKeys::brightness + handSuffix, settings.brightness);
+    properties->setValue(prefix + EffectSettingsKeys::chorus + handSuffix, settings.chorus);
+    properties->setValue(prefix + EffectSettingsKeys::expression + handSuffix, settings.expression);
+    properties->setValue(prefix + EffectSettingsKeys::resonance + handSuffix, settings.resonance);
+    properties->setValue(prefix + EffectSettingsKeys::sustainToggle + handSuffix, settings.sustainToggle ? EffectSettingsKeys::sustainOn : EffectSettingsKeys::sustainOff);
 
-    properties->setValue(p + "attack" + ch, s.attack);
-    properties->setValue(p + "decay" + ch, s.decay);
-    properties->setValue(p + "release" + ch, s.release);
-    properties->setValue(p + "vibrato" + ch, s.vibrato);
+    properties->setValue(prefix + EffectSettingsKeys::attack + handSuffix, settings.attack);
+    properties->setValue(prefix + EffectSettingsKeys::decay + handSuffix, settings.decay);
+    properties->setValue(prefix + EffectSettingsKeys::release + handSuffix, settings.release);
+    properties->setValue(prefix + EffectSettingsKeys::vibrato + handSuffix, settings.vibrato);
 
-    properties->setValue(p + "delay" + ch, s.delay);
-    properties->setValue(p + "pan" + ch, s.pan);
+    properties->setValue(prefix + EffectSettingsKeys::delay + handSuffix, settings.delay);
+    properties->setValue(prefix + EffectSettingsKeys::pan + handSuffix, settings.pan);
 
-    properties->setValue(p + "distortion" + ch, s.distortion);
-    properties->setValue(p + "filterTrack" + ch, s.filterTrack);
-    properties->setValue(p + "tremolo" + ch, s.tremolo);
-    properties->setValue(p + "randomMod" + ch, s.randomMod);
+    properties->setValue(prefix + EffectSettingsKeys::distortion + handSuffix, settings.distortion);
+    properties->setValue(prefix + EffectSettingsKeys::filterTrack + handSuffix, settings.filterTrack);
+    properties->setValue(prefix + EffectSettingsKeys::tremolo + handSuffix, settings.tremolo);
+    properties->setValue(prefix + EffectSettingsKeys::randomMod + handSuffix, settings.randomMod);
 
     saveIfFileBacked(properties);
 }
@@ -630,44 +653,44 @@ void EffectSettingsIOHelper::saveSingleEffect(juce::PropertySet* properties, con
 {
     if (!properties) return;
 
-    const juce::String ch = (channel == 1) ? "First" : "Second";
-    const juce::String p = getStyleDeviceSettingsPrefix(styleID, VID, PID);
+    const juce::String handSuffix = (channel == DeviceSettingsKeys::firstHandChannel) ? DeviceSettingsKeys::firstHandSuffix : DeviceSettingsKeys::secondHandSuffix;
+    const juce::String prefix = getStyleDeviceSettingsPrefix(styleID, VID, PID);
 
-    properties->setValue(p + key + ch, value);
+    properties->setValue(prefix + key + handSuffix, value);
     saveIfFileBacked(properties);
 }
 
 SoundSettings EffectSettingsIOHelper::loadEffectsStyle(const juce::PropertySet* properties, const juce::String& styleID, const juce::String& VID, const juce::String& PID, int channel)
 {
-    SoundSettings s;
-    if (!properties) return s;
+    SoundSettings settings;
+    if (!properties) return settings;
 
-    const juce::String suffix = (channel == 1) ? "First" : "Second";
-    const juce::String p = getStyleDeviceSettingsPrefix(styleID, VID, PID);
+    const juce::String handSuffix = (channel == DeviceSettingsKeys::firstHandChannel) ? DeviceSettingsKeys::firstHandSuffix : DeviceSettingsKeys::secondHandSuffix;
+    const juce::String prefix = getStyleDeviceSettingsPrefix(styleID, VID, PID);
 
-    s.reverb = properties->getIntValue(p + "reverb" + suffix, s.reverb);
-    s.volume = properties->getIntValue(p + "volume" + suffix, s.volume);
+    settings.reverb = properties->getIntValue(prefix + EffectSettingsKeys::reverb + handSuffix, settings.reverb);
+    settings.volume = properties->getIntValue(prefix + EffectSettingsKeys::volume + handSuffix, settings.volume);
 
-    s.brightness = properties->getIntValue(p + "brightness" + suffix, s.brightness);
-    s.chorus = properties->getIntValue(p + "chorus" + suffix, s.chorus);
-    s.expression = properties->getIntValue(p + "expression" + suffix, s.expression);
-    s.resonance = properties->getIntValue(p + "resonance" + suffix, s.resonance);
-    s.sustainToggle = properties->getIntValue(p + "sustainToggle" + suffix, 0) != 0;
+    settings.brightness = properties->getIntValue(prefix + EffectSettingsKeys::brightness + handSuffix, settings.brightness);
+    settings.chorus = properties->getIntValue(prefix + EffectSettingsKeys::chorus + handSuffix, settings.chorus);
+    settings.expression = properties->getIntValue(prefix + EffectSettingsKeys::expression + handSuffix, settings.expression);
+    settings.resonance = properties->getIntValue(prefix + EffectSettingsKeys::resonance + handSuffix, settings.resonance);
+    settings.sustainToggle = properties->getIntValue(prefix + EffectSettingsKeys::sustainToggle + handSuffix, EffectSettingsKeys::sustainOff) != EffectSettingsKeys::sustainOff;
 
-    s.attack = properties->getIntValue(p + "attack" + suffix, s.attack);
-    s.decay = properties->getIntValue(p + "decay" + suffix, s.decay);
-    s.release = properties->getIntValue(p + "release" + suffix, s.release);
-    s.vibrato = properties->getIntValue(p + "vibrato" + suffix, s.vibrato);
+    settings.attack = properties->getIntValue(prefix + EffectSettingsKeys::attack + handSuffix, settings.attack);
+    settings.decay = properties->getIntValue(prefix + EffectSettingsKeys::decay + handSuffix, settings.decay);
+    settings.release = properties->getIntValue(prefix + EffectSettingsKeys::release + handSuffix, settings.release);
+    settings.vibrato = properties->getIntValue(prefix + EffectSettingsKeys::vibrato + handSuffix, settings.vibrato);
 
-    s.delay = properties->getIntValue(p + "delay" + suffix, s.delay);
-    s.pan = properties->getIntValue(p + "pan" + suffix, s.pan);
+    settings.delay = properties->getIntValue(prefix + EffectSettingsKeys::delay + handSuffix, settings.delay);
+    settings.pan = properties->getIntValue(prefix + EffectSettingsKeys::pan + handSuffix, settings.pan);
 
-    s.distortion = properties->getIntValue(p + "distortion" + suffix, s.distortion);
-    s.filterTrack = properties->getIntValue(p + "filterTrack" + suffix, s.filterTrack);
-    s.tremolo = properties->getIntValue(p + "tremolo" + suffix, s.tremolo);
-    s.randomMod = properties->getIntValue(p + "randomMod" + suffix, s.randomMod);
+    settings.distortion = properties->getIntValue(prefix + EffectSettingsKeys::distortion + handSuffix, settings.distortion);
+    settings.filterTrack = properties->getIntValue(prefix + EffectSettingsKeys::filterTrack + handSuffix, settings.filterTrack);
+    settings.tremolo = properties->getIntValue(prefix + EffectSettingsKeys::tremolo + handSuffix, settings.tremolo);
+    settings.randomMod = properties->getIntValue(prefix + EffectSettingsKeys::randomMod + handSuffix, settings.randomMod);
 
-    return s;
+    return settings;
 }
 
 void SFZLibraryIOHelper::saveToFile(const juce::File& file, const SFZLibraryData& data)
@@ -679,12 +702,12 @@ void SFZLibraryIOHelper::saveToFile(const juce::File& file, const SFZLibraryData
     for (const auto& entry : data.library)
     {
         auto* entryObj = new juce::DynamicObject();
-        entryObj->setProperty("id", entry.id);
-        entryObj->setProperty("name", entry.name);
-        entryObj->setProperty("sfzPath", entry.sfzPath);
+        entryObj->setProperty(SfzLibraryJsonKeys::id, entry.id);
+        entryObj->setProperty(SfzLibraryJsonKeys::name, entry.name);
+        entryObj->setProperty(SfzLibraryJsonKeys::sfzPath, entry.sfzPath);
         libraryArray.add(juce::var(entryObj));
     }
-    rootObj->setProperty("library", libraryArray);
+    rootObj->setProperty(SfzLibraryJsonKeys::library, libraryArray);
 
     auto* mappingsObj = new juce::DynamicObject();
     for (const auto& [styleId, instruments] : data.styleMappings)
@@ -696,7 +719,7 @@ void SFZLibraryIOHelper::saveToFile(const juce::File& file, const SFZLibraryData
         }
         mappingsObj->setProperty(styleId, juce::var(instObj));
     }
-    rootObj->setProperty("styleMappings", juce::var(mappingsObj));
+    rootObj->setProperty(SfzLibraryJsonKeys::styleMappings, juce::var(mappingsObj));
 
     juce::String jsonString = juce::JSON::toString(rootVar);
     file.getParentDirectory().createDirectory();
@@ -721,9 +744,9 @@ void SFZLibraryIOHelper::loadFromFile(const juce::File& file, SFZLibraryData& da
     if (!rootObj)
         return;
 
-    if (rootObj->hasProperty("library"))
+    if (rootObj->hasProperty(SfzLibraryJsonKeys::library))
     {
-        auto libraryVar = rootObj->getProperty("library");
+        auto libraryVar = rootObj->getProperty(SfzLibraryJsonKeys::library);
         if (libraryVar.isArray())
         {
             auto* libraryArray = libraryVar.getArray();
@@ -732,18 +755,18 @@ void SFZLibraryIOHelper::loadFromFile(const juce::File& file, SFZLibraryData& da
                 if (auto* entryObj = entryVar.getDynamicObject())
                 {
                     SFZLibraryEntry entry;
-                    entry.id = entryObj->getProperty("id").toString();
-                    entry.name = entryObj->getProperty("name").toString();
-                    entry.sfzPath = entryObj->getProperty("sfzPath").toString();
+                    entry.id = entryObj->getProperty(SfzLibraryJsonKeys::id).toString();
+                    entry.name = entryObj->getProperty(SfzLibraryJsonKeys::name).toString();
+                    entry.sfzPath = entryObj->getProperty(SfzLibraryJsonKeys::sfzPath).toString();
                     data.library.push_back(entry);
                 }
             }
         }
     }
 
-    if (rootObj->hasProperty("styleMappings"))
+    if (rootObj->hasProperty(SfzLibraryJsonKeys::styleMappings))
     {
-        auto mappingsVar = rootObj->getProperty("styleMappings");
+        auto mappingsVar = rootObj->getProperty(SfzLibraryJsonKeys::styleMappings);
         if (auto* mappingsObj = mappingsVar.getDynamicObject())
         {
             for (auto& stylePair : mappingsObj->getProperties())
