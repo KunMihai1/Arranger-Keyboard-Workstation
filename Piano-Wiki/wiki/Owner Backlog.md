@@ -19,8 +19,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 
 ## 1. Standing work (do these first)
 - 🟡 **Names, not values in every file** (owner's rule, `docs/names-not-values.md`). One subsystem per PR,
-  behaviour-identical. Done: Common, Audio, Midi, Arranger, Playback, Styles. Left (87 files on
-  `ci/named-values-allowlist.txt`): Backend (9) → UI (37) → tests. When UI is converted, its
+  behaviour-identical. Done: Common, Audio, Midi, Arranger, Playback, Styles, Backend. Left (78 files on
+  `ci/named-values-allowlist.txt`): UI (37) → tests. When UI is converted, its
   `"DEFAULT Style"` copies (Display, DisplayStyleStore, SettingsWindow) and `SFZLibraryUI`'s should use
   `StyleNames::defaultStyle`.
 - ✅ **Faster builds** (research agent, 2026-11-22): 64-bit compiler/linker + one batch for the JUCE
@@ -60,6 +60,9 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - ❓ Instrument presets (reverb/chorus/cutoff… per instrument) are never sent — only the program change.
   Owner unsure (2026-11-22); left as is until they decide.
 - ⬜ `AudioHandler` allocates a `juce::MidiBuffer` on every audio callback (audio thread must not allocate).
+- ⬜ `SupabaseClient`: request JSON is built by string concatenation, so a `"` or `\` in an email,
+  password or username breaks the request; `signup()` never reads the reply body (sign-up always shows
+  "Invalid server response"). Found in the Backend names cleanup, not fixed there.
 - ⬜ Renaming a track from the track list doesn't focus the name box: `TrackListComponent::renameFromTrackList`
   looks up the editor "folderName" although its editor is "trackName" (seen in the Playback names cleanup).
 
@@ -69,8 +72,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 | BPM applied when a style / track loads | ✅ |
 | Change BPM while playing | ⬜ locked while the arranger plays (`CurrentStyleComponent.cpp:189`) |
 | Real arranger with sections, loop based | ✅ |
-| Track playtime, send it for a website TOP list | ✅ sent to the backend; website side unknown |
-| Login / logout inside the app, persistent login (JSON in AppData) | ⬜ no logout or saved session in the code |
+| Track playtime, send it for a website TOP list | ⬜ **switched off**: the only `PlaytimeTracker` creation (`MainComponent.cpp` ~595) is commented out, so nothing is sent. The tracker also ignores its interval argument (always 300 s). Corrected 2026-11-22; was marked ✅ |
+| Login / logout inside the app, persistent login (JSON in AppData) | ⬜ no logout or saved session in the code. Also: `LoginComponent::handleLogin()` returns before checking anything (Login always succeeds), and "Forgot Pass?" sends nothing |
 | Chord recognition, accompaniment follows the key | ✅ |
 | Right-click glitch on a style while playing | ⬜ needs a reproduction. Lead: `MyTabbedComponent::mouseDown` "Close Tab" removes a tab without telling `Display` (same state problem as the Home bug) and picks the tab from `x` although the tabs are vertical |
 | JSON of last / most used styles | ⬜ |

@@ -19,14 +19,17 @@ public:
 
     int getAccumlatedSeconds();
 
+    static constexpr int defaultBatchIntervalSeconds = 300;   // playtime is sent in 5-minute batches
+
 private:
     void timerCallback() override;
 
-    int accumulatedSeconds = 0;
+    int accumulatedSeconds {};
 
-    int startTimerInSec = 60;
+    static constexpr int tickIntervalSeconds = 60;
+    int startTimerInSec = tickIntervalSeconds;
 
-    int batchIntervalSeconds = 0;
+    int batchIntervalSeconds {};
 
     juce::Time lastTickTime;
 

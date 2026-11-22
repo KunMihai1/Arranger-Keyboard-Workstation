@@ -10,9 +10,33 @@
 
 #include "ValidatorUI.h"
 
+namespace
+{
+    constexpr int    lowestMidiValue  = 0;
+    constexpr int    highestMidiValue = 127;
+    constexpr double zeroSeconds = 0.0;
+    constexpr int    firstCharacter   = 0;
+
+    namespace Text
+    {
+        const juce::String integerCharacters = "0123456789-+";
+        const juce::String decimalCharacters = "0123456789.+-";
+        const juce::String minus             = "-";
+        const juce::String plus              = "+";
+        const juce::String doublePlus        = "++";
+        const juce::String doubleMinus       = "--";
+        const juce::String doubleDot         = "..";
+        const juce::String plusDot           = "+.";
+        const juce::String minusDot          = "-.";
+    }
+
+    constexpr juce::juce_wchar minusSign = '-';
+    constexpr juce::juce_wchar plusSign  = '+';
+}
+
 bool Validator::isValidMidiIntValue(int value)
 {
-    if (value < 0 || value > 127)
+    if (value < lowestMidiValue || value > highestMidiValue)
         return false;
 
 
@@ -33,33 +57,33 @@ bool Validator::isValidMidiDoubleValueTimeStamps(double value, double currentTim
         return false;
 
     double newTime = currentTimeStamp + value;
-    if (newTime < 0.0)
+    if (newTime < zeroSeconds)
         return false;
 
-    if (newTime - previousTimeStamp < 0.0)
+    if (newTime - previousTimeStamp < zeroSeconds)
         return false;
 
-    if (newTime - nextTimeStamp > 0.0)
+    if (newTime - nextTimeStamp > zeroSeconds)
         return false;
 
     return true;
 }
 
-bool Validator::isValidMidiIntegerString(const juce::String& s)
+bool Validator::isValidMidiIntegerString(const juce::String& text)
 {
-    if(!s.containsOnly("0123456789-+"))
+    if(!text.containsOnly(Text::integerCharacters))
         return false;
 
-    if (s.contains("-") && s[0] != '-')
+    if (text.contains(Text::minus) && text[firstCharacter] != minusSign)
         return false;
 
-    if (s.contains("+") && s[0] != '+')
+    if (text.contains(Text::plus) && text[firstCharacter] != plusSign)
         return false;
 
-    if (s.contains("++") || s.contains("--"))
+    if (text.contains(Text::doublePlus) || text.contains(Text::doubleMinus))
         return false;
 
-    if (s == "+" || s == "-")
+    if (text == Text::plus || text == Text::minus)
         return false;
 
     return true;
@@ -73,21 +97,21 @@ bool Validator::isValidMidiIntegerVelocities(double value)
     return true;
 }
 
-bool Validator::isValidMidiDoubleString(const juce::String& s)
+bool Validator::isValidMidiDoubleString(const juce::String& text)
 {
-    if (!s.containsOnly("0123456789.+-"))
+    if (!text.containsOnly(Text::decimalCharacters))
         return false;
 
-    if (s.contains("-") && s[0] != '-')
+    if (text.contains(Text::minus) && text[firstCharacter] != minusSign)
         return false;
 
-    if (s.contains("+") && s[0] != '+')
+    if (text.contains(Text::plus) && text[firstCharacter] != plusSign)
         return false;
 
-    if (s.contains("++") || s.contains("--") || s.contains(".."))
+    if (text.contains(Text::doublePlus) || text.contains(Text::doubleMinus) || text.contains(Text::doubleDot))
         return false;
 
-    if (s == "+" || s == "-" || s=="+." || s=="-.")
+    if (text == Text::plus || text == Text::minus || text==Text::plusDot || text==Text::minusDot)
         return false;
 
     return true;

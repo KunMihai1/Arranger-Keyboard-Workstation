@@ -10,11 +10,16 @@
 
 #include "PlaytimeTracker.h"
 
-PlaytimeTracker::PlaytimeTracker(std::function<void(int sec)> onTimeElapsed, int batchIntervalSec=300): callbackFunction{onTimeElapsed}, batchIntervalSeconds{batchIntervalSec}
+namespace
+{
+    constexpr int millisecondsPerSecond = 1000;
+}
+
+PlaytimeTracker::PlaytimeTracker(std::function<void(int sec)> onTimeElapsed, int batchIntervalSec=defaultBatchIntervalSeconds): callbackFunction{onTimeElapsed}, batchIntervalSeconds{batchIntervalSec}
 {
     lastTickTime = juce::Time::getCurrentTime();
     
-    startTimer(startTimerInSec*1000);
+    startTimer(startTimerInSec*millisecondsPerSecond);
     
 }
 
@@ -26,14 +31,15 @@ int PlaytimeTracker::getAccumlatedSeconds()
 void PlaytimeTracker::timerCallback()
 {
     auto now = juce::Time::getCurrentTime();
-    int deltaSec = static_cast<int>((now.toMilliseconds() - lastTickTime.toMilliseconds()) / 1000);
+    int deltaSec = static_cast<int>((now.toMilliseconds() - lastTickTime.toMilliseconds()) / millisecondsPerSecond);
     lastTickTime = now;
 
     accumulatedSeconds += deltaSec;
 
-    if (callbackFunction && accumulatedSeconds>=300)
+    // Known bug (Owner Backlog): batchIntervalSeconds is ignored; batches are always the default.
+    if (callbackFunction && accumulatedSeconds>=defaultBatchIntervalSeconds)
     {
         callbackFunction(accumulatedSeconds);
-        accumulatedSeconds = 0;
+        accumulatedSeconds = {};
     }
 }

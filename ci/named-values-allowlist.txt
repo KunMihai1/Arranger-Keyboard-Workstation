@@ -1,14 +1,5 @@
 # Files not yet converted to the 'Names, not values' rule (AGENTS.md). This list may only shrink:
 # each cleanup PR converts files and removes them here. ci/check_named_values.py enforces it.
-Source/Backend/LoginComponent.cpp
-Source/Backend/PlaytimeTracker.cpp
-Source/Backend/PlaytimeTracker.h
-Source/Backend/SupabaseClient.cpp
-Source/Backend/SupabaseClient.h
-Source/Backend/ValidatorUI.cpp
-Source/Backend/ValidatorUI.h
-Source/Backend/addDeviceWindow.cpp
-Source/Backend/addDeviceWindow.h
 Source/UI/CustomBeatBar.cpp
 Source/UI/CustomBeatBar.h
 Source/UI/CustomTableContainer.cpp

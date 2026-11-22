@@ -24,6 +24,8 @@
 class Validator
 {
 public:
+    static constexpr double noTimeStamp = -1.0;   ///< Timestamp argument not given.
+
     /**
      * @brief Checks if an integer is a valid MIDI value (0–127).
      * @param value The integer value to check.
@@ -36,7 +38,7 @@ public:
      * @param s The string to validate.
      * @return true if the string represents a valid MIDI integer, false otherwise.
      */
-    static bool isValidMidiIntegerString(const juce::String& s);
+    static bool isValidMidiIntegerString(const juce::String& text);
 
     /**
      * @brief Checks if a double value is a valid MIDI velocity.
@@ -63,14 +65,14 @@ public:
      * @param previousTimeStamp Optional previous timestamp (default -1).
      * @return true if valid, false otherwise.
      */
-    static bool isValidMidiDoubleValueTimeStamps(double value, double currentTimeStamp=-1, double previousTimeStamp=-1, double nextTimeStamp=-1);
+    static bool isValidMidiDoubleValueTimeStamps(double value, double currentTimeStamp=noTimeStamp, double previousTimeStamp=noTimeStamp, double nextTimeStamp=noTimeStamp);
 
     /**
      * @brief Checks if a string represents a valid MIDI double value.
      * @param s The string to validate.
      * @return true if valid, false otherwise.
      */
-    static bool isValidMidiDoubleString(const juce::String& s);
+    static bool isValidMidiDoubleString(const juce::String& text);
 
 private:
     // Private to prevent instantiation
