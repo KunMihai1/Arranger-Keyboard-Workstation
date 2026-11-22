@@ -1,7 +1,7 @@
 ---
 type: meta
 title: "Hot Cache"
-updated: 2026-11-21T00:00:00
+updated: 2026-11-22T00:00:00
 tags:
   - meta
   - hot
@@ -11,10 +11,8 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-21. Three PRs landed in order: **docs** (`AGENTS.md`/`CLAUDE.md` rules, `docs/` now
-tracked, `docs/ARCHITECTURE.md`), **perf** (GPU note rendering), **refactor** (800-line file cap)
-— PRs #13–#15; **faster builds** #16; **Start-with-nothing-to-play fix** #17; **CI JUCE-object
-cache** #18. Detail in [[log]].
+2026-11-22. PRs #19–#32: live bugs fixed, test audit, skipped-test counts, arranger stress tests,
+names cleanup (Common, Audio, part of Midi). Live arranger run done; SFZ queue backlog fixed. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -31,7 +29,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 748, arranger 705, integration 137** (integration is local-only).
+  Current: **unit 850, arranger 763, integration 130 (+7 skipped)**; integration runs in CI too.
 
 ## Build / Test
 - App `Builds\VisualStudio2022\Arranger Workstation.sln`, Debug x64; close the app first (PDB lock).
@@ -43,13 +41,11 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - CI caches compiled JUCE objects (filled by runs on `main`; key hashes `ci/JuceLibraryCode`).
 
 ## Active Threads / Next
-- 🔴 **Bugs reproduced live 2026-11-22** (see [[log]]): ✅ Solo/None crash (PR #19); ✅ stale track
-  map after picker browse / track or folder removal (PR #20); ✅ Start-while-playing BPM lock
-  (PR #21). Open: "restore down" size = whole screen. Tests: categories table in AGENTS.md.
+- 🔴 Open: "restore down" size = whole screen.
 - 🟡 **Names-not-values cleanup**: rule (`docs/names-not-values.md`) + CI ratchet; 153 files on
-  the allowlist, converted one subsystem per PR.
-- 🔜 **Arranger hard testing** (owner): plan in `docs/superpowers/test-plans/` — headless stress first;
-  the live part needs the screen unlocked.
+  the allowlist (now 142), converted one subsystem per PR; next: rest of Midi.
+- ✅ **Arranger hard testing**: headless + live (sound measured by loopback), results in the test plan.
+  Owner questions: style switch while playing keeps the old arrangement; an Ending can be a start.
   Watch: "Notes information" table holds refs into a library entry while open (unreachable today).
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.

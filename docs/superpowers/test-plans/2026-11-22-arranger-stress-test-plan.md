@@ -1,6 +1,6 @@
 # Arranger — hard testing plan
 
-**Status:** planned (owner, 2026-11-22). The arranger is the newest feature and gets serious testing:
+**Status:** A done (PRs #28, #29); B run live on 2026-11-22, results below. The arranger is the newest feature and gets serious testing:
 normal use *and* extreme, adversarial use, under pressure — not a quick "it plays, fine".
 
 Two parts:
@@ -41,3 +41,29 @@ screenshot, log). A failure becomes a bug with a reproducing test before any fix
 6. Window resize, minimise/restore, focus loss during playback; the beat bar stays on the beat.
 7. Sound: arranger output must not be doubled to the external MIDI synth when SFZ is the engine
    (suspected from the TODO notes — both engines send to the MIDI output *and* the SFZ synth).
+
+## B. Results — live run, 2026-11-22
+
+Setup: Debug build, External MIDI engine (Microsoft GS Wavetable Synth), arranger mode on, Style 1 with six
+tracks of a real 15-track song (demo arrangement: Intro 1 / Var 1 / Fill 1 / Ending 1). Sound was **measured**,
+not assumed: the speakers were recorded through WASAPI loopback and reported in dBFS per window
+(silence = -104 dBFS, playing = about -20 to -30 dBFS). App data backed up before and restored after (0 differences).
+
+| # | Scenario | Result |
+|---|---|---|
+| B1 | 200 random section clicks in 30–150 ms gaps while playing | No hang, responsive throughout. Buttons for sections the style lacks (Var 2–4, Fill 2–4, Break, Intro 2–3) do nothing; the highlight stays on the playing section. |
+| B1 | Fill 1 while playing | Var 1 lit until the bar line, Fill 1 for exactly one bar (2 s at 120 BPM), back to Var 1. |
+| B1 | Ending 1 while playing | Lit at the next bar, 4 bars, engine stops itself, beat bar idle, BPM unlocked, highlight back to the start section. |
+| B2 | 150 random Start/Stop (+ Ending) clicks in 20–300 ms gaps | 0 not-responding samples; final Stop idle, final Start plays. |
+| B2/B3 | Section + transport storm, then Stop | Sound gone ~350 ms after Stop (-104 dBFS). |
+| B3 | 102 random 3-key PC-keyboard chords in 15 s while playing, then Stop | Sound gone ~850 ms after Stop (live-note release tails). |
+| B3 | Chord held through 60 Start/Stop clicks, Stop, release | Silent 2 s later. No stuck notes. |
+| B4 | Switch style while playing | Keeps playing the previous style's arrangement under the new style's name until Stop (one CurrentStyleComponent is reused; the engine keeps what Start built). Stop works. **Product question for the owner**, not changed. |
+| B6 | Minimise 6 s while playing, maximise | Beat bar exactly on the beat afterwards (6 frames checked against elapsed time). |
+| B7 | Doubled output to external synth + SFZ | Does not happen (only one output is ever open). Found instead: notes queued for the SFZ synth were never drained with External MIDI and burst into the synth on switching — fixed, see `specs/2026-11-22-stale-synth-midi-backlog-design.md`. |
+
+Also observed: a section clicked while **stopped** becomes the start section, including an Ending (Start then
+plays the ending once and stops). Coherent; whether an Ending should be selectable as a start is the owner's call.
+
+Not run: B4 switching SFZ instrument / audio output (no SFZ library on this machine), B5 style editor and
+Section Configurations while playing, Synchro Start / Count-In from the UI (covered headless in A).
