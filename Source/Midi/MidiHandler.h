@@ -11,6 +11,18 @@
 #include <atomic>
 #include <functional>
 
+/** Facts of the MIDI protocol itself, shared by every MIDI class. */
+namespace MidiFacts
+{
+	constexpr int lowestNote  = 0;
+	constexpr int highestNote = 127;
+	constexpr int noteCount   = 128;
+	constexpr int lowestControllerValue  = 0;
+	constexpr int highestControllerValue = 127;
+	constexpr int lowestChannel  = 1;
+	constexpr int highestChannel = 16;
+}
+
 /** Which device list a MidiDevice call works on. */
 namespace DeviceListChoice
 {
@@ -72,7 +84,7 @@ public:
 	/**
 	 * @brief Gets a device name, based on its index in the list of devices
 	 * @param Index the index of the device 
-	 * @param choice Parameter to filter out if it's input or ouput (0-input, 1-output)
+	 * @param choice Parameter to filter out if it's input or output (a DeviceListChoice)
 	 * @return the name of the device as a string
 	 */
 	juce::String getDeviceNameBasedOnIndex(int Index, int choice = DeviceListChoice::midiInput);
@@ -80,7 +92,7 @@ public:
 	/**
 	 * @brief Gets a device identifier, based on its index in the list of devices
 	 * @param Index the index of the device
-	 * @param choice Parameter to filter out if it's input or ouput (0-input, 1-output)
+	 * @param choice Parameter to filter out if it's input or output (a DeviceListChoice)
 	 * @return the identifier of the device as a string
 	 */
 	juce::String getDeviceIdentifierBasedOnIndex(int Index, int choice = DeviceListChoice::midiInput);

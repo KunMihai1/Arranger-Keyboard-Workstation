@@ -4,12 +4,6 @@
 
 namespace MidiDeviceValues
 {
-	constexpr int lowestNote  = 0;
-	constexpr int highestNote = 127;
-	constexpr int lowestControllerValue  = 0;
-	constexpr int highestControllerValue = 127;
-	constexpr int lowestMidiChannel  = 1;
-	constexpr int highestMidiChannel = 16;
 	constexpr int noDeviceIndex = 0;
 	constexpr int defaultHandLevel = 50;            // volume/reverb/... asked for a channel that is not a hand
 	constexpr bool defaultSustainToggle = true;
@@ -35,7 +29,7 @@ namespace MidiDeviceValues
 using namespace MidiDeviceValues;
 
 
-MidiDevice::MidiDevice() : currentDeviceIDin{ noDeviceIndex }, currentDeviceIDout{ noDeviceIndex }, currentDeviceIDAudioOUT{ noDeviceIndex }, identifier {}, minNote{ lowestNote }, maxNote{ highestNote } {
+MidiDevice::MidiDevice() : currentDeviceIDin{ noDeviceIndex }, currentDeviceIDout{ noDeviceIndex }, currentDeviceIDAudioOUT{ noDeviceIndex }, identifier {}, minNote{ MidiFacts::lowestNote }, maxNote{ MidiFacts::highestNote } {
 	this->currentDevicesIN.push_back(DeviceNames::pcKeyboard.toStdString());
 	styleSettings = std::make_unique<StyleSettings>();
 }
@@ -762,10 +756,10 @@ int MidiDevice::get_maxNote() const
 void MidiDevice::sendMidiCC(int channel, int ccNumber, int value)
 {
 	juce::uint8 midiValue = static_cast<juce::uint8>(
-		juce::jlimit(lowestControllerValue, highestControllerValue, value)
+		juce::jlimit(MidiFacts::lowestControllerValue, MidiFacts::highestControllerValue, value)
 		);
 
-	if (channel < lowestMidiChannel || channel > highestMidiChannel)
+	if (channel < MidiFacts::lowestChannel || channel > MidiFacts::highestChannel)
 		return;
 
 	// Callers check isOpenOUT() first; a failed open leaves no device, and that must not crash.

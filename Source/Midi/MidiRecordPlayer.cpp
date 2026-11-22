@@ -12,11 +12,8 @@
 
 namespace RecordPlayerValues
 {
-    constexpr int    secondHandChannel   = 16;   // the right hand plays on MIDI channel 16
     constexpr int    recordedFirstHand   = 14;   // recordings move the hands to their own channels
     constexpr int    recordedSecondHand  = 15;
-    constexpr int    lowestMidiChannel   = 1;
-    constexpr int    highestMidiChannel  = 16;
     constexpr double secondsPerMillisecond = 0.001;
     constexpr int    playbackTimerMs     = 1;
     constexpr size_t tooFewEventsToUse   = 1;    // a recording needs more than one event to play or save
@@ -86,7 +83,7 @@ void MidiRecordPlayer::stopPlayBack()
     notifyFunction();
     if (auto midiOutShared = midiOutputDevice.lock())
     {
-        for (int channel = lowestMidiChannel; channel <= highestMidiChannel; ++channel)
+        for (int channel = MidiFacts::lowestChannel; channel <= MidiFacts::highestChannel; ++channel)
             midiOutShared->sendMessageNow(juce::MidiMessage::allNotesOff(channel));
     }
 
@@ -112,7 +109,7 @@ void MidiRecordPlayer::stopRecordingFilePlaying()
     isPlayingFile = false;
     if (auto midiOutShared = midiOutputDevice.lock())
     {
-        for (int channel = lowestMidiChannel; channel <= highestMidiChannel; ++channel)
+        for (int channel = MidiFacts::lowestChannel; channel <= MidiFacts::highestChannel; ++channel)
         {
             midiOutShared->sendMessageNow(juce::MidiMessage::allNotesOff(channel));
         }
@@ -218,7 +215,7 @@ void MidiRecordPlayer::setReverb(int value, int channel)
 {
     if (channel == RecordingDefaults::firstHandChannel)
         reverbFirst = value;
-    else if (channel == secondHandChannel)
+    else if (channel == HandChannels::rightHand)
         reverbSecond = value;
 }
 
@@ -226,7 +223,7 @@ void MidiRecordPlayer::setVolume(int value, int channel)
 {
     if (channel == RecordingDefaults::firstHandChannel)
         volumeFirst = value;
-    else if (channel == secondHandChannel)
+    else if (channel == HandChannels::rightHand)
         volumeSecond = value;
 }
 
@@ -374,7 +371,7 @@ juce::MidiMessage MidiRecordPlayer::remapChannel(const juce::MidiMessage& messag
 
     if (message.getChannel() == RecordingDefaults::firstHandChannel)
         newChannel = recordedFirstHand;
-    else if (message.getChannel() == secondHandChannel)
+    else if (message.getChannel() == HandChannels::rightHand)
         newChannel = recordedSecondHand;
 
     if (message.isNoteOn())

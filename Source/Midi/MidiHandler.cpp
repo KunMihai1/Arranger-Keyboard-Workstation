@@ -2,15 +2,6 @@
 #include "InstrumentHandler.h"
 #include "MidiDevicesDB.h"
 
-namespace MidiNoteRange
-{
-	constexpr int lowestNote  = 0;
-	constexpr int highestNote = 127;
-	constexpr int noteCount   = 128;
-	constexpr int lowestControllerValue  = 0;
-	constexpr int highestControllerValue = 127;
-}
-
 namespace MidiHandlerValues
 {
 	constexpr float silentVelocity = 0.0f;
@@ -58,7 +49,7 @@ void MidiHandler::handleIncomingMidiMessage(juce::MidiInput* source, const juce:
 		int note = message.getNoteNumber();
 
 		const int channel = channelForHand(note);
-		int transposedNote = juce::jlimit(MidiNoteRange::lowestNote, MidiNoteRange::highestNote, note + transposeValue);
+		int transposedNote = juce::jlimit(MidiFacts::lowestNote, MidiFacts::highestNote, note + transposeValue);
 
 		if (note != this->startNoteSetting && note != this->endNoteSetting)
 			feedChordNote(note, true);
@@ -129,7 +120,7 @@ void MidiHandler::handleIncomingMidiMessage(juce::MidiInput* source, const juce:
 	{
 		int note = message.getNoteNumber();
 		const int channel = channelForHand(note);
-		int transposedNote = juce::jlimit(MidiNoteRange::lowestNote, MidiNoteRange::highestNote, note + transposeValue);
+		int transposedNote = juce::jlimit(MidiFacts::lowestNote, MidiFacts::highestNote, note + transposeValue);
 
 		if (note != this->startNoteSetting && note != this->endNoteSetting)
 			feedChordNote(note, false);
@@ -166,7 +157,7 @@ void MidiHandler::getNextMidiBlock(juce::MidiBuffer& destBuffer, int startSample
 void MidiHandler::noteOnKeyboard(int note, juce::uint8 velocity) {
 	bool isPlayable = false;
 	const int channel = channelForHand(note);
-	int transposedNote = juce::jlimit(MidiNoteRange::lowestNote, MidiNoteRange::highestNote, note + transposeValue);
+	int transposedNote = juce::jlimit(MidiFacts::lowestNote, MidiFacts::highestNote, note + transposeValue);
 
 	if (note != this->startNoteSetting && note != this->endNoteSetting)
 		feedChordNote(note, true);
@@ -213,7 +204,7 @@ void MidiHandler::noteOnKeyboard(int note, juce::uint8 velocity) {
 
 void MidiHandler::noteOffKeyboard(int note, juce::uint8 velocity) {
 	const int channel = channelForHand(note);
-	int transposedNote = juce::jlimit(MidiNoteRange::lowestNote, MidiNoteRange::highestNote, note + transposeValue);
+	int transposedNote = juce::jlimit(MidiFacts::lowestNote, MidiFacts::highestNote, note + transposeValue);
 
 	if (note != this->startNoteSetting && note != this->endNoteSetting)
 		feedChordNote(note, false);
@@ -232,7 +223,7 @@ void MidiHandler::noteOffKeyboard(int note, juce::uint8 velocity) {
 
 void MidiHandler::allOffKeyboard()
 {
-	for (int noteNumber {}; noteNumber < MidiNoteRange::noteCount; noteNumber++)
+	for (int noteNumber {}; noteNumber < MidiFacts::noteCount; noteNumber++)
 	{
 		if (midiDevice.currentDeviceUSEDout == nullptr) return;
 
@@ -362,7 +353,7 @@ void MidiHandler::applyInstrumentPreset(int programNumber, std::vector<std::pair
 		channel = HandChannels::rightHand;
 	if (auto midiOut = midiDevice.getDeviceOUT().lock())
 	{
-		for (int noteNumber {}; noteNumber < MidiNoteRange::noteCount; ++noteNumber)
+		for (int noteNumber {}; noteNumber < MidiFacts::noteCount; ++noteNumber)
 			midiOut->sendMessageNow(juce::MidiMessage::noteOff(channel, noteNumber));
 
 		midiOut->sendMessageNow(juce::MidiMessage::programChange(channel, programNumber));
@@ -392,7 +383,7 @@ void MidiHandler::setInternalSynthListening(bool isListening)
 
 void MidiHandler::injectCC(int channel, int ccNumber, int value)
 {
-	injectMidiMessage(juce::MidiMessage::controllerEvent(channel, ccNumber, juce::jlimit(MidiNoteRange::lowestControllerValue, MidiNoteRange::highestControllerValue, value)));
+	injectMidiMessage(juce::MidiMessage::controllerEvent(channel, ccNumber, juce::jlimit(MidiFacts::lowestControllerValue, MidiFacts::highestControllerValue, value)));
 }
 
 void MidiHandler::setPlayableRange(int nrKeys)
