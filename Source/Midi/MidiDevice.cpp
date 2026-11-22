@@ -2,9 +2,41 @@
 #include "InstrumentHandler.h"
 #include "MidiDevicesDB.h"
 
+namespace MidiDeviceValues
+{
+	constexpr int lowestNote  = 0;
+	constexpr int highestNote = 127;
+	constexpr int lowestControllerValue  = 0;
+	constexpr int highestControllerValue = 127;
+	constexpr int lowestMidiChannel  = 1;
+	constexpr int highestMidiChannel = 16;
+	constexpr int noDeviceIndex = 0;
+	constexpr int defaultHandLevel = 50;            // volume/reverb/... asked for a channel that is not a hand
+	constexpr bool defaultSustainToggle = true;
+	constexpr int inputReopenPauseMs = 50;           // let the driver release the old input first
+	constexpr int noInputChannels  = 0;
+	constexpr int stereoOutputChannels = 2;
 
-MidiDevice::MidiDevice() : currentDeviceIDin{ 0 }, currentDeviceIDout{ 0 }, currentDeviceIDAudioOUT{ 0 }, identifier { "" }, minNote{ 0 }, maxNote{ 127 } {
-	this->currentDevicesIN.push_back("PC Keyboard");
+	// USB identifiers look like "...vid_07cf&pid_6803...": a tag followed by four hex digits.
+	const juce::String productIdTag = "pid_";
+	const juce::String vendorIdTag  = "vid_";
+	constexpr int usbIdTagLength = 4;
+	constexpr int usbIdEnd       = 8;               // tag + four hex digits
+	constexpr int tagNotFound    = -1;
+	constexpr int noteSpanIncludesBothEnds = 1;   // keys from lowest to highest note, both counted
+
+	const juce::String noDevicesFound            = "No devices found!";
+	const juce::String noMidiInputDevicesFound   = "No MIDI INPUT devices found!";
+	const juce::String noMidiOutputDevicesFound  = "No MIDI OUTPUT devices found!";
+	const juce::String noAudioOutputDevicesFound = "No AUDIO OUTPUT devices found!";
+	const juce::String deviceTypeSeparator       = ": ";
+}
+
+using namespace MidiDeviceValues;
+
+
+MidiDevice::MidiDevice() : currentDeviceIDin{ noDeviceIndex }, currentDeviceIDout{ noDeviceIndex }, currentDeviceIDAudioOUT{ noDeviceIndex }, identifier {}, minNote{ lowestNote }, maxNote{ highestNote } {
+	this->currentDevicesIN.push_back(DeviceNames::pcKeyboard.toStdString());
 	styleSettings = std::make_unique<StyleSettings>();
 }
 
@@ -35,7 +67,7 @@ std::vector<std::pair<juce::String, juce::String>> MidiDevice::getAvailableInput
 	if (vec.empty())
 	{
 		vec.clear();
-		vec.push_back({ "No devices found!",""});
+		vec.push_back({ noDevicesFound, {} });
 	}
 	return vec;
 }
@@ -47,28 +79,28 @@ void MidiDevice::getAvailableDevicesMidiIN(std::vector<std::string>& devices)
 	if (devices.empty())
 	{
 		devices.clear();
-		devices.push_back("No MIDI INPUT devices found!");
+		devices.push_back(noMidiInputDevicesFound.toStdString());
 	}
 }
 
 void MidiDevice::getAvailableDevicesMidiOUT(std::vector<std::string>& devices) {
-	refreshDeviceList(1);
+	refreshDeviceList(DeviceListChoice::midiOutput);
 	devices = currentDevicesOUT;
 	if (devices.empty())
 	{
 		devices.clear();
-		devices.push_back("No MIDI OUTPUT devices found!");
+		devices.push_back(noMidiOutputDevicesFound.toStdString());
 	}
 }
 
 void MidiDevice::getAvailableAudioDevicesOUT(std::vector<std::string>& devices)
 {
-	refreshDeviceList(2);
+	refreshDeviceList(DeviceListChoice::audioOutput);
 	devices = currentDevicesAudioOUT;
 	if (devices.empty())
 	{
 		devices.clear();
-		devices.push_back("No AUDIO OUTPUT devices found!");
+		devices.push_back(noAudioOutputDevicesFound.toStdString());
 	}
 }
 
@@ -76,14 +108,14 @@ void MidiDevice::getAvailableAudioDevicesOUT(std::vector<std::string>& devices)
 
 juce::String MidiDevice::getDeviceNameBasedOnIndex(int Index, int choice)
 {
-	if (choice == 0)
+	if (choice == DeviceListChoice::midiInput)
 	{
-		if (Index >= 0 && Index < this->currentDevicesIN.size())
+		if (Index >= int {} && Index < this->currentDevicesIN.size())
 			return juce::String(this->currentDevicesIN[Index]);
 	}
-	else if (choice == 1)
+	else if (choice == DeviceListChoice::midiOutput)
 	{
-		if (Index >= 0 && Index < this->currentDevicesOUT.size())
+		if (Index >= int {} && Index < this->currentDevicesOUT.size())
 			return juce::String(this->currentDevicesOUT[Index]);
 	}
 	return juce::String();
@@ -91,25 +123,25 @@ juce::String MidiDevice::getDeviceNameBasedOnIndex(int Index, int choice)
 
 juce::String MidiDevice::getDeviceIdentifierBasedOnIndex(int Index, int choice)
 {
-	if (choice == 0)
+	if (choice == DeviceListChoice::midiInput)
 	{
-		if ((Index >= 0 && Index < this->currentDevicesIN.size()))
+		if ((Index >= int {} && Index < this->currentDevicesIN.size()))
 		{
-			for (int i = 0; i < this->CachedDevicesIN.size(); i++)
+			for (int deviceIndex {}; deviceIndex < this->CachedDevicesIN.size(); deviceIndex++)
 			{
-				if (i == Index)
-					return juce::String(this->CachedDevicesIN[i].identifier);
+				if (deviceIndex == Index)
+					return juce::String(this->CachedDevicesIN[deviceIndex].identifier);
 			}
 		}
 	}
-	else if (choice == 1)
+	else if (choice == DeviceListChoice::midiOutput)
 	{
-		if ((Index >= 0 && Index < this->currentDevicesOUT.size()))
+		if ((Index >= int {} && Index < this->currentDevicesOUT.size()))
 		{
-			for (int i = 0; i < this->CachedDevicesOUT.size(); i++)
+			for (int deviceIndex {}; deviceIndex < this->CachedDevicesOUT.size(); deviceIndex++)
 			{
-				if (i == Index)
-					return juce::String(this->CachedDevicesOUT[i].identifier);
+				if (deviceIndex == Index)
+					return juce::String(this->CachedDevicesOUT[deviceIndex].identifier);
 			}
 		}
 	}
@@ -119,44 +151,44 @@ juce::String MidiDevice::getDeviceIdentifierBasedOnIndex(int Index, int choice)
 
 void MidiDevice::refreshDeviceList(int choice)
 {
-	if (choice == 0)
+	if (choice == DeviceListChoice::midiInput)
 	{
 		juce::Array<juce::MidiDeviceInfo> newDevices = juce::MidiInput::getAvailableDevices();
 		if (newDevices != this->CachedDevicesIN)
 		{
 			this->CachedDevicesIN = newDevices;
 			this->currentDevicesIN.clear();
-			for (int i = 0; i < newDevices.size(); i++)
+			for (int deviceIndex {}; deviceIndex < newDevices.size(); deviceIndex++)
 			{
-				if (newDevices[i].name.isNotEmpty())
-					this->currentDevicesIN.push_back(newDevices[i].name.toStdString());
+				if (newDevices[deviceIndex].name.isNotEmpty())
+					this->currentDevicesIN.push_back(newDevices[deviceIndex].name.toStdString());
 			}
 			this->devicesChange = true;
-			this->currentDevicesIN.push_back("PC Keyboard");
+			this->currentDevicesIN.push_back(DeviceNames::pcKeyboard.toStdString());
 			this->deviceCheckedForUpdateAtLeastOnce = false;
 		}
 		else
 			this->devicesChange = false;
 
 	}
-	else if (choice == 1)
+	else if (choice == DeviceListChoice::midiOutput)
 	{
 		juce::Array<juce::MidiDeviceInfo> newDevices = juce::MidiOutput::getAvailableDevices();
 		if (newDevices != this->CachedDevicesOUT)
 		{
 			this->CachedDevicesOUT = newDevices;
 			this->currentDevicesOUT.clear();
-			for (int i = 0; i < newDevices.size(); i++)
+			for (int deviceIndex {}; deviceIndex < newDevices.size(); deviceIndex++)
 			{
-				if (newDevices[i].name.isNotEmpty())
-					this->currentDevicesOUT.push_back(newDevices[i].name.toStdString());
+				if (newDevices[deviceIndex].name.isNotEmpty())
+					this->currentDevicesOUT.push_back(newDevices[deviceIndex].name.toStdString());
 			}
 			this->devicesChange = true;
 		}
 		else
 			this->devicesChange = false;
 	}
-	else if (choice == 2)
+	else if (choice == DeviceListChoice::audioOutput)
 	{
 		if (!audioDeviceTypesInitialized)
 		{
@@ -183,7 +215,7 @@ void MidiDevice::refreshDeviceList(int choice)
 					continue;
 
 				newDevices.push_back({ typeName, outputName });
-				newDeviceNames.push_back((typeName + ": " + outputName).toStdString());
+				newDeviceNames.push_back((typeName + deviceTypeSeparator + outputName).toStdString());
 			}
 		}
 
@@ -201,14 +233,14 @@ void MidiDevice::refreshDeviceList(int choice)
 
 void MidiDevice::refreshDeviceListNew(std::vector<std::pair<juce::String, juce::String>>& vec, int choice)
 {
-	if (choice == 0)
+	if (choice == DeviceListChoice::midiInput)
 	{
 		juce::Array<juce::MidiDeviceInfo> newDevices = juce::MidiInput::getAvailableDevices();
 		vec.clear();
-		for (int i = 0; i < newDevices.size(); i++)
+		for (int deviceIndex {}; deviceIndex < newDevices.size(); deviceIndex++)
 		{
-			if (newDevices[i].name.isNotEmpty())
-				vec.push_back({ newDevices[i].name,newDevices[i].identifier });
+			if (newDevices[deviceIndex].name.isNotEmpty())
+				vec.push_back({ newDevices[deviceIndex].name,newDevices[deviceIndex].identifier });
 		}
 
 	}
@@ -226,17 +258,17 @@ void MidiDevice::set_maxNote(const int maxNoteReceived)
 
 juce::String MidiDevice::extractPID(const juce::String& identifierReceived)
 {
-	int pidStart = identifierReceived.indexOf("pid_");
-	if (pidStart != -1)
-		return identifierReceived.substring(pidStart + 4, pidStart + 8);
+	int pidStart = identifierReceived.indexOf(productIdTag);
+	if (pidStart != tagNotFound)
+		return identifierReceived.substring(pidStart + usbIdTagLength, pidStart + usbIdEnd);
 	return juce::String();
 }
 
 juce::String MidiDevice::extractVID(const juce::String& identifierReceived)
 {
-	int vidStart = identifierReceived.indexOf("vid_");
-	if (vidStart != -1)
-		return identifierReceived.substring(vidStart + 4, vidStart + 8);
+	int vidStart = identifierReceived.indexOf(vendorIdTag);
+	if (vidStart != tagNotFound)
+		return identifierReceived.substring(vidStart + usbIdTagLength, vidStart + usbIdEnd);
 	return juce::String();
 }
 
@@ -277,12 +309,12 @@ int MidiDevice::getNrInputActualDevices()
 
 int MidiDevice::getNrKeysAfterInitialized()
 {
-	return maxNote - minNote+1;
+	return maxNote - minNote + noteSpanIncludesBothEnds;
 }
 
 bool MidiDevice::deviceOpenIN(int DeviceIndex, juce::MidiInputCallback* CallBack)
 {
-	if (DeviceIndex < 0 || DeviceIndex >= this->currentDevicesIN.size())
+	if (DeviceIndex < int {} || DeviceIndex >= this->currentDevicesIN.size())
 	{
 		this->isdeviceOpenIN = false;
 		return false;
@@ -292,7 +324,7 @@ bool MidiDevice::deviceOpenIN(int DeviceIndex, juce::MidiInputCallback* CallBack
 	{
 		currentDeviceUSEDin->stop();
 		currentDeviceUSEDin.reset();  
-		juce::Thread::sleep(50);      
+		juce::Thread::sleep(inputReopenPauseMs);      
 	}
 
 	juce::String identifierReceived = getDeviceIdentifierBasedOnIndex(DeviceIndex);
@@ -311,12 +343,12 @@ bool MidiDevice::deviceOpenIN(int DeviceIndex, juce::MidiInputCallback* CallBack
 }
 
 bool MidiDevice::deviceOpenOUT(int DeviceIndex) {
-	if (DeviceIndex < 0 || DeviceIndex >= this->currentDevicesOUT.size())
+	if (DeviceIndex < int {} || DeviceIndex >= this->currentDevicesOUT.size())
 	{
 		this->isdeviceOpenOUT = false;
 		return false;
 	}
-	juce::String identifierReceived = getDeviceIdentifierBasedOnIndex(DeviceIndex, 1);
+	juce::String identifierReceived = getDeviceIdentifierBasedOnIndex(DeviceIndex, DeviceListChoice::midiOutput);
 	auto uniqueOut = juce::MidiOutput::openDevice(identifierReceived);
 	currentDeviceUSEDout = std::shared_ptr<juce::MidiOutput>(std::move(uniqueOut));
 	if (currentDeviceUSEDout != nullptr)
@@ -330,9 +362,9 @@ bool MidiDevice::deviceOpenOUT(int DeviceIndex) {
 
 bool MidiDevice::deviceOpenAudioOUT(int DeviceIndex)
 {
-	refreshDeviceList(2);
+	refreshDeviceList(DeviceListChoice::audioOutput);
 
-	if (DeviceIndex < 0 || DeviceIndex >= this->CachedDevicesAudioOUT.size())
+	if (DeviceIndex < int {} || DeviceIndex >= this->CachedDevicesAudioOUT.size())
 	{
 		this->isdeviceOpenAudioOUT = false;
 		return false;
@@ -352,7 +384,7 @@ bool MidiDevice::deviceOpenAudioOUT(int DeviceIndex)
 	setup.useDefaultInputChannels = false;
 	setup.useDefaultOutputChannels = true;
 
-	const auto result = audioDeviceManager.initialise(0, 2, nullptr, false, {}, &setup);
+	const auto result = audioDeviceManager.initialise(noInputChannels, stereoOutputChannels, nullptr, false, {}, &setup);
 
 	if (result.isNotEmpty() || audioDeviceManager.getCurrentAudioDevice() == nullptr)
 	{
@@ -450,269 +482,269 @@ std::weak_ptr<juce::MidiOutput> MidiDevice::getDeviceOUT() const
 
 void MidiDevice::setVolume(const int vValue, int channel) 
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		this->styleSettings->firstHand.volume = vValue;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		this->styleSettings->secondHand.volume = vValue;
 }
 
 int MidiDevice::getVolume(int channel) const
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		return this->styleSettings->firstHand.volume;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		return this->styleSettings->secondHand.volume;
 
-	return 50.0;
+	return defaultHandLevel;
 }
 
 void MidiDevice::setReverb(const int rValue, int channel) 
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		this->styleSettings->firstHand.reverb = rValue;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		this->styleSettings->secondHand.reverb = rValue;
 }
 
 int MidiDevice::getReverb(int channel) const
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		return this->styleSettings->firstHand.reverb;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		return this->styleSettings->secondHand.reverb;
 
-	return 50.0;
+	return defaultHandLevel;
 }
 
 void MidiDevice::setBrightness(const int rValue, int channel)
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		this->styleSettings->firstHand.brightness = rValue;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		this->styleSettings->secondHand.brightness = rValue;
 }
 
 int MidiDevice::getBrightness(int channel) const
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		return this->styleSettings->firstHand.brightness;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		return this->styleSettings->secondHand.brightness;
 
-	return 50.0;
+	return defaultHandLevel;
 }
 
 void MidiDevice::setExpression(const int rValue, int channel)
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		this->styleSettings->firstHand.expression = rValue;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		this->styleSettings->secondHand.expression = rValue;
 }
 
 int MidiDevice::getExpression(int channel) const
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		return this->styleSettings->firstHand.expression;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		return this->styleSettings->secondHand.expression;
 
-	return 50.0;
+	return defaultHandLevel;
 }
 
 void MidiDevice::setChorus(const int rValue, int channel)
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		this->styleSettings->firstHand.chorus = rValue;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		this->styleSettings->secondHand.chorus = rValue;
 }
 
 int MidiDevice::getChorus(int channel) const
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		return this->styleSettings->firstHand.chorus;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		return this->styleSettings->secondHand.chorus;
 
-	return 50.0;
+	return defaultHandLevel;
 }
 
 void MidiDevice::setResonance(const int rValue, int channel)
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		this->styleSettings->firstHand.resonance = rValue;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		this->styleSettings->secondHand.resonance = rValue;
 }
 
 int MidiDevice::getResonance(int channel) const
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		return this->styleSettings->firstHand.resonance;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		return this->styleSettings->secondHand.resonance;
 
-	return 50.0;
+	return defaultHandLevel;
 }
 
 void MidiDevice::setSustainToggle(const bool rValue, int channel)
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		this->styleSettings->firstHand.sustainToggle = rValue;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		this->styleSettings->secondHand.sustainToggle = rValue;
 }
 
 bool MidiDevice::getSustainToggle(int channel) const
 {
-	if (channel == 1)
+	if (channel == HandChannels::leftHand)
 		return this->styleSettings->firstHand.sustainToggle;
-	else if (channel == 16)
+	else if (channel == HandChannels::rightHand)
 		return this->styleSettings->secondHand.sustainToggle;
 
-	return 1;
+	return defaultSustainToggle;
 }
 
 
 void MidiDevice::setAttack(const int rValue, int channel)
 {
-	if (channel == 1) styleSettings->firstHand.attack = rValue;
-	else if (channel == 16) styleSettings->secondHand.attack = rValue;
+	if (channel == HandChannels::leftHand) styleSettings->firstHand.attack = rValue;
+	else if (channel == HandChannels::rightHand) styleSettings->secondHand.attack = rValue;
 }
 
 int MidiDevice::getAttack(int channel) const
 {
-	if (channel == 1) return styleSettings->firstHand.attack;
-	else if (channel == 16) return styleSettings->secondHand.attack;
-	return 0;
+	if (channel == HandChannels::leftHand) return styleSettings->firstHand.attack;
+	else if (channel == HandChannels::rightHand) return styleSettings->secondHand.attack;
+	return {};
 }
 
 
 void MidiDevice::setDecay(const int rValue, int channel)
 {
-	if (channel == 1) styleSettings->firstHand.decay = rValue;
-	else if (channel == 16) styleSettings->secondHand.decay = rValue;
+	if (channel == HandChannels::leftHand) styleSettings->firstHand.decay = rValue;
+	else if (channel == HandChannels::rightHand) styleSettings->secondHand.decay = rValue;
 }
 
 int MidiDevice::getDecay(int channel) const
 {
-	if (channel == 1) return styleSettings->firstHand.decay;
-	else if (channel == 16) return styleSettings->secondHand.decay;
-	return 0;
+	if (channel == HandChannels::leftHand) return styleSettings->firstHand.decay;
+	else if (channel == HandChannels::rightHand) return styleSettings->secondHand.decay;
+	return {};
 }
 
 
 void MidiDevice::setRelease(const int rValue, int channel)
 {
-	if (channel == 1) styleSettings->firstHand.release = rValue;
-	else if (channel == 16) styleSettings->secondHand.release = rValue;
+	if (channel == HandChannels::leftHand) styleSettings->firstHand.release = rValue;
+	else if (channel == HandChannels::rightHand) styleSettings->secondHand.release = rValue;
 }
 
 int MidiDevice::getRelease(int channel) const
 {
-	if (channel == 1) return styleSettings->firstHand.release;
-	else if (channel == 16) return styleSettings->secondHand.release;
-	return 0;
+	if (channel == HandChannels::leftHand) return styleSettings->firstHand.release;
+	else if (channel == HandChannels::rightHand) return styleSettings->secondHand.release;
+	return {};
 }
 
 
 void MidiDevice::setVibrato(const int rValue, int channel)
 {
-	if (channel == 1) styleSettings->firstHand.vibrato = rValue;
-	else if (channel == 16) styleSettings->secondHand.vibrato = rValue;
+	if (channel == HandChannels::leftHand) styleSettings->firstHand.vibrato = rValue;
+	else if (channel == HandChannels::rightHand) styleSettings->secondHand.vibrato = rValue;
 }
 
 int MidiDevice::getVibrato(int channel) const
 {
-	if (channel == 1) return styleSettings->firstHand.vibrato;
-	else if (channel == 16) return styleSettings->secondHand.vibrato;
-	return 0;
+	if (channel == HandChannels::leftHand) return styleSettings->firstHand.vibrato;
+	else if (channel == HandChannels::rightHand) return styleSettings->secondHand.vibrato;
+	return {};
 }
 
 
 
 void MidiDevice::setDelay(const int rValue, int channel)
 {
-	if (channel == 1) styleSettings->firstHand.delay = rValue;
-	else if (channel == 16) styleSettings->secondHand.delay = rValue;
+	if (channel == HandChannels::leftHand) styleSettings->firstHand.delay = rValue;
+	else if (channel == HandChannels::rightHand) styleSettings->secondHand.delay = rValue;
 }
 
 int MidiDevice::getDelay(int channel) const
 {
-	if (channel == 1) return styleSettings->firstHand.delay;
-	else if (channel == 16) return styleSettings->secondHand.delay;
-	return 0;
+	if (channel == HandChannels::leftHand) return styleSettings->firstHand.delay;
+	else if (channel == HandChannels::rightHand) return styleSettings->secondHand.delay;
+	return {};
 }
 
 
 void MidiDevice::setPan(const int rValue, int channel)
 {
-	if (channel == 1) styleSettings->firstHand.pan = rValue;
-	else if (channel == 16) styleSettings->secondHand.pan = rValue;
+	if (channel == HandChannels::leftHand) styleSettings->firstHand.pan = rValue;
+	else if (channel == HandChannels::rightHand) styleSettings->secondHand.pan = rValue;
 }
 
 int MidiDevice::getPan(int channel) const
 {
-	if (channel == 1) return styleSettings->firstHand.pan;
-	else if (channel == 16) return styleSettings->secondHand.pan;
-	return 0;
+	if (channel == HandChannels::leftHand) return styleSettings->firstHand.pan;
+	else if (channel == HandChannels::rightHand) return styleSettings->secondHand.pan;
+	return {};
 }
 
 
 void MidiDevice::setDistortion(const int rValue, int channel)
 {
-	if (channel == 1) styleSettings->firstHand.distortion = rValue;
-	else if (channel == 16) styleSettings->secondHand.distortion = rValue;
+	if (channel == HandChannels::leftHand) styleSettings->firstHand.distortion = rValue;
+	else if (channel == HandChannels::rightHand) styleSettings->secondHand.distortion = rValue;
 }
 
 int MidiDevice::getDistortion(int channel) const
 {
-	if (channel == 1) return styleSettings->firstHand.distortion;
-	else if (channel == 16) return styleSettings->secondHand.distortion;
-	return 0;
+	if (channel == HandChannels::leftHand) return styleSettings->firstHand.distortion;
+	else if (channel == HandChannels::rightHand) return styleSettings->secondHand.distortion;
+	return {};
 }
 
 
 void MidiDevice::setFilterTrack(const int rValue, int channel)
 {
-	if (channel == 1) styleSettings->firstHand.filterTrack = rValue;
-	else if (channel == 16) styleSettings->secondHand.filterTrack = rValue;
+	if (channel == HandChannels::leftHand) styleSettings->firstHand.filterTrack = rValue;
+	else if (channel == HandChannels::rightHand) styleSettings->secondHand.filterTrack = rValue;
 }
 
 int MidiDevice::getFilterTrack(int channel) const
 {
-	if (channel == 1) return styleSettings->firstHand.filterTrack;
-	else if (channel == 16) return styleSettings->secondHand.filterTrack;
-	return 0;
+	if (channel == HandChannels::leftHand) return styleSettings->firstHand.filterTrack;
+	else if (channel == HandChannels::rightHand) return styleSettings->secondHand.filterTrack;
+	return {};
 }
 
 
 void MidiDevice::setTremolo(const int rValue, int channel)
 {
-	if (channel == 1) styleSettings->firstHand.tremolo = rValue;
-	else if (channel == 16) styleSettings->secondHand.tremolo = rValue;
+	if (channel == HandChannels::leftHand) styleSettings->firstHand.tremolo = rValue;
+	else if (channel == HandChannels::rightHand) styleSettings->secondHand.tremolo = rValue;
 }
 
 int MidiDevice::getTremolo(int channel) const
 {
-	if (channel == 1) return styleSettings->firstHand.tremolo;
-	else if (channel == 16) return styleSettings->secondHand.tremolo;
-	return 0;
+	if (channel == HandChannels::leftHand) return styleSettings->firstHand.tremolo;
+	else if (channel == HandChannels::rightHand) return styleSettings->secondHand.tremolo;
+	return {};
 }
 
 
 void MidiDevice::setRandomMod(const int rValue, int channel)
 {
-	if (channel == 1) styleSettings->firstHand.randomMod = rValue;
-	else if (channel == 16) styleSettings->secondHand.randomMod = rValue;
+	if (channel == HandChannels::leftHand) styleSettings->firstHand.randomMod = rValue;
+	else if (channel == HandChannels::rightHand) styleSettings->secondHand.randomMod = rValue;
 }
 
 int MidiDevice::getRandomMod(int channel) const
 {
-	if (channel == 1) return styleSettings->firstHand.randomMod;
-	else if (channel == 16) return styleSettings->secondHand.randomMod;
-	return 0;
+	if (channel == HandChannels::leftHand) return styleSettings->firstHand.randomMod;
+	else if (channel == HandChannels::rightHand) return styleSettings->secondHand.randomMod;
+	return {};
 }
 
 
@@ -730,10 +762,10 @@ int MidiDevice::get_maxNote() const
 void MidiDevice::sendMidiCC(int channel, int ccNumber, int value)
 {
 	juce::uint8 midiValue = static_cast<juce::uint8>(
-		juce::jlimit(0, 127, value)
+		juce::jlimit(lowestControllerValue, highestControllerValue, value)
 		);
 
-	if (channel < 1 || channel > 16)
+	if (channel < lowestMidiChannel || channel > highestMidiChannel)
 		return;
 
 	// Callers check isOpenOUT() first; a failed open leaves no device, and that must not crash.

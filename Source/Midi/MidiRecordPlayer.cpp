@@ -10,12 +10,36 @@
 
 #include "MidiRecordPlayer.h"
 
-MidiRecordPlayer::MidiRecordPlayer(): programLeftHand{0}, programRightHand{0}
+namespace RecordPlayerValues
+{
+    constexpr int    secondHandChannel   = 16;   // the right hand plays on MIDI channel 16
+    constexpr int    recordedFirstHand   = 14;   // recordings move the hands to their own channels
+    constexpr int    recordedSecondHand  = 15;
+    constexpr int    lowestMidiChannel   = 1;
+    constexpr int    highestMidiChannel  = 16;
+    constexpr double secondsPerMillisecond = 0.001;
+    constexpr int    playbackTimerMs     = 1;
+    constexpr size_t tooFewEventsToUse   = 1;    // a recording needs more than one event to play or save
+    constexpr double secondsPerMinute    = 60.0;
+    constexpr int    microsecondsPerMinute = 60000000;
+    constexpr double fileStartTick       = 0;
+    const juce::String leftHandChoice  = "left";
+    const juce::String rightHandChoice = "right";
+    const juce::String nothingToSave       = "No recorded events to save!";
+    const juce::String cannotOpenForSaving = "Failed to open file for saving!";
+    const juce::String cannotParseMidi     = "Failed to parse MIDI data.";
+    const juce::String fileDoesNotExist    = "Selected file does not exist.";
+    const juce::String cannotOpenForReading = "Failed to open file for reading.";
+}
+
+using namespace RecordPlayerValues;
+
+MidiRecordPlayer::MidiRecordPlayer(): programLeftHand{}, programRightHand{}
 {
 
 }
 
-MidiRecordPlayer::MidiRecordPlayer(std::weak_ptr<juce::MidiOutput> out): midiOutputDevice{out}, programLeftHand{0}, programRightHand{0}
+MidiRecordPlayer::MidiRecordPlayer(std::weak_ptr<juce::MidiOutput> out): midiOutputDevice{out}, programLeftHand{}, programRightHand{}
 {
 }
 
@@ -24,36 +48,36 @@ void MidiRecordPlayer::startRecording()
     allEventsPlayed.clear();
     allEventsPlayedFile.clear();
     applyPresetFunction();
-    recordStartTime = juce::Time::getMillisecondCounterHiRes() * 0.001;
+    recordStartTime = juce::Time::getMillisecondCounterHiRes() * secondsPerMillisecond;
     isRecording = true;
 }
 
 bool MidiRecordPlayer::stopRecording()
 {
     if (isRecording == false) //looks unecessary but it's actually necessary
-        return 0;
+        return false;
 
     isRecording = false;
-    return 1;
+    return true;
 }
 
 bool MidiRecordPlayer::startPlayBack()
 {
-    if (allEventsPlayed.size()<=1)
+    if (allEventsPlayed.size() <= tooFewEventsToUse)
     {
         notifyFunction();
-        return 0;
+        return false;
     }
     if (isPlaying)
         stopPlayBack();
     else if (isPlayingFile)
         stopRecordingFilePlaying();
 
-    playBackStartTime = juce::Time::getMillisecondCounterHiRes() * 0.001;
+    playBackStartTime = juce::Time::getMillisecondCounterHiRes() * secondsPerMillisecond;
     isPlaying = true;
-    nextEventIndex = 0;
-    startTimer(1);
-    return 1;
+    nextEventIndex = {};
+    startTimer(playbackTimerMs);
+    return true;
 }
 
 void MidiRecordPlayer::stopPlayBack()
@@ -62,7 +86,7 @@ void MidiRecordPlayer::stopPlayBack()
     notifyFunction();
     if (auto midiOutShared = midiOutputDevice.lock())
     {
-        for (int channel = 1; channel <= 16; ++channel)
+        for (int channel = lowestMidiChannel; channel <= highestMidiChannel; ++channel)
             midiOutShared->sendMessageNow(juce::MidiMessage::allNotesOff(channel));
     }
 
@@ -78,9 +102,9 @@ void MidiRecordPlayer::startRecordingFilePlaying()
     else if (isPlaying)
         stopPlayBack();
     isPlayingFile = true;
-    nextEventFileIndex = 0;
-    playBackStartTime = juce::Time::getMillisecondCounterHiRes() * 0.001;
-    startTimer(1);
+    nextEventFileIndex = {};
+    playBackStartTime = juce::Time::getMillisecondCounterHiRes() * secondsPerMillisecond;
+    startTimer(playbackTimerMs);
 }
 
 void MidiRecordPlayer::stopRecordingFilePlaying()
@@ -88,7 +112,7 @@ void MidiRecordPlayer::stopRecordingFilePlaying()
     isPlayingFile = false;
     if (auto midiOutShared = midiOutputDevice.lock())
     {
-        for (int channel = 1; channel <= 16; ++channel)
+        for (int channel = lowestMidiChannel; channel <= highestMidiChannel; ++channel)
         {
             midiOutShared->sendMessageNow(juce::MidiMessage::allNotesOff(channel));
         }
@@ -104,11 +128,11 @@ void MidiRecordPlayer::handleIncomingMessage(const juce::MidiMessage& message)
 
     juce::MidiMessage newMessage = remapChannel(message);
 
-    double now = juce::Time::getMillisecondCounterHiRes() * 0.001;
-    RecordedEvent ev{ newMessage,now - recordStartTime };
+    double now = juce::Time::getMillisecondCounterHiRes() * secondsPerMillisecond;
+    RecordedEvent recordedEvent{ newMessage,now - recordStartTime };
 
-    const juce::SpinLock::ScopedLockType sl(lock);
-    allEventsPlayed.push_back(ev);
+    const juce::SpinLock::ScopedLockType eventsLock(lock);
+    allEventsPlayed.push_back(recordedEvent);
 }
 
 void MidiRecordPlayer::timerCallback()
@@ -117,28 +141,28 @@ void MidiRecordPlayer::timerCallback()
     {
         return;
     }
-    double elapsedTime = juce::Time::getMillisecondCounterHiRes() * 0.001- playBackStartTime;
+    double elapsedTime = juce::Time::getMillisecondCounterHiRes() * secondsPerMillisecond- playBackStartTime;
 
     if (isPlaying)
     {
         while (true)
         {
-            RecordedEvent ev;
+            RecordedEvent dueEvent;
             {
-                const juce::SpinLock::ScopedLockType sl(lock);
+                const juce::SpinLock::ScopedLockType eventsLock(lock);
                 if (nextEventIndex >= allEventsPlayed.size() ||
                     allEventsPlayed[nextEventIndex].timeFromStart > elapsedTime)
                     break;
 
-                ev = allEventsPlayed[nextEventIndex];
+                dueEvent = allEventsPlayed[nextEventIndex];
                 nextEventIndex++;
             }
 
             if (auto midiOutShared = midiOutputDevice.lock())
-                midiOutShared->sendMessageNow(ev.message);
+                midiOutShared->sendMessageNow(dueEvent.message);
 
             if (onSfzMessage)
-                onSfzMessage(ev.message);
+                onSfzMessage(dueEvent.message);
         }
 
         if (nextEventIndex >= allEventsPlayed.size())
@@ -149,22 +173,22 @@ void MidiRecordPlayer::timerCallback()
     {
         while (true)
         {
-            RecordedEvent ev;
+            RecordedEvent dueEvent;
             {
-                const juce::SpinLock::ScopedLockType sl(lock);
+                const juce::SpinLock::ScopedLockType eventsLock(lock);
                 if (nextEventFileIndex >= allEventsPlayedFile.size() ||
                     allEventsPlayedFile[nextEventFileIndex].timeFromStart > elapsedTime)
                     break;
 
-                ev = allEventsPlayedFile[nextEventFileIndex];
+                dueEvent = allEventsPlayedFile[nextEventFileIndex];
                 nextEventFileIndex++;
             }
 
             if (auto midiOutShared = midiOutputDevice.lock())
-                midiOutShared->sendMessageNow(ev.message);
+                midiOutShared->sendMessageNow(dueEvent.message);
 
             if (onSfzMessage)
-                onSfzMessage(ev.message);
+                onSfzMessage(dueEvent.message);
         }
 
         if (nextEventFileIndex >= allEventsPlayedFile.size())
@@ -179,9 +203,9 @@ void MidiRecordPlayer::setOutputDevice(std::weak_ptr<juce::MidiOutput> outputDev
 
 void MidiRecordPlayer::setProgarmNumber(int newProgram, const juce::String& choice)
 {
-    if (choice.toLowerCase() == "left")
+    if (choice.toLowerCase() == leftHandChoice)
         programLeftHand = newProgram;
-    else if (choice.toLowerCase() == "right")
+    else if (choice.toLowerCase() == rightHandChoice)
         programRightHand = newProgram;
 }
 
@@ -192,17 +216,17 @@ void MidiRecordPlayer::setInitialProgram(int value)
 
 void MidiRecordPlayer::setReverb(int value, int channel)
 {
-    if (channel == 1)
+    if (channel == RecordingDefaults::firstHandChannel)
         reverbFirst = value;
-    else if (channel == 16)
+    else if (channel == secondHandChannel)
         reverbSecond = value;
 }
 
 void MidiRecordPlayer::setVolume(int value, int channel)
 {
-    if (channel == 1)
+    if (channel == RecordingDefaults::firstHandChannel)
         volumeFirst = value;
-    else if (channel == 16)
+    else if (channel == secondHandChannel)
         volumeSecond = value;
 }
 
@@ -218,9 +242,9 @@ bool MidiRecordPlayer::getIsPlaying()
 
 bool MidiRecordPlayer::writeRecordingToStream(juce::OutputStream& outputStream, juce::String& errorMsg, double tempo)
 {
-    if (allEventsPlayed.size() <= 1)
+    if (allEventsPlayed.size() <= tooFewEventsToUse)
     {
-        errorMsg = "No recorded events to save!";
+        errorMsg = nothingToSave;
         return false;
     }
 
@@ -230,12 +254,12 @@ bool MidiRecordPlayer::writeRecordingToStream(juce::OutputStream& outputStream, 
 
     juce::MidiMessageSequence sequence;
 
-    const double secondsPerBeat = 60.0 / tempo;
+    const double secondsPerBeat = secondsPerMinute / tempo;
     const double ticksPerSecond = ticksPerQuarterNote / secondsPerBeat;
-    const int microsecondsPerQuarterNote = static_cast<int>(60000000 / tempo);
+    const int microsecondsPerQuarterNote = static_cast<int>(microsecondsPerMinute / tempo);
 
     juce::MidiMessageSequence tempoSequence;
-    tempoSequence.addEvent(juce::MidiMessage::tempoMetaEvent(microsecondsPerQuarterNote), 0);
+    tempoSequence.addEvent(juce::MidiMessage::tempoMetaEvent(microsecondsPerQuarterNote), fileStartTick);
 
     midiFile.addTrack(tempoSequence);
 
@@ -253,16 +277,16 @@ bool MidiRecordPlayer::writeRecordingToStream(juce::OutputStream& outputStream, 
 
 bool MidiRecordPlayer::saveRecordingToFile(const juce::File& fileToSaveTo, juce::String& errorMsg, double tempo)
 {
-    if (allEventsPlayed.size() <= 1)
+    if (allEventsPlayed.size() <= tooFewEventsToUse)
     {
-        errorMsg = "No recorded events to save!";
+        errorMsg = nothingToSave;
         return false;
     }
 
     juce::FileOutputStream outputStream(fileToSaveTo);
     if (!outputStream.openedOk())
     {
-        errorMsg = "Failed to open file for saving!";
+        errorMsg = cannotOpenForSaving;
         return false;
     }
     return writeRecordingToStream(outputStream, errorMsg, tempo);
@@ -273,22 +297,22 @@ bool MidiRecordPlayer::readRecordingFromStream(juce::InputStream& inputStream, j
     juce::MidiFile midiFile;
     if (!midiFile.readFrom(inputStream))
     {
-        errorMsg = "Failed to parse MIDI data.";
+        errorMsg = cannotParseMidi;
         return false;
     }
 
     midiFile.convertTimestampTicksToSeconds();
     allEventsPlayedFile.clear();
     const int numTracks = midiFile.getNumTracks();
-    for (int trackIndex = 0; trackIndex < numTracks; ++trackIndex)
+    for (int trackIndex {}; trackIndex < numTracks; ++trackIndex)
     {
         auto* sequence = midiFile.getTrack(trackIndex);
         if (sequence == nullptr)
             continue;
 
-        for (int i = 0; i < sequence->getNumEvents(); ++i)
+        for (int eventIndex {}; eventIndex < sequence->getNumEvents(); ++eventIndex)
         {
-            const auto& eventHolder = sequence->getEventPointer(i);
+            const auto& eventHolder = sequence->getEventPointer(eventIndex);
             if (eventHolder != nullptr)
             {
                 const auto& msg = eventHolder->message;
@@ -298,9 +322,9 @@ bool MidiRecordPlayer::readRecordingFromStream(juce::InputStream& inputStream, j
         }
     }
     std::sort(allEventsPlayedFile.begin(), allEventsPlayedFile.end(),
-        [](const RecordedEvent& a, const RecordedEvent& b)
+        [](const RecordedEvent& earlier, const RecordedEvent& later)
         {
-            return a.timeFromStart < b.timeFromStart;
+            return earlier.timeFromStart < later.timeFromStart;
         });
 
     return true;
@@ -310,14 +334,14 @@ bool MidiRecordPlayer::parseRecordingFromFile(const juce::File& fileToParse, juc
 {
     if (!fileToParse.existsAsFile())
     {
-        errorMsg = "Selected file does not exist.";
+        errorMsg = fileDoesNotExist;
         return false;
     }
 
     juce::FileInputStream inputStream(fileToParse);
     if (!inputStream.openedOk())
     {
-        errorMsg = "Failed to open file for reading.";
+        errorMsg = cannotOpenForReading;
         return false;
     }
 
@@ -348,10 +372,10 @@ juce::MidiMessage MidiRecordPlayer::remapChannel(const juce::MidiMessage& messag
 {
     int newChannel = message.getChannel();
 
-    if (message.getChannel() == 1)
-        newChannel = 14;
-    else if (message.getChannel() == 16)
-        newChannel = 15;
+    if (message.getChannel() == RecordingDefaults::firstHandChannel)
+        newChannel = recordedFirstHand;
+    else if (message.getChannel() == secondHandChannel)
+        newChannel = recordedSecondHand;
 
     if (message.isNoteOn())
         return juce::MidiMessage::noteOn(newChannel, message.getNoteNumber(), message.getVelocity());
