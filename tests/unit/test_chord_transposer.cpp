@@ -30,7 +30,7 @@ namespace ChordTransposerTestValues
     const juce::String majorUsesIonian          = "major qualities use Ionian";
     const juce::String dominantUsesMixolydian   = "dominant + sus use Mixolydian (flat 7)";
     const juce::String minorRowSwaps            = "minor row swaps with the MinorScaleChoice";
-    const juce::String augAndDimScales          = "augmentedScale is whole-tone, diminishedScale is whole-half";
+    const juce::String augAndDimScales          = "aug is whole-tone, dim is whole-half";
 
     // Pitch classes (0 = C .. 11 = B).
     constexpr int pitchC      = 0;
@@ -274,11 +274,11 @@ public:
         beginTest (wrapAroundFolds);
         {
             ChordTransposer transposer;
-            transposer.setOriginalChord (cDiminished);   // C diminishedScale {0,3,6}
-            transposer.setActiveChord   (bAugmented);    // B augmentedScale {0,4,8}, interval +11
-            // Note 66 is F# = the diminishedScale 5th (deg 6, idx 2); active augmentedScale 5th is deg 8 -> +2.
+            transposer.setOriginalChord (cDiminished);   // C dim {0,3,6}
+            transposer.setActiveChord   (bAugmented);    // B aug {0,4,8}, interval +11
+            // Note 66 is F# = the dim 5th (deg 6, idx 2); active aug 5th is deg 8 -> +2.
             // result = 66+11+2 = 79, which is 13 semitones above origin 66 -> fold down an octave to
-            // 67 (G, the augmentedScale 5th of B), same pitch class.
+            // 67 (G, the aug 5th of B), same pitch class.
             expectEquals (transposer.transpose (noteFSharp4, PartKind::Acc, NttType::Chord), noteG4);
             expectEquals (transposer.transpose (noteFSharp4, PartKind::Acc, NttType::Chord) % semitonesPerOctave, pitchG);
         }
