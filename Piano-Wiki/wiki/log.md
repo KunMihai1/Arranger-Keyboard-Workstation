@@ -13,6 +13,12 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: Source/Audio, part 1
+- `AudioHandler.h`: DSP facts named in `DspConstants` (16 MIDI channels, stereo, fallback sample rate,
+  the smoothing formula 1 - e^(-1/samples), ln 2 in the overflow-safe log-cosh, the ADAA near-equal
+  threshold); zeros use `{}`; `x`/`a`/`y`/`sr` renamed. `SFZlibrary.cpp`: GM range + fallback label.
+  `SFZLibraryUI.h`: button texts named. Allowlist 148. Left in Audio: AudioHandler.cpp, SFZLibraryUI.cpp.
+
 ## 2026-11-22 — Arranger stress: style edge cases, count-in, Synchro
 - Storms over edge-case styles (no sections, no tracks, 0- and 64-bar sections, 7/8, 5/4, 3/4 and an
   invalid 0/0) leave every message valid and nothing sounding — the engine's guards hold
