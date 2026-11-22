@@ -13,6 +13,15 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Faster builds (MSBuild overrides)
+- Research agent measured where build time goes: JUCE module files compiled in two serial `/MP` batches
+  (five have `/bigobj`), and MSBuild used the 32-bit-hosted compiler/linker.
+- New root `Directory.Build.props` (64-bit tools) and `Directory.Build.targets` (one `/bigobj` option for
+  all module files); CI cache key hashes both. Clean build 44 → 30 s (app), 44 → 28 s (tests); header
+  edit 7.1 → 5.5 s; CI-warm test build 25.6 → 16.5 s. Rejected: MultiToolTask, unity build, sccache.
+- Re-checked on current `main`: app rebuild 43.5 → 29.0 s; suites 870 / 770 / 130 (+7 skipped).
+  [[Dependencies Index]]
+
 ## 2026-11-22 — Live checks + style tab lost after Home (fixed)
 - Live on an unlocked screen (app data backed up and restored, 0 differences): Synchro Start from the UI
   (beat bar held, groove on the first chord), Count-In (4 clicks 0.5 s apart, accented first), style

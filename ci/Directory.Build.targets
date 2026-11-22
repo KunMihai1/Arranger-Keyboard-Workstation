@@ -1,4 +1,7 @@
 <Project>
+  <!-- MSBuild stops at the first Directory.Build.targets it finds, so pull in the repository-wide one. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)..'))" />
+
   <!-- Test runner only: embed debug info in each .obj (/Z7) instead of one shared compiler PDB (/Zi),
        so compiled JUCE module objects are self-contained and can be cached between CI runs. -->
   <ItemDefinitionGroup>

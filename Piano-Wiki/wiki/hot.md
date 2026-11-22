@@ -11,8 +11,8 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-22. PRs #19–#35: live bugs fixed, test audit, skipped-test counts, arranger stress tests,
-names cleanup (Common, Audio, Midi). Live arranger run done; SFZ queue backlog and restore-down fixed. Detail in [[log]].
+2026-11-22. PRs #19–#42: live bugs fixed, arranger stress tests, names cleanup, style tab after Home,
+faster builds (64-bit tools, one JUCE batch). Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -29,22 +29,21 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 852, arranger 763, integration 130 (+7 skipped)**; integration runs in CI too.
+  Current: **unit 870, arranger 770, integration 130 (+7 skipped)**; integration runs in CI too.
 
 ## Build / Test
 - App `Builds\VisualStudio2022\Arranger Workstation.sln`, Debug x64; close the app first (PDB lock).
 - Projucer detaches: `Start-Process -Wait`; quote `"Arranger Workstation.jucer"` (space in name).
 - Header layout change → `/t:Rebuild`. New `Source/` file → add to **both** `.jucer`s.
 - Git Bash `sed -i` drops CRLF in `.jucer` files — edit them with Python.
-- **Precompiled header** + only the JUCE modules in use: one-file rebuild ~2 s, clean ~40 s, CI
-  build ~1 min. Editing `Source/PrecompiledHeader.h` needs a Projucer re-save. [[Dependencies Index]]
+- **Precompiled header**, only the JUCE modules in use, 64-bit tools and one JUCE `/MP` batch (root
+  `Directory.Build.*`): one-file rebuild ~2.6 s, clean ~30 s. Editing `Source/PrecompiledHeader.h` needs a Projucer re-save. [[Dependencies Index]]
 - CI caches compiled JUCE objects (filled by runs on `main`; key hashes `ci/JuceLibraryCode`).
 
 ## Active Threads / Next
 Full task list with states: [[Owner Backlog]].
-- 🟡 **Names-not-values cleanup**: rule (`docs/names-not-values.md`) + CI ratchet; 153 files on
-  the allowlist (now 107), converted one subsystem per PR; Midi and all of `Source/Arranger` done;
-  next: Playback. Full task list: [[Owner Backlog]].
+- 🟡 **Names-not-values cleanup** (`docs/names-not-values.md`, CI ratchet): one subsystem per PR;
+  Common, Audio, Midi, Arranger done; Playback in progress.
 - ✅ **Arranger hard testing**: headless + live (sound measured by loopback), results in the test plan.
   Owner decided: a style switch while playing takes effect on the next Start, and any section (Ending
   too) may be the start section — both intended. Restore-down stays work-area sized: no scaled
