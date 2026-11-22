@@ -30,7 +30,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # House rule (AGENTS.md): no source, test or wiki file over 800 lines (wiki .raw/ sources are
+      # House rule (AGENTS.md): no source, test, docs or wiki file over 800 lines (wiki .raw/ sources are
       # never edited, so they are exempt). Checked first because it costs a second and a long build
       # is wasted on a branch that will be sent back anyway.
       - name: File length limit (800 lines)
@@ -38,7 +38,7 @@ jobs:
         run: |
           $limit = 800
           $code = Get-ChildItem -Recurse -File -Path Source, tests -Include *.cpp, *.h
-          $wiki = Get-ChildItem -Recurse -File -Force -Path Piano-Wiki -Include *.md |
+          $wiki = Get-ChildItem -Recurse -File -Force -Path Piano-Wiki, docs -Include *.md |
                   Where-Object { $_.FullName -notmatch '[\\/]\.raw[\\/]' }
           $long = @($code) + @($wiki) |
                   ForEach-Object { [pscustomobject]@{ File = (Resolve-Path -Relative $_.FullName); Lines = (Get-Content $_.FullName).Count } } |

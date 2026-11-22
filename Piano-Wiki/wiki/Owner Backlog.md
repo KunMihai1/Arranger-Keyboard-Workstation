@@ -24,10 +24,12 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - 🟡 **Faster builds**: a research agent measures and implements build-time improvements on
   `perf/build-time`; the orchestrator then reviews, opens the PR and syncs the wiki.
 - ✅ **800-line cap** for source, test and wiki files (CI enforces).
-- ⬜ **800-line cap for `docs/` too** (owner, 2026-11-22: yes). Split the five plans in
-  `docs/superpowers/plans/` (850–1157 lines) by topic; add `docs/**/*.md` to the CI check.
+- ✅ **800-line cap for `docs/` too** (owner, 2026-11-22). Seven documents (971–1425 lines) split at their
+  headings into two parts each, content unchanged; CI checks `docs/**/*.md`.
 - ✅ **Auto-fill plays the fill of the variation you leave** (owner, 2026-11-22: Var 2 → Var 1 plays
   Fill 2). `ArrangerSectionSequencer::queue`; spec `2026-11-22-autofill-outgoing-variation-design.md`.
+- ⬜ **CI once per PR** (owner approved 2026-11-22): `push` runs only on `main`; PRs keep their
+  `pull_request` run. Do it after the build-time agent's `ci.yml` changes land (same file).
 - ✅ **Arranger hard testing** (headless + live, `docs/superpowers/test-plans/2026-11-22-arranger-stress-test-plan.md`).
   Not run live: 🔒 style editor and Section Configurations while playing; 🔒 Synchro Start / Count-In
   from the UI (covered headless); SFZ instrument / audio output switch while playing (no SFZ library on
