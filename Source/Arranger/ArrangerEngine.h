@@ -7,6 +7,7 @@
 #include "ChordTransposer.h"
 #include <atomic>
 #include <vector>
+#include <deque>
 #include <map>
 
 /**
@@ -143,5 +144,8 @@ private:
     juce::CriticalSection chordLock;
     ArrangerChord                 pendingChord;
     bool                  hasChordUpdate = false;
-    std::map<std::pair<int,int>, int> activePlayedNote;  // (channel, originalNote) -> sounding note
+    // (channel, originalNote) -> the sounding notes started from it, oldest first. A pattern can start the
+    // same pitch again before releasing it, and a chord change in between gives the two starts different
+    // sounding pitches: each note-off releases the oldest, so none is left hanging.
+    std::map<std::pair<int,int>, std::deque<int>> activePlayedNote;
 };
