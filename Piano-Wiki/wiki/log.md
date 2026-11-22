@@ -13,6 +13,12 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: UI part 3 (MainComponent)
+- `MainComponent*.cpp` converted (52 → 46). Its widget classes moved to `MainComponentWidgets.cpp` (ADR-003)
+  to stay under 800 lines. New shared names: `SettingsFileKeys` (settings-file keys), `EffectControllers`
+  (effect CC numbers), `HandChoiceNames`, `DeviceNames::noDevicesFound`; section buttons and the instrument
+  tree are named tables.
+
 ## 2026-11-22 — Names cleanup: UI part 2
 - Display, DisplayStyleStore, playback settings panel and the notes tables converted (57 → 52). New persisted
   names for allStyles.json / mySections.json (`AppDataNames::stylesFile`, `AllStylesJsonKeys::styles`,

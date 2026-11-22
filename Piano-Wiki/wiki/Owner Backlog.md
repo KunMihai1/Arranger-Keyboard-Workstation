@@ -19,8 +19,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 
 ## 1. Standing work (do these first)
 - 🟡 **Names, not values in every file** (owner's rule, `docs/names-not-values.md`). One subsystem per PR,
-  behaviour-identical. Done: Common, Audio, Midi, Arranger, Playback, Styles, Backend. Left (52 files on
-  `ci/named-values-allowlist.txt`): UI (11 larger files) → tests (41). When UI is converted, its
+  behaviour-identical. Done: Common, Audio, Midi, Arranger, Playback, Styles, Backend. Left (46 files on
+  `ci/named-values-allowlist.txt`): UI (5 larger files) → tests (41). When UI is converted, its
   `"DEFAULT Style"` copies (Display, DisplayStyleStore, SettingsWindow) and `SFZLibraryUI`'s should use
   `StyleNames::defaultStyle`.
 - ✅ **Faster builds** (research agent, 2026-11-22): 64-bit compiler/linker + one batch for the JUCE
