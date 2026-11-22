@@ -19,6 +19,7 @@ The master catalog of every page in this wiki. Update on every ingest or new pag
 ## Meta
 - [[overview]] — executive summary of the whole project
 - [[hot]] — hot cache, recent context
+- [[Owner Backlog]] — every task the owner gave, with its state (read before picking work)
 - [[log]] — chronological record of operations
 
 ## Modules — `wiki/modules/`

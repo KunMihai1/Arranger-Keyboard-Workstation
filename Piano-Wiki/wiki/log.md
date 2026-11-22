@@ -13,6 +13,10 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Owner Backlog page
+- New [[Owner Backlog]]: standing work, open engineering threads and the owner's TODO file, each with
+  its state checked in the code (implemented items marked done). Linked from index, hot and AGENTS.md.
+
 ## 2026-11-22 — Names cleanup: Source/Midi done; owner decisions
 - `MidiHandler`, `MidiDevice`, `MidiDevicesDB`, `MidiRecordPlayer`: named values, behaviour unchanged.
   Shared names in `MidiHandler.h`: `HandChannels` (1 / 16), `DeviceListChoice` (MIDI in / MIDI out /

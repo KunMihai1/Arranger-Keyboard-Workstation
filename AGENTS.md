@@ -15,7 +15,8 @@ until proven otherwise.**
 ## Where knowledge lives — read before crawling `Source/`
 
 1. `docs/ARCHITECTURE.md` — one-page system overview with diagrams.
-2. `Piano-Wiki/wiki/hot.md` — recent context, open threads (≤500 words).
+2. `Piano-Wiki/wiki/hot.md` — recent context, open threads (≤500 words);
+   `Piano-Wiki/wiki/Owner Backlog.md` — every task the owner gave and its state.
 3. `Piano-Wiki/wiki/index.md` → the relevant `_index.md` → individual pages.
 4. `Piano-Wiki/wiki/decisions/` — ADRs. Don't relitigate a recorded decision without new evidence.
 5. `docs/superpowers/specs/`, `plans/`, `test-plans/` — design specs, implementation plans and
