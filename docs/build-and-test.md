@@ -43,6 +43,8 @@
   compile as a single `/MP` batch. Measurements: `docs/superpowers/specs/2026-11-22-build-time-design.md`.
 - **A header change that alters a type's layout -> `/t:Rebuild`.** Incremental builds miss
   `Source/Main.cpp`'s dependencies and the result is silent heap corruption, not a build error.
+- **CI runs once per PR:** the `pull_request` run checks every PR; `push` runs only on `main` (the post-merge
+  run, which also fills the caches). A branch pushed without a PR gets no run.
 - **CI caches the compiled JUCE module objects** (runs on `main` fill it; PRs read it). The test project
   builds with `/Z7` (`ci/Directory.Build.targets`) so each `.obj` is self-contained. The key hashes the
   generated `ci/JuceLibraryCode/` files and the `Directory.Build.*` files, so changing modules, JUCE

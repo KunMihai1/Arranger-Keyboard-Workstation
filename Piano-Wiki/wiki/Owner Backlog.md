@@ -22,15 +22,16 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   behaviour-identical. Done: Common, Audio, Midi, Arranger, Playback. Left (98 files on
   `ci/named-values-allowlist.txt`): Styles (11) → Backend (9) → UI (37) → tests.
 - ✅ **Faster builds** (research agent, 2026-11-22): 64-bit compiler/linker + one batch for the JUCE
-  module files. Clean build 44 → 30 s, header edit 7.1 → 5.5 s, CI-warm test build 25.6 → 16.5 s.
+  module files. Local: clean build 44 → 30 s, header edit 7.1 → 5.5 s. On GitHub's runners the warm
+  build step barely moved (41–47 s → 40–41 s, within noise).
   Spec `2026-11-22-build-time-design.md`.
 - ✅ **800-line cap** for source, test and wiki files (CI enforces).
 - ✅ **800-line cap for `docs/` too** (owner, 2026-11-22). Seven documents (971–1425 lines) split at their
   headings into two parts each, content unchanged; CI checks `docs/**/*.md`.
 - ✅ **Auto-fill plays the fill of the variation you leave** (owner, 2026-11-22: Var 2 → Var 1 plays
   Fill 2). `ArrangerSectionSequencer::queue`; spec `2026-11-22-autofill-outgoing-variation-design.md`.
-- ⬜ **CI once per PR** (owner approved 2026-11-22): `push` runs only on `main`; PRs keep their
-  `pull_request` run. Do it after the build-time agent's `ci.yml` changes land (same file).
+- ✅ **CI once per PR** (owner approved 2026-11-22): `push` runs only on `main`; PRs keep their
+  `pull_request` run, so each PR commit is built once instead of twice.
 - ✅ **Arranger hard testing** (headless + live, `docs/superpowers/test-plans/2026-11-22-arranger-stress-test-plan.md`).
   Live on 2026-11-22 too: Synchro Start, Count-In and the style editor while playing all work. Not run:
   SFZ instrument / audio output switch while playing (no SFZ library on this machine).

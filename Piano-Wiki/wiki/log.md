@@ -13,6 +13,14 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — CI once per PR; build-time result on GitHub
+- `ci.yml`: `push` runs only on `main` (owner approved); PRs keep their `pull_request` run, so each PR
+  commit builds once instead of twice. The post-merge `main` run still fills the caches.
+- Measured on GitHub after PR #43: warm build step 41–47 s before → 40–41 s after (within noise). The
+  local gains stand (clean 44 → 30 s, header edit 7.1 → 5.5 s); the CI prediction did not hold.
+- PR #44 first failed the 800-line cap (`TrackListComponent.cpp` grew to 860 lines while naming values);
+  split per ADR-003 into `TrackListComponentFolders.cpp` + `TrackListComponentNames.h`.
+
 ## 2026-11-22 — Names cleanup: Playback part 2 (Playback done)
 - `Track`, `TrackListComponent` converted (102 → 98); shared persisted names `AppDataNames::tracksFile`
   ("myTracks.json") and `StyleTrackJsonKeys` (exact text kept). Review: no defects; follow-up gives each

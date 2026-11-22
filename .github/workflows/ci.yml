@@ -2,8 +2,10 @@ name: CI
 
 on:
   push:
-    # Runs on main too: GitHub lets pull requests read caches saved on main (and nothing else), so
-    # the post-merge run on main is what keeps the JUCE caches below warm for every PR.
+    # Only main: a branch with a PR already gets its 'pull_request' run, so a push run there tested
+    # the same commit twice. The post-merge run on main still runs, because GitHub lets pull requests
+    # read caches saved on main (and nothing else), so it keeps the JUCE caches below warm for every PR.
+    branches: [ main ]
     # Docs/wiki-only pushes skip the build. Deliberately NOT applied to pull_request
     # below: a PR containing only doc changes must still produce the required
     # 'CI / tests' check, or branch protection blocks it waiting for a run that
