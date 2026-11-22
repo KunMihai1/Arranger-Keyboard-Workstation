@@ -1,8 +1,33 @@
 #include "displayGUI.h"
+#include "PersistedKeys.h"
+
+namespace
+{
+    namespace Text
+    {
+        const juce::String cannotChange       = "Can't change";
+        const juce::String renameItem         = "Rename";
+        const juce::String deleteItem         = "Delete";
+        const juce::String renameStyleTitle   = "Rename style";
+        const juce::String emptyName          = "You can't put an empty name!";
+        const juce::String nameExists         = "The name already exists!";
+        const juce::String confirmRemoveTitle = "Confirm Remove";
+        const juce::String removePromptStart  = "Are you sure you want to remove ' ";
+        const juce::String removePromptEnd    = "' ?";
+        const juce::String removeButton       = "Remove";
+        const juce::String removedTitle       = "Remove style";
+        const juce::String removed            = "Style removed succesfully!";
+    }
+
+    constexpr float labelFontHeight = 18.0f;
+    constexpr int   labelInset      = 10;
+    constexpr int   labelExtraWidth = 10;
+    constexpr int   labelExtraHeight = 6;
+}
 
 StyleViewComponent::StyleViewComponent(const juce::String& styleName)
 {
-    label.setFont(juce::Font(18.0f, juce::Font::bold));
+    label.setFont(juce::Font(labelFontHeight, juce::Font::bold));
     label.setText(styleName, juce::dontSendNotification);
     label.setColour(juce::Label::textColourId, AppColours::accent3);
     label.setInterceptsMouseClicks(true, false);
@@ -20,7 +45,7 @@ void StyleViewComponent::resized()
     int textWidth = juce::GlyphArrangement::getStringWidthInt(font, label.getText());
     int textHeight = static_cast<int>(font.getHeight());
 
-    label.setBounds(10, 10, textWidth + 10, textHeight + 6);
+    label.setBounds(labelInset, labelInset, textWidth + labelExtraWidth, textHeight + labelExtraHeight);
 }
 
 void StyleViewComponent::mouseUp(const juce::MouseEvent& event)
@@ -35,19 +60,19 @@ void StyleViewComponent::mouseUp(const juce::MouseEvent& event)
         else if (event.mods.isRightButtonDown())
         {
             juce::PopupMenu menu;
-            if (label.getText() == "DEFAULT Style")
+            if (label.getText() == StyleNames::defaultStyle)
             {
-                menu.addItem("Can't change", [this]() {
+                menu.addItem(Text::cannotChange, [this]() {
 
                     });
             }
             else
             {
-                menu.addItem("Rename", [this]() {
+                menu.addItem(Text::renameItem, [this]() {
                     changeNameLabel();
                     });
 
-                menu.addItem("Delete", [this]() {
+                menu.addItem(Text::deleteItem, [this]() {
                     removeStyle();
                     });
 
@@ -70,25 +95,25 @@ juce::String StyleViewComponent::getNameLabel() const
 
 void StyleViewComponent::changeNameLabel()
 {
-    auto* window = new juce::AlertWindow{ "Rename track","Enter a name for your track",juce::AlertWindow::NoIcon };
+    auto* window = new juce::AlertWindow{ StyleDialogText::nameDialogTitle, StyleDialogText::nameDialogPrompt, juce::AlertWindow::NoIcon };
 
-    window->addTextEditor("nameEditor", label.getText(), "Style Name:");
+    window->addTextEditor(StyleDialogText::nameEditor, label.getText(), StyleDialogText::nameEditorLabel);
 
-    window->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+    window->addButton(StyleDialogText::okButton, StyleDialogText::dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
+    window->addButton(StyleDialogText::cancelButton, StyleDialogText::dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
 
     window->enterModalState(true, juce::ModalCallbackFunction::create([this, window](int result)
         {
             std::unique_ptr<juce::AlertWindow> cleanup{ window };
-            if (result != 1)
+            if (result != StyleDialogText::dialogOk)
                 return;
 
             juce::String oldName = label.getText();
-            juce::String theNewName = window->getTextEditor("nameEditor")->getText().trim();
+            juce::String theNewName = window->getTextEditor(StyleDialogText::nameEditor)->getText().trim();
 
             if (theNewName.isEmpty())
             {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Rename style", "You can't put an empty name!");
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::renameStyleTitle, Text::emptyName);
                 return;
             }
 
@@ -96,7 +121,7 @@ void StyleViewComponent::changeNameLabel()
             {
                 if (isInListNames(theNewName))
                 {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Rename style", "The name already exists!");
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::renameStyleTitle, Text::nameExists);
                     return;
                 }
             }
@@ -112,7 +137,7 @@ void StyleViewComponent::changeNameLabel()
 
     juce::MessageManager::callAsync([window]()
         {
-            if (auto* editor = window->getTextEditor("nameEditor"))
+            if (auto* editor = window->getTextEditor(StyleDialogText::nameEditor))
                 editor->grabKeyboardFocus();
         });
 }
@@ -121,21 +146,21 @@ void StyleViewComponent::removeStyle()
 {
     juce::AlertWindow::showOkCancelBox(
         juce::AlertWindow::WarningIcon,
-        "Confirm Remove",
-        "Are you sure you want to remove ' "+label.getText()+ "' ?",
-        "Remove",
-        "Cancel",
+        Text::confirmRemoveTitle,
+        Text::removePromptStart + label.getText() + Text::removePromptEnd,
+        Text::removeButton,
+        StyleDialogText::cancelButton,
         this,
         juce::ModalCallbackFunction::create(
             [this](int result)
             {
-                if (result == 0) // Cancel
+                if (result == StyleDialogText::dialogCancel) // Cancel
                     return;
 
                 if (onStyleRemoveComponent)
                     onStyleRemoveComponent(label.getText());
 
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Remove style", "Style removed succesfully!");
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::removedTitle, Text::removed);
 
             }
         )

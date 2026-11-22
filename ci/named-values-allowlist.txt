@@ -13,13 +13,6 @@ Source/Styles/CurrentStyleComponent.cpp
 Source/Styles/CurrentStyleComponent.h
 Source/Styles/CurrentStyleComponentTracks.cpp
 Source/Styles/CurrentStyleComponentUI.cpp
-Source/Styles/SectionGroupComponent.cpp
-Source/Styles/SectionsComponent.cpp
-Source/Styles/StyleSection.h
-Source/Styles/StyleViewComponent.cpp
-Source/Styles/StylesListComponent.cpp
-Source/Styles/StylesListComponent.h
-Source/Styles/styleSettingsEntry.h
 Source/UI/CustomBeatBar.cpp
 Source/UI/CustomBeatBar.h
 Source/UI/CustomTableContainer.cpp

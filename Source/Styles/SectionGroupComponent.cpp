@@ -10,6 +10,21 @@
 
 #include "SectionGroupComponent.h"
 
+namespace
+{
+    namespace Text
+    {
+        const juce::String disableAutoFill = "Disable Auto Fill";
+        const juce::String enableAutoFill  = "Enable Auto Fill";
+    }
+
+    constexpr int titleExtraHeight = 2;
+    constexpr int titleGap         = 5;
+    constexpr int minButtonWidth   = 35;
+    constexpr int centringDivisor  = 2;
+    constexpr int tooltipLift      = 20;   // tooltip sits this far above the toggle's centre
+}
+
 SectionGroupComponent::SectionGroupComponent(const juce::String& title, const std::vector<juce::String>& buttonNames, bool toggleButtonBool) : titleLabel{ title,title }
 {
     addAndMakeVisible(titleLabel);
@@ -46,9 +61,9 @@ SectionGroupComponent::SectionGroupComponent(const juce::String& title, const st
             if (toggleToolTip->isVisible())
             {
                 if (toggleButton->getToggleState())
-                    toggleToolTip->setNewText("Disable Auto Fill");
+                    toggleToolTip->setNewText(Text::disableAutoFill);
                 else
-                    toggleToolTip->setNewText("Enable Auto Fill");
+                    toggleToolTip->setNewText(Text::enableAutoFill);
             }
 
             if (onToggleChanged)
@@ -57,7 +72,7 @@ SectionGroupComponent::SectionGroupComponent(const juce::String& title, const st
 
         addAndMakeVisible(toggleButton.get());
 
-        toggleToolTip = std::make_unique<CustomToolTip>("Enable Auto Fill");
+        toggleToolTip = std::make_unique<CustomToolTip>(Text::enableAutoFill);
         addAndMakeVisible(toggleToolTip.get());
         toggleToolTip->setVisible(false);
 
@@ -65,10 +80,10 @@ SectionGroupComponent::SectionGroupComponent(const juce::String& title, const st
         
     }
 
-    if (title.equalsIgnoreCase("variations"))
+    if (title.equalsIgnoreCase(SectionGroupNames::variations))
     {
-        auto btn = std::make_unique<juce::TextButton>("Break");
-        btn->setButtonText("Break");
+        auto btn = std::make_unique<juce::TextButton>(SectionGroupNames::breakButton);
+        btn->setButtonText(SectionGroupNames::breakButton);
         btn->setMouseCursor(juce::MouseCursor::PointingHandCursor);
         btn->setMouseClickGrabsKeyboardFocus(false);
         btn->setLookAndFeel(&laf);
@@ -81,41 +96,41 @@ SectionGroupComponent::SectionGroupComponent(const juce::String& title, const st
 void SectionGroupComponent::resized()
 {
 
-    int labelHeight = (int)titleLabel.getFont().getHeight() + 2;
+    int labelHeight = (int)titleLabel.getFont().getHeight() + titleExtraHeight;
     auto area = getLocalBounds();
     titleLabel.setBounds(area.removeFromTop(labelHeight));
 
-    area.removeFromTop(5);
+    area.removeFromTop(titleGap);
 
     int count = (int)buttons.size();
-    if (count == 0)
+    if (count == int{})
         return;
     
     int toDivideWith = count;
-    if (titleLabel.getText().equalsIgnoreCase("fills"))
+    if (titleLabel.getText().equalsIgnoreCase(SectionGroupNames::fills))
         toDivideWith++;
 
     auto row = area;
-    int width = juce::jmax(35, row.getWidth() / toDivideWith);
+    int width = juce::jmax(minButtonWidth, row.getWidth() / toDivideWith);
 
-    for (int i = 0; i < count; i++)
+    for (int buttonIndex {}; buttonIndex < count; buttonIndex++)
     {
-        buttons[i]->setBounds(row.removeFromLeft(width));
+        buttons[buttonIndex]->setBounds(row.removeFromLeft(width));
     }
 
-    if (titleLabel.getText().equalsIgnoreCase("fills"))
+    if (titleLabel.getText().equalsIgnoreCase(SectionGroupNames::fills))
         toggleButton->setBounds(row.removeFromLeft(width));
 
 }
 
-void SectionGroupComponent::mouseEnter(const juce::MouseEvent& e)
+void SectionGroupComponent::mouseEnter(const juce::MouseEvent& event)
 {
-    if (e.eventComponent == toggleButton.get())
+    if (event.eventComponent == toggleButton.get())
     {
         auto bounds = toggleButton->getBounds();
 
         int tooltipX = bounds.getX() - toggleToolTip->getWidth(); 
-        int tooltipY = bounds.getY() + (bounds.getHeight() - toggleToolTip->getHeight()) / 2 - 20; 
+        int tooltipY = bounds.getY() + (bounds.getHeight() - toggleToolTip->getHeight()) / centringDivisor - tooltipLift; 
 
         toggleToolTip->setTopLeftPosition(tooltipX, tooltipY);
         
@@ -125,9 +140,9 @@ void SectionGroupComponent::mouseEnter(const juce::MouseEvent& e)
     }
 }
 
-void SectionGroupComponent::mouseExit(const juce::MouseEvent& e)
+void SectionGroupComponent::mouseExit(const juce::MouseEvent& event)
 {
-    if (e.eventComponent == toggleButton.get())
+    if (event.eventComponent == toggleButton.get())
     {
         toggleToolTip->setVisible(false);
     }

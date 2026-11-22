@@ -14,6 +14,15 @@
 #include "CustomToolTip.h"
 #include "PlayScreenLookAndFeel.h"
 
+/** Section group titles (matched ignoring case) and the Break button label, which the arranger
+    looks up by name. */
+namespace SectionGroupNames
+{
+    inline const juce::String fills       = "fills";
+    inline const juce::String variations  = "variations";
+    inline const juce::String breakButton = "Break";
+}
+
 class SectionGroupComponent: public juce::Component {
 public:
     /** Fired when the group's toggle (e.g. Auto Fill) changes, with its new state. */

@@ -1,6 +1,20 @@
 #pragma once
 #include <JuceHeader.h>
 
+/** The style-name dialog shared by StylesListComponent (add) and StyleViewComponent (rename). */
+namespace StyleDialogText
+{
+    inline const juce::String nameDialogTitle  = "Rename track";
+    inline const juce::String nameDialogPrompt = "Enter a name for your track";
+    inline const juce::String nameEditor       = "nameEditor";
+    inline const juce::String nameEditorLabel  = "Style Name:";
+    inline const juce::String okButton         = "OK";
+    inline const juce::String cancelButton     = "Cancel";
+
+    constexpr int dialogOk     = 1;   // AlertWindow button results
+    constexpr int dialogCancel = 0;
+}
+
 /**
  * @class StyleViewComponent
  * @brief Represents a single style item in a style list UI.

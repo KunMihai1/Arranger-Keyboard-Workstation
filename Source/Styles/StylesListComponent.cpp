@@ -1,5 +1,36 @@
 #include "displayGUI.h"
 
+namespace
+{
+    namespace Text
+    {
+        const juce::String addingStyleTitle    = "Adding a style";
+        const juce::String nameEmpty           = "Name can't be empty!";
+        const juce::String nameExists          = "Name already exists!";
+        const juce::String styleAddedTitle     = "Add style";
+        const juce::String styleAddedStart     = "The style '";
+        const juce::String styleAddedEnd       = "' has been added!";
+        const juce::String fallbackStylePrefix = "Style ";
+    }
+
+    constexpr int   controlBarHeight   = 24;
+    constexpr int   buttonWidth        = 80;
+    constexpr int   buttonHeight       = 20;
+    constexpr int   spacing            = 10;
+    constexpr int   columns            = 2;
+    constexpr int   gapsBetweenColumns = 1;       // two columns, one gap between them
+    constexpr int   paddedSides        = 2;       // left and right
+    constexpr int   trailingGap        = 1;       // a gap after the last row too
+    constexpr int   itemHeight         = 50;
+    constexpr int   centringDivisor    = 2;
+    constexpr int   leftEdge           = 0;
+    constexpr int   topEdge            = 0;
+    constexpr int   separatorRowOffset = 1;       // the separator sits on the bar's last pixel row
+    constexpr float headerGlow         = 0.05f;
+    constexpr float separatorStartX    = 0.0f;
+    constexpr float separatorThickness = 1.0f;
+}
+
 StylesListComponent::StylesListComponent(std::vector<juce::String> stylesNamesOut, std::function<void(const juce::String&)> onStyleClicked, int widthSize) : stylesNames{stylesNamesOut}, onStyleClicked{onStyleClicked}
 {
     addAndMakeVisible(addButton);
@@ -27,13 +58,8 @@ void StylesListComponent::resized()
 
     this->widthSize = getWidth();
 
-    const int controlBarHeight = 24;
-    const int buttonWidth = 80;
-    const int buttonHeight = 20;
-    const int spacing = 10;
-
-    addButton.setBounds(spacing/2, (controlBarHeight - buttonHeight) / 2, buttonWidth, buttonHeight);
-    viewport.setBounds(0, controlBarHeight, getWidth(), getHeight() - controlBarHeight);
+    addButton.setBounds(spacing / centringDivisor, (controlBarHeight - buttonHeight) / centringDivisor, buttonWidth, buttonHeight);
+    viewport.setBounds(leftEdge, controlBarHeight, getWidth(), getHeight() - controlBarHeight);
 
     layoutStyles();
 }
@@ -42,15 +68,13 @@ void StylesListComponent::paint(juce::Graphics& g)
 {
     g.fillAll(AppColours::panelBg);
 
-    const int controlBarHeight = 24;
-
-    juce::ColourGradient gradient(AppColours::cardBg.brighter(0.05f), 0, 0,
-                                  AppColours::cardBg, 0, (float)controlBarHeight, false);
+    juce::ColourGradient gradient(AppColours::cardBg.brighter(headerGlow), leftEdge, topEdge,
+                                  AppColours::cardBg, leftEdge, (float)controlBarHeight, false);
     g.setGradientFill(gradient);
-    g.fillRect(0, 0, getWidth(), controlBarHeight);
+    g.fillRect(leftEdge, topEdge, getWidth(), controlBarHeight);
 
     g.setColour(AppColours::separator);
-    g.drawLine(0.0f, (float)(controlBarHeight - 1), (float)getWidth(), (float)(controlBarHeight - 1), 1.0f);
+    g.drawLine(separatorStartX, (float)(controlBarHeight - separatorRowOffset), (float)getWidth(), (float)(controlBarHeight - separatorRowOffset), separatorThickness);
 }
 
 void StylesListComponent::setWidthSize(const int newWidth)
@@ -60,36 +84,33 @@ void StylesListComponent::setWidthSize(const int newWidth)
 
 void StylesListComponent::layoutStyles()
 {
-    const int columns = 2;
-    const int spacing = 10;
     const int sidePadding = spacing;
 
-    const int totalSpacing = (columns - 1) * spacing + 2 * sidePadding;
+    const int totalSpacing = gapsBetweenColumns * spacing + paddedSides * sidePadding;
     const int itemWidth = (getWidth() - totalSpacing) / columns;
-    const int itemHeight = 50;
 
-    int x = sidePadding;
-    int y = spacing;
+    int itemX = sidePadding;
+    int itemY = spacing;
 
-    int count = 0;
+    int placedCount {};
     for (auto* style : allStyles)
     {
-        style->setBounds(x, y, itemWidth, itemHeight);
-        count++;
+        style->setBounds(itemX, itemY, itemWidth, itemHeight);
+        placedCount++;
 
-        if (count % columns == 0)
+        if (placedCount % columns == int{})
         {
-            x = sidePadding;
-            y += itemHeight + spacing;
+            itemX = sidePadding;
+            itemY += itemHeight + spacing;
         }
         else
         {
-            x += itemWidth + spacing;
+            itemX += itemWidth + spacing;
         }
     }
 
     int rows = static_cast<int>(std::ceil(allStyles.size() / (float)columns));
-    int totalHeight = rows * itemHeight + (rows + 1) * spacing;
+    int totalHeight = rows * itemHeight + (rows + trailingGap) * spacing;
 
     styleItemsContainer->setSize(getWidth(), totalHeight);
 }
@@ -97,8 +118,8 @@ void StylesListComponent::layoutStyles()
 void StylesListComponent::repopulate()
 {
     stylesNames.clear();
-    for (auto* sv : allStyles)
-        stylesNames.push_back(sv->getNameLabel());
+    for (auto* styleView : allStyles)
+        stylesNames.push_back(styleView->getNameLabel());
 
     populate();
     resized();
@@ -106,24 +127,24 @@ void StylesListComponent::repopulate()
 
 void StylesListComponent::addNewStyle()
 {
-    auto* window = new juce::AlertWindow{ "Rename track","Enter a name for your track",juce::AlertWindow::NoIcon };
+    auto* window = new juce::AlertWindow{ StyleDialogText::nameDialogTitle, StyleDialogText::nameDialogPrompt, juce::AlertWindow::NoIcon };
 
-    window->addTextEditor("nameEditor", "", "Style Name:");;
+    window->addTextEditor(StyleDialogText::nameEditor, {}, StyleDialogText::nameEditorLabel);;
 
-    window->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+    window->addButton(StyleDialogText::okButton, StyleDialogText::dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
+    window->addButton(StyleDialogText::cancelButton, StyleDialogText::dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
 
     window->enterModalState(true, juce::ModalCallbackFunction::create([this, window](int result)
             {
                 std::unique_ptr<juce::AlertWindow> cleanup{ window };
-                if (result != 1)
+                if (result != StyleDialogText::dialogOk)
                     return;
 
-                juce::String newName = window->getTextEditor("nameEditor")->getText().trim();
+                juce::String newName = window->getTextEditor(StyleDialogText::nameEditor)->getText().trim();
 
                 if (newName.isEmpty())
                 {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Adding a style", "Name can't be empty!");
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::addingStyleTitle, Text::nameEmpty);
                     return;
                 }
 
@@ -131,7 +152,7 @@ void StylesListComponent::addNewStyle()
                 {
                     if (name.trim() == newName)
                     {
-                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Adding a style", "Name already exists!");
+                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::addingStyleTitle, Text::nameExists);
                         return;
                     }
                 }
@@ -150,14 +171,14 @@ void StylesListComponent::addNewStyle()
                 allStyles.add(newStyle);
                 resized(); // instead of repopulating, we just layout the styles again ( repopulating would mean creating all the lambdas again and so on )
 
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Add style", "The style '" + newName + "' has been added!");
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::styleAddedTitle, Text::styleAddedStart + newName + Text::styleAddedEnd);
             }
         )
     );
 
     juce::MessageManager::callAsync([window]()
         {
-            if (auto* editor = window->getTextEditor("nameEditor"))
+            if (auto* editor = window->getTextEditor(StyleDialogText::nameEditor))
                 editor->grabKeyboardFocus();
         });
 }
@@ -193,20 +214,20 @@ void StylesListComponent::allCallBacks(StyleViewComponent* newStyle, const juce:
 
 void StylesListComponent::removeStyleLocally(const juce::String& name)
 {
-    for (int i = 0; i < allStyles.size(); ++i)
+    for (int styleIndex {}; styleIndex < allStyles.size(); ++styleIndex)
     {
-        if (allStyles[i]->getNameLabel() == name)
+        if (allStyles[styleIndex]->getNameLabel() == name)
         {
-            auto* comp = allStyles[i];
-            styleItemsContainer->removeChildComponent(comp);
-            allStyles.remove(i);
+            auto* styleView = allStyles[styleIndex];
+            styleItemsContainer->removeChildComponent(styleView);
+            allStyles.remove(styleIndex);
             break;
         }
     }
 
     stylesNames.clear();
-    for (auto* sv : allStyles)
-        stylesNames.push_back(sv->getNameLabel());
+    for (auto* styleView : allStyles)
+        stylesNames.push_back(styleView->getNameLabel());
 
     if (onStyleRemove)
         onStyleRemove(name);
@@ -242,12 +263,12 @@ void StylesListComponent::populate()
 {
     styleItemsContainer->removeAllChildren();
     allStyles.clear();
-    for (int i = 0; i < stylesNames.size(); i++)
+    for (int styleIndex {}; styleIndex < stylesNames.size(); styleIndex++)
     {
         juce::String name;
-        if (i < stylesNames.size())
-            name = stylesNames[i];
-        else name = "Style " + juce::String(i);
+        if (styleIndex < stylesNames.size())
+            name = stylesNames[styleIndex];
+        else name = Text::fallbackStylePrefix + juce::String(styleIndex);
         auto* newStyle = new StyleViewComponent{ name };
 
         juce::String currentName = name;

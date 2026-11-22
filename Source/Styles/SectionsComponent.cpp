@@ -10,15 +10,22 @@
 
 #include "SectionsComponent.h"
 
+namespace
+{
+    constexpr int   oneGroupMinimum = 1;     // avoid dividing by zero before any group exists
+    constexpr int   groupGap        = 5;
+    constexpr float idleButtonAlpha = 0.85f;
+}
+
 StyleSectionComponent::StyleSectionComponent(const std::vector<juce::String>& names, const std::vector<std::vector<juce::String>>& groupNames,
     const std::unordered_map<juce::String, std::function<void()>>& buttonCallbacks): callbacks{buttonCallbacks}
 {
-    for (int i = 0; i < names.size(); i++)
+    for (int groupIndex {}; groupIndex < names.size(); groupIndex++)
     {
         bool toggleNeeded = false;
-        if (names[i].equalsIgnoreCase("fills"))
+        if (names[groupIndex].equalsIgnoreCase(SectionGroupNames::fills))
             toggleNeeded = true;
-        auto group = std::make_unique<SectionGroupComponent>(names[i], groupNames[i],toggleNeeded);
+        auto group = std::make_unique<SectionGroupComponent>(names[groupIndex], groupNames[groupIndex],toggleNeeded);
         addAndMakeVisible(group.get());
         sectionGroups.add(std::move(group));
     }
@@ -29,11 +36,11 @@ StyleSectionComponent::StyleSectionComponent(const std::vector<juce::String>& na
 void StyleSectionComponent::resized()
 {
     auto area = getLocalBounds();
-    int groupWidth = area.getWidth() / (sectionGroups.size() > 0 ? sectionGroups.size() : 1);
+    int groupWidth = area.getWidth() / (sectionGroups.size() > int{} ? sectionGroups.size() : oneGroupMinimum);
 
     for (auto* group : sectionGroups)
     {
-        group -> setBounds(area.removeFromLeft(groupWidth).reduced(5));
+        group -> setBounds(area.removeFromLeft(groupWidth).reduced(groupGap));
     }
 }
 
@@ -45,7 +52,7 @@ void StyleSectionComponent::applyChangeColour(juce::TextButton& button, bool act
     }
     else
     {
-        button.setColour(juce::TextButton::buttonColourId, AppColours::accent3.withAlpha(0.85f));
+        button.setColour(juce::TextButton::buttonColourId, AppColours::accent3.withAlpha(idleButtonAlpha));
     }
 
     button.repaint();

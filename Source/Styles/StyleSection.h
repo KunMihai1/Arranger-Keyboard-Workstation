@@ -15,6 +15,7 @@ struct StyleSection {
     juce::String name;
     double startTimeSeconds;
     double endTimeSeconds;
-    int startBar = -1;
-    int endBar = -1;
+    static constexpr int barNotSet = -1;
+    int startBar = barNotSet;
+    int endBar = barNotSet;
 };

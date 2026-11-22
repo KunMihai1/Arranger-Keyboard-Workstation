@@ -23,7 +23,7 @@ public:
      */
     StylesListComponent(std::vector<juce::String> stylesNamesOut,
                         std::function<void(const juce::String&)> onStyleClicked,
-                        int widthSize = 0);
+                        int widthSize = {});
 
     /**
      * @brief Callback invoked when a style is renamed.
@@ -99,7 +99,8 @@ private:
     std::vector<juce::String> stylesNames;  ///< Names of all styles.
     int widthSize;  ///< Width used for layout calculations.
 
-    juce::TextButton addButton{ "Add" };  ///< Button to add a new style.
+    inline static const juce::String addCaption = "Add";
+    juce::TextButton addButton{ addCaption };  ///< Button to add a new style.
     std::unique_ptr<juce::Component> styleItemsContainer = nullptr;  ///< Container holding all styles.
     juce::Viewport viewport;  ///< Scrollable viewport for the style list.
 

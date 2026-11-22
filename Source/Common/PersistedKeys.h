@@ -77,6 +77,12 @@ namespace PlaybackSettingsKeys
     inline constexpr int semitonesPerOctave = 12;
 }
 
+// The built-in style; per-style settings are stored under this name.
+namespace StyleNames
+{
+    inline const juce::String defaultStyle = "DEFAULT Style";
+}
+
 // mySections.json
 namespace SectionJsonKeys
 {
