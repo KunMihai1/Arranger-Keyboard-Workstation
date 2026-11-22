@@ -13,6 +13,15 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: all test files done, allowlist empty
+- PRs #52–#56 converted the 41 remaining test files (41 → 23 → 14 → 6 → 3 → 0). Each file has a
+  `<Name>TestValues` namespace (test name, category, descriptions, messages, values); tests check exactly
+  what they did before — every suite kept its assertion count (unit 870, arranger 770, integration 130 +7
+  skipped, display 8) and the ADAA aliasing figure matches main's CI log (naive −13.07 dB, ADAA −19.25 dB).
+- Each part had a Sonnet review (no defects in any part; nits verified and fixed). `SFZLibraryUI` now uses
+  `StyleNames::defaultStyle` instead of its own copy.
+- Found, not fixed: running all test categories in one process (no flag) is unreliable — see Owner Backlog.
+
 ## 2026-11-22 — Names cleanup: UI part 4 — all of Source/ done
 - KeyboardUI, NoteLayer, SettingsWindow, SoundEffectWindowComponent converted (46 → 41; only tests left).
   Dead code removed: `KeyboardUI::paintKeyboard` (never called) and SettingsWindow's unused slider look.

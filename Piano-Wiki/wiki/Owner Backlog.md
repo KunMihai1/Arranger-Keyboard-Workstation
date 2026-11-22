@@ -18,11 +18,10 @@ choosing the next piece of work** and update it when a task moves. Status checke
 Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's decision · 🔒 needs the owner's unlocked screen
 
 ## 1. Standing work (do these first)
-- 🟡 **Names, not values in every file** (owner's rule, `docs/names-not-values.md`). One subsystem per PR,
-  behaviour-identical. **All of `Source/` done** (2026-11-22). Left: the 41 test files on
-  `ci/named-values-allowlist.txt`. When UI is converted, its
-  `"DEFAULT Style"` copies (Display, DisplayStyleStore, SettingsWindow) and `SFZLibraryUI`'s should use
-  `StyleNames::defaultStyle`.
+- ✅ **Names, not values in every file** (owner's rule, `docs/names-not-values.md`). One subsystem per PR,
+  behaviour-identical. **Done 2026-11-22:** all of `Source/` (PRs #44–#51) and all 41 test files (#52–#56);
+  `ci/named-values-allowlist.txt` is empty, so CI now rejects any new bare value anywhere. The last
+  `"DEFAULT Style"` copy (`SFZLibraryUI`) uses `StyleNames::defaultStyle`.
 - ✅ **Faster builds** (research agent, 2026-11-22): 64-bit compiler/linker + one batch for the JUCE
   module files. Local: clean build 44 → 30 s, header edit 7.1 → 5.5 s. On GitHub's runners the warm
   build step barely moved (41–47 s → 40–41 s, within noise).
@@ -52,6 +51,10 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - Show the owner the direction (mock-ups / screenshots) before building it.
 
 ## 2. Open engineering threads (from the wiki)
+- 🔴 **`Project Tests.exe` with no flag is unreliable** (found 2026-11-22, not investigated): running every
+  safe category in one process gave 5 failures once, a crash (0xC0000005) once and a hang once. Each
+  category alone (`--unit/--arranger/--integration/--display-tests`, what CI runs) is green. Unknown whether
+  it predates the test names cleanup.
 - ⬜ Delay read offset still jumps on CC94 changes (needs a fractional read; `DelayLine` in `va-effects`).
 - ⬜ Swap `juce::dsp::Chorus` (CC93) for the BBD model from `va-effects`.
 - ⬜ 🔒 Missing-SFZ popup never smoke-tested; Phase 7a manual sign-off 0/9.
