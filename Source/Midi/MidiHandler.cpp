@@ -8,8 +8,6 @@ namespace MidiHandlerValues
 	constexpr float fullVelocity   = 1.0f;
 	constexpr int pitchWheelCentre = 0x2000;   // no bend
 	constexpr int presetSettleMs   = 5;
-	const juce::String leftHandChoice  = "left";
-	const juce::String rightHandChoice = "right";
 }
 
 /** Note span of each known keyboard size (lowest and highest MIDI note it sends). */
@@ -233,9 +231,9 @@ void MidiHandler::allOffKeyboard()
 }
 
 void MidiHandler::setProgramNumber(int toSetNumber, const juce::String& choice) {
-	if (choice.toLowerCase() == MidiHandlerValues::leftHandChoice)
+	if (choice.toLowerCase() == HandChoiceNames::left)
 		this->programNumberLeftHand = toSetNumber;
-	else if (choice.toLowerCase() == MidiHandlerValues::rightHandChoice)
+	else if (choice.toLowerCase() == HandChoiceNames::right)
 		this->programNumberRightHand = toSetNumber;
 
 	if (auto midiOut = midiDevice.getDeviceOUT().lock())
@@ -349,7 +347,7 @@ int MidiHandler::handlePlayableRange(const juce::String& vid, const juce::String
 void MidiHandler::applyInstrumentPreset(int programNumber, std::vector<std::pair<int, int>> ccValues, const juce::String& choice)
 {
 	int channel = HandChannels::leftHand;
-	if (choice.toLowerCase() == MidiHandlerValues::rightHandChoice)
+	if (choice.toLowerCase() == HandChoiceNames::right)
 		channel = HandChannels::rightHand;
 	if (auto midiOut = midiDevice.getDeviceOUT().lock())
 	{

@@ -1,6 +1,44 @@
 #include "MainComponent.h"
 #include "AppInfo.h"
 
+namespace
+{
+    namespace Text
+    {
+        const juce::String enterKeyCountTitle   = "Enter Number of Keys";
+        const juce::String enterKeyCount        = "Please enter how many keys this device has:";
+        const juce::String keysEditor           = "keys";
+        const juce::String keyCountLabel        = "Number of keys";
+        const juce::String okButton             = "OK";
+        const juce::String cancelButton         = "Cancel";
+        const juce::String digits               = "0123456789";
+        const juce::String invalidInputTitle    = "Invalid Input";
+        const juce::String invalidKeyCountInput = "Please enter a valid number of keys.";
+        const juce::String invalidKeyCountTitle = "Invalid Key Count";
+        const juce::String supportedKeyCounts   = "Please enter one of: 49, 61, 76 or 88.";
+        const juce::String successTitle         = "Success";
+        const juce::String deviceUpdated        = "Device updated successfully!";
+    }
+
+    constexpr int tabsWithStyleOpen = 3;    // Styles list, style tab and one temporary tab
+    constexpr int rangeAccepted     = 0;    // handlePlayableRange: negative means the device was refused
+    constexpr int usbIdLength       = 4;    // four hex digits
+    constexpr int firstChordMode    = 0;    // ChordMode values as stored
+    constexpr int lastChordMode     = 2;
+    constexpr int defaultProgram    = 0;
+    constexpr int dialogOk          = 1;
+    constexpr int dialogCancel      = 0;
+
+    // The keyboard sizes the app knows (see the device database).
+    namespace KeyboardSizes
+    {
+        constexpr int keys49 = 49;
+        constexpr int keys61 = 61;
+        constexpr int keys76 = 76;
+        constexpr int keys88 = 88;
+    }
+}
+
 
 void MainComponent::toggleSettingsPanel()
 {
@@ -244,7 +282,7 @@ void MainComponent::homeButtonOnClick()
     if(this->recordPlayer.getIsPlaying())
         this->recordPlayer.stopPlayBack();
 
-    if (display && display->getNumTabs()==3)
+    if (display && display->getNumTabs()==tabsWithStyleOpen)
         display->homeButtonInteraction();
 
     grabKeyboardFocus();
@@ -275,7 +313,7 @@ void MainComponent::playButtonOnClick()
         juce::String name = dataBase.getDeviceName(VID, PID);
         int nrKeys = dataBase.getNrKeysPidVid(VID, PID);
 
-        if (midiHandler.handlePlayableRange(VID, PID, dataBase.getNrKeysPidVid(VID, PID), this->keyListener.getIsKeyboardInput()) < 0)
+        if (midiHandler.handlePlayableRange(VID, PID, dataBase.getNrKeysPidVid(VID, PID), this->keyListener.getIsKeyboardInput()) < rangeAccepted)
         {
             this->MIDIDevice.deviceCloseIN();
             this->MIDIDevice.deviceCloseOUT();
@@ -296,8 +334,8 @@ void MainComponent::playButtonOnClick()
         MIDIDevice.setVID(VID);
         MIDIDevice.setDeviceName(name);
 
-        if (VID.length() < 4 || PID.length() < 4)
-            this->display->set_VID_PID("", "");
+        if (VID.length() < usbIdLength || PID.length() < usbIdLength)
+            this->display->set_VID_PID({}, {});
         else this->display->set_VID_PID(VID, PID);
 
         this->display->readPlaybackSettingsFromProperties();
@@ -316,11 +354,11 @@ void MainComponent::playButtonOnClick()
         MIDIDevice.sendMidiCC(16,7,MIDIDevice.getVolume(16));
         */
 
-        recordPlayer.setReverb(MIDIDevice.getReverb(1),1);
-        recordPlayer.setReverb(MIDIDevice.getReverb(16), 16);
+        recordPlayer.setReverb(MIDIDevice.getReverb(HandChannels::leftHand),HandChannels::leftHand);
+        recordPlayer.setReverb(MIDIDevice.getReverb(HandChannels::rightHand), HandChannels::rightHand);
 
-        recordPlayer.setVolume(MIDIDevice.getVolume(1), 1);
-        recordPlayer.setVolume(MIDIDevice.getVolume(16), 16);
+        recordPlayer.setVolume(MIDIDevice.getVolume(HandChannels::leftHand), HandChannels::leftHand);
+        recordPlayer.setVolume(MIDIDevice.getVolume(HandChannels::rightHand), HandChannels::rightHand);
 
         display->setDeviceOutput(MIDIDevice.getDeviceOUT());
 
@@ -333,14 +371,14 @@ void MainComponent::playButtonOnClick()
 
         if (display != nullptr && propertiesFile != nullptr)
         {
-            const bool arrangerOn = propertiesFile->getBoolValue("ArrangerModeEnabled", false);
+            const bool arrangerOn = propertiesFile->getBoolValue(SettingsFileKeys::arrangerModeEnabled, false);
             display->setArrangerModeEnabled(arrangerOn);
             setSectionButtonsEngineDriven(arrangerOn);
             midiHandler.setArrangerEngaged(arrangerOn);   // restore the chord-zone-mute gate
 
             // Restore the remembered Auto Fill choice (app-wide, not per style): apply to the engine
             // and reflect the tick in the toggle button.
-            const bool autoFillOn = propertiesFile->getBoolValue("ArrangerAutoFillEnabled", false);
+            const bool autoFillOn = propertiesFile->getBoolValue(SettingsFileKeys::arrangerAutoFillEnabled, false);
             display->setArrangerAutoFillEnabled(autoFillOn);
             if (variationsFills != nullptr)
                 for (auto* group : variationsFills->getSectionGroups())
@@ -349,28 +387,28 @@ void MainComponent::playButtonOnClick()
 
             // Phase 4/5: apply the remembered chord choices (defaults: Fingered mode, memory on,
             // bass inversion off) so they take effect without needing to toggle them each launch.
-            display->setArrangerBassInversion(propertiesFile->getBoolValue("ChordBassInversion", false));
+            display->setArrangerBassInversion(propertiesFile->getBoolValue(SettingsFileKeys::chordBassInversion, false));
             {
-                ChordMode m = ChordMode::Fingered;
-                if (propertiesFile->containsKey("ChordMode"))
-                    m = (ChordMode) juce::jlimit(0, 2, propertiesFile->getIntValue("ChordMode", 0));
-                else if (propertiesFile->getBoolValue("ChordFullKeyboard", false))
-                    m = ChordMode::FullKeyboard;   // migrate legacy bool
-                midiHandler.setChordMode(m);
+                ChordMode mode = ChordMode::Fingered;
+                if (propertiesFile->containsKey(SettingsFileKeys::chordMode))
+                    mode = (ChordMode) juce::jlimit(firstChordMode, lastChordMode, propertiesFile->getIntValue(SettingsFileKeys::chordMode, firstChordMode));
+                else if (propertiesFile->getBoolValue(SettingsFileKeys::chordFullKeyboard, false))
+                    mode = ChordMode::FullKeyboard;   // migrate legacy bool
+                midiHandler.setChordMode(mode);
             }
-            midiHandler.setChordMemory(propertiesFile->getBoolValue("ChordMemory", true));
-            midiHandler.setChordZoneMute(propertiesFile->getBoolValue("ChordZoneMute", false));
-            display->setArrangerSynchroStart(propertiesFile->getBoolValue("SynchroStart", false));
-            display->setArrangerCountIn(propertiesFile->getBoolValue("CountIn", false));
+            midiHandler.setChordMemory(propertiesFile->getBoolValue(SettingsFileKeys::chordMemory, true));
+            midiHandler.setChordZoneMute(propertiesFile->getBoolValue(SettingsFileKeys::chordZoneMute, false));
+            display->setArrangerSynchroStart(propertiesFile->getBoolValue(SettingsFileKeys::synchroStart, false));
+            display->setArrangerCountIn(propertiesFile->getBoolValue(SettingsFileKeys::countIn, false));
 
             // Phase 7a: restore the NTT master enable (default on) + curated minor scale (default Dorian).
-            display->setArrangerNttEnabled(propertiesFile->getBoolValue("NttEnabled", true));
+            display->setArrangerNttEnabled(propertiesFile->getBoolValue(SettingsFileKeys::nttEnabled, true));
             {
-                const int m = juce::jlimit(0, 2, propertiesFile->getIntValue("NttMinorScale", 0));
-                const auto c = m == 1 ? MinorScaleChoice::Aeolian
-                             : m == 2 ? MinorScaleChoice::HarmonicMinor
-                                      : MinorScaleChoice::Dorian;
-                display->setArrangerMinorScale(c);
+                const int minorScale = juce::jlimit(MinorScaleButtons::dorian, MinorScaleButtons::harmonic, propertiesFile->getIntValue(SettingsFileKeys::nttMinorScale, MinorScaleButtons::dorian));
+                const auto scale = minorScale == MinorScaleButtons::aeolian ? MinorScaleChoice::Aeolian
+                                 : minorScale == MinorScaleButtons::harmonic ? MinorScaleChoice::HarmonicMinor
+                                                                             : MinorScaleChoice::Dorian;
+                display->setArrangerMinorScale(scale);
             }
         }
 
@@ -378,17 +416,17 @@ void MainComponent::playButtonOnClick()
         {
             keyBoardUIinit(MIDIDevice.get_minNote(), MIDIDevice.get_maxNote());
 
-            auto styleId = display ? display->getStyleID() : "style_default";
-            int leftProg  = propertiesFile ? propertiesFile->getIntValue(styleId + "_leftInstrumentNumber",  0)
+            auto styleId = display ? display->getStyleID() : StyleNames::defaultStyleId;
+            int leftProg  = propertiesFile ? propertiesFile->getIntValue(styleId + SettingsFileKeys::leftInstrumentSuffix,  defaultProgram)
                                            : midiHandler.getProgramNumberLeftHand();
-            int rightProg = propertiesFile ? propertiesFile->getIntValue(styleId + "_rightInstrumentNumber", 0)
+            int rightProg = propertiesFile ? propertiesFile->getIntValue(styleId + SettingsFileKeys::rightInstrumentSuffix, defaultProgram)
                                            : midiHandler.getProgramNumberRightHand();
 
-            midiHandler.setProgramNumber(leftProg, "left");
-            midiHandler.setProgramNumber(rightProg, "right");
+            midiHandler.setProgramNumber(leftProg, HandChoiceNames::left);
+            midiHandler.setProgramNumber(rightProg, HandChoiceNames::right);
 
-            recordPlayer.setProgarmNumber(leftProg,"left");
-            recordPlayer.setProgarmNumber(rightProg, "right");
+            recordPlayer.setProgarmNumber(leftProg,HandChoiceNames::left);
+            recordPlayer.setProgarmNumber(rightProg, HandChoiceNames::right);
         }
         else {
             keyboard.setVisible(true);
@@ -438,7 +476,7 @@ void MainComponent::playButtonOnClick()
 void MainComponent::updateKeysButtonOnClick()
 {
     juce::String selectedText = devicesCBUpdate.getText();
-    if (selectedText == "Select a device" || selectedText == "No devices found!")
+    if (selectedText == MainComponentText::selectDevice || selectedText == DeviceNames::noDevicesFound)
         return;
 
     juce::String identifier = updateDevicesMap[selectedText];
@@ -447,53 +485,53 @@ void MainComponent::updateKeysButtonOnClick()
 
 
     auto* window = new juce::AlertWindow(
-        "Enter Number of Keys",
-        "Please enter how many keys this device has:",
+        Text::enterKeyCountTitle,
+        Text::enterKeyCount,
         juce::AlertWindow::QuestionIcon
     );
 
-    window->addTextEditor("keys", "", "Number of keys");
-    window->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+    window->addTextEditor(Text::keysEditor, {}, Text::keyCountLabel);
+    window->addButton(Text::okButton, dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
+    window->addButton(Text::cancelButton, dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
     window->enterModalState(
         true, // make modal
         juce::ModalCallbackFunction::create(
             [this, VID, PID, selectedText, window](int result)
             {
-                if (result == 0)
+                if (result == dialogCancel)
                 {
                     delete window;
                     return;
                 }
 
-                juce::String keysStr = window->getTextEditorContents("keys").trim();
+                juce::String keysStr = window->getTextEditorContents(Text::keysEditor).trim();
                 delete window;
 
-                if (!keysStr.containsOnly("0123456789"))
+                if (!keysStr.containsOnly(Text::digits))
                 {
                     juce::AlertWindow::showMessageBoxAsync(
                         juce::AlertWindow::WarningIcon,
-                        "Invalid Input",
-                        "Please enter a valid number of keys.");
+                        Text::invalidInputTitle,
+                        Text::invalidKeyCountInput);
                     return;
                 }
 
                 int numKeys = keysStr.getIntValue();
-                if (numKeys != 49 && numKeys != 61 && numKeys != 76 && numKeys != 88)
+                if (numKeys != KeyboardSizes::keys49 && numKeys != KeyboardSizes::keys61 && numKeys != KeyboardSizes::keys76 && numKeys != KeyboardSizes::keys88)
                 {
                     juce::AlertWindow::showMessageBoxAsync(
                         juce::AlertWindow::WarningIcon,
-                        "Invalid Key Count",
-                        "Please enter one of: 49, 61, 76 or 88.");
+                        Text::invalidKeyCountTitle,
+                        Text::supportedKeyCounts);
                     return;
                 }
 
-                dataBase.updateDeviceJson(VID, PID, "", numKeys);
+                dataBase.updateDeviceJson(VID, PID, {}, numKeys);
 
                 juce::AlertWindow::showMessageBoxAsync(
                     juce::AlertWindow::InfoIcon,
-                    "Success",
-                    "Device updated successfully!");
+                    Text::successTitle,
+                    Text::deviceUpdated);
             }
         )
     );

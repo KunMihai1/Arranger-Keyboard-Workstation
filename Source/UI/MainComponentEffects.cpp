@@ -4,63 +4,69 @@
 
 namespace
 {
+    constexpr int defaultProgram      = 0;
+    constexpr int chordPreviewVelocity = 100;
+    constexpr int chordPreviewMs      = 500;    // how long a clicked chord sounds
+    const juce::String seventhType    = "7";    // "C7", not "C 7"
+    const juce::String nameSeparator  = " ";    // "C Major"
+
     juce::String makeDeviceSettingsKey(const juce::String& VID, const juce::String& PID)
     {
-        juce::String deviceKey = VID + "_" + PID;
-        if (deviceKey == "_") deviceKey = "default";
+        juce::String deviceKey = VID + DeviceSettingsKeys::vidPidSeparator + PID;
+        if (deviceKey == DeviceSettingsKeys::noDeviceKey) deviceKey = DeviceSettingsKeys::defaultDeviceKey;
         return deviceKey;
     }
 }
 
-void MainComponent::applySettingsToChannel(const SoundSettings& s, int channel)
+void MainComponent::applySettingsToChannel(const SoundSettings& settings, int channel)
 {
-    MIDIDevice.setReverb(s.reverb, channel);
-    MIDIDevice.setVolume(s.volume, channel);
+    MIDIDevice.setReverb(settings.reverb, channel);
+    MIDIDevice.setVolume(settings.volume, channel);
 
-    MIDIDevice.setBrightness(s.brightness, channel);
-    MIDIDevice.setChorus(s.chorus, channel);
-    MIDIDevice.setExpression(s.expression, channel);
-    MIDIDevice.setResonance(s.resonance, channel);
-    MIDIDevice.setSustainToggle(s.sustainToggle, channel);
+    MIDIDevice.setBrightness(settings.brightness, channel);
+    MIDIDevice.setChorus(settings.chorus, channel);
+    MIDIDevice.setExpression(settings.expression, channel);
+    MIDIDevice.setResonance(settings.resonance, channel);
+    MIDIDevice.setSustainToggle(settings.sustainToggle, channel);
 
-    MIDIDevice.setAttack(s.attack, channel);
-    MIDIDevice.setDecay(s.decay, channel);
-    MIDIDevice.setRelease(s.release, channel);
-    MIDIDevice.setVibrato(s.vibrato, channel);
+    MIDIDevice.setAttack(settings.attack, channel);
+    MIDIDevice.setDecay(settings.decay, channel);
+    MIDIDevice.setRelease(settings.release, channel);
+    MIDIDevice.setVibrato(settings.vibrato, channel);
 
-    MIDIDevice.setDelay(s.delay, channel);
-    MIDIDevice.setPan(s.pan, channel);
+    MIDIDevice.setDelay(settings.delay, channel);
+    MIDIDevice.setPan(settings.pan, channel);
 
-    MIDIDevice.setDistortion(s.distortion, channel);
-    MIDIDevice.setFilterTrack(s.filterTrack, channel);
-    MIDIDevice.setTremolo(s.tremolo, channel);
-    MIDIDevice.setRandomMod(s.randomMod, channel);
+    MIDIDevice.setDistortion(settings.distortion, channel);
+    MIDIDevice.setFilterTrack(settings.filterTrack, channel);
+    MIDIDevice.setTremolo(settings.tremolo, channel);
+    MIDIDevice.setRandomMod(settings.randomMod, channel);
 }
 
 juce::String MainComponent::applyEffectCC(int ccNumber, int value, int channel)
 {
     switch (ccNumber)
     {
-        case 74: MIDIDevice.setBrightness(value, channel);  return "brightness";
-        case 11: MIDIDevice.setExpression(value, channel);  return "expression";
-        case 93: MIDIDevice.setChorus(value, channel);      return "chorus";
-        case 71: MIDIDevice.setResonance(value, channel);   return "resonance";
-        case 64: MIDIDevice.setSustainToggle(value, channel); return "sustainToggle";
+        case EffectControllers::brightness: MIDIDevice.setBrightness(value, channel); return EffectSettingsKeys::brightness;
+        case EffectControllers::expression: MIDIDevice.setExpression(value, channel); return EffectSettingsKeys::expression;
+        case EffectControllers::chorus: MIDIDevice.setChorus(value, channel); return EffectSettingsKeys::chorus;
+        case EffectControllers::resonance: MIDIDevice.setResonance(value, channel); return EffectSettingsKeys::resonance;
+        case EffectControllers::sustain: MIDIDevice.setSustainToggle(value, channel); return EffectSettingsKeys::sustainToggle;
 
-        case 1:  MIDIDevice.setVibrato(value, channel);     return "vibrato";
-        case 73: MIDIDevice.setAttack(value, channel);      return "attack";
-        case 75: MIDIDevice.setDecay(value, channel);       return "decay";
-        case 72: MIDIDevice.setRelease(value, channel);     return "release";
+        case EffectControllers::vibrato: MIDIDevice.setVibrato(value, channel); return EffectSettingsKeys::vibrato;
+        case EffectControllers::attack: MIDIDevice.setAttack(value, channel); return EffectSettingsKeys::attack;
+        case EffectControllers::decay: MIDIDevice.setDecay(value, channel); return EffectSettingsKeys::decay;
+        case EffectControllers::release: MIDIDevice.setRelease(value, channel); return EffectSettingsKeys::release;
 
-        case 7:  MIDIDevice.setVolume(value, channel);      return "volume";
-        case 91: MIDIDevice.setReverb(value, channel);      return "reverb";
-        case 94: MIDIDevice.setDelay(value, channel);       return "delay";
-        case 10: MIDIDevice.setPan(value, channel);         return "pan";
+        case EffectControllers::volume: MIDIDevice.setVolume(value, channel); return EffectSettingsKeys::volume;
+        case EffectControllers::reverb: MIDIDevice.setReverb(value, channel); return EffectSettingsKeys::reverb;
+        case EffectControllers::delay: MIDIDevice.setDelay(value, channel); return EffectSettingsKeys::delay;
+        case EffectControllers::pan: MIDIDevice.setPan(value, channel); return EffectSettingsKeys::pan;
 
-        case 80: MIDIDevice.setDistortion(value, channel);  return "distortion";
-        case 76: MIDIDevice.setFilterTrack(value, channel); return "filterTrack";
-        case 92: MIDIDevice.setTremolo(value, channel);     return "tremolo";
-        case 95: MIDIDevice.setRandomMod(value, channel);   return "randomMod";
+        case EffectControllers::distortion: MIDIDevice.setDistortion(value, channel); return EffectSettingsKeys::distortion;
+        case EffectControllers::filterTrack: MIDIDevice.setFilterTrack(value, channel); return EffectSettingsKeys::filterTrack;
+        case EffectControllers::tremolo: MIDIDevice.setTremolo(value, channel); return EffectSettingsKeys::tremolo;
+        case EffectControllers::randomMod: MIDIDevice.setRandomMod(value, channel); return EffectSettingsKeys::randomMod;
 
         default: return {};
     }
@@ -83,7 +89,7 @@ juce::String MainComponent::getCurrentEffectSettingsKey(const juce::String& styl
 {
     juce::String VID, PID;
     getCurrentEffectDeviceIds(VID, PID);
-    return styleID + "." + makeDeviceSettingsKey(VID, PID);
+    return styleID + DeviceSettingsKeys::prefixSeparator + makeDeviceSettingsKey(VID, PID);
 }
 
 void MainComponent::loadEffectsFromFile(const juce::String& styleID)
@@ -91,23 +97,23 @@ void MainComponent::loadEffectsFromFile(const juce::String& styleID)
     SoundSettings firstChannel, secondChannel;
     juce::String VID, PID;
     getCurrentEffectDeviceIds(VID, PID);
-    const juce::String settingsKey = styleID + "." + makeDeviceSettingsKey(VID, PID);
+    const juce::String settingsKey = styleID + DeviceSettingsKeys::prefixSeparator + makeDeviceSettingsKey(VID, PID);
 
     auto it = styleSettingsMap.find(settingsKey);
     if (it != styleSettingsMap.end())
     {
-        applySettingsToChannel(it->second.firstHand, 1);
-        applySettingsToChannel(it->second.secondHand, 16);
+        applySettingsToChannel(it->second.firstHand, HandChannels::leftHand);
+        applySettingsToChannel(it->second.secondHand, HandChannels::rightHand);
         return;
     }
 
-    SoundSettings first = EffectSettingsIOHelper::loadEffectsStyle(propertiesFile, styleID, VID, PID, 1);
-    SoundSettings second = EffectSettingsIOHelper::loadEffectsStyle(propertiesFile, styleID, VID, PID, 16);
+    SoundSettings first = EffectSettingsIOHelper::loadEffectsStyle(propertiesFile, styleID, VID, PID, HandChannels::leftHand);
+    SoundSettings second = EffectSettingsIOHelper::loadEffectsStyle(propertiesFile, styleID, VID, PID, HandChannels::rightHand);
 
     styleSettingsMap[settingsKey] = StyleSettings{ first, second };
 
-    applySettingsToChannel(first, 1);
-    applySettingsToChannel(second, 16);
+    applySettingsToChannel(first, HandChannels::leftHand);
+    applySettingsToChannel(second, HandChannels::rightHand);
 }
 
 void MainComponent::loadSettings(const juce::String& styleID)
@@ -117,25 +123,25 @@ void MainComponent::loadSettings(const juce::String& styleID)
 
         loadEffectsFromFile(styleID);
 
-        int leftHandInstrumentNumber = propertiesFile->getIntValue(styleID + "_leftInstrumentNumber", 0);
-        int rightHandInstrumentNumber = propertiesFile->getIntValue(styleID + "_rightInstrumentNumber", 0);
+        int leftHandInstrumentNumber = propertiesFile->getIntValue(styleID + SettingsFileKeys::leftInstrumentSuffix, defaultProgram);
+        int rightHandInstrumentNumber = propertiesFile->getIntValue(styleID + SettingsFileKeys::rightInstrumentSuffix, defaultProgram);
 
 
-        this->midiHandler.setProgramNumber(leftHandInstrumentNumber, "left");
-        this->midiHandler.setProgramNumber(rightHandInstrumentNumber, "right");
+        this->midiHandler.setProgramNumber(leftHandInstrumentNumber, HandChoiceNames::left);
+        this->midiHandler.setProgramNumber(rightHandInstrumentNumber, HandChoiceNames::right);
     }
 }
 
-void MainComponent::playChordOnClick(const Chord& c)
+void MainComponent::playChordOnClick(const Chord& chord)
 {
-    auto notes = ChordHelper::getNotesForChord(c);
+    auto notes = ChordHelper::getNotesForChord(chord);
 
     for (auto note : notes)
     {
-        midiHandler.handleIncomingMidiMessage(nullptr, juce::MidiMessage::noteOn(1, note, (juce::uint8)100));
+        midiHandler.handleIncomingMidiMessage(nullptr, juce::MidiMessage::noteOn(HandChannels::leftHand, note, (juce::uint8)chordPreviewVelocity));
 
-        juce::Timer::callAfterDelay(500, [this, note]() {
-            midiHandler.handleIncomingMidiMessage(nullptr, juce::MidiMessage::noteOff(1, note));
+        juce::Timer::callAfterDelay(chordPreviewMs, [this, note]() {
+            midiHandler.handleIncomingMidiMessage(nullptr, juce::MidiMessage::noteOff(HandChannels::leftHand, note));
         });
     }
 }
@@ -144,13 +150,13 @@ void MainComponent::buildChordLibrary()
 {
     myChordLibrary.clear();
 
-    std::vector<juce::String> roots =
+    static const std::vector<juce::String> roots =
     {
         "C","C#","D","D#","E",
         "F","F#","G","G#","A","A#","B"
     };
 
-    std::vector<juce::String> types =
+    static const std::vector<juce::String> types =
     {
         "Major",
         "Minor",
@@ -165,10 +171,10 @@ void MainComponent::buildChordLibrary()
         {
             Chord chord;
 
-            if (type == "7")
-                chord.name = root + "7";
+            if (type == seventhType)
+                chord.name = root + seventhType;
             else
-                chord.name = root + " " + type;
+                chord.name = root + nameSeparator + type;
 
             myChordLibrary.push_back(chord);
         }
@@ -184,15 +190,15 @@ void MainComponent::setCallBacksForEffectWindow()
         juce::String styleID = display->getStyleID();
         juce::String VID, PID;
         getCurrentEffectDeviceIds(VID, PID);
-        const juce::String settingsKey = styleID + "." + makeDeviceSettingsKey(VID, PID);
+        const juce::String settingsKey = styleID + DeviceSettingsKeys::prefixSeparator + makeDeviceSettingsKey(VID, PID);
 
         const juce::String key = applyEffectCC(ccNumber, value, currentChannel);
         if (key.isEmpty())
             return;
 
-        StyleSettings& s = styleSettingsMap[settingsKey];
-        if (currentChannel == 1) s.firstHand.setValue(key, value);
-        else if (currentChannel == 16) s.secondHand.setValue(key, value);
+        StyleSettings& styleSettings = styleSettingsMap[settingsKey];
+        if (currentChannel == HandChannels::leftHand) styleSettings.firstHand.setValue(key, value);
+        else if (currentChannel == HandChannels::rightHand) styleSettings.secondHand.setValue(key, value);
 
         EffectSettingsIOHelper::saveSingleEffect(propertiesFile, styleID, VID, PID, currentChannel, key, value);
 
@@ -267,29 +273,29 @@ void MainComponent::setInitialValuesFromSettingsFileEffectWindow()
 {
     auto& content = soundEffectWindow->getContent();
 
-    content.getBrightnessKnob().setValue(MIDIDevice.getBrightness(1));
-    content.getChorusKnob().setValue(MIDIDevice.getChorus(1));
-    content.getExpressionKnob().setValue(MIDIDevice.getExpression(1));
-    content.getResonanceKnob().setValue(MIDIDevice.getResonance(1));
-    content.getSustainToggle().setOn(MIDIDevice.getSustainToggle(1));
+    content.getBrightnessKnob().setValue(MIDIDevice.getBrightness(HandChannels::leftHand));
+    content.getChorusKnob().setValue(MIDIDevice.getChorus(HandChannels::leftHand));
+    content.getExpressionKnob().setValue(MIDIDevice.getExpression(HandChannels::leftHand));
+    content.getResonanceKnob().setValue(MIDIDevice.getResonance(HandChannels::leftHand));
+    content.getSustainToggle().setOn(MIDIDevice.getSustainToggle(HandChannels::leftHand));
 
     // Line 2 - Envelope & Modulation
-    content.getAttackKnob().setValue(MIDIDevice.getAttack(1));
-    content.getDecayKnob().setValue(MIDIDevice.getDecay(1));
-    content.getReleaseKnob().setValue(MIDIDevice.getRelease(1));
-    content.getVibratoKnob().setValue(MIDIDevice.getVibrato(1));
+    content.getAttackKnob().setValue(MIDIDevice.getAttack(HandChannels::leftHand));
+    content.getDecayKnob().setValue(MIDIDevice.getDecay(HandChannels::leftHand));
+    content.getReleaseKnob().setValue(MIDIDevice.getRelease(HandChannels::leftHand));
+    content.getVibratoKnob().setValue(MIDIDevice.getVibrato(HandChannels::leftHand));
 
     // Line 3 - Effects & Pan
-    content.getVolumeKnob().setValue(MIDIDevice.getVolume(1));
-    content.getReverbKnob().setValue(MIDIDevice.getReverb(1));
-    content.getDelayKnob().setValue(MIDIDevice.getDelay(1));
-    content.getPanKnob().setValue(MIDIDevice.getPan(1));
+    content.getVolumeKnob().setValue(MIDIDevice.getVolume(HandChannels::leftHand));
+    content.getReverbKnob().setValue(MIDIDevice.getReverb(HandChannels::leftHand));
+    content.getDelayKnob().setValue(MIDIDevice.getDelay(HandChannels::leftHand));
+    content.getPanKnob().setValue(MIDIDevice.getPan(HandChannels::leftHand));
 
     // Line 4 - Additional Effects
-    content.getDistortionKnob().setValue(MIDIDevice.getDistortion(1));
-    content.getFilterTrackKnob().setValue(MIDIDevice.getFilterTrack(1));
-    content.getTremoloKnob().setValue(MIDIDevice.getTremolo(1));
-    content.getRandomModKnob().setValue(MIDIDevice.getRandomMod(1));
+    content.getDistortionKnob().setValue(MIDIDevice.getDistortion(HandChannels::leftHand));
+    content.getFilterTrackKnob().setValue(MIDIDevice.getFilterTrack(HandChannels::leftHand));
+    content.getTremoloKnob().setValue(MIDIDevice.getTremolo(HandChannels::leftHand));
+    content.getRandomModKnob().setValue(MIDIDevice.getRandomMod(HandChannels::leftHand));
 }
 
 void MainComponent::sendEffectsBeforePlaying()
@@ -307,29 +313,29 @@ void MainComponent::sendEffectsBeforePlaying()
     };
 
     std::vector<EffectCC> effects = {
-    { 74, [&](int ch) { return MIDIDevice.getBrightness(ch); } },
-    { 11, [&](int ch) { return MIDIDevice.getExpression(ch); } },
-    { 93, [&](int ch) { return MIDIDevice.getChorus(ch); } },
-    { 71, [&](int ch) { return MIDIDevice.getResonance(ch); } },
-    { 64, [&](int ch) { return MIDIDevice.getSustainToggle(ch) ? 127 : 0; } },
+    { EffectControllers::brightness, [&](int ch) { return MIDIDevice.getBrightness(ch); } },
+    { EffectControllers::expression, [&](int ch) { return MIDIDevice.getExpression(ch); } },
+    { EffectControllers::chorus, [&](int ch) { return MIDIDevice.getChorus(ch); } },
+    { EffectControllers::resonance, [&](int ch) { return MIDIDevice.getResonance(ch); } },
+    { EffectControllers::sustain, [&](int ch) { return MIDIDevice.getSustainToggle(ch) ? MidiFacts::highestControllerValue : MidiFacts::lowestControllerValue; } },
 
-    { 73, [&](int ch) { return MIDIDevice.getAttack(ch); } },
-    { 75, [&](int ch) { return MIDIDevice.getDecay(ch); } },
-    { 72, [&](int ch) { return MIDIDevice.getRelease(ch); } },
-    { 1,  [&](int ch) { return MIDIDevice.getVibrato(ch); } },
+    { EffectControllers::attack, [&](int ch) { return MIDIDevice.getAttack(ch); } },
+    { EffectControllers::decay, [&](int ch) { return MIDIDevice.getDecay(ch); } },
+    { EffectControllers::release, [&](int ch) { return MIDIDevice.getRelease(ch); } },
+    { EffectControllers::vibrato, [&](int ch) { return MIDIDevice.getVibrato(ch); } },
 
-    { 94, [&](int ch) { return MIDIDevice.getDelay(ch); } },
-    { 10, [&](int ch) { return MIDIDevice.getPan(ch); } },
-    { 91, [&](int ch) { return MIDIDevice.getReverb(ch); } },
-    { 7,  [&](int ch) { return MIDIDevice.getVolume(ch); } },
+    { EffectControllers::delay, [&](int ch) { return MIDIDevice.getDelay(ch); } },
+    { EffectControllers::pan, [&](int ch) { return MIDIDevice.getPan(ch); } },
+    { EffectControllers::reverb, [&](int ch) { return MIDIDevice.getReverb(ch); } },
+    { EffectControllers::volume, [&](int ch) { return MIDIDevice.getVolume(ch); } },
 
-    { 80, [&](int ch) { return MIDIDevice.getDistortion(ch); } },
-    { 76, [&](int ch) { return MIDIDevice.getFilterTrack(ch); } },
-    { 92, [&](int ch) { return MIDIDevice.getTremolo(ch); } },
-    { 95, [&](int ch) { return MIDIDevice.getRandomMod(ch); } }
+    { EffectControllers::distortion, [&](int ch) { return MIDIDevice.getDistortion(ch); } },
+    { EffectControllers::filterTrack, [&](int ch) { return MIDIDevice.getFilterTrack(ch); } },
+    { EffectControllers::tremolo, [&](int ch) { return MIDIDevice.getTremolo(ch); } },
+    { EffectControllers::randomMod, [&](int ch) { return MIDIDevice.getRandomMod(ch); } }
     };
 
-    for (int ch : { 1, 16 })
+    for (int ch : { HandChannels::leftHand, HandChannels::rightHand })
     {
         for (auto& effect : effects)
         {

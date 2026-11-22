@@ -9,6 +9,7 @@
 */
 
 #include "MidiRecordPlayer.h"
+#include "MidiHandler.h"
 
 namespace RecordPlayerValues
 {
@@ -20,8 +21,6 @@ namespace RecordPlayerValues
     constexpr double secondsPerMinute    = 60.0;
     constexpr int    microsecondsPerMinute = 60000000;
     constexpr double fileStartTick       = 0;
-    const juce::String leftHandChoice  = "left";
-    const juce::String rightHandChoice = "right";
     const juce::String nothingToSave       = "No recorded events to save!";
     const juce::String cannotOpenForSaving = "Failed to open file for saving!";
     const juce::String cannotParseMidi     = "Failed to parse MIDI data.";
@@ -200,9 +199,9 @@ void MidiRecordPlayer::setOutputDevice(std::weak_ptr<juce::MidiOutput> outputDev
 
 void MidiRecordPlayer::setProgarmNumber(int newProgram, const juce::String& choice)
 {
-    if (choice.toLowerCase() == leftHandChoice)
+    if (choice.toLowerCase() == HandChoiceNames::left)
         programLeftHand = newProgram;
-    else if (choice.toLowerCase() == rightHandChoice)
+    else if (choice.toLowerCase() == HandChoiceNames::right)
         programRightHand = newProgram;
 }
 

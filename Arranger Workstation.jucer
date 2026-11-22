@@ -272,6 +272,7 @@
         <FILE id="splbfn" name="MainComponentEffects.cpp" compile="1" resource="0" file="Source/UI/MainComponentEffects.cpp"/>
         <FILE id="sploGM" name="MainComponentInit.cpp" compile="1" resource="0" file="Source/UI/MainComponentInit.cpp"/>
         <FILE id="splbJm" name="MainComponentOverlays.cpp" compile="1" resource="0" file="Source/UI/MainComponentOverlays.cpp"/>
+        <FILE id="splWdg" name="MainComponentWidgets.cpp" compile="1" resource="0" file="Source/UI/MainComponentWidgets.cpp"/>
         <FILE id="splTPS" name="MainComponentPlayback.cpp" compile="1" resource="0" file="Source/UI/MainComponentPlayback.cpp"/>
         <FILE id="DXD47A" name="SoundEffectWindowComponent.cpp" compile="1"
               resource="0" file="Source/UI/SoundEffectWindowComponent.cpp"/>

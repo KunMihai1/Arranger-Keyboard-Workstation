@@ -1,6 +1,52 @@
 #include "MainComponent.h"
 #include "AppInfo.h"
 
+namespace
+{
+    namespace Text
+    {
+        const juce::String particleColours   = "Particle colours";
+        const juce::String instruments       = "Instruments";
+        const juce::String recordingStarted  = "Recording started!";
+        const juce::String recordingStopped  = "Recording stopped!";
+        const juce::String playbackStopped   = "Playback stopped!";
+        const juce::String playbackStoppedTitleCase = "Playback Stopped!";   // first popup of a session
+        const juce::String playRecordingTitle = "Play recording";
+        const juce::String nothingToPlay     = "No recorded events to play.";
+        const juce::String playbackStarted   = "Playback started!";
+        const juce::String playFileRecording = "Play file recording";
+        const juce::String preparingStyle    = "Preparing style...";
+        const juce::String toggleParticles   = "Toggle particles";
+        const juce::String midiHelp          = "This setting helps you adjust/select:\n *The volume\n *The reverb\n *The input device\n *The output device ";
+        const juce::String helpMark          = "?";
+        const juce::String leftHand          = "Left hand";
+        const juce::String rightHand         = "Right hand";
+        const juce::String introsTitle       = "Intros";
+        const juce::String endingsTitle      = "Endings";
+        const juce::String variationsTitle   = "Variations";
+        const juce::String fillsTitle        = "Fills";
+        const juce::String noteAnnotation    = "Note annotation";
+    }
+
+    constexpr int    centringDivisor       = 2;
+    constexpr int    popupHalfWidth        = 50;
+    constexpr int    popupTop              = 10;
+    constexpr int    popupWidth            = 100;
+    constexpr int    popupHeight           = 30;
+    constexpr int    recordingHasEvents    = 1;    // MidiRecordPlayer::stopRecording
+    constexpr int    nothingToPlay         = 0;    // MidiRecordPlayer::startPlayBack
+    constexpr int    playbackStarted       = 1;
+    constexpr int    recordedLeftChannel   = 14;   // recordings store the hands on 14 / 15
+    constexpr int    recordedRightChannel  = 15;
+    constexpr int    noTextBox             = 0;
+    constexpr int    styleListWidth        = 400;
+    constexpr int    styleOverlayMinimumMs = 300;  // "Preparing style..." stays at least this long
+    constexpr double keyboardHeightRatio   = 0.21;
+    constexpr int    sceneLeft             = 0;
+    constexpr float  helpIconFontHeight    = 30.0f;
+    constexpr float  helpIconAlpha         = 0.9f;
+}
+
 
 void MainComponent::settingsInit()
 {
@@ -22,7 +68,7 @@ void MainComponent::settingsInit()
 
 void MainComponent::playButtonInit()
 {
-    playButton.setButtonText("Play");
+    playButton.setButtonText(MainComponentText::play);
     playButton.setLookAndFeel(&this->customLookAndFeel);
     playButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
     playButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
@@ -47,7 +93,7 @@ void MainComponent::playButtonInit()
 
 void MainComponent::colourSelectorButtonInit()
 {
-    colourSelectorButton.setButtonText("Particle colours");
+    colourSelectorButton.setButtonText(Text::particleColours);
     colourSelectorButton.setLookAndFeel(&playScreenLAF);
     colourSelectorButton.setColour(juce::TextButton::buttonColourId, AppColours::accent2);
     colourSelectorButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
@@ -61,7 +107,7 @@ void MainComponent::colourSelectorButtonInit()
 
 void MainComponent::instrumentSelectorButtonInit()
 {
-    instrumentSelectorButton.setButtonText("Instruments");
+    instrumentSelectorButton.setButtonText(Text::instruments);
     instrumentSelectorButton.setLookAndFeel(&playScreenLAF);
     instrumentSelectorButton.setColour(juce::TextButton::buttonColourId, AppColours::accent2);
     instrumentSelectorButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
@@ -96,20 +142,20 @@ void MainComponent::recordButtonsInit()
 
     startRecording.onClick = [this] {
         recordPlayer.startRecording();
-        recordPlayer.handleIncomingMessage(juce::MidiMessage::programChange(1, midiHandler.getProgramNumberLeftHand()));
-        recordPlayer.handleIncomingMessage(juce::MidiMessage::programChange(16, midiHandler.getProgramNumberRightHand()));
+        recordPlayer.handleIncomingMessage(juce::MidiMessage::programChange(HandChannels::leftHand, midiHandler.getProgramNumberLeftHand()));
+        recordPlayer.handleIncomingMessage(juce::MidiMessage::programChange(HandChannels::rightHand, midiHandler.getProgramNumberRightHand()));
 
         saveRecordingButton.setVisible(false);
 
         if (temporaryPopup)
         {
-            temporaryPopup->updateText("Recording started!");
+            temporaryPopup->updateText(Text::recordingStarted);
             temporaryPopup->restartTimer();
         }
         else {
-            temporaryPopup = std::make_unique<TemporaryMessage>("Recording started!");
+            temporaryPopup = std::make_unique<TemporaryMessage>(Text::recordingStarted);
             headerPanel.addChildComponent(temporaryPopup.get());
-            temporaryPopup->setBounds(getWidth() / 2 - 50, 10, 100, 30);
+            temporaryPopup->setBounds(getWidth() / centringDivisor - popupHalfWidth, popupTop, popupWidth, popupHeight);
             temporaryPopup->setFinishedCallBack([this] {
                 //saveRecording.setVisible(true);
                 temporaryPopup.reset();
@@ -121,18 +167,18 @@ void MainComponent::recordButtonsInit()
     stopRecording.onClick = [this] {
         int result = recordPlayer.stopRecording();
 
-        if (result == 1)
+        if (result == recordingHasEvents)
             saveRecordingButton.setVisible(true);
 
         if (temporaryPopup)
         {
-            temporaryPopup->updateText("Recording stopped!");
+            temporaryPopup->updateText(Text::recordingStopped);
             temporaryPopup->restartTimer();
         }
         else {
-            temporaryPopup = std::make_unique<TemporaryMessage>("Recording stopped!");
+            temporaryPopup = std::make_unique<TemporaryMessage>(Text::recordingStopped);
             headerPanel.addChildComponent(temporaryPopup.get());
-            temporaryPopup->setBounds(getWidth() / 2 - 50, 10, 100, 30);
+            temporaryPopup->setBounds(getWidth() / centringDivisor - popupHalfWidth, popupTop, popupWidth, popupHeight);
             temporaryPopup->setFinishedCallBack([this] {
                 temporaryPopup.reset();
 
@@ -143,8 +189,8 @@ void MainComponent::recordButtonsInit()
 
     recordPlayer.applyPresetFunction= [&]()
     {
-        midiHandler.setProgramNumber(midiHandler.getProgramNumberLeftHand(), "left");
-        midiHandler.setProgramNumber(midiHandler.getProgramNumberRightHand(), "right");
+        midiHandler.setProgramNumber(midiHandler.getProgramNumberLeftHand(), HandChoiceNames::left);
+        midiHandler.setProgramNumber(midiHandler.getProgramNumberRightHand(), HandChoiceNames::right);
     };
 
     recordPlayer.onSfzMessage = [this](const juce::MidiMessage& msg)
@@ -155,7 +201,7 @@ void MainComponent::recordButtonsInit()
         // Stored events use channels 14/15 (remapped from 1/16 at record time).
         // Remap back so the SFZ synth — which has instruments on 1 and 16 — renders them.
         int ch = msg.getChannel();
-        int sfzCh = (ch == 14) ? 1 : (ch == 15 ? 16 : ch);
+        int sfzCh = (ch == recordedLeftChannel) ? HandChannels::leftHand : (ch == recordedRightChannel ? HandChannels::rightHand : ch);
 
         if (msg.isNoteOn())
             midiHandler.injectMidiMessage(juce::MidiMessage::noteOn(sfzCh, msg.getNoteNumber(), msg.getVelocity()));
@@ -167,14 +213,14 @@ void MainComponent::recordButtonsInit()
     {
         if (temporaryPopup)
         {
-            temporaryPopup->updateText("Playback stopped!");
+            temporaryPopup->updateText(Text::playbackStopped);
             temporaryPopup->restartTimer();
         }
         else
         {
-            temporaryPopup = std::make_unique<TemporaryMessage>("Playback Stopped!");
+            temporaryPopup = std::make_unique<TemporaryMessage>(Text::playbackStoppedTitleCase);
             headerPanel.addChildComponent(temporaryPopup.get());
-            temporaryPopup->setBounds(getWidth() / 2 - 50, 10, 100, 30);
+            temporaryPopup->setBounds(getWidth() / centringDivisor - popupHalfWidth, popupTop, popupWidth, popupHeight);
             temporaryPopup->setFinishedCallBack([this] {
                 temporaryPopup.reset();
                 });
@@ -189,18 +235,18 @@ void MainComponent::recordButtonsInit()
         int result=recordPlayer.startPlayBack();
         saveRecordingButton.setVisible(true);
 
-        if(result==0)
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Play recording", "No recorded events to play.");
+        if(result==nothingToPlay)
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::playRecordingTitle, Text::nothingToPlay);
 
-        if (temporaryPopup && result==1)
+        if (temporaryPopup && result==playbackStarted)
         {
-            temporaryPopup->updateText("Playback started!");
+            temporaryPopup->updateText(Text::playbackStarted);
             temporaryPopup->restartTimer();
         }
         else if(temporaryPopup==nullptr) {
-            temporaryPopup = std::make_unique<TemporaryMessage>("Playback started!");
+            temporaryPopup = std::make_unique<TemporaryMessage>(Text::playbackStarted);
             headerPanel.addChildComponent(temporaryPopup.get());
-            temporaryPopup->setBounds(getWidth() / 2-50, 10, 100, 30);
+            temporaryPopup->setBounds(getWidth() / centringDivisor-popupHalfWidth, popupTop, popupWidth, popupHeight);
             temporaryPopup->setFinishedCallBack([this] {
                 temporaryPopup.reset();
                 });
@@ -224,7 +270,7 @@ void MainComponent::recordButtonsInit()
 
 void MainComponent::saveRecordingButtonInit()
 {
-    saveRecordingButton.setButtonText("Save recording");
+    saveRecordingButton.setButtonText(MainComponentText::saveRecording);
     saveRecordingButton.setLookAndFeel(&playScreenLAF);
     saveRecordingButton.setColour(juce::TextButton::buttonColourId, AppColours::accent2);
 
@@ -239,7 +285,7 @@ void MainComponent::saveRecordingButtonInit()
 
 void MainComponent::playRecordingButtonInit()
 {
-    playRecordingFileButton.setButtonText("Play file recording");
+    playRecordingFileButton.setButtonText(Text::playFileRecording);
     playRecordingFileButton.setLookAndFeel(&playScreenLAF);
     playRecordingFileButton.setColour(juce::TextButton::buttonColourId, AppColours::accent2);
 
@@ -255,7 +301,7 @@ void MainComponent::playRecordingButtonInit()
 void MainComponent::knobsInit()
 {
     volumeKnob.setSliderStyle(juce::Slider::Rotary);
-    volumeKnob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    volumeKnob.setTextBoxStyle(juce::Slider::NoTextBox, false, noTextBox, noTextBox);
 
     volumeKnob.setLookAndFeel(&customKnobLookAndFeel);
     headerPanel.addAndMakeVisible(volumeKnob);
@@ -264,7 +310,7 @@ void MainComponent::knobsInit()
 
 void MainComponent::displayInit()
 {
-    display = std::make_unique<Display>(deviceOpenedOUT, propertiesFile, 400);
+    display = std::make_unique<Display>(deviceOpenedOUT, propertiesFile, styleListWidth);
     headerPanel.addAndMakeVisible(display.get());
     display->setVisible(false);
 
@@ -329,10 +375,10 @@ void MainComponent::displayInit()
 
         if (MIDIDevice.isOpenAudioOUT())
         {
-            setLoadingOverlayVisible(true, "Preparing style...");
+            setLoadingOverlayVisible(true, Text::preparingStyle);
             loadSfzForCurrentStyle(styleID);
             // Fallback hide if no SFZ file actually changed (onSfzLoadComplete won't fire)
-            juce::Timer::callAfterDelay(300, [this]()
+            juce::Timer::callAfterDelay(styleOverlayMinimumMs, [this]()
             {
                 setLoadingOverlayVisible(false);
             });
@@ -344,8 +390,8 @@ void MainComponent::displayInit()
             // feels identical. Effects/CCs were just pushed to the device above; keep
             // the overlay up briefly (matching the SFZ fallback) so the swap reads as
             // deliberate, then hide on a timed delay.
-            setLoadingOverlayVisible(true, "Preparing style...");
-            juce::Timer::callAfterDelay(300, [this]()
+            setLoadingOverlayVisible(true, Text::preparingStyle);
+            juce::Timer::callAfterDelay(styleOverlayMinimumMs, [this]()
             {
                 setLoadingOverlayVisible(false);
             });
@@ -355,7 +401,7 @@ void MainComponent::displayInit()
 
 void MainComponent::toggleButtonInit()
 {
-    particleToggle.setButtonText("Toggle particles");
+    particleToggle.setButtonText(Text::toggleParticles);
     particleToggle.setMouseCursor(juce::MouseCursor::PointingHandCursor);
 
     particleToggle.onClick = [this]()
@@ -377,14 +423,14 @@ void MainComponent::keyBoardUIinit(int min, int max)
 {
     keyboardInitialized = true;
     addAndMakeVisible(keyboard);
-    int keyboardHeight = (int)getHeight() * 0.21;
+    int keyboardHeight = (int)getHeight() * keyboardHeightRatio;
 
-    keyboard.setBounds(0, getHeight() - keyboardHeight, getWidth(), keyboardHeight);
+    keyboard.setBounds(sceneLeft, getHeight() - keyboardHeight, getWidth(), keyboardHeight);
 
     this->keyboard.set_min_and_max(min, max);
     noteLayer = std::make_unique<NoteLayer>(this->keyboard);
     midiHandler.addListener(noteLayer.get());
-    noteLayer->setBounds(0, headerPanel.getHeight(), getWidth(), getHeight() - keyboardHeight - headerPanel.getHeight());
+    noteLayer->setBounds(sceneLeft, headerPanel.getHeight(), getWidth(), getHeight() - keyboardHeight - headerPanel.getHeight());
     addAndMakeVisible(noteLayer.get());
 
     this->keyboard.repaint();
@@ -399,18 +445,18 @@ void MainComponent::panelInit()
 
 void MainComponent::midiIconInit()
 {
-    helpIcon.setFont(juce::Font(30.0f));  // Set the font size
-    helpIcon.setColour(juce::Label::textColourId, juce::Colours::lightgrey.withAlpha(0.9f));
-    helpIcon.setTooltip("This setting helps you adjust/select:\n *The volume\n *The reverb\n *The input device\n *The output device ");
+    helpIcon.setFont(juce::Font(helpIconFontHeight));  // Set the font size
+    helpIcon.setColour(juce::Label::textColourId, juce::Colours::lightgrey.withAlpha(helpIconAlpha));
+    helpIcon.setTooltip(Text::midiHelp);
     helpIcon.setJustificationType(juce::Justification::left);
     settingsPanel.addAndMakeVisible(helpIcon);
-    helpIcon.setText("?", juce::dontSendNotification);
+    helpIcon.setText(Text::helpMark, juce::dontSendNotification);
     helpIcon.setVisible(false);
 }
 
 void MainComponent::midiSettingsInit()
 {
-    midiButton.setButtonText("MIDI Settings");
+    midiButton.setButtonText(MainComponentText::midiSettings);
     midiButton.onClick = [this] {
         midiButtonOnClick();
     };
@@ -441,7 +487,7 @@ void MainComponent::headerPanelInit()
 
 void MainComponent::homeButtonInit()
 {
-    homeButton.setButtonText("Home");
+    homeButton.setButtonText(MainComponentText::home);
     homeButton.setLookAndFeel(&playScreenLAF);
     homeButton.setColour(juce::TextButton::buttonColourId, AppColours::accent2);
     homeButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
@@ -457,7 +503,7 @@ void MainComponent::homeButtonInit()
 
 void MainComponent::toggleHandButtonsInit()
 {
-    leftHandInstrumentToggle.setButtonText("Left hand");
+    leftHandInstrumentToggle.setButtonText(Text::leftHand);
     leftHandInstrumentToggle.setMouseCursor(juce::MouseCursor::PointingHandCursor);
 
     leftHandInstrumentToggle.setColour(juce::ToggleButton::textColourId,        AppColours::titleText);
@@ -469,7 +515,7 @@ void MainComponent::toggleHandButtonsInit()
     leftHandInstrumentToggle.setVisible(false);
 
 
-    rightHandInstrumentToggle.setButtonText("Right hand");
+    rightHandInstrumentToggle.setButtonText(Text::rightHand);
     rightHandInstrumentToggle.setMouseCursor(juce::MouseCursor::PointingHandCursor);
 
     rightHandInstrumentToggle.setColour(juce::ToggleButton::textColourId,        AppColours::titleText);
@@ -484,7 +530,7 @@ void MainComponent::toggleHandButtonsInit()
 
 void MainComponent::updateKeysButtonInit()
 {
-    updateNumberOfKeysDevice.setButtonText("Update number of keys");
+    updateNumberOfKeysDevice.setButtonText(MainComponentText::updateKeyCount);
     updateNumberOfKeysDevice.setMouseCursor(juce::MouseCursor::PointingHandCursor);
 
     updateNumberOfKeysDevice.onClick = [this]()
@@ -498,7 +544,7 @@ void MainComponent::updateKeysButtonInit()
 
 void MainComponent::devicesCBUpdateInit()
 {
-    devicesCBUpdate.setText("Select a device", juce::dontSendNotification);
+    devicesCBUpdate.setText(MainComponentText::selectDevice, juce::dontSendNotification);
     devicesCBUpdate.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     settingsPanel.addAndMakeVisible(devicesCBUpdate);
     devicesCBUpdate.setVisible(false);
@@ -506,40 +552,28 @@ void MainComponent::devicesCBUpdateInit()
 
 void MainComponent::sectionsInit()
 {
-    std::unordered_map<juce::String, std::function<void()>> callbacksIntroEnding = {
-        {"Intro 1", [this]() { handleIntro("Intro 1");  }},
-        {"Intro 2", [this]() { handleIntro("Intro 2");  }},
-        {"Intro 3", [this]() { handleIntro("Intro 3");  }},
+    // The live section buttons; each label is also the name handed to the arranger.
+    static const juce::StringArray introLabels     { "Intro 1", "Intro 2", "Intro 3" };
+    static const juce::StringArray endingLabels    { "Ending 1", "Ending 2", "Ending 3" };
+    static const juce::StringArray variationLabels { "Var 1", "Var 2", "Var 3", "Var 4" };
+    static const juce::StringArray fillLabels      { "Fill 1", "Fill 2", "Fill 3", "Fill 4" };
 
-        {"Ending 1", [this]() { handleEnding("Ending 1"); }},
-        {"Ending 2", [this]() { handleEnding("Ending 2");  }},
-        {"Ending 3", [this]() { handleEnding("Ending 3");  }}
+    auto labelsOf = [](const juce::StringArray& labels) { return std::vector<juce::String>(labels.begin(), labels.end()); };
 
-    };
+    std::unordered_map<juce::String, std::function<void()>> callbacksIntroEnding;
+    for (auto& label : introLabels)  callbacksIntroEnding[label] = [this, label]() { handleIntro(label); };
+    for (auto& label : endingLabels) callbacksIntroEnding[label] = [this, label]() { handleEnding(label); };
 
+    introsEndings = std::make_unique<StyleSectionComponent>(std::vector<juce::String>{Text::introsTitle, Text::endingsTitle},
+        std::vector<std::vector<juce::String>>{ labelsOf(introLabels), labelsOf(endingLabels) },callbacksIntroEnding);
 
-    introsEndings = std::make_unique<StyleSectionComponent>(std::vector<juce::String>{"Intros", "Endings"},
-        std::vector<std::vector<juce::String>>{ {"Intro 1", "Intro 2", "Intro 3"}, { "Ending 1", "Ending 2", "Ending 3"}},callbacksIntroEnding);
+    std::unordered_map<juce::String, std::function<void()>> callbacksVarFillBreak;
+    for (auto& label : variationLabels) callbacksVarFillBreak[label] = [this, label]() { handleVar(label); };
+    for (auto& label : fillLabels)      callbacksVarFillBreak[label] = [this, label]() { handleFill(label); };
+    callbacksVarFillBreak[SectionGroupNames::breakButton] = [this]() { handleBreak(SectionGroupNames::breakButton); };
 
-
-
-    std::unordered_map<juce::String, std::function<void()>> callbacksVarFillBreak = {
-        {"Var 1", [this]() { handleVar("Var 1");  }},
-        {"Var 2", [this]() { handleVar("Var 2");  }},
-        {"Var 3", [this]() { handleVar("Var 3");  }},
-        {"Var 4", [this]() { handleVar("Var 4");  }},
-
-        {"Fill 1", [this]() { handleFill("Fill 1");  }},
-        {"Fill 2", [this]() { handleFill("Fill 2");  }},
-        {"Fill 3", [this]() { handleFill("Fill 3");  }},
-        {"Fill 4", [this]() { handleFill("Fill 4");  }},
-
-        {"Break", [this]() { handleBreak("Break");  }}
-
-    };
-
-    variationsFills = std::make_unique<StyleSectionComponent>(std::vector<juce::String>{"Variations", "Fills"},
-        std::vector<std::vector<juce::String>>{ {"Var 1", "Var 2", "Var 3", "Var 4"}, {"Fill 1", "Fill 2", "Fill 3", "Fill 4"}}, callbacksVarFillBreak);
+    variationsFills = std::make_unique<StyleSectionComponent>(std::vector<juce::String>{Text::variationsTitle, Text::fillsTitle},
+        std::vector<std::vector<juce::String>>{ labelsOf(variationLabels), labelsOf(fillLabels) }, callbacksVarFillBreak);
 
     // Wire the Auto Fill toggle (lives on the "Variations" group) to the arranger engine.
     for (auto* group : variationsFills->getSectionGroups())
@@ -550,7 +584,7 @@ void MainComponent::sectionsInit()
                     display->setArrangerAutoFillEnabled(on);
                 if (propertiesFile != nullptr)   // remember the choice across restarts (app-wide)
                 {
-                    propertiesFile->setValue("ArrangerAutoFillEnabled", on);
+                    propertiesFile->setValue(SettingsFileKeys::arrangerAutoFillEnabled, on);
                     propertiesFile->saveIfNeeded();
                 }
             };
@@ -576,7 +610,7 @@ void MainComponent::sectionsInit()
 
 void MainComponent::annotationInit()
 {
-    noteNumbersAnnotation.setButtonText("Note annotation");
+    noteNumbersAnnotation.setButtonText(Text::noteAnnotation);
     noteNumbersAnnotation.setMouseCursor(juce::MouseCursor::PointingHandCursor);
 
     noteNumbersAnnotation.setColour(juce::ToggleButton::textColourId,        AppColours::titleText);
@@ -600,7 +634,7 @@ void MainComponent::annotationInit()
 
 void MainComponent::chordHelperButtonInit()
 {
-    chordHelperButton.setButtonText("Chord helper");
+    chordHelperButton.setButtonText(MainComponentText::chordHelper);
     chordHelperButton.setLookAndFeel(&playScreenLAF);
     chordHelperButton.setColour(juce::TextButton::buttonColourId, AppColours::accent2);
     chordHelperButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
@@ -611,9 +645,9 @@ void MainComponent::chordHelperButtonInit()
 
         auto chordBrowser = std::make_unique<ChordBrowserComponent>(lib);
 
-        chordBrowser->onChordChosen = [this](const Chord& c)
+        chordBrowser->onChordChosen = [this](const Chord& chord)
         {
-            playChordOnClick(c);
+            playChordOnClick(chord);
         };
 
         juce::CallOutBox::launchAsynchronously(std::move(chordBrowser), chordHelperButton.getScreenBounds(), nullptr);

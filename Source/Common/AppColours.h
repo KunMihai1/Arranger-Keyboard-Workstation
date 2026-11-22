@@ -19,6 +19,8 @@ namespace AppColours
     // --- Backgrounds ---
     static const juce::Colour background     { 0xff0f0f1a };   // very dark blue-black
     static const juce::Colour stylePanelTab  { 0xff0a0f0a };   // style panel tabs (RGB 10, 15, 10)
+    static const juce::Colour settingsPanelFill   { 0xaa32645f };   // settings side panel (RGBA 50, 100, 95, 170)
+    static const juce::Colour settingsPanelBorder { 0xc8a9a9a9 };   // its border (RGBA 169, 169, 169, 200)
     static const juce::Colour panelBg        { 0xff1a1a2e };   // dark indigo panel
     static const juce::Colour cardBg         { 0xff16213e };   // slightly lighter card
 

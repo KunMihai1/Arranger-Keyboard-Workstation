@@ -1,12 +1,6 @@
 # Files not yet converted to the 'Names, not values' rule (AGENTS.md). This list may only shrink:
 # each cleanup PR converts files and removes them here. ci/check_named_values.py enforces it.
 Source/UI/KeyboardUI.cpp
-Source/UI/MainComponent.cpp
-Source/UI/MainComponent.h
-Source/UI/MainComponentActions.cpp
-Source/UI/MainComponentEffects.cpp
-Source/UI/MainComponentInit.cpp
-Source/UI/MainComponentPlayback.cpp
 Source/UI/NoteLayer.cpp
 Source/UI/NoteLayer.h
 Source/UI/SettingsWindow.cpp
