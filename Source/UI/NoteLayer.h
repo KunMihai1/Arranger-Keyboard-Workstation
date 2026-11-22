@@ -33,6 +33,15 @@
     Threading: the public methods are called on the message thread. They post commands to a
     small mutex-guarded queue; renderOpenGL() drains it and owns all animation state.
 */
+
+/** Particle looks of the note layer (the particle-style setting). */
+namespace ParticleStyles
+{
+    constexpr int sparks = 1;
+    constexpr int dust   = 2;
+    constexpr int smoke  = 3;
+}
+
 class NoteLayer : public juce::Component, public MidiHandlerListener, private juce::OpenGLRenderer
 {
 public:
@@ -84,11 +93,14 @@ public:
     std::pair<const char*, const char*> getShaderChoice(int styleId);
 
 private:
+    static constexpr float fullLife            = 1.0f;
+    static constexpr float defaultParticleSize = 6.0f;
+
     struct Command
     {
         enum class Type { noteOn, noteOff, releaseAll, clear };
         Type type;
-        int midiNote = 0;
+        int midiNote {};
         juce::Rectangle<int> keyBounds;
     };
 
@@ -114,21 +126,21 @@ private:
     struct Particle {
         juce::Point<float> pos;     /**< Particle position in NDC coordinates */
         juce::Point<float> velocity;/**< Particle velocity */
-        float life = 1.0f;          /**< Remaining life (0 = dead) */
-        float size = 6.0f;          /**< Particle size */
+        float life = fullLife;      /**< Remaining life (0 = dead) */
+        float size = defaultParticleSize; /**< Particle size */
         juce::Colour colour;        /**< Particle color */
     };
 
     struct Vertex {
-        float x, y;
+        float posX, posY;
         float size;
-        float r, g, b, a;
+        float red, green, blue, alpha;
     };
 
     struct NoteVertex {
         float px, py;          // position, NoteLayer-local logical px
         float lx, ly;          // position inside the note's rectangle
-        float w, h, alpha, pulse;  // rectangle size, fade, held-glow phase (-1 = released)
+        float rectWidth, rectHeight, alpha, pulse;  // rectangle size, fade, held-glow phase (-1 = released)
     };
 
     KeyboardUI& keyBoardUI;                    /**< Reference to keyboard UI */
@@ -140,10 +152,10 @@ private:
     // Shared between the message thread and the render thread, guarded by commandLock.
     std::mutex commandLock;
     std::vector<Command> commands;
-    float layerWidth = 0.0f, layerHeight = 0.0f;
+    float layerWidth {}, layerHeight {};
     juce::Colour particleColourUser;           /**< Particle color */
     bool spawnParticleState = false;           /**< Whether particle spawning is enabled */
-    int currentStyle = 2;                      /**< 1: Sparks, 2: Dust, 3: Smoke */
+    int currentStyle = ParticleStyles::dust;   /**< ParticleStyles */
     bool styleChanged = false;
 
     // Render thread only.
@@ -153,18 +165,18 @@ private:
     juce::Random rng;                          /**< Particle randomness (getSystemRandom() is shared, not thread-safe) */
     juce::Colour renderParticleColour;
     bool renderSpawnParticles = false;
-    int renderStyle = 2;
-    double lastFrameTime = 0.0;
+    int renderStyle = ParticleStyles::dust;
+    double lastFrameTime {};
     bool animating = false;
 
     std::unique_ptr<juce::OpenGLShaderProgram> shader; /**< Shader program for particles */
     std::unique_ptr<juce::OpenGLShaderProgram::Attribute> positionAttr, pointSizeAttr, colourAttr;
-    GLuint particleVBO = 0;                    /**< Vertex buffer object for particles */
+    GLuint particleVBO {};                     /**< Vertex buffer object for particles */
     std::vector<Vertex> renderVerts;           /**< Preallocated vertex buffer */
 
     std::unique_ptr<juce::OpenGLShaderProgram> noteShader;
     std::unique_ptr<juce::OpenGLShaderProgram::Attribute> notePositionAttr, noteLocalAttr, noteRectAttr;
-    GLuint noteVBO = 0;
+    GLuint noteVBO {};
     std::vector<NoteVertex> noteVerts;
 
     static constexpr size_t maxQueuedCommands = 4096; // bound the queue while the layer is hidden

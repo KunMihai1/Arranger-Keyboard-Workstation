@@ -426,6 +426,8 @@
         <FILE id="YlXHVG" name="InstrumentTreeItem.h" compile="0" resource="0"
               file="../Source/UI/InstrumentTreeItem.h"/>
         <FILE id="iqvpAW" name="NoteLayer.cpp" compile="1" resource="0" file="../Source/UI/NoteLayer.cpp"/>
+        <FILE id="nlPart" name="NoteLayerParticles.cpp" compile="1" resource="0" file="../Source/UI/NoteLayerParticles.cpp"/>
+        <FILE id="nlName" name="NoteLayerNames.h" compile="0" resource="0" file="../Source/UI/NoteLayerNames.h"/>
         <FILE id="cFN9eI" name="NoteLayer.h" compile="0" resource="0" file="../Source/UI/NoteLayer.h"/>
         <FILE id="ntFld1" name="NoteField.cpp" compile="1" resource="0" file="../Source/UI/NoteField.cpp"/>
         <FILE id="ntFld2" name="NoteField.h" compile="0" resource="0" file="../Source/UI/NoteField.h"/>
