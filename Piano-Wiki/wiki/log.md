@@ -13,6 +13,14 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Arranger stress: style edge cases, count-in, Synchro
+- Storms over edge-case styles (no sections, no tracks, 0- and 64-bar sections, 7/8, 5/4, 3/4 and an
+  invalid 0/0) leave every message valid and nothing sounding — the engine's guards hold
+  (`beatsPerBar` normalises bad signatures, the sequencer clamps 0 bars to 1).
+- Count-in clicks exactly once per beat at any window size (accent first) and a stop cancels it;
+  Synchro Start opens only on a real chord and a stop disarms it. No bug found. Arranger 763/0.
+- Note: count-in clicks are note-ons without note-offs (GM side-stick, one-shot) — harmless.
+
 ## 2026-11-22 — Fix: arranger left a note stuck when a pattern restarted the same pitch
 - Found by the stress tests (review pointed at it): `ArrangerEngine::activePlayedNote` kept ONE sounding
   pitch per (channel, original note). A pattern that starts the same pitch again before releasing it,
