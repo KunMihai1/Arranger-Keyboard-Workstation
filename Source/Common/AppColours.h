@@ -40,6 +40,25 @@ namespace AppColours
     static const juce::Colour separator      { 0xff2e2e44 };   // subtle divider
     static const juce::Colour rowLabel        { 0xff5e5e7e };   // row section label
 
+    // --- Arranger configuration list ---
+    static const juce::Colour configListBackground { 0xff181818 };   // near-black panel
+    static const juce::Colour configSelectedRow    { 0xff2a6cc4 };   // clear blue highlight
+    static const juce::Colour configActiveRow      { 0xff203a2b };   // subtle green wash
+    static const juce::Colour configActiveMark     { 0xff5fd08a };   // check mark + "active" tag
+
+    // --- Arranger timeline: one colour per section type ---
+    static const juce::Colour sectionIntro     { 0xff4fc1ff };   // sky blue
+    static const juce::Colour sectionVariation { 0xff6a9955 };   // moss green
+    static const juce::Colour sectionFill      { 0xffdcdcaa };   // pale yellow
+    static const juce::Colour sectionBreak     { 0xffc586c0 };   // orchid
+    static const juce::Colour sectionEnding    { 0xffd16969 };   // brick red
+    static const juce::Colour sectionCountIn   { 0xff808080 };   // grey
+    static const juce::Colour timelineBackground { 0xff1e1e1e };
+    static const juce::Colour timelineBarLine    { 0xff3a3a3a };
+    static const juce::Colour timelineBarNumber  { 0xff777777 };
+    static const juce::Colour styleEditorBackground { 0xff121212 };
+    static const juce::Colour styleEditorBorder     { 0xff2a2a2a };
+
     // --- Sustain LED ---
     static const juce::Colour sustainOn      { 0xff00e676 };   // green LED on
     static const juce::Colour sustainOff     { 0xff3a3a4a };   // dim LED off

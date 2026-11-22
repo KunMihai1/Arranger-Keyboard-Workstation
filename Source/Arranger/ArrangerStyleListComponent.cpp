@@ -1,5 +1,40 @@
 #include "ArrangerStyleListComponent.h"
 #include "IOHelper.h"
+#include "AppColours.h"
+
+namespace
+{
+    const juce::String deleteTitle        = "Delete configuration";
+    const juce::String deleteQuestionStart = "Delete \"";
+    const juce::String deleteQuestionEnd   = "\"?\nThis cannot be undone.";
+    const juce::String confirmDelete      = "Delete";
+    const juce::String cancelDelete       = "Cancel";
+    constexpr int      deleteConfirmed    = 1;   // showOkCancelBox: 1 = Delete, 0 = Cancel
+
+    const juce::String styleFilePattern   = "*.style";
+    constexpr bool     searchSubfolders   = false;
+
+    const char* const  checkMarkUtf8      = "\xE2\x9C\x93";   // U+2713 check mark
+    const juce::String activeTag          = "active";
+
+    // Row layout (pixels)
+    constexpr int   rowPadding       = 6;
+    constexpr int   checkMarkWidth   = 14;
+    constexpr int   nameAfterCheckX  = 22;
+    constexpr int   activeTagWidth   = 48;
+    constexpr int   noWidth          = 0;
+    constexpr int   rowTop           = 0;
+    constexpr float maxTagFontHeight = 12.0f;
+    constexpr float tagFontInset     = 4.0f;
+
+    // Panel layout (pixels)
+    constexpr int panelMargin   = 6;
+    constexpr int titleHeight   = 20;
+    constexpr int sectionGap    = 4;
+    constexpr int buttonsHeight = 28;
+    constexpr int buttonCount   = 5;
+    constexpr int buttonInset   = 2;
+}
 
 ArrangerStyleListComponent::ArrangerStyleListComponent()
 {
@@ -16,21 +51,21 @@ ArrangerStyleListComponent::ArrangerStyleListComponent()
     newBtn.onClick  = [this] { if (onCreateNew) onCreateNew(); };
     editBtn.onClick = [this]
     {
-        const int r = list.getSelectedRow();
-        if (r >= 0 && r < files.size() && onEditStyle) onEditStyle (files[r]);
+        const int selectedRow = list.getSelectedRow();
+        if (isRow (selectedRow) && onEditStyle) onEditStyle (files[selectedRow]);
     };
     deleteBtn.onClick = [this]
     {
-        const int r = list.getSelectedRow();
-        if (r < 0 || r >= files.size()) return;
-        const auto file = files[r];
+        const int selectedRow = list.getSelectedRow();
+        if (! isRow (selectedRow)) return;
+        const auto file = files[selectedRow];
         juce::AlertWindow::showOkCancelBox (juce::AlertWindow::WarningIcon,
-            "Delete configuration",
-            "Delete \"" + file.getFileNameWithoutExtension() + "\"?\nThis cannot be undone.",
-            "Delete", "Cancel", this,
+            deleteTitle,
+            deleteQuestionStart + file.getFileNameWithoutExtension() + deleteQuestionEnd,
+            confirmDelete, cancelDelete, this,
             juce::ModalCallbackFunction::create ([this, file] (int result)
             {
-                if (result != 1) return;          // 1 = Delete, 0 = Cancel
+                if (result != deleteConfirmed) return;
                 file.deleteFile();
                 if (onDeleteStyle) onDeleteStyle (file);   // let host clear it if it was active
                 refresh();
@@ -38,8 +73,8 @@ ArrangerStyleListComponent::ArrangerStyleListComponent()
     };
     loadBtn.onClick = [this]
     {
-        const int r = list.getSelectedRow();
-        if (r >= 0 && r < files.size() && onLoadStyle) onLoadStyle (files[r]);
+        const int selectedRow = list.getSelectedRow();
+        if (isRow (selectedRow) && onLoadStyle) onLoadStyle (files[selectedRow]);
     };
     refresh();
 }
@@ -48,8 +83,8 @@ void ArrangerStyleListComponent::refresh()
 {
     files.clear();
     auto folder = IOHelper::getArrangerStylesFolder();
-    for (auto& f : folder.findChildFiles (juce::File::findFiles, false, "*.style"))
-        files.add (f);
+    for (auto& styleFile : folder.findChildFiles (juce::File::findFiles, searchSubfolders, styleFilePattern))
+        files.add (styleFile);
     list.updateContent();
     repaint();
 }
@@ -63,65 +98,65 @@ void ArrangerStyleListComponent::setActiveConfigName (const juce::String& name)
     repaint();
 }
 
-void ArrangerStyleListComponent::paintListBoxItem (int row, juce::Graphics& g, int w, int h, bool selected)
+void ArrangerStyleListComponent::paintListBoxItem (int row, juce::Graphics& g, int rowWidth, int rowHeight, bool selected)
 {
-    if (row < 0 || row >= files.size()) return;
+    if (! isRow (row)) return;
 
     const auto rowName  = files[row].getFileNameWithoutExtension();
     const bool isActive = activeName.isNotEmpty() && rowName == activeName;
 
     if (selected)
-        g.fillAll (juce::Colour (0xff2a6cc4));           // clear blue highlight for the selected row
+        g.fillAll (AppColours::configSelectedRow);       // clear blue highlight for the selected row
     else if (isActive)
-        g.fillAll (juce::Colour (0xff203a2b));           // subtle green wash for the active configuration
+        g.fillAll (AppColours::configActiveRow);         // subtle green wash for the active configuration
 
-    const juce::Colour accent = selected ? juce::Colours::white : juce::Colour (0xff5fd08a);
+    const juce::Colour accent = selected ? juce::Colours::white : AppColours::configActiveMark;
     const juce::Colour text   = selected ? juce::Colours::white : juce::Colours::lightgrey;
 
-    int nameX = 6;
+    int nameX = rowPadding;
     if (isActive)                                        // leading check mark, name indented to match
     {
         g.setColour (accent);
-        g.drawText (juce::String::fromUTF8 ("\xE2\x9C\x93"), 6, 0, 14, h, juce::Justification::centredLeft);
-        nameX = 22;
+        g.drawText (juce::String::fromUTF8 (checkMarkUtf8), rowPadding, rowTop, checkMarkWidth, rowHeight, juce::Justification::centredLeft);
+        nameX = nameAfterCheckX;
     }
 
-    const int activeLabelW = isActive ? 48 : 0;
+    const int activeLabelW = isActive ? activeTagWidth : noWidth;
     g.setColour (text);
-    g.drawText (rowName, nameX, 0, w - nameX - 6 - activeLabelW, h, juce::Justification::centredLeft);
+    g.drawText (rowName, nameX, rowTop, rowWidth - nameX - rowPadding - activeLabelW, rowHeight, juce::Justification::centredLeft);
 
     if (isActive)                                        // trailing "active" tag
     {
         g.setColour (accent);
-        g.setFont (juce::jmin (12.0f, (float) h - 4.0f));
-        g.drawText ("active", w - 6 - activeLabelW, 0, activeLabelW, h, juce::Justification::centredRight);
+        g.setFont (juce::jmin (maxTagFontHeight, (float) rowHeight - tagFontInset));
+        g.drawText (activeTag, rowWidth - rowPadding - activeLabelW, rowTop, activeLabelW, rowHeight, juce::Justification::centredRight);
     }
 }
 
 void ArrangerStyleListComponent::listBoxItemDoubleClicked (int row, const juce::MouseEvent&)
 {
-    if (row >= 0 && row < files.size() && onLoadStyle) onLoadStyle (files[row]);
+    if (isRow (row) && onLoadStyle) onLoadStyle (files[row]);
 }
 
 void ArrangerStyleListComponent::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff181818));
+    g.fillAll (AppColours::configListBackground);
 }
 
 void ArrangerStyleListComponent::resized()
 {
-    auto area = getLocalBounds().reduced (6);
-    title.setBounds (area.removeFromTop (20));
-    area.removeFromTop (4);
+    auto area = getLocalBounds().reduced (panelMargin);
+    title.setBounds (area.removeFromTop (titleHeight));
+    area.removeFromTop (sectionGap);
 
-    auto bottom = area.removeFromBottom (28);
-    const int bw = bottom.getWidth() / 5;
-    newBtn.setBounds    (bottom.removeFromLeft (bw).reduced (2));
-    editBtn.setBounds   (bottom.removeFromLeft (bw).reduced (2));
-    deleteBtn.setBounds (bottom.removeFromLeft (bw).reduced (2));
-    loadBtn.setBounds   (bottom.removeFromLeft (bw).reduced (2));
-    closeBtn.setBounds  (bottom.reduced (2));
+    auto bottom = area.removeFromBottom (buttonsHeight);
+    const int buttonWidth = bottom.getWidth() / buttonCount;
+    newBtn.setBounds    (bottom.removeFromLeft (buttonWidth).reduced (buttonInset));
+    editBtn.setBounds   (bottom.removeFromLeft (buttonWidth).reduced (buttonInset));
+    deleteBtn.setBounds (bottom.removeFromLeft (buttonWidth).reduced (buttonInset));
+    loadBtn.setBounds   (bottom.removeFromLeft (buttonWidth).reduced (buttonInset));
+    closeBtn.setBounds  (bottom.reduced (buttonInset));
 
-    area.removeFromBottom (4);
+    area.removeFromBottom (sectionGap);
     list.setBounds (area);
 }
