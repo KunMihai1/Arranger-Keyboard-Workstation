@@ -471,6 +471,10 @@
               file="../Source/Playback/trackListComponentListener.h"/>
         <FILE id="tlCmp1" name="TrackListComponent.cpp" compile="1" resource="0"
               file="../Source/Playback/TrackListComponent.cpp"/>
+        <FILE id="tlCmp3" name="TrackListComponentFolders.cpp" compile="1" resource="0"
+              file="../Source/Playback/TrackListComponentFolders.cpp"/>
+        <FILE id="tlCmp4" name="TrackListComponentNames.h" compile="0" resource="0"
+              file="../Source/Playback/TrackListComponentNames.h"/>
         <FILE id="k5GJ5O" name="TrackEntry.h" compile="0" resource="0" file="../Source/Playback/TrackEntry.h"/>
         <FILE id="zfMrzS" name="TrackListener.h" compile="0" resource="0" file="../Source/Playback/TrackListener.h"/>
         <FILE id="dxeclC" name="TrackPlayer.cpp" compile="1" resource="0" file="../Source/Playback/TrackPlayer.cpp"/>
