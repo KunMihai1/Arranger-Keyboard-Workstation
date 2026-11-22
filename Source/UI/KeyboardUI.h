@@ -15,6 +15,13 @@
 #include <unordered_map>
 #include <vector>
 
+/** KeyboardUI::note::type values. */
+namespace KeyColourNames
+{
+    inline const std::string white = "white";
+    inline const std::string black = "black";
+}
+
 /**
  * @class KeyboardUI
  * @brief Visual representation of a piano keyboard that responds to MIDI events.
@@ -90,8 +97,6 @@ private:
      * @brief Handles the drawing of keys including active state and coloring
      * @param g Graphics context
      */
-    void paintKeyboard(juce::Graphics& g);
-
     void paintKeyboardB(juce::Graphics& g);
 
 

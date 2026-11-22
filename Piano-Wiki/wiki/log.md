@@ -13,6 +13,14 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: UI part 4 — all of Source/ done
+- KeyboardUI, NoteLayer, SettingsWindow, SoundEffectWindowComponent converted (46 → 41; only tests left).
+  Dead code removed: `KeyboardUI::paintKeyboard` (never called) and SettingsWindow's unused slider look.
+  NoteLayer split per ADR-003: particle system → `NoteLayerParticles.cpp`, shared names `NoteLayerNames.h`.
+- Live smoke test of all UI parts on the new build (app data backed up and restored, 0 differences): login,
+  play screen, keyboard + falling notes on a held chord, style panel, play-mode dropdown, Esc menu, Effects
+  and MIDI Settings windows all render and read their saved values.
+
 ## 2026-11-22 — Names cleanup: UI part 3 (MainComponent)
 - `MainComponent*.cpp` converted (52 → 46). Its widget classes moved to `MainComponentWidgets.cpp` (ADR-003)
   to stay under 800 lines. New shared names: `SettingsFileKeys` (settings-file keys), `EffectControllers`

@@ -34,6 +34,9 @@ namespace SettingsFileKeys
     inline const juce::String nttEnabled              = "NttEnabled";
     inline const juce::String nttMinorScale           = "NttMinorScale";
     inline const juce::String engineOptionIndex       = "EngineOptionIndex";   // OutputEngineIds
+    inline const juce::String midiInIndex             = "MidiInIndex";         // combo item ids, from 1
+    inline const juce::String midiOutIndex            = "MidiOutIndex";
+    inline const juce::String audioOutIndex           = "AudioOutIndex";
     inline const juce::String leftInstrumentSuffix    = "_leftInstrumentNumber";
     inline const juce::String rightInstrumentSuffix   = "_rightInstrumentNumber";
 }
