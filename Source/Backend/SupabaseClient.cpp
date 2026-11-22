@@ -10,6 +10,39 @@
 
 #include "SupabaseClient.h"
 
+namespace
+{
+    // Supabase edge functions.
+    const juce::String loginUrl        = "https://ecmlftmkoqszdwjugqtn.supabase.co/functions/v1/auth-proxy?grant_type=password";
+    const juce::String signupUrl       = "https://ecmlftmkoqszdwjugqtn.supabase.co/functions/v1/auth-proxy?action=signup";
+    const juce::String playtimeUrl     = "https://ecmlftmkoqszdwjugqtn.supabase.co/functions/v1/increment-playtime-api";
+    const juce::String deviceUrl       = "https://ecmlftmkoqszdwjugqtn.supabase.co/functions/v1/insert-or-update-device-api";
+
+    const juce::String jsonContentHeader   = "Content-Type: application/json\r\n";
+    const juce::String bearerHeaderStart   = "Authorization: Bearer ";
+    const juce::String headerLineEnd       = "\r\n";
+    const juce::String connectionFailedBody = "{\"error\":\"connection failed\"}";
+    constexpr int      connectionTimeoutMs = 5000;
+
+    // Request bodies are written by hand; each piece below is the JSON text between two values.
+    namespace JsonText
+    {
+        const juce::String emailStart        = "{\"email\":\"";
+        const juce::String passwordField     = "\",\"password\":\"";
+        const juce::String stringObjectEnd   = "\"}";
+        const juce::String signupNameField   = "\",\"data\":{\"name\":\"";
+        const juce::String signupEnd         = "\"}}";
+        const juce::String userIdStart       = "{\"user_id\":\"";
+        const juce::String pidField          = "\",\"pid\":\"";
+        const juce::String vidField          = "\",\"vid\":\"";
+        const juce::String secondsField      = "\",\"seconds\":";
+        const juce::String vendorIdField     = "\",\"vendor_id\":\"";
+        const juce::String productIdField    = "\",\"product_id\":\"";
+        const juce::String deviceNameField   = "\",\"device_name\":\"";
+        const juce::String keyCountField     = "\",\"nr_keys\":";
+        const juce::String objectEnd         = "}";
+    }
+}
 
 SupabaseClient::SupabaseClient()
 {
@@ -21,22 +54,22 @@ HttpResult SupabaseClient::login(const juce::String& email,
 {
     HttpResult result;
 
-    juce::String body = R"({"email":")" + email +
-        R"(","password":")" + password + R"("})";
+    juce::String body = JsonText::emailStart + email +
+        JsonText::passwordField + password + JsonText::stringObjectEnd;
     
-    auto postUrl = juce::URL("https://ecmlftmkoqszdwjugqtn.supabase.co/functions/v1/auth-proxy?grant_type=password")
+    auto postUrl = juce::URL(loginUrl)
         .withPOSTData(body);
     juce::String extraHeaders;
-    extraHeaders << "Content-Type: application/json\r\n";
+    extraHeaders << jsonContentHeader;
     auto stream = postUrl.createInputStream(
         juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inAddress)
         .withExtraHeaders(extraHeaders)
-        .withConnectionTimeoutMs(5000)
+        .withConnectionTimeoutMs(connectionTimeoutMs)
         .withStatusCode(&result.statusCode)
     );
     if (!stream)
     {
-        result.body = R"({"error":"connection failed"})";
+        result.body = connectionFailedBody;
         return result;
     };
     result.body= stream->readEntireStreamAsString();
@@ -51,23 +84,23 @@ HttpResult SupabaseClient::signup(const juce::String& email,
 {
     HttpResult result;
 
-    juce::String body = R"({"email":")" + email +
-        R"(","password":")" + password +
-        R"(","data":{"name":")" + username + R"("}})";
-    auto postUrl = juce::URL("https://ecmlftmkoqszdwjugqtn.supabase.co/functions/v1/auth-proxy?action=signup")
+    juce::String body = JsonText::emailStart + email +
+        JsonText::passwordField + password +
+        JsonText::signupNameField + username + JsonText::signupEnd;
+    auto postUrl = juce::URL(signupUrl)
         .withPOSTData(body);
     juce::String extraHeaders;
-    int statusCode = 0;
-    extraHeaders << "Content-Type: application/json\r\n";
+    int statusCode {};
+    extraHeaders << jsonContentHeader;
     auto stream = postUrl.createInputStream(
         juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inAddress)
-        .withConnectionTimeoutMs(5000)
+        .withConnectionTimeoutMs(connectionTimeoutMs)
         .withExtraHeaders(extraHeaders)
         .withStatusCode(&result.statusCode)
     );
     if (!stream)
     {
-        result.body = R"({"error":"connection failed"})";
+        result.body = connectionFailedBody;
         return result;
     };
     return result;
@@ -84,25 +117,25 @@ HttpResult SupabaseClient::incrementPlaytime(int seconds, const juce::String& VI
 
     HttpResult result;
 
-    juce::String body = R"({"user_id":")" + id + R"(","pid":")" + PID
-        + R"(","vid":")" + VID
-        + R"(","seconds":)" + juce::String(seconds) + "}";
+    juce::String body = JsonText::userIdStart + id + JsonText::pidField + PID
+        + JsonText::vidField + VID
+        + JsonText::secondsField + juce::String(seconds) + JsonText::objectEnd;
 
-    auto postUrl = juce::URL("https://ecmlftmkoqszdwjugqtn.supabase.co/functions/v1/increment-playtime-api")
+    auto postUrl = juce::URL(playtimeUrl)
         .withPOSTData(body);
     juce::String extraHeaders;
-    extraHeaders << "Content-Type: application/json\r\n";
-    extraHeaders << "Authorization: Bearer " + token + "\r\n";  
-    int statusCode = 0;
+    extraHeaders << jsonContentHeader;
+    extraHeaders << bearerHeaderStart + token + headerLineEnd;  
+    int statusCode {};
     auto stream = postUrl.createInputStream(
         juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inAddress)
         .withExtraHeaders(extraHeaders)
-        .withConnectionTimeoutMs(5000)
+        .withConnectionTimeoutMs(connectionTimeoutMs)
         .withStatusCode(&result.statusCode)
     );
     if (!stream)
     {
-        result.body = R"({"error":"connection failed"})";
+        result.body = connectionFailedBody;
         return result;
     };
     result.body = stream->readEntireStreamAsString();
@@ -139,34 +172,34 @@ HttpResult SupabaseClient::addOrUpdateDevice(const juce::String& VID, const juce
 
     HttpResult result;
 
-    juce::String body = R"({"user_id":")" + id +
-        R"(","vendor_id":")" + VID +
-        R"(","product_id":")" + PID +
-        R"(","device_name":")" + deviceName +
-        R"(","nr_keys":)" + juce::String(nrKeys) + "}";
+    juce::String body = JsonText::userIdStart + id +
+        JsonText::vendorIdField + VID +
+        JsonText::productIdField + PID +
+        JsonText::deviceNameField + deviceName +
+        JsonText::keyCountField + juce::String(nrKeys) + JsonText::objectEnd;
 
     
-    auto postUrl = juce::URL("https://ecmlftmkoqszdwjugqtn.supabase.co/functions/v1/insert-or-update-device-api")
+    auto postUrl = juce::URL(deviceUrl)
         .withPOSTData(body);
 
     
     juce::String extraHeaders;
-    extraHeaders << "Content-Type: application/json\r\n";
-    extraHeaders << "Authorization: Bearer " + token + "\r\n";
+    extraHeaders << jsonContentHeader;
+    extraHeaders << bearerHeaderStart + token + headerLineEnd;
 
-    int statusCode = 0;
+    int statusCode {};
 
     
     auto stream = postUrl.createInputStream(
         juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inAddress)
         .withExtraHeaders(extraHeaders)
-        .withConnectionTimeoutMs(5000)
+        .withConnectionTimeoutMs(connectionTimeoutMs)
         .withStatusCode(&result.statusCode)
     );
 
     if (!stream)
     {
-        result.body = R"({"error":"connection failed"})";
+        result.body = connectionFailedBody;
         return result;
     };
 

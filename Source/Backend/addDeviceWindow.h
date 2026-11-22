@@ -16,7 +16,7 @@ class AddDeviceWindow: public juce::DialogWindow
 public:
     std::function<void(const juce::String& name, int keys)> onAddDevice;
 
-    AddDeviceWindow(const juce::String& vid, const juce::String& pid, int testing=0);
+    AddDeviceWindow(const juce::String& vid, const juce::String& pid, int testing={});
 
     void closeButtonPressed() override;
 

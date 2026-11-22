@@ -13,7 +13,7 @@
 #include "JuceHeader.h"
 
 struct HttpResult {
-    int statusCode = 0;
+    int statusCode {};
     juce::String body;
 };
 
