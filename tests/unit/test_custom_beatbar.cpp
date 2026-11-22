@@ -18,12 +18,15 @@ namespace BeatBarTestValues
     const juce::String paintWhileStopped      = "Paint executes without crash - playing off";
     const juce::String paintFirstBeatPlaying  = "Paint executes red branch - first beat playing";
 
-    constexpr int three   = 3;
-    constexpr int four    = 4;
-    constexpr int six     = 6;
-    constexpr int seven   = 7;
-    constexpr int eight   = 8;
-    constexpr int sixteen = 16;
+    constexpr int threeBeatsPerBar    = 3;   // numerators: beats per bar
+    constexpr int fourBeatsPerBar     = 4;
+    constexpr int sixBeatsPerBar      = 6;
+    constexpr int sevenBeatsPerBar    = 7;
+    constexpr int quarterNote   = 4;   // denominators: the note value of one beat
+    constexpr int eighthNote    = 8;
+    constexpr int sixteenthNote = 16;
+    constexpr int fourSubdivisions  = 4;
+    constexpr int threeSubdivisions = 3;
 
     constexpr float oneSubBeat   = 1.0f;
     constexpr float twoSubBeats  = 2.0f;
@@ -63,43 +66,43 @@ public:
         beginTest(defaultValues);
         {
             BeatBar bar;
-            expect(bar.getNumerator() == four);
-            expect(bar.getDenominator() == four);
+            expect(bar.getNumerator() == fourBeatsPerBar);
+            expect(bar.getDenominator() == quarterNote);
         }
 
         beginTest(setGetNumerator);
         {
             BeatBar bar;
 
-            bar.setNumerator(three);
-            expect(bar.getNumerator() == three);
+            bar.setNumerator(threeBeatsPerBar);
+            expect(bar.getNumerator() == threeBeatsPerBar);
 
-            bar.setNumerator(seven);
-            expect(bar.getNumerator() == seven);
+            bar.setNumerator(sevenBeatsPerBar);
+            expect(bar.getNumerator() == sevenBeatsPerBar);
         }
 
         beginTest(setGetDenominator);
         {
             BeatBar bar;
 
-            bar.setDenominator(eight);
-            expect(bar.getDenominator() == eight);
+            bar.setDenominator(eighthNote);
+            expect(bar.getDenominator() == eighthNote);
 
-            bar.setDenominator(four);
-            expect(bar.getDenominator() == four);
+            bar.setDenominator(quarterNote);
+            expect(bar.getDenominator() == quarterNote);
         }
 
         beginTest(subBeatsPerBeat);
         {
             BeatBar bar;
 
-            bar.setDenominator(four);
+            bar.setDenominator(quarterNote);
             expect(bar.getSubBeatsPerBeat() == oneSubBeat);
 
-            bar.setDenominator(eight);
+            bar.setDenominator(eighthNote);
             expect(bar.getSubBeatsPerBeat() == twoSubBeats);
 
-            bar.setDenominator(sixteen);
+            bar.setDenominator(sixteenthNote);
             expect(bar.getSubBeatsPerBeat() == fourSubBeats);
         }
 
@@ -107,20 +110,20 @@ public:
         {
             BeatBar bar;
 
-            bar.setNumerator(four);
-            bar.setDenominator(four);
-            expect(bar.getTotalSubdivisions() == four);
+            bar.setNumerator(fourBeatsPerBar);
+            bar.setDenominator(quarterNote);
+            expect(bar.getTotalSubdivisions() == fourSubdivisions);
 
-            bar.setNumerator(three);
-            bar.setDenominator(four);
-            expect(bar.getTotalSubdivisions() == three);
+            bar.setNumerator(threeBeatsPerBar);
+            bar.setDenominator(quarterNote);
+            expect(bar.getTotalSubdivisions() == threeSubdivisions);
 
-            bar.setNumerator(seven);
-            bar.setDenominator(eight);
+            bar.setNumerator(sevenBeatsPerBar);
+            bar.setDenominator(eighthNote);
             expect(bar.getTotalSubdivisions() == sevenEightSubdivisions);
 
-            bar.setNumerator(six);
-            bar.setDenominator(eight);
+            bar.setNumerator(sixBeatsPerBar);
+            bar.setDenominator(eighthNote);
             expect(bar.getTotalSubdivisions() == sixEightSubdivisions);
         }
 
@@ -128,8 +131,8 @@ public:
         {
             BeatBar bar;
 
-            bar.setNumerator(four);
-            bar.setDenominator(four);
+            bar.setNumerator(fourBeatsPerBar);
+            bar.setDenominator(quarterNote);
 
             bar.setCurrentBeatsElapsed(barStart);
             expect(bar.getCurrentSubdivision() == firstSubdivision);
@@ -145,8 +148,8 @@ public:
         {
             BeatBar bar;
 
-            bar.setNumerator(four);
-            bar.setDenominator(four);
+            bar.setNumerator(fourBeatsPerBar);
+            bar.setDenominator(quarterNote);
 
             bar.setCurrentBeatsElapsed(nextBarStart);
             expect(bar.getCurrentSubdivision() == firstSubdivision);
@@ -159,8 +162,8 @@ public:
         {
             BeatBar bar;
 
-            bar.setNumerator(four);
-            bar.setDenominator(four);
+            bar.setNumerator(fourBeatsPerBar);
+            bar.setDenominator(quarterNote);
 
             bar.setCurrentBeatsElapsed(oneBeatBack);
             expect(bar.getCurrentSubdivision() == fourthSubdivision);
@@ -170,8 +173,8 @@ public:
         {
             BeatBar bar;
 
-            bar.setNumerator(seven);
-            bar.setDenominator(eight);
+            bar.setNumerator(sevenBeatsPerBar);
+            bar.setDenominator(eighthNote);
 
             bar.setCurrentBeatsElapsed(barStart);
             expect(bar.getCurrentSubdivision() == firstSubdivision);
@@ -200,8 +203,8 @@ public:
             BeatBar bar;
 
             bar.setCurrentBeatsElapsed(barStart);
-            bar.setNumerator(four);
-            bar.setDenominator(four);
+            bar.setNumerator(fourBeatsPerBar);
+            bar.setDenominator(quarterNote);
 
 
             bar.isPlayingCheck = []() { return true; };

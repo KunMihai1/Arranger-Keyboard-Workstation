@@ -234,7 +234,6 @@ public:
 
     void runAutoFillTests()
     {
-
         beginTest (fillOfOutgoingVariation);
         {
             ArrangerSectionSequencer sequencer;

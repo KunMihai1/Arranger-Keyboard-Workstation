@@ -47,7 +47,7 @@ namespace TrackListRemovalTestValues
     const juce::String bothRemovedReported = "both removed tracks should be reported";
     const juce::String removedStillInFolder = "a removed track is still in the folder";
     const juce::String openListShowsThree = "the open-folder list should show 3 tracks";
-    const juce::StringArray keptTracks { "a0", "a2", "a4" };
+    const juce::StringArray keptTracks { trackA0, trackA2, trackA4 };
     const juce::String keptTrackMissing = "kept track missing: ";
     const juce::String afterRemovingA1AndA3 = "after removing a1 and a3";
     const juce::String callbackBeforeFolderRemoved = "callback fired while folder B still existed";

@@ -33,7 +33,7 @@ namespace ArrangerStyleIOTestValues
     const juce::String smokeSectionId   = "v";
     const juce::String missingFileName  = "arranger-style-does-not-exist-9d3f.style";
 
-    // A minimal v3 file, written by hand: no originalRoot/originalQuality keys.
+    // A minimal v3-style JSON written by hand (no originalRoot/originalQuality keys).
     const juce::String v3StyleJson =
         "{ \"schemaVersion\": 3, \"kind\": \"arrangerStyle\", \"id\": \"x\", \"name\": \"Old\","
         "  \"originalTempo\": 120.0, \"timeSigNum\": 4, \"timeSigDenom\": 4,"
@@ -71,7 +71,7 @@ namespace ArrangerStyleIOTestValues
     constexpr int twoTracks   = 2;
     constexpr int threeTracks = 3;
 
-    // the same tracks as v4 JSON with NO nttType field -> part-derived defaults
+    // a hand-written v4 JSON with NO nttType field -> part-derived defaults
     const juce::String legacyV4Json =
         "{ \"schemaVersion\":4, \"kind\":\"arrangerStyle\", \"sourceTracks\":["
         "  {\"id\":\"d\",\"name\":\"Drums\",\"partType\":\"Drum\",\"channel\":10},"

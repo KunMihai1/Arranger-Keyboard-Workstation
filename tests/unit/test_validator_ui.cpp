@@ -59,6 +59,8 @@ public:
 
     void runTest() override
     {
+        // ---- isValidMidiIntValue ----
+
         beginTest(isValidMidiIntValueValidRange0127);
         {
             for (const auto& input : isValidMidiIntValueValidRange0127Inputs)
@@ -71,6 +73,8 @@ public:
                 expect(Validator::isValidMidiIntValue(input) == false);
         }
 
+        // ---- isValidMidiIntegerVelocities ----
+
         beginTest(isValidMidiIntegerVelocitiesValidVelocities);
         {
             for (const auto& input : isValidMidiIntegerVelocitiesValidVelocitiesInputs)
@@ -82,6 +86,8 @@ public:
             for (const auto& input : isValidMidiIntegerVelocitiesInvalidVelocitiesInputs)
                 expect(Validator::isValidMidiIntegerVelocities(input) == false);
         }
+
+        // ---- isValidMidiIntegerString ----
 
         beginTest(isValidMidiIntegerStringValidStrings);
         {
@@ -113,6 +119,8 @@ public:
                 expect(Validator::isValidMidiIntegerString(input) == false);
         }
 
+        // ---- isValidMidiDoubleString ----
+
         beginTest(isValidMidiDoubleStringValidStrings);
         {
             for (const auto& input : isValidMidiDoubleStringValidStringsInputs)
@@ -142,6 +150,8 @@ public:
             for (const auto& input : isValidMidiDoubleStringInvalidSignWithDotOnlyInputs)
                 expect(Validator::isValidMidiDoubleString(input) == false);
         }
+
+        // ---- isValidMidiDoubleValueTimeStamps ----
 
         beginTest(isValidMidiDoubleValueTimeStampsValidWithinBounds);
         {

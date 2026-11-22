@@ -27,8 +27,8 @@ namespace MidiDeviceHwTestValues
     constexpr int noDevice = -1;
     constexpr size_t oneDevice = 1;
     constexpr int firstPair = 0;
-    constexpr int leftHand = 1;
-    constexpr int rightHand = 16;
+    using HandChannels::leftHand;
+    using HandChannels::rightHand;
     constexpr int volumeController = 7;
     constexpr int reverbController = 91;
     constexpr int leftVolume = 75;
