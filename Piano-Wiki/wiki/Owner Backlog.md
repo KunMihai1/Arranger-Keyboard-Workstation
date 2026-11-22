@@ -38,7 +38,9 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   `2026-11-22-temporary-tabs-after-home-design.md`.
 
 ## 1b. UI refinement (owner, 2026-11-22) — after section 1, before the TODO file; owner reviews it first
-- ⬜ A refined, quality feel everywhere ("not AI-looking"): the piano keys as realistic as possible,
+- **Most important (owner): it must NOT look AI-generated** — a real-music-gear, human-designed look (think
+  hardware keyboards, studio gear), not generic gradients/glows/rounded cards.
+- ⬜ A refined, quality feel everywhere: the piano keys as realistic as possible,
   real-looking knobs on the Effects page, buttons and the rest of the UI to match; anything that adds
   realism is welcome.
 - ⬜ **Piano skins**: decorative designs on the keyboard body (the owner's example was an art-wrapped
