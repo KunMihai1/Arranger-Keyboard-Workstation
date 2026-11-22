@@ -3,6 +3,7 @@
 #include <juce_audio_devices/juce_audio_devices.h>
 #include "Arranger/ArrangerEngine.h"
 #include "Arranger/ArrangerModel.h"
+#include "Arranger/ArrangerCountIn.h"
 #include <map>
 #include <utility>
 
@@ -91,6 +92,14 @@ namespace ArrangerStressValues
     const juce::String unknownName   = "Var 9";   // a label no section has
     constexpr int numberedSections   = 4;          // Variation 1-4, Fill 1-4
     constexpr int firstNumber        = 1;
+
+    // Style edge cases: a storm over each must leave every message valid and nothing sounding.
+    constexpr int edgeCaseStormWindows = 2000;
+    constexpr int zeroBars             = 0;
+    constexpr int longSectionBars      = 64;
+    const std::vector<std::pair<int, int>> oddTimeSignatures { { 7, 8 }, { 5, 4 }, { 3, 4 }, { 0, 0 } };   // 0/0 is invalid
+
+    constexpr int countInSafetyWindows = 1000;
 }
 
 namespace ArrangerStressText
@@ -109,6 +118,18 @@ namespace ArrangerStressText
     const juce::String nothingPlayed      = "the arranger emitted no notes at all";
     const juce::String notesLeaked        = "more notes sounding at once than a section can hold: a note leaked";
     const juce::String endingDidNotReset  = "after the Ending the engine is not back on the first section";
+
+    const juce::String edgeCaseTitle       = "edge-case styles (no sections, no tracks, 0 and 64 bars, odd and invalid time signatures) never break the engine";
+    const juce::String countInTitle        = "the count-in clicks exactly once per beat at any window size, and a stop cancels it";
+    const juce::String synchroTitle        = "Synchro Start opens only on a real chord, and a stop disarms it";
+    const juce::String wrongClickCount     = "the count-in did not click exactly once per beat";
+    const juce::String firstNotAccented    = "the count-in's first click is not the accented one";
+    const juce::String countInNotCancelled = "a stop did not cancel the count-in";
+    const juce::String clickAfterStop      = "the count-in clicked after a stop";
+    const juce::String openedWithoutChord  = "Synchro Start opened without a real chord";
+    const juce::String stayedArmed         = "Synchro Start stayed armed after a real chord";
+    const juce::String armedAfterStop      = "Synchro Start is still armed after a stop";
+    const juce::String countInNeverEnded   = "the count-in never ended";
 }
 
 class ArrangerStressTest : public juce::UnitTest
@@ -122,6 +143,9 @@ public:
         stoppingAtRandomMomentsLeavesNothingSounding();
         endingStopsAndLeavesNothingSounding();
         samePitchStartedTwiceAcrossAChordChangeIsReleased();
+        edgeCaseStylesNeverBreakTheEngine();
+        countInClicksOncePerBeatAndStopCancelsIt();
+        synchroStartOpensOnlyOnARealChord();
     }
 
 private:
@@ -442,6 +466,117 @@ private:
 
         expectEquals (ledger.stillSounding(), int {}, stuckNote);
         engine.stop();
+    }
+    static ArrangerStyle styleWith (std::vector<ArrangerSection> sections, int beatsPerBarNumerator, int beatUnitDenominator)
+    {
+        ArrangerStyle style;
+        style.timeSigNum    = beatsPerBarNumerator;
+        style.timeSigDenom  = beatUnitDenominator;
+        style.originalTempo = ArrangerStressValues::styleTempoBpm;
+        style.sections      = std::move (sections);
+        return style;
+    }
+
+    void stormThenStop (ArrangerEngine& engine, NoteLedger& ledger, juce::Random& random)
+    {
+        using namespace ArrangerStressValues;
+        double playhead {};
+        for (int window {}; window < edgeCaseStormWindows; ++window)
+        {
+            if (oneTimeIn (random)) engine.setActiveChord (randomChord (random));
+            if (oneTimeIn (random)) queueRandomSection (engine, random, true);
+            const double windowLength = randomWindow (random);
+            engine.renderRange (playhead, playhead + windowLength);
+            playhead += windowLength;
+        }
+        engine.stop();
+        expectAllMessagesValid (ledger);
+        expectEquals (ledger.stillSounding(), int {}, ArrangerStressText::stuckNote);
+    }
+
+    void edgeCaseStylesNeverBreakTheEngine()
+    {
+        using namespace ArrangerStressValues;
+        beginTest (ArrangerStressText::edgeCaseTitle);
+
+        const auto full = makeFullStyle();
+        auto trackless = makeSection (ArrangerSectionType::Variation, numbered (variationName, firstNumber), ArrangerAfterComplete::Loop);
+        trackless.tracks.clear();
+        auto zeroLength = full.sections.front();
+        zeroLength.lengthBars = zeroBars;
+        auto longSection = full.sections.front();
+        longSection.lengthBars = longSectionBars;
+
+        std::vector<ArrangerStyle> styles {
+            styleWith ({}, beatsPerBar, beatUnit),
+            styleWith ({ trackless }, beatsPerBar, beatUnit),
+            styleWith ({ zeroLength, full.sections.back() }, beatsPerBar, beatUnit),
+            styleWith ({ longSection, full.sections.back() }, beatsPerBar, beatUnit) };
+        for (const auto& [numerator, denominator] : oddTimeSignatures)
+            styles.push_back (styleWith (full.sections, numerator, denominator));
+
+        juce::Random random (randomSeed);
+        for (const auto& style : styles)
+        {
+            ArrangerEngine engine (std::weak_ptr<juce::MidiOutput> {});
+            NoteLedger ledger;
+            engine.onMidiMessage = [&] (const juce::MidiMessage& message) { ledger.record (message); };
+            engine.setStyle (style);
+            stormThenStop (engine, ledger, random);
+        }
+    }
+
+    void countInClicksOncePerBeatAndStopCancelsIt()
+    {
+        using namespace ArrangerStressValues;
+        using namespace ArrangerStressText;
+        beginTest (countInTitle);
+
+        juce::Random random (randomSeed);
+        ArrangerEngine engine (std::weak_ptr<juce::MidiOutput> {});
+        std::vector<juce::MidiMessage> clicks;
+        engine.onMidiMessage = [&] (const juce::MidiMessage& message) { if (message.isNoteOn()) clicks.push_back (message); };
+        engine.setStyle (makeFullStyle());
+
+        engine.armCountIn();
+        bool ended = false;
+        for (int window {}; window < countInSafetyWindows && ! ended; ++window)
+            ended = ! engine.renderCountIn (randomWindow (random));
+
+        expect (ended, countInNeverEnded);
+        expectEquals ((int) clicks.size(), beatsPerBar, wrongClickCount);
+        expect (! clicks.empty() && clicks.front().getVelocity() == ArrangerCountIn::kAccentVel, firstNotAccented);
+
+        engine.armCountIn();
+        engine.renderCountIn (randomWindow (random));
+        engine.stop();
+        const auto clicksAtStop = clicks.size();
+        expect (! engine.isCountingIn(), countInNotCancelled);
+        expect (! engine.renderCountIn (randomWindow (random)) && clicks.size() == clicksAtStop, clickAfterStop);
+    }
+
+    void synchroStartOpensOnlyOnARealChord()
+    {
+        using namespace ArrangerStressValues;
+        using namespace ArrangerStressText;
+        beginTest (synchroTitle);
+
+        ArrangerEngine engine (std::weak_ptr<juce::MidiOutput> {});
+        engine.setStyle (makeFullStyle());
+
+        engine.armSynchro();
+        engine.setActiveChord (ArrangerChord {});   // "no chord": the gate stays shut
+        expect (engine.isSynchroArmed(), openedWithoutChord);
+
+        ArrangerChord realChord;
+        realChord.root    = pitchClassD;
+        realChord.quality = ChordQuality::Min;
+        engine.setActiveChord (realChord);
+        expect (! engine.isSynchroArmed(), stayedArmed);
+
+        engine.armSynchro();
+        engine.stop();
+        expect (! engine.isSynchroArmed(), armedAfterStop);
     }
 };
 
