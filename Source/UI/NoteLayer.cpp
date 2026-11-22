@@ -12,10 +12,6 @@
 #include "NoteLayer.h"
 #include <juce_opengl/juce_opengl.h>
 
-#ifndef GL_POINT_SPRITE
-#define GL_POINT_SPRITE 0x8861
-#endif
-
 #if JUCE_WINDOWS
  // Declared here rather than pulling <dwmapi.h> (and <windows.h>) into a JUCE translation unit.
  extern "C" __declspec(dllimport) long __stdcall DwmFlush();
