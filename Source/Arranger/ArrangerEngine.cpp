@@ -1,6 +1,22 @@
 ﻿#include "ArrangerEngine.h"
 #include "ArrangerTime.h"
 #include "ArrangerCountIn.h"
+#include "ArrangerChannels.h"
+
+namespace
+{
+    // Note-offs sent when silencing go out immediately; their beat position is not used.
+    constexpr double flushNotesAtBeats      = 0.0;
+    constexpr int    timerIntervalMs        = 10;    // the engine's render tick
+    constexpr int    channelVolumeCC        = 7;
+    constexpr int    lowestControllerValue  = 0;
+    constexpr int    highestControllerValue = 127;
+    constexpr int    lowestProgram          = 0;
+    constexpr int    firstSection           = 0;
+    constexpr int    oneSection             = 1;
+    constexpr double noTempo                = 0.0;
+    constexpr double noBeats                = 0.0;
+}
 
 ArrangerEngine::ArrangerEngine (std::weak_ptr<juce::MidiOutput> out) : outputDevice (out) {}
 
@@ -16,7 +32,7 @@ void ArrangerEngine::setDeviceOutput (std::weak_ptr<juce::MidiOutput> out)
 
 void ArrangerEngine::setBpm (double bpm)
 {
-    if (bpm > 0.0) currentBpm = bpm;
+    if (bpm > noTempo) currentBpm = bpm;
 }
 
 void ArrangerEngine::rebuildFromStyle()
@@ -24,33 +40,33 @@ void ArrangerEngine::rebuildFromStyle()
     schedulers.clear();
     const double bpb = ArrangerTime::beatsPerBar (style.timeSigNum, style.timeSigDenom);
 
-    for (const auto& sec : style.sections)
+    for (const auto& section : style.sections)
     {
         std::vector<TimedBeatEvent> merged;
         std::vector<PartKind>       parts;
         std::vector<NttType>        ntts;
-        for (const auto& tr : sec.tracks)
+        for (const auto& track : section.tracks)
         {
             // Drums/Perc never transpose; Bass honours bass inversion; Acc is plain harmony.
-            const PartKind pk = (tr.partType == ArrangerPartType::Bass) ? PartKind::Bass
-                              : (tr.partType == ArrangerPartType::Acc)  ? PartKind::Acc
-                                                                        : PartKind::Fixed;
-            for (const auto& ev : tr.pattern)
+            const PartKind partKind = (track.partType == ArrangerPartType::Bass) ? PartKind::Bass
+                                    : (track.partType == ArrangerPartType::Acc)  ? PartKind::Acc
+                                                                                 : PartKind::Fixed;
+            for (const auto& event : track.pattern)
             {
-                merged.push_back (ev);
-                parts.push_back (pk);
-                ntts.push_back (tr.nttType);   // Phase 7a: per-track NTT type
+                merged.push_back (event);
+                parts.push_back (partKind);
+                ntts.push_back (track.nttType);   // Phase 7a: per-track NTT type
             }
         }
 
-        const double bars = (double) juce::jmax (1, sec.lengthBars);
-        ArrangerScheduler s;
-        s.setLoop (std::move (merged), std::move (parts), std::move (ntts), bars * bpb);
-        schedulers.push_back (std::move (s));
+        const double bars = (double) juce::jmax (ArrangerStyleDefaults::minimumLengthBars, section.lengthBars);
+        ArrangerScheduler scheduler;
+        scheduler.setLoop (std::move (merged), std::move (parts), std::move (ntts), bars * bpb);
+        schedulers.push_back (std::move (scheduler));
     }
 
     sequencer.setStyle (style);
-    currentSchedulerIndex = -1;
+    currentSchedulerIndex = ArrangerStyleDefaults::noIndex;
     updateActiveLoopLength();
 }
 
@@ -58,27 +74,27 @@ void ArrangerEngine::updateActiveLoopLength()
 {
     if (style.sections.empty())
     {
-        loopLengthBeats = 0.0;
+        loopLengthBeats = noBeats;
         return;
     }
     const double bpb = ArrangerTime::beatsPerBar (style.timeSigNum, style.timeSigDenom);
-    const int idx = juce::jlimit (0, (int) style.sections.size() - 1, sequencer.getActiveIndex());
-    loopLengthBeats = (double) juce::jmax (1, style.sections[idx].lengthBars) * bpb;
+    const int activeIndex = juce::jlimit (firstSection, (int) style.sections.size() - oneSection, sequencer.getActiveIndex());
+    loopLengthBeats = (double) juce::jmax (ArrangerStyleDefaults::minimumLengthBars, style.sections[activeIndex].lengthBars) * bpb;
 }
 
 int ArrangerEngine::indexOfSection (ArrangerSectionType type, const juce::String& name) const
 {
     // Match by type + trailing number (like the sequencer's findSection), so the live button labels
     // ("Var 2") resolve to the matching section ("Variation 2") even though the strings differ.
-    const int wantN = name.getTrailingIntValue();
-    int firstOfType = -1, numMatch = -1;
-    for (int i = 0; i < (int) style.sections.size(); ++i)
+    const int wantedNumber = name.getTrailingIntValue();
+    int firstOfType = ArrangerStyleDefaults::noIndex, numMatch = ArrangerStyleDefaults::noIndex;
+    for (int sectionIndex {}; sectionIndex < (int) style.sections.size(); ++sectionIndex)
     {
-        if (style.sections[i].type != type) continue;
-        if (firstOfType < 0) firstOfType = i;
-        if (style.sections[i].name.getTrailingIntValue() == wantN) numMatch = i;
+        if (style.sections[sectionIndex].type != type) continue;
+        if (firstOfType == ArrangerStyleDefaults::noIndex) firstOfType = sectionIndex;
+        if (style.sections[sectionIndex].name.getTrailingIntValue() == wantedNumber) numMatch = sectionIndex;
     }
-    return (numMatch >= 0) ? numMatch : firstOfType;
+    return (numMatch != ArrangerStyleDefaults::noIndex) ? numMatch : firstOfType;
 }
 
 int ArrangerEngine::getActiveSectionIndex() const
@@ -90,7 +106,7 @@ void ArrangerEngine::queueSection (ArrangerSectionType type, const juce::String&
 {
     // Called from the message thread. Hand the request to the timer thread instead of touching the
     // sequencer directly (it's advanced on the timer thread; a direct write here is a data race).
-    const juce::ScopedLock sl (requestLock);
+    const juce::ScopedLock requestGuard (requestLock);
     requestedType    = type;
     requestedName    = name;
     hasQueuedRequest = true;
@@ -121,7 +137,7 @@ void ArrangerEngine::setStyle (ArrangerStyle newStyle)
     }
 
     style = std::move (newStyle);
-    if (style.originalTempo > 0.0) currentBpm = style.originalTempo;
+    if (style.originalTempo > noTempo) currentBpm = style.originalTempo;
     rebuildFromStyle();
     // The recorded chord the NTT maps out of (style-level). bassNote = root (no inversion baked in).
     transposer.setOriginalChord ({ style.originalRoot, style.originalQuality, style.originalRoot });
@@ -131,7 +147,7 @@ void ArrangerEngine::setStyle (ArrangerStyle newStyle)
     // last chord, which is what a performer expects.
     transposer.setActiveChord ({});
     {
-        const juce::ScopedLock sl (chordLock);
+        const juce::ScopedLock chordGuard (chordLock);
         pendingChord   = {};
         hasChordUpdate = false;
     }
@@ -142,11 +158,11 @@ void ArrangerEngine::setStyle (ArrangerStyle newStyle)
         // engine playhead to 0 as well -- otherwise the resumed groove picks up at (old playhead % loop
         // length), an arbitrary mid-loop phase that sounds like a glitchy jump. Zeroing it makes the
         // rebuilt preview resume cleanly from the section's downbeat.
-        playheadBeats  = 0.0;
+        playheadBeats  = noBeats;
         // Don't let the rebuild's wall-clock duration count as elapsed musical time:
         lastNowSeconds = (double) juce::Time::getHighResolutionTicks()
                          / (double) juce::Time::getHighResolutionTicksPerSecond();
-        startTimer (10);
+        startTimer (timerIntervalMs);
     }
 }
 
@@ -155,7 +171,7 @@ void ArrangerEngine::setActiveChord (ArrangerChord played)
     // Called from the MIDI input thread. Hand the chord to the timer thread via a guarded mailbox;
     // it is applied to the transposer at the top of renderRange (timer thread only).
     {
-        const juce::ScopedLock sl (chordLock);
+        const juce::ScopedLock chordGuard (chordLock);
         pendingChord   = played;
         hasChordUpdate = true;
     }
@@ -185,18 +201,12 @@ void ArrangerEngine::setMinorScale (MinorScaleChoice choice)
     transposer.setMinorScale (choice);
 }
 
-void ArrangerEngine::dispatch (const juce::MidiMessage& m)
+void ArrangerEngine::dispatch (const juce::MidiMessage& message)
 {
-    if (auto out = outputDevice.lock())
-        out->sendMessageNow (m);
+    if (auto device = outputDevice.lock())
+        device->sendMessageNow (message);
     if (onMidiMessage)
-        onMidiMessage (m);
-}
-
-namespace
-{
-    // Note-offs sent when silencing go out immediately; their beat position is not used.
-    constexpr double flushNotesAtBeats = 0.0;
+        onMidiMessage (message);
 }
 
 void ArrangerEngine::dispatchEmitted (const EmittedEvent& emitted)
@@ -251,20 +261,21 @@ void ArrangerEngine::sendInstrumentSetup()
     // Select each track's instrument + channel volume across all sections, so any section
     // we switch to already has the right sound. Drum channel (10) keeps its fixed kit. The
     // SFZ engine ignores program-change but honours CC7 volume; an external synth honours both.
-    for (const auto& sec : style.sections)
-        for (const auto& tr : sec.tracks)
+    for (const auto& section : style.sections)
+        for (const auto& track : section.tracks)
         {
-            if (tr.instrument >= 0 && tr.channel != 10)
-                dispatch (juce::MidiMessage::programChange (tr.channel, tr.instrument));
+            if (track.instrument >= lowestProgram && track.channel != ArrangerChannels::kDrumChannel)
+                dispatch (juce::MidiMessage::programChange (track.channel, track.instrument));
 
-            dispatch (juce::MidiMessage::controllerEvent (tr.channel, 7, juce::jlimit (0, 127, (int) tr.volume)));
+            dispatch (juce::MidiMessage::controllerEvent (track.channel, channelVolumeCC,
+                                                          juce::jlimit (lowestControllerValue, highestControllerValue, (int) track.volume)));
         }
 }
 
 void ArrangerEngine::armCountIn()
 {
-    countInPlayhead    = 0.0;
-    countInLengthBeats = (double) juce::jmax (1, style.timeSigNum);   // one bar
+    countInPlayhead    = noBeats;
+    countInLengthBeats = (double) juce::jmax (ArrangerStyleDefaults::minimumLengthBars, style.timeSigNum);   // one bar
     countingIn.store (true);
 }
 
@@ -275,8 +286,8 @@ bool ArrangerEngine::renderCountIn (double deltaBeats)
 
     const double from = countInPlayhead;
     const double to   = countInPlayhead + deltaBeats;
-    for (const auto& c : ArrangerCountIn::clicksInWindow (from, to, countInLengthBeats))
-        dispatch (juce::MidiMessage::noteOn (c.channel, c.note, (juce::uint8) c.velocity));
+    for (const auto& click : ArrangerCountIn::clicksInWindow (from, to, countInLengthBeats))
+        dispatch (juce::MidiMessage::noteOn (click.channel, click.note, (juce::uint8) click.velocity));
 
     countInPlayhead = to;
     if (countInPlayhead >= countInLengthBeats)
@@ -296,7 +307,7 @@ void ArrangerEngine::renderRange (double fromBeats, double toBeats)
     // so the request is honoured whether we're driven by the timer or by a direct renderRange call
     // (e.g. unit tests). The lock guards the request fields; sequencer mutation stays on this thread.
     {
-        const juce::ScopedLock sl (requestLock);
+        const juce::ScopedLock requestGuard (requestLock);
         if (hasQueuedRequest)
         {
             sequencer.queue (requestedType, requestedName);
@@ -306,7 +317,7 @@ void ArrangerEngine::renderRange (double fromBeats, double toBeats)
 
     // Apply the latest played chord (from the MIDI input thread) before emitting this window's notes.
     {
-        const juce::ScopedLock sl (chordLock);
+        const juce::ScopedLock chordGuard (chordLock);
         if (hasChordUpdate)
         {
             transposer.setActiveChord (pendingChord);
@@ -316,26 +327,26 @@ void ArrangerEngine::renderRange (double fromBeats, double toBeats)
 
     SequencerStep step = sequencer.advance (fromBeats, toBeats);
 
-    for (const auto& seg : step.segments)
+    for (const auto& segment : step.segments)
     {
-        if (seg.sectionIndex != currentSchedulerIndex)
+        if (segment.sectionIndex != currentSchedulerIndex)
         {
             // Flush the outgoing section's hung notes, then reset both sides so the
             // incoming section enters clean at its own bar 0.
-            if (currentSchedulerIndex >= 0 && currentSchedulerIndex < (int) schedulers.size())
+            if (currentSchedulerIndex >= firstSection && currentSchedulerIndex < (int) schedulers.size())
             {
-                for (auto& e : schedulers[currentSchedulerIndex].flushActiveNotes (0.0))
-                    dispatchEmitted (e);
+                for (auto& emitted : schedulers[currentSchedulerIndex].flushActiveNotes (flushNotesAtBeats))
+                    dispatchEmitted (emitted);
                 schedulers[currentSchedulerIndex].reset();
             }
-            currentSchedulerIndex = seg.sectionIndex;
-            if (currentSchedulerIndex >= 0 && currentSchedulerIndex < (int) schedulers.size())
+            currentSchedulerIndex = segment.sectionIndex;
+            if (currentSchedulerIndex >= firstSection && currentSchedulerIndex < (int) schedulers.size())
                 schedulers[currentSchedulerIndex].reset();
         }
 
-        if (seg.sectionIndex >= 0 && seg.sectionIndex < (int) schedulers.size())
-            for (auto& e : schedulers[seg.sectionIndex].advance (seg.localFromBeats, seg.localToBeats))
-                dispatchEmitted (e);
+        if (segment.sectionIndex >= firstSection && segment.sectionIndex < (int) schedulers.size())
+            for (auto& emitted : schedulers[segment.sectionIndex].advance (segment.localFromBeats, segment.localToBeats))
+                dispatchEmitted (emitted);
     }
 
     if (step.stopRequested)
@@ -350,7 +361,7 @@ void ArrangerEngine::renderRange (double fromBeats, double toBeats)
 
 void ArrangerEngine::start (bool useTransportFeel)
 {
-    if (schedulers.empty() || loopLengthBeats <= 0.0)
+    if (schedulers.empty() || loopLengthBeats <= noBeats)
         return;
 
     // A restart while already playing (e.g. pressing Preview again) must close the previous run's
@@ -358,18 +369,18 @@ void ArrangerEngine::start (bool useTransportFeel)
     if (playing.load())
         silenceArrangerNotes();
 
-    for (auto& s : schedulers) s.reset();
+    for (auto& scheduler : schedulers) scheduler.reset();
     sequencer.reset();
     activePlayedNote.clear();
-    if (pendingStartIndex >= 0)
+    if (pendingStartIndex != ArrangerStyleDefaults::noIndex)
         sequencer.startAt (pendingStartIndex);
-    pendingStartIndex = -1;
-    currentSchedulerIndex = -1;
-    lastReportedSectionIndex = -1;   // so the first tick reports the starting section
+    pendingStartIndex = ArrangerStyleDefaults::noIndex;
+    currentSchedulerIndex = ArrangerStyleDefaults::noIndex;
+    lastReportedSectionIndex = ArrangerStyleDefaults::noIndex;   // so the first tick reports the starting section
     timerShouldStop = false;
 
     sendInstrumentSetup();   // select instruments + volumes before the first notes play
-    playheadBeats = 0.0;
+    playheadBeats = noBeats;
     lastNowSeconds = (double) juce::Time::getHighResolutionTicks()
                      / (double) juce::Time::getHighResolutionTicksPerSecond();
     // Transport feel (Synchro Start / Count-In) applies only to live performance. The editor preview
@@ -379,7 +390,7 @@ void ArrangerEngine::start (bool useTransportFeel)
     if (useTransportFeel && countInEnabled) armCountIn();           // Phase 6b: pre-roll a count-in bar
     else                                    countingIn.store (false);
     playing.store (true);
-    startTimer (10);
+    startTimer (timerIntervalMs);
 }
 
 void ArrangerEngine::stop()
@@ -394,15 +405,15 @@ void ArrangerEngine::haltAudio()
     synchroArmed.store (false);   // Phase 6: never leave the Synchro gate armed across a stop
     countingIn.store (false);     // Phase 6b: cancel any in-progress count-in
     silenceArrangerNotes();
-    for (auto& s : schedulers) s.reset();
+    for (auto& scheduler : schedulers) scheduler.reset();
     sequencer.reset();
     activePlayedNote.clear();
-    currentSchedulerIndex = -1;
-    pendingStartIndex = -1;
-    playheadBeats = 0.0;
-    lastReportedSectionIndex = -1;
+    currentSchedulerIndex = ArrangerStyleDefaults::noIndex;
+    pendingStartIndex = ArrangerStyleDefaults::noIndex;
+    playheadBeats = noBeats;
+    lastReportedSectionIndex = ArrangerStyleDefaults::noIndex;
     if (onElapsedBeats)   // reset the beat bar to the downbeat, like the classic player does
-        juce::MessageManager::callAsync ([this] { if (onElapsedBeats) onElapsedBeats (0.0); });
+        juce::MessageManager::callAsync ([this] { if (onElapsedBeats) onElapsedBeats (noBeats); });
 
     // Only when we were actually playing: re-arm the first variation (sequencer.reset() landed on it)
     // and tell the UI we stopped, so the buttons clear the Ending and the beat bar leaves its play state.
@@ -427,21 +438,21 @@ void ArrangerEngine::notifyStoppedUnlessRestarted()
 
 void ArrangerEngine::notifyActiveSection (bool force)
 {
-    const int idx = sequencer.getActiveIndex();
-    if (! force && idx == lastReportedSectionIndex)
+    const int activeIndex = sequencer.getActiveIndex();
+    if (! force && activeIndex == lastReportedSectionIndex)
         return;
-    lastReportedSectionIndex = idx;
+    lastReportedSectionIndex = activeIndex;
 
     ArrangerSectionType type = ArrangerSectionType::Variation;
     juce::String name;
-    if (idx >= 0 && idx < (int) style.sections.size())
+    if (activeIndex >= firstSection && activeIndex < (int) style.sections.size())
     {
-        type = style.sections[(size_t) idx].type;
-        name = style.sections[(size_t) idx].name;
+        type = style.sections[(size_t) activeIndex].type;
+        name = style.sections[(size_t) activeIndex].name;
     }
     if (onActiveSectionChanged)
-        juce::MessageManager::callAsync ([this, idx, type, name]
-            { if (onActiveSectionChanged) onActiveSectionChanged (idx, type, name); });
+        juce::MessageManager::callAsync ([this, activeIndex, type, name]
+            { if (onActiveSectionChanged) onActiveSectionChanged (activeIndex, type, name); });
 }
 
 void ArrangerEngine::hiResTimerCallback()

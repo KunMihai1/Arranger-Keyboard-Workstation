@@ -1,35 +1,14 @@
 # Files not yet converted to the 'Names, not values' rule (AGENTS.md). This list may only shrink:
 # each cleanup PR converts files and removes them here. ci/check_named_values.py enforces it.
-Source/Arranger/ArrangerChannels.cpp
-Source/Arranger/ArrangerCountIn.h
-Source/Arranger/ArrangerDefaults.cpp
-Source/Arranger/ArrangerEngine.cpp
-Source/Arranger/ArrangerEngine.h
-Source/Arranger/ArrangerEnums.h
-Source/Arranger/ArrangerMidiHex.h
-Source/Arranger/ArrangerModel.h
-Source/Arranger/ArrangerPatternBuilder.cpp
-Source/Arranger/ArrangerScheduler.cpp
-Source/Arranger/ArrangerScheduler.h
-Source/Arranger/ArrangerSectionSequencer.cpp
-Source/Arranger/ArrangerSectionSequencer.h
-Source/Arranger/ArrangerSourceBuilder.cpp
 Source/Arranger/ArrangerStyleEditor.cpp
 Source/Arranger/ArrangerStyleEditor.h
-Source/Arranger/ArrangerStyleFile.h
 Source/Arranger/ArrangerStyleIOHelper.cpp
 Source/Arranger/ArrangerStyleListComponent.cpp
 Source/Arranger/ArrangerStyleListComponent.h
-Source/Arranger/ArrangerTime.cpp
 Source/Arranger/ArrangerTimelineComponent.cpp
 Source/Arranger/ArrangerTimelineComponent.h
 Source/Arranger/ArrangerTimelineGeometry.cpp
 Source/Arranger/ArrangerTimelineGeometry.h
-Source/Arranger/Chord.h
-Source/Arranger/ChordDetector.cpp
-Source/Arranger/ChordTransposer.cpp
-Source/Arranger/ChordTransposer.h
-Source/Arranger/NttScales.h
 Source/Backend/LoginComponent.cpp
 Source/Backend/PlaytimeTracker.cpp
 Source/Backend/PlaytimeTracker.h

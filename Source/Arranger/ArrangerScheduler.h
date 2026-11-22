@@ -10,7 +10,7 @@
 /** One event to emit, positioned at a monotonic beat within the advance window. */
 struct EmittedEvent
 {
-    double beats = 0.0;
+    double beats = ArrangerStyleDefaults::sectionStartBeat;
     juce::MidiMessage message;
     PartKind part = PartKind::Fixed;   // Phase 4: how the engine should transpose this note (Fixed = not)
     NttType  ntt  = NttType::Chord;    // Phase 7a: the track's NTT type for this note
@@ -44,12 +44,12 @@ public:
     std::vector<EmittedEvent> advance (double fromBeats, double toBeats);
 
 private:
-    void trackActiveNote (const juce::MidiMessage& m, PartKind part, NttType ntt);
+    void trackActiveNote (const juce::MidiMessage& message, PartKind part, NttType ntt);
 
     std::vector<TimedBeatEvent> sortedEvents;          // sorted by beats
     std::vector<PartKind>       sortedParts;           // aligned with sortedEvents
     std::vector<NttType>        sortedNtt;             // aligned with sortedEvents
-    double loopLen = 0.0;
+    double loopLen = ArrangerStyleDefaults::sectionStartBeat;   // no loop until setLoop
     std::set<std::pair<int,int>> activeNotes;          // (channel, noteNumber) currently sounding
     std::map<std::pair<int,int>, PartKind> activeNoteParts;   // part of each sounding note (for seam offs)
     std::map<std::pair<int,int>, NttType>  activeNoteNtt;     // ntt  of each sounding note (for seam offs)

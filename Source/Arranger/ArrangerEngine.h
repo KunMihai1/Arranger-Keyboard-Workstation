@@ -76,13 +76,13 @@ public:
     /** Phase 6: Synchro Start. When enabled, start() arms the engine instead of playing immediately;
         the groove begins on the first recognised chord (a chord already held at Start fires it at
         once, via the Phase-5 held-chord seed). */
-    void setSynchroStartEnabled (bool b) { synchroStartEnabled = b; }
+    void setSynchroStartEnabled (bool shouldEnable) { synchroStartEnabled = shouldEnable; }
     bool isSynchroArmed() const { return synchroArmed.load(); }   // test seam
     void armSynchro() { synchroArmed.store (true); }              // test seam (no timer)
 
     /** Phase 6b: Count-In. When enabled, start() plays one bar of metronome clicks before the groove
         (after the Synchro gate, if Synchro Start is also on). */
-    void setCountInEnabled (bool b) { countInEnabled = b; }
+    void setCountInEnabled (bool shouldEnable) { countInEnabled = shouldEnable; }
     bool isCountingIn() const { return countingIn.load(); }       // test seam
     void armCountIn();                                            // test seam (no timer)
     bool renderCountIn (double deltaBeats);                       // dispatch clicks; true while counting
@@ -94,8 +94,8 @@ public:
 
 private:
     void hiResTimerCallback() override;
-    void dispatch (const juce::MidiMessage& m);
-    void dispatchEmitted (const EmittedEvent& e);   // transpose (by PartKind) then dispatch
+    void dispatch (const juce::MidiMessage& message);
+    void dispatchEmitted (const EmittedEvent& emitted);   // transpose (by PartKind) then dispatch
     void silenceArrangerNotes();   // note-off ONLY the arranger's own sounding notes (not the player's)
     void sendInstrumentSetup();   // program-change + volume per channel, like the classic player
     void rebuildFromStyle();
@@ -108,9 +108,9 @@ private:
     ArrangerStyle style;
     std::vector<ArrangerScheduler> schedulers;       // one per section
     ArrangerSectionSequencer       sequencer;
-    int  currentSchedulerIndex = -1;                 // which scheduler is currently sounding
-    int  pendingStartIndex     = -1;                 // section start() should begin on (-1 = default)
-    int  lastReportedSectionIndex = -1;              // last index sent to onActiveSectionChanged
+    int  currentSchedulerIndex = ArrangerStyleDefaults::noIndex;                 // which scheduler is currently sounding
+    int  pendingStartIndex     = ArrangerStyleDefaults::noIndex;                 // section start() should begin on (-1 = default)
+    int  lastReportedSectionIndex = ArrangerStyleDefaults::noIndex;              // last index sent to onActiveSectionChanged
     bool timerShouldStop       = false;              // set on the timer thread, honoured on the msg thread
 
     // Section-switch request: set on the message thread (UI click/button), applied on the timer
@@ -120,10 +120,10 @@ private:
     juce::String          requestedName;
     bool                  hasQueuedRequest = false;
 
-    double currentBpm = 120.0;
-    double loopLengthBeats = 0.0;
-    double playheadBeats = 0.0;     // monotonic beat position since start()
-    double lastNowSeconds = 0.0;    // wall-clock of previous tick (for delta accumulation)
+    double currentBpm = ArrangerStyleDefaults::tempoBpm;
+    double loopLengthBeats {};
+    double playheadBeats {};     // monotonic beat position since start()
+    double lastNowSeconds {};    // wall-clock of previous tick (for delta accumulation)
     std::atomic<bool> playing { false };
 
     // Phase 6: Synchro Start. synchroStartEnabled is the user's setting (message thread); synchroArmed
@@ -135,8 +135,8 @@ private:
     // Phase 6b: Count-In. countInEnabled is the user's setting; countingIn is the live pre-roll gate.
     bool              countInEnabled = false;
     std::atomic<bool> countingIn { false };
-    double            countInPlayhead = 0.0;     // beats elapsed within the count-in bar
-    double            countInLengthBeats = 0.0;  // = beats per bar
+    double            countInPlayhead {};     // beats elapsed within the count-in bar
+    double            countInLengthBeats {};  // = beats per bar
 
     // Phase 4: chord transposition. The transposer + activePlayedNote are timer-thread-only; the
     // mailbox (chordLock-guarded) carries the live chord from the MIDI input thread.

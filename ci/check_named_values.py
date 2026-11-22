@@ -75,7 +75,8 @@ def strip_comments(text):
 
 
 def violations(path):
-    text = strip_comments(open(path, encoding="utf-8", errors="replace").read())
+    # utf-8-sig drops a byte-order mark, so a file's first "#include" is still seen as a directive.
+    text = strip_comments(open(path, encoding="utf-8-sig", errors="replace").read())
     found = []
     in_constant_definition = False   # a constant's initialiser may run over several lines until its ";"
     in_enum = False

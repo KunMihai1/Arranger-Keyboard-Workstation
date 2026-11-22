@@ -3,11 +3,21 @@
 #include <algorithm>
 #include <cmath>
 
+namespace
+{
+    constexpr int    firstSection = 0;
+    constexpr int    noNumber     = 0;     // getTrailingIntValue() of a name without a number
+    constexpr double oneBar       = 1.0;
+    constexpr double noBeats      = 0.0;
+    constexpr int    oneSection   = 1;
+}
+
 void ArrangerSectionSequencer::setStyle (const ArrangerStyle& style)
 {
     sections.clear();
-    for (const auto& s : style.sections)
-        sections.push_back ({ s.id, s.name, s.type, juce::jmax (1, s.lengthBars), s.afterComplete });
+    for (const auto& section : style.sections)
+        sections.push_back ({ section.id, section.name, section.type,
+                              juce::jmax (ArrangerStyleDefaults::minimumLengthBars, section.lengthBars), section.afterComplete });
 
     beatsPerBar = ArrangerTime::beatsPerBar (style.timeSigNum, style.timeSigDenom);
     reset();
@@ -15,10 +25,15 @@ void ArrangerSectionSequencer::setStyle (const ArrangerStyle& style)
 
 int ArrangerSectionSequencer::firstVariationIndex() const
 {
-    for (int i = 0; i < (int) sections.size(); ++i)
-        if (sections[i].type == ArrangerSectionType::Variation)
-            return i;
-    return sections.empty() ? -1 : 0;
+    for (int sectionIndex {}; sectionIndex < (int) sections.size(); ++sectionIndex)
+        if (sections[sectionIndex].type == ArrangerSectionType::Variation)
+            return sectionIndex;
+    return sections.empty() ? ArrangerStyleDefaults::noIndex : firstSection;
+}
+
+int ArrangerSectionSequencer::lastSectionIndex() const
+{
+    return (int) sections.size() - oneSection;
 }
 
 int ArrangerSectionSequencer::findSection (ArrangerSectionType type, const juce::String& name) const
@@ -27,55 +42,55 @@ int ArrangerSectionSequencer::findSection (ArrangerSectionType type, const juce:
     // Match by type + trailing number so the prefixes don't have to be identical; fall back to the
     // first section of the type (e.g. a single Break addressed as "Break").
     const int wantNum = name.getTrailingIntValue();   // "Var 2" -> 2, "Break" -> 0
-    int firstOfType = -1, exactName = -1, numMatch = -1;
-    for (int i = 0; i < (int) sections.size(); ++i)
+    int firstOfType = ArrangerStyleDefaults::noIndex, exactName = ArrangerStyleDefaults::noIndex, numMatch = ArrangerStyleDefaults::noIndex;
+    for (int sectionIndex {}; sectionIndex < (int) sections.size(); ++sectionIndex)
     {
-        if (sections[i].type != type) continue;
-        if (firstOfType < 0) firstOfType = i;
-        if (sections[i].name == name) exactName = i;
-        if (wantNum > 0 && sections[i].name.getTrailingIntValue() == wantNum) numMatch = i;
+        if (sections[sectionIndex].type != type) continue;
+        if (firstOfType == ArrangerStyleDefaults::noIndex) firstOfType = sectionIndex;
+        if (sections[sectionIndex].name == name) exactName = sectionIndex;
+        if (wantNum > noNumber && sections[sectionIndex].name.getTrailingIntValue() == wantNum) numMatch = sectionIndex;
     }
-    if (exactName >= 0) return exactName;
-    if (numMatch  >= 0) return numMatch;
+    if (exactName != ArrangerStyleDefaults::noIndex) return exactName;
+    if (numMatch  != ArrangerStyleDefaults::noIndex) return numMatch;
     return firstOfType;
 }
 
 void ArrangerSectionSequencer::reset()
 {
-    activeIndex    = juce::jmax (0, firstVariationIndex());
+    activeIndex    = juce::jmax (firstSection, firstVariationIndex());
     returnIndex    = activeIndex;
-    activeStartAbs = 0.0;
-    pendingIndex   = -1;
+    activeStartAbs = ArrangerStyleDefaults::sectionStartBeat;
+    pendingIndex   = ArrangerStyleDefaults::noIndex;
     stopped        = false;
-    fillReturnOverride = -1;
+    fillReturnOverride = ArrangerStyleDefaults::noIndex;
 }
 
 void ArrangerSectionSequencer::startAt (int sectionIndex)
 {
     if (sections.empty()) { reset(); return; }
-    activeIndex    = juce::jlimit (0, (int) sections.size() - 1, sectionIndex);
-    returnIndex    = juce::jmax (0, firstVariationIndex());
-    activeStartAbs = 0.0;
-    pendingIndex   = -1;
+    activeIndex    = juce::jlimit (firstSection, lastSectionIndex(), sectionIndex);
+    returnIndex    = juce::jmax (firstSection, firstVariationIndex());
+    activeStartAbs = ArrangerStyleDefaults::sectionStartBeat;
+    pendingIndex   = ArrangerStyleDefaults::noIndex;
     stopped        = false;
-    fillReturnOverride = -1;
+    fillReturnOverride = ArrangerStyleDefaults::noIndex;
 }
 
 bool ArrangerSectionSequencer::queue (ArrangerSectionType type, const juce::String& name)
 {
     const int target = findSection (type, name);
-    if (target < 0) return false;
+    if (target == ArrangerStyleDefaults::noIndex) return false;
 
     // Auto Fill: when switching from one Variation to another, insert a matching Fill (Fill N for
     // Variation N, else any Fill) as a one-bar transition that then lands on the new variation.
     if (autoFillEnabled
         && type == ArrangerSectionType::Variation
         && target != activeIndex
-        && activeIndex >= 0 && activeIndex < (int) sections.size()
+        && activeIndex >= firstSection && activeIndex < (int) sections.size()
         && sections[activeIndex].type == ArrangerSectionType::Variation)
     {
         const int fill = findSection (ArrangerSectionType::Fill, name);  // matches the trailing number
-        if (fill >= 0)
+        if (fill != ArrangerStyleDefaults::noIndex)
         {
             pendingIndex       = fill;
             fillReturnOverride = target;
@@ -84,43 +99,43 @@ bool ArrangerSectionSequencer::queue (ArrangerSectionType type, const juce::Stri
     }
 
     pendingIndex       = target;
-    fillReturnOverride = -1;
+    fillReturnOverride = ArrangerStyleDefaults::noIndex;
     return true;
 }
 
 void ArrangerSectionSequencer::applyBoundary (double boundaryAbs, SequencerStep& step)
 {
     // 1) A queued user switch always wins.
-    if (pendingIndex >= 0)
+    if (pendingIndex != ArrangerStyleDefaults::noIndex)
     {
         const int from = activeIndex;
         if (sections[pendingIndex].type == ArrangerSectionType::Fill
             || sections[pendingIndex].type == ArrangerSectionType::Break)
         {
-            if (fillReturnOverride >= 0)
+            if (fillReturnOverride != ArrangerStyleDefaults::noIndex)
                 returnIndex = fillReturnOverride;   // auto-fill: land on the NEW variation after the fill
             // Otherwise remember the variation to return to after the fill/break one-shot completes.
             else if (sections[from].type == ArrangerSectionType::Variation
                      || sections[from].type == ArrangerSectionType::Break)
                 returnIndex = from;
         }
-        fillReturnOverride = -1;
+        fillReturnOverride = ArrangerStyleDefaults::noIndex;
         activeIndex    = pendingIndex;
-        pendingIndex   = -1;
+        pendingIndex   = ArrangerStyleDefaults::noIndex;
         activeStartAbs = boundaryAbs;
         return;
     }
 
     // 2) One-shot completion (Intro/Fill/Ending) when the section's own length has elapsed.
-    const auto& a = sections[activeIndex];
-    if (a.after == ArrangerAfterComplete::Loop)
+    const auto& active = sections[activeIndex];
+    if (active.after == ArrangerAfterComplete::Loop)
         return;
 
-    const double sectionLenBeats = (double) a.lengthBars * beatsPerBar;
-    if (boundaryAbs - activeStartAbs < sectionLenBeats - 1e-6)
+    const double sectionLenBeats = (double) active.lengthBars * beatsPerBar;
+    if (boundaryAbs - activeStartAbs < sectionLenBeats - BeatTolerance::wholeBars)
         return; // multi-bar one-shot not finished yet
 
-    if (a.after == ArrangerAfterComplete::Stop)
+    if (active.after == ArrangerAfterComplete::Stop)
     {
         stopped = true;
         step.stopRequested = true;
@@ -128,40 +143,40 @@ void ArrangerSectionSequencer::applyBoundary (double boundaryAbs, SequencerStep&
     }
 
     // FallThrough: Intro/Fill -> the saved return variation.
-    activeIndex    = juce::jlimit (0, (int) sections.size() - 1, returnIndex);
+    activeIndex    = juce::jlimit (firstSection, lastSectionIndex(), returnIndex);
     activeStartAbs = boundaryAbs;
 }
 
 SequencerStep ArrangerSectionSequencer::advance (double fromBeats, double toBeats)
 {
     SequencerStep step;
-    if (sections.empty() || stopped || toBeats <= fromBeats || beatsPerBar <= 0.0)
+    if (sections.empty() || stopped || toBeats <= fromBeats || beatsPerBar <= noBeats)
         return step;
 
-    double pos = fromBeats;
+    double position = fromBeats;
     bool   startChanged = false;
 
-    while (pos < toBeats - 1e-12)
+    while (position < toBeats - BeatTolerance::windowEdge)
     {
-        // Next global bar line strictly after pos.
-        double nextBoundary = (std::floor (pos / beatsPerBar + 1e-9) + 1.0) * beatsPerBar;
-        if (nextBoundary <= pos + 1e-9)
+        // Next global bar line strictly after position.
+        double nextBoundary = (std::floor (position / beatsPerBar + BeatTolerance::sameBeat) + oneBar) * beatsPerBar;
+        if (nextBoundary <= position + BeatTolerance::sameBeat)
             nextBoundary += beatsPerBar;
 
-        const double segEnd = std::min (toBeats, nextBoundary);
+        const double segmentEnd = std::min (toBeats, nextBoundary);
 
-        SectionSegment seg;
-        seg.sectionIndex   = activeIndex;
-        seg.localFromBeats = pos - activeStartAbs;
-        seg.localToBeats   = segEnd - activeStartAbs;
-        seg.sectionChanged = startChanged;
-        step.segments.push_back (seg);
+        SectionSegment segment;
+        segment.sectionIndex   = activeIndex;
+        segment.localFromBeats = position - activeStartAbs;
+        segment.localToBeats   = segmentEnd - activeStartAbs;
+        segment.sectionChanged = startChanged;
+        step.segments.push_back (segment);
         startChanged = false;
 
-        pos = segEnd;
+        position = segmentEnd;
 
         // Reached a bar boundary inside the window: apply transitions there.
-        if (std::abs (segEnd - nextBoundary) < 1e-9 && segEnd <= toBeats + 1e-12)
+        if (std::abs (segmentEnd - nextBoundary) < BeatTolerance::sameBeat && segmentEnd <= toBeats + BeatTolerance::windowEdge)
         {
             const int before = activeIndex;
             applyBoundary (nextBoundary, step);

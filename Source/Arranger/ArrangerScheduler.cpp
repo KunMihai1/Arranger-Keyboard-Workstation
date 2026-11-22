@@ -3,6 +3,13 @@
 #include <cmath>
 #include <numeric>
 
+namespace
+{
+    constexpr int    silentVelocity = 0;     // a note-on at velocity 0 is a note-off
+    constexpr size_t firstPosition  = 0;
+    constexpr double noLoop         = 0.0;
+}
+
 void ArrangerScheduler::setLoop (std::vector<TimedBeatEvent> events, double loopLengthBeats)
 {
     setLoop (std::move (events), {}, {}, loopLengthBeats);   // legacy: all Fixed / Chord
@@ -19,10 +26,10 @@ void ArrangerScheduler::setLoop (std::vector<TimedBeatEvent> events,
                                  double loopLengthBeats)
 {
     // Sort events and their parallel part/ntt tags together by beat.
-    std::vector<size_t> idx (events.size());
-    std::iota (idx.begin(), idx.end(), (size_t) 0);
-    std::stable_sort (idx.begin(), idx.end(),
-                      [&] (size_t a, size_t b) { return events[a].beats < events[b].beats; });
+    std::vector<size_t> beatOrder (events.size());
+    std::iota (beatOrder.begin(), beatOrder.end(), firstPosition);
+    std::stable_sort (beatOrder.begin(), beatOrder.end(),
+                      [&] (size_t earlierIndex, size_t laterIndex) { return events[earlierIndex].beats < events[laterIndex].beats; });
 
     sortedEvents.clear();
     sortedParts.clear();
@@ -30,11 +37,11 @@ void ArrangerScheduler::setLoop (std::vector<TimedBeatEvent> events,
     sortedEvents.reserve (events.size());
     sortedParts.reserve (events.size());
     sortedNtt.reserve (events.size());
-    for (size_t i : idx)
+    for (size_t eventIndex : beatOrder)
     {
-        sortedEvents.push_back (events[i]);
-        sortedParts.push_back (i < parts.size() ? parts[i] : PartKind::Fixed);
-        sortedNtt.push_back   (i < ntts.size()  ? ntts[i]  : NttType::Chord);
+        sortedEvents.push_back (events[eventIndex]);
+        sortedParts.push_back (eventIndex < parts.size() ? parts[eventIndex] : PartKind::Fixed);
+        sortedNtt.push_back   (eventIndex < ntts.size()  ? ntts[eventIndex]  : NttType::Chord);
     }
 
     loopLen = loopLengthBeats;
@@ -55,10 +62,10 @@ std::vector<EmittedEvent> ArrangerScheduler::flushActiveNotes (double atBeats)
     std::vector<EmittedEvent> result;
     for (const auto& key : activeNotes)
     {
-        const auto it  = activeNoteParts.find (key);
-        const auto itN = activeNoteNtt.find (key);
-        const PartKind part = (it  != activeNoteParts.end()) ? it->second  : PartKind::Fixed;
-        const NttType  ntt  = (itN != activeNoteNtt.end())   ? itN->second : NttType::Chord;
+        const auto partEntry = activeNoteParts.find (key);
+        const auto nttEntry  = activeNoteNtt.find (key);
+        const PartKind part = (partEntry != activeNoteParts.end()) ? partEntry->second : PartKind::Fixed;
+        const NttType  ntt  = (nttEntry  != activeNoteNtt.end())   ? nttEntry->second  : NttType::Chord;
         result.push_back ({ atBeats, juce::MidiMessage::noteOff (key.first, key.second), part, ntt });
     }
     activeNotes.clear();
@@ -67,16 +74,16 @@ std::vector<EmittedEvent> ArrangerScheduler::flushActiveNotes (double atBeats)
     return result;
 }
 
-void ArrangerScheduler::trackActiveNote (const juce::MidiMessage& m, PartKind part, NttType ntt)
+void ArrangerScheduler::trackActiveNote (const juce::MidiMessage& message, PartKind part, NttType ntt)
 {
-    const auto key = std::make_pair (m.getChannel(), m.getNoteNumber());
-    if (m.isNoteOn() && m.getVelocity() > 0)
+    const auto key = std::make_pair (message.getChannel(), message.getNoteNumber());
+    if (message.isNoteOn() && message.getVelocity() > silentVelocity)
     {
         activeNotes.insert (key);
         activeNoteParts[key] = part;
         activeNoteNtt[key]   = ntt;
     }
-    else if (m.isNoteOff() || (m.isNoteOn() && m.getVelocity() == 0))
+    else if (message.isNoteOff() || (message.isNoteOn() && message.getVelocity() == silentVelocity))
     {
         activeNotes.erase (key);
         activeNoteParts.erase (key);
@@ -87,40 +94,40 @@ void ArrangerScheduler::trackActiveNote (const juce::MidiMessage& m, PartKind pa
 std::vector<EmittedEvent> ArrangerScheduler::advance (double fromBeats, double toBeats)
 {
     std::vector<EmittedEvent> result;
-    if (loopLen <= 0.0 || toBeats <= fromBeats)
+    if (loopLen <= noLoop || toBeats <= fromBeats)
         return result;
 
-    double pos = fromBeats;
-    while (pos < toBeats - 1e-12)
+    double position = fromBeats;
+    while (position < toBeats - BeatTolerance::windowEdge)
     {
-        const double iterationIndex    = std::floor (pos / loopLen);
+        const double iterationIndex    = std::floor (position / loopLen);
         const double iterationStartAbs = iterationIndex * loopLen;
         const double nextWrapAbs       = iterationStartAbs + loopLen;
-        const double phaseStart        = pos - iterationStartAbs;
+        const double phaseStart        = position - iterationStartAbs;
         const double segmentEndAbs     = std::min (toBeats, nextWrapAbs);
         const double phaseEnd          = segmentEndAbs - iterationStartAbs;
 
-        for (size_t i = 0; i < sortedEvents.size(); ++i)
+        for (size_t eventIndex {}; eventIndex < sortedEvents.size(); ++eventIndex)
         {
-            const auto& ev = sortedEvents[i];
-            if (ev.beats >= phaseStart - 1e-12 && ev.beats < phaseEnd - 1e-12)
+            const auto& event = sortedEvents[eventIndex];
+            if (event.beats >= phaseStart - BeatTolerance::windowEdge && event.beats < phaseEnd - BeatTolerance::windowEdge)
             {
-                const PartKind part = sortedParts[i];
-                const NttType  ntt  = sortedNtt[i];
-                result.push_back ({ iterationStartAbs + ev.beats, ev.message, part, ntt });
-                trackActiveNote (ev.message, part, ntt);
+                const PartKind part = sortedParts[eventIndex];
+                const NttType  ntt  = sortedNtt[eventIndex];
+                result.push_back ({ iterationStartAbs + event.beats, event.message, part, ntt });
+                trackActiveNote (event.message, part, ntt);
             }
         }
 
         // If we actually reached a seam within the window, close hanging notes there.
-        if (std::abs (segmentEndAbs - nextWrapAbs) < 1e-9 && nextWrapAbs <= toBeats + 1e-12)
+        if (std::abs (segmentEndAbs - nextWrapAbs) < BeatTolerance::sameBeat && nextWrapAbs <= toBeats + BeatTolerance::windowEdge)
         {
             for (const auto& key : activeNotes)
             {
-                const auto it  = activeNoteParts.find (key);
-                const auto itN = activeNoteNtt.find (key);
-                const PartKind part = (it  != activeNoteParts.end()) ? it->second  : PartKind::Fixed;
-                const NttType  ntt  = (itN != activeNoteNtt.end())   ? itN->second : NttType::Chord;
+                const auto partEntry = activeNoteParts.find (key);
+                const auto nttEntry  = activeNoteNtt.find (key);
+                const PartKind part = (partEntry != activeNoteParts.end()) ? partEntry->second : PartKind::Fixed;
+                const NttType  ntt  = (nttEntry  != activeNoteNtt.end())   ? nttEntry->second  : NttType::Chord;
                 result.push_back ({ nextWrapAbs, juce::MidiMessage::noteOff (key.first, key.second), part, ntt });
             }
             activeNotes.clear();
@@ -128,7 +135,7 @@ std::vector<EmittedEvent> ArrangerScheduler::advance (double fromBeats, double t
             activeNoteNtt.clear();
         }
 
-        pos = segmentEndAbs;
+        position = segmentEndAbs;
     }
 
     return result;

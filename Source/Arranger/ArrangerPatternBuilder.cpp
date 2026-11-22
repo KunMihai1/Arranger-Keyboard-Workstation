@@ -1,26 +1,31 @@
 #include "ArrangerPatternBuilder.h"
 #include "ArrangerStyleFile.h"
 #include "ArrangerTime.h"
+#include "ArrangerChannels.h"
 #include <algorithm>
 
 namespace ArrangerPatternBuilder
 {
+    constexpr int    oneBar            = 1;
+    constexpr int    demoEndingBars    = 4;     // the demo style's short wind-down
+    constexpr double noTempo           = 0.0;
+
     std::vector<TimedBeatEvent> buildBeatEvents (const juce::MidiMessageSequence& seq,
                                                  double referenceBpm, int channel)
     {
         std::vector<TimedBeatEvent> out;
-        for (int i = 0; i < seq.getNumEvents(); ++i)
+        for (int eventIndex {}; eventIndex < seq.getNumEvents(); ++eventIndex)
         {
-            const auto& msg = seq.getEventPointer (i)->message;
+            const auto& msg = seq.getEventPointer (eventIndex)->message;
             if (! (msg.isNoteOn() || msg.isNoteOff()))
                 continue;
 
-            juce::MidiMessage m = msg;
-            m.setChannel (channel);
-            out.push_back ({ ArrangerTime::secondsToBeats (msg.getTimeStamp(), referenceBpm), m });
+            juce::MidiMessage onChannel = msg;
+            onChannel.setChannel (channel);
+            out.push_back ({ ArrangerTime::secondsToBeats (msg.getTimeStamp(), referenceBpm), onChannel });
         }
         std::stable_sort (out.begin(), out.end(),
-                          [] (const TimedBeatEvent& a, const TimedBeatEvent& b) { return a.beats < b.beats; });
+                          [] (const TimedBeatEvent& earlier, const TimedBeatEvent& later) { return earlier.beats < later.beats; });
         return out;
     }
 
@@ -28,8 +33,8 @@ namespace ArrangerPatternBuilder
                                            int timeSigNum, int timeSigDenom,
                                            double referenceBpm)
     {
-        if (referenceBpm <= 0.0)
-            referenceBpm = 120.0;
+        if (referenceBpm <= noTempo)
+            referenceBpm = ArrangerStyleDefaults::tempoBpm;
 
         ArrangerStyle style;
         style.timeSigNum = timeSigNum;
@@ -40,37 +45,37 @@ namespace ArrangerPatternBuilder
 
         ArrangerSection section;
         section.type = ArrangerSectionType::Variation;
-        section.name = "Variation 1";
-        section.id = "var_1";
+        section.name = DefaultSectionNames::variation;
+        section.id = DefaultSectionNames::variationId;
 
-        int melodicChannel = 2;
-        int maxBars = 0;
+        int melodicChannel = ArrangerChannels::kFirstMelodicChannel;
+        int maxBars {};
 
-        for (const auto& te : tracks)
+        for (const auto& trackEntry : tracks)
         {
-            const bool isPerc = (te.type == TrackType::Percussion);
-            const int channel = isPerc ? 10 : melodicChannel++;
-            const bool isBass = (! isPerc) && te.getDisplayName().containsIgnoreCase ("bass");
+            const bool isPerc = (trackEntry.type == TrackType::Percussion);
+            const int channel = isPerc ? ArrangerChannels::kDrumChannel : melodicChannel++;
+            const bool isBass = (! isPerc) && trackEntry.getDisplayName().containsIgnoreCase (TrackRoles::bassNameMarker);
 
-            ArrangerTrack at;
-            at.id = te.getUniqueID();
-            at.name = te.getDisplayName();
-            at.partType = isPerc ? ArrangerPartType::Drum
+            ArrangerTrack track;
+            track.id = trackEntry.getUniqueID();
+            track.name = trackEntry.getDisplayName();
+            track.partType = isPerc ? ArrangerPartType::Drum
                         : isBass ? ArrangerPartType::Bass
                                  : ArrangerPartType::Acc;
-            at.instrument = te.instrumentAssociated;
-            at.channel = channel;
-            at.volume = te.volumeAssociated;
-            // te.sequence is already scaled to referenceBpm's timebase, so convert with referenceBpm.
-            at.pattern = buildBeatEvents (te.sequence, referenceBpm, channel);
+            track.instrument = trackEntry.instrumentAssociated;
+            track.channel = channel;
+            track.volume = trackEntry.volumeAssociated;
+            // The entry's sequence is already scaled to referenceBpm's timebase, so convert with referenceBpm.
+            track.pattern = buildBeatEvents (trackEntry.sequence, referenceBpm, channel);
 
-            double lastBeat = at.pattern.empty() ? 0.0 : at.pattern.back().beats;
+            double lastBeat = track.pattern.empty() ? ArrangerStyleDefaults::sectionStartBeat : track.pattern.back().beats;
             maxBars = std::max (maxBars, ArrangerTime::barsForBeats (lastBeat, bpb));
 
-            section.tracks.push_back (std::move (at));
+            section.tracks.push_back (std::move (track));
         }
 
-        section.lengthBars = std::max (1, maxBars);
+        section.lengthBars = std::max (ArrangerStyleDefaults::minimumLengthBars, maxBars);
         style.sections.push_back (std::move (section));
         return style;
     }
@@ -91,9 +96,9 @@ namespace ArrangerPatternBuilder
 
         const double bpb     = ArrangerTime::beatsPerBar (timeSigNum, timeSigDenom);
         ArrangerSection var  = base.sections.front();     // the full loop, correct channels/length
-        const int loopBars   = juce::jmax (1, var.lengthBars);
+        const int loopBars   = juce::jmax (ArrangerStyleDefaults::minimumLengthBars, var.lengthBars);
 
-        var.id = "var_1"; var.name = "Variation 1";
+        var.id = DefaultSectionNames::variationId; var.name = DefaultSectionNames::variation;
         var.type = ArrangerSectionType::Variation;
         var.afterComplete = ArrangerAfterComplete::Loop;
 
@@ -101,22 +106,22 @@ namespace ArrangerPatternBuilder
         // sliceSection). Keeps the throwaway demo Intro/Fill/Ending short so the transport
         // (intro-once, fill-once, ending-once-then-stop) is observable instead of replaying the
         // whole-song Variation loop. Lengths are a compromise until Phase 3 supplies real phrases.
-        const int    endingBars   = juce::jmin (4, loopBars);                  // a short wind-down
-        const double lastBarStart = (double) (loopBars - 1)          * bpb;
+        const int    endingBars   = juce::jmin (demoEndingBars, loopBars);     // a short wind-down
+        const double lastBarStart = (double) (loopBars - oneBar)     * bpb;
         const double endingStart  = (double) (loopBars - endingBars) * bpb;
 
-        ArrangerSection intro = sliceSection (var, 0.0, 1, bpb);              // first bar -> lead-in
-        intro.id = "intro_1"; intro.name = "Intro 1";
+        ArrangerSection intro = sliceSection (var, ArrangerStyleDefaults::sectionStartBeat, oneBar, bpb);   // first bar -> lead-in
+        intro.id = DefaultSectionNames::introId; intro.name = DefaultSectionNames::intro;
         intro.type = ArrangerSectionType::Intro;
         intro.afterComplete = ArrangerAfterComplete::FallThrough;
 
-        ArrangerSection fill = sliceSection (var, lastBarStart, 1, bpb);      // last bar -> fill accent
-        fill.id = "fill_1"; fill.name = "Fill 1";
+        ArrangerSection fill = sliceSection (var, lastBarStart, oneBar, bpb); // last bar -> fill accent
+        fill.id = DefaultSectionNames::fillId; fill.name = DefaultSectionNames::fill;
         fill.type = ArrangerSectionType::Fill;
         fill.afterComplete = ArrangerAfterComplete::FallThrough;
 
         ArrangerSection ending = sliceSection (var, endingStart, endingBars, bpb); // last few bars -> wind-down, then stop
-        ending.id = "ending_1"; ending.name = "Ending 1";
+        ending.id = DefaultSectionNames::endingId; ending.name = DefaultSectionNames::ending;
         ending.type = ArrangerSectionType::Ending;
         ending.afterComplete = ArrangerAfterComplete::Stop;
 
@@ -130,19 +135,19 @@ namespace ArrangerPatternBuilder
     ArrangerSection sliceSection (const ArrangerSection& src,
                                   double startBeats, int numBars, double beatsPerBar)
     {
-        ArrangerSection sec = src;
-        const int    bars     = juce::jmax (1, numBars);
+        ArrangerSection sliced = src;
+        const int    bars     = juce::jmax (ArrangerStyleDefaults::minimumLengthBars, numBars);
         const double endBeats = startBeats + (double) bars * beatsPerBar;
-        for (auto& tr : sec.tracks)
+        for (auto& track : sliced.tracks)
         {
-            std::vector<TimedBeatEvent> sliced;
-            for (const auto& ev : tr.pattern)
-                if (ev.beats >= startBeats - 1e-9 && ev.beats < endBeats - 1e-9)
-                    sliced.push_back ({ ev.beats - startBeats, ev.message });
-            tr.pattern = std::move (sliced);
+            std::vector<TimedBeatEvent> inWindow;
+            for (const auto& event : track.pattern)
+                if (event.beats >= startBeats - BeatTolerance::sameBeat && event.beats < endBeats - BeatTolerance::sameBeat)
+                    inWindow.push_back ({ event.beats - startBeats, event.message });
+            track.pattern = std::move (inWindow);
         }
-        sec.lengthBars = bars;
-        return sec;
+        sliced.lengthBars = bars;
+        return sliced;
     }
 
     ArrangerStyle buildStyleFromWindows (const std::vector<SourceTrackFile>& sourceTracks,
@@ -150,7 +155,7 @@ namespace ArrangerPatternBuilder
                                          int timeSigNum, int timeSigDenom,
                                          double referenceBpm)
     {
-        if (referenceBpm <= 0.0) referenceBpm = 120.0;
+        if (referenceBpm <= noTempo) referenceBpm = ArrangerStyleDefaults::tempoBpm;
 
         ArrangerStyle style;
         style.timeSigNum    = timeSigNum;
@@ -161,25 +166,25 @@ namespace ArrangerPatternBuilder
 
         // Master section = every source track as one full-length ArrangerTrack.
         ArrangerSection master;
-        for (const auto& st : sourceTracks)
+        for (const auto& sourceTrack : sourceTracks)
         {
-            ArrangerTrack at;
-            at.id = st.id; at.name = st.name; at.partType = st.partType;
-            at.instrument = st.instrument; at.channel = st.channel; at.volume = st.volume;
-            at.nttType = st.nttType;   // Phase 7a: file -> model
-            at.pattern = st.events;
-            master.tracks.push_back (std::move (at));
+            ArrangerTrack track;
+            track.id = sourceTrack.id; track.name = sourceTrack.name; track.partType = sourceTrack.partType;
+            track.instrument = sourceTrack.instrument; track.channel = sourceTrack.channel; track.volume = sourceTrack.volume;
+            track.nttType = sourceTrack.nttType;   // Phase 7a: file -> model
+            track.pattern = sourceTrack.events;
+            master.tracks.push_back (std::move (track));
         }
 
-        for (const auto& w : windows)
+        for (const auto& window : windows)
         {
-            const double startBeats = (double) (juce::jmax (1, w.startBar) - 1) * bpb;
-            ArrangerSection sec = sliceSection (master, startBeats, juce::jmax (1, w.lengthBars), bpb);
-            sec.id            = w.id;
-            sec.name          = w.name;
-            sec.type          = w.type;
-            sec.afterComplete = w.afterComplete;
-            style.sections.push_back (std::move (sec));
+            const double startBeats = (double) (juce::jmax (ArrangerStyleDefaults::firstBar, window.startBar) - ArrangerStyleDefaults::firstBar) * bpb;
+            ArrangerSection section = sliceSection (master, startBeats, juce::jmax (ArrangerStyleDefaults::minimumLengthBars, window.lengthBars), bpb);
+            section.id            = window.id;
+            section.name          = window.name;
+            section.type          = window.type;
+            section.afterComplete = window.afterComplete;
+            style.sections.push_back (std::move (section));
         }
 
         return style;

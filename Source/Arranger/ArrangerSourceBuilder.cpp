@@ -8,14 +8,14 @@ namespace ArrangerSourceBuilder
     std::vector<SourceTrackFile> fromTrackEntries (const std::vector<TrackEntry>& tracks,
                                                    double referenceBpm)
     {
-        if (referenceBpm <= 0.0) referenceBpm = 120.0;
+        if (referenceBpm <= double {}) referenceBpm = ArrangerStyleDefaults::tempoBpm;
 
         std::vector<SourceTrackFile> out;
-        int melodicIndex = 0;
+        int melodicIndex {};
 
-        for (const auto& te : tracks)
+        for (const auto& trackEntry : tracks)
         {
-            const bool isPerc = (te.type == TrackType::Percussion);
+            const bool isPerc = (trackEntry.type == TrackType::Percussion);
             int channel;
             if (isPerc)
             {
@@ -24,26 +24,26 @@ namespace ArrangerSourceBuilder
             else
             {
                 channel = ArrangerChannels::melodicChannelForIndex (melodicIndex++);
-                if (channel < 0)
+                if (channel == ArrangerChannels::kNoChannel)
                     continue; // melodic budget exhausted; drop this track
             }
 
             // A melodic track named like a bass ("Bass", "Bassline", ...) becomes the Bass part, so it
             // transposes AND honours Bass Inversion (lowest fingered note drives it). Others are Acc.
-            const bool isBass = (! isPerc) && te.getDisplayName().containsIgnoreCase ("bass");
+            const bool isBass = (! isPerc) && trackEntry.getDisplayName().containsIgnoreCase (TrackRoles::bassNameMarker);
 
-            SourceTrackFile st;
-            st.id        = te.getUniqueID();
-            st.name      = te.getDisplayName();
-            st.partType  = isPerc ? ArrangerPartType::Drum
+            SourceTrackFile sourceTrack;
+            sourceTrack.id        = trackEntry.getUniqueID();
+            sourceTrack.name      = trackEntry.getDisplayName();
+            sourceTrack.partType  = isPerc ? ArrangerPartType::Drum
                          : isBass ? ArrangerPartType::Bass
                                   : ArrangerPartType::Acc;
-            st.nttType   = ArrangerEnums::nttDefaultForPart (st.partType);   // Phase 7a default
-            st.channel   = channel;
-            st.instrument = te.instrumentAssociated;
-            st.volume    = te.volumeAssociated;
-            st.events    = ArrangerPatternBuilder::buildBeatEvents (te.sequence, referenceBpm, channel);
-            out.push_back (std::move (st));
+            sourceTrack.nttType   = ArrangerEnums::nttDefaultForPart (sourceTrack.partType);   // Phase 7a default
+            sourceTrack.channel   = channel;
+            sourceTrack.instrument = trackEntry.instrumentAssociated;
+            sourceTrack.volume    = trackEntry.volumeAssociated;
+            sourceTrack.events    = ArrangerPatternBuilder::buildBeatEvents (trackEntry.sequence, referenceBpm, channel);
+            out.push_back (std::move (sourceTrack));
         }
 
         return out;
