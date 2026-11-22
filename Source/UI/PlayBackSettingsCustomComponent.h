@@ -11,6 +11,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include "HelperFunctions.h"
+#include "PersistedKeys.h"
 
 /**
  * @struct PlayBackSettings
@@ -21,10 +22,10 @@
  */
 struct PlayBackSettings
 {
-    int startNote = -1;      /**< Starting note for playback */
-    int endNote = -1;        /**< Ending note for playback */
-    int leftHandBound = -1;  /**< Highest note for the left hand */
-    int rightHandBound = -1; /**< Lowest note for the right hand */
+    int startNote = PlaybackSettingsKeys::notSet;      /**< Starting note for playback */
+    int endNote = PlaybackSettingsKeys::notSet;        /**< Ending note for playback */
+    int leftHandBound = PlaybackSettingsKeys::notSet;  /**< Highest note for the left hand */
+    int rightHandBound = PlaybackSettingsKeys::notSet; /**< Lowest note for the right hand */
     juce::String VID;        /**< USB Vendor ID (optional) */
     juce::String PID;        /**< USB Product ID (optional) */
 };

@@ -1,5 +1,12 @@
 #include "displayGUI.h"
 
+namespace
+{
+    constexpr int singleTab = 1;   // nothing to close when only one tab is open
+    constexpr int firstTab  = 0;   // the first tab can't be closed
+    const juce::String closeTabItem = "Close Tab";
+}
+
 MyTabbedComponent::MyTabbedComponent(juce::TabbedButtonBar::Orientation orientation) : juce::TabbedComponent(orientation)
 {
     getTabbedButtonBar().addMouseListener(this, true);
@@ -22,15 +29,15 @@ void MyTabbedComponent::mouseDown(const juce::MouseEvent& event)
     if (!event.mods.isRightButtonDown()) return;
 
     int numTabs = getNumTabs();
-    if (numTabs <= 1) return;
+    if (numTabs <= singleTab) return;
 
     int tabWidth = getWidth() / numTabs;
     int clickedIndex = event.x / tabWidth;
 
-    if (clickedIndex > 0 && clickedIndex < numTabs)
+    if (clickedIndex > firstTab && clickedIndex < numTabs)
     {
         juce::PopupMenu menu;
-        menu.addItem("Close Tab", [this, clickedIndex]() { removeTab(clickedIndex); });
+        menu.addItem(closeTabItem, [this, clickedIndex]() { removeTab(clickedIndex); });
         menu.showMenuAsync(juce::PopupMenu::Options());
     }
 }

@@ -12,6 +12,20 @@
 
 #include <JuceHeader.h>
 
+/** The instrument tree's group rows (headers, not selectable instruments). */
+namespace InstrumentGroupNames
+{
+    inline const juce::String root      = "Instruments";
+    inline const juce::String pianos    = "Pianos";
+    inline const juce::String basses    = "Basses";
+    inline const juce::String guitars   = "Guitars";
+    inline const juce::String woodWinds = "WoodWinds";
+    inline const juce::String brass     = "Brass";
+    inline const juce::String strings   = "Strings";
+    inline const juce::String reeds     = "Reeds";
+    inline const juce::String organs    = "Organs";
+}
+
 /**
  * @class TreeViewHolder
  * @brief Wrapper component to display a TreeView.
@@ -43,6 +57,8 @@ private:
 class InstrumentTreeItem : public juce::TreeViewItem
 {
 public:
+    static constexpr int noProgram = -1;   ///< a group row: no General MIDI program
+
     std::function<void(int, juce::String)> onProgramSelected; ///< Callback when a program is selected
 
     /**
@@ -51,14 +67,14 @@ public:
      * @param name Instrument name
      * @param program MIDI program number (-1 if not selectable)
      */
-    InstrumentTreeItem(const juce::Image& img, const juce::String& name="", int program = -1);
+    InstrumentTreeItem(const juce::Image& img, const juce::String& name = {}, int program = noProgram);
 
     /**
      * @brief Constructor without image
      * @param name Instrument name
      * @param program MIDI program number (-1 if not selectable)
      */
-    InstrumentTreeItem(const juce::String& name = "", int program = -1);
+    InstrumentTreeItem(const juce::String& name = {}, int program = noProgram);
 
     /** @brief Returns true if the item has sub-items */
     bool mightContainSubItems() override;
@@ -76,7 +92,7 @@ public:
     juce::String getUniqueName() const override;
 
     /** @brief Handles mouse clicks on the item */
-    void itemClicked(const juce::MouseEvent& e) override;
+    void itemClicked(const juce::MouseEvent& event) override;
 
     /** @brief Destructor */
     ~InstrumentTreeItem() override;

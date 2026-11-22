@@ -35,7 +35,7 @@ public:
      * @param props Pointer to the application properties file.
      * @param widthForList Width of the style list component.
      */
-    Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile* props, int widthForList = 0);
+    Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile* props, int widthForList = {});
 
     /** @brief Destructor */
     ~Display() override;

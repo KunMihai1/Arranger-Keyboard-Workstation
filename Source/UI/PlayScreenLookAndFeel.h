@@ -22,25 +22,31 @@ public:
                                bool isMouseOverButton,
                                bool isButtonDown) override
     {
-        auto bounds = button.getLocalBounds().toFloat().reduced(0.5f);
-        constexpr float cornerRadius = 6.0f;
+        constexpr float edgeInset        = 0.5f;   // keeps the outline on whole pixels
+        constexpr float cornerRadius     = 6.0f;
+        constexpr float pressShade       = 0.15f;
+        constexpr float hoverOutlineAlpha = 1.0f;
+        constexpr float idleOutlineAlpha  = 0.75f;
+        constexpr float outlineThickness = 1.5f;
+        auto bounds = button.getLocalBounds().toFloat().reduced(edgeInset);
 
         juce::Colour fill = AppColours::cardBg;
         if (isButtonDown)
-            fill = fill.darker(0.15f);
+            fill = fill.darker(pressShade);
         else if (isMouseOverButton)
-            fill = fill.brighter(0.15f);
+            fill = fill.brighter(pressShade);
 
         g.setColour(fill);
         g.fillRoundedRectangle(bounds, cornerRadius);
 
-        g.setColour(backgroundColour.withAlpha(isMouseOverButton ? 1.0f : 0.75f));
-        g.drawRoundedRectangle(bounds, cornerRadius, 1.5f);
+        g.setColour(backgroundColour.withAlpha(isMouseOverButton ? hoverOutlineAlpha : idleOutlineAlpha));
+        g.drawRoundedRectangle(bounds, cornerRadius, outlineThickness);
     }
 
     juce::Font getTextButtonFont(juce::TextButton&, int) override
     {
-        return juce::Font(13.0f);
+        constexpr float buttonFontHeight = 13.0f;
+        return juce::Font(buttonFontHeight);
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayScreenLookAndFeel)

@@ -13,6 +13,39 @@
 #include "MidiHandler.h"
 #include "SFZLibraryUI.h"
 
+/** Item ids of the output-engine dropdown (persisted as "EngineOptionIndex"). */
+namespace OutputEngineIds
+{
+    constexpr int externalMidi = 1;
+    constexpr int internalSfz  = 2;
+}
+
+/** The NTT minor-scale buttons, in order (persisted as "NttMinorScale"). */
+namespace MinorScaleButtons
+{
+    constexpr int dorian   = 0;
+    constexpr int aeolian  = 1;
+    constexpr int harmonic = 2;
+}
+
+namespace SettingsWindowText
+{
+    inline const juce::String sfzLibrary        = "SFZ Library";
+    inline const juce::String arrangerMode      = "Arranger mode (loop accompaniment)";
+    inline const juce::String bassInversion     = "Bass inversion (slash chords)";
+    inline const juce::String fingered          = "Fingered";
+    inline const juce::String oneFinger         = "1-Finger";
+    inline const juce::String fullKeyboard      = "Full-Kbd";
+    inline const juce::String chordMemory       = "Chord memory (hold on release)";
+    inline const juce::String synchroStart      = "Synchro Start (begin on first chord)";
+    inline const juce::String countIn           = "Count-In (1 bar before start)";
+    inline const juce::String muteChordKeys     = "Mute chord keys (hear only the backing)";
+    inline const juce::String chordTransposition = "Chord transposition (NTT)";
+    inline const juce::String dorian            = "Dorian";
+    inline const juce::String aeolian           = "Aeolian";
+    inline const juce::String harmonic          = "Harmonic";
+}
+
 /**
  * @class MIDIWindow
  * @brief Window for configuring MIDI input/output devices.
@@ -147,35 +180,36 @@ private:
     juce::PropertiesFile* propertyFile = nullptr; /**< Optional storage for user settings */
 
     juce::Component settingsPanel;            /**< Panel containing all settings components */
-	juce::TextButton sfzLibraryButton{ "SFZ Library" };
+	juce::TextButton sfzLibraryButton{ SettingsWindowText::sfzLibrary };
     SFZLibraryManager* sfzManager = nullptr;
     std::unique_ptr<SFZLibraryUI> sfzLibraryUI;
 
     juce::ComboBox comboBoxDevicesIN;         /**< ComboBox for selecting MIDI input devices */
     juce::ComboBox comboBoxDevicesOUT;        /**< ComboBox for selecting MIDI output devices */
     juce::ComboBox comboBoxOutputEngineType;  /**< ComboBox for selecting audio output engine type */
-    juce::ToggleButton arrangerModeToggle { "Arranger mode (loop accompaniment)" }; /**< Classic vs Arranger playback */
-    juce::ToggleButton chordBassInversionToggle { "Bass inversion (slash chords)" };   /**< Phase 4 */
+    juce::ToggleButton arrangerModeToggle { SettingsWindowText::arrangerMode }; /**< Classic vs Arranger playback */
+    juce::ToggleButton chordBassInversionToggle { SettingsWindowText::bassInversion };   /**< Phase 4 */
     juce::Label        chordModeLabel;                                                  /**< Phase 5 */
-    juce::TextButton   chordModeFingered { "Fingered" };                                /**< Phase 5 */
-    juce::TextButton   chordModeSingle   { "1-Finger" };                                /**< Phase 5 */
-    juce::TextButton   chordModeFull     { "Full-Kbd" };                                /**< Phase 5 */
-    juce::ToggleButton chordMemoryToggle        { "Chord memory (hold on release)" };   /**< Phase 4 */
-    juce::ToggleButton synchroStartToggle       { "Synchro Start (begin on first chord)" }; /**< Phase 6 */
-    juce::ToggleButton countInToggle            { "Count-In (1 bar before start)" };        /**< Phase 6b */
-    juce::ToggleButton chordZoneMuteToggle      { "Mute chord keys (hear only the backing)" };
-    juce::ToggleButton nttEnabledToggle         { "Chord transposition (NTT)" };                 /**< Phase 7a master */
+    juce::TextButton   chordModeFingered { SettingsWindowText::fingered };                                /**< Phase 5 */
+    juce::TextButton   chordModeSingle   { SettingsWindowText::oneFinger };                                /**< Phase 5 */
+    juce::TextButton   chordModeFull     { SettingsWindowText::fullKeyboard };                                /**< Phase 5 */
+    juce::ToggleButton chordMemoryToggle        { SettingsWindowText::chordMemory };   /**< Phase 4 */
+    juce::ToggleButton synchroStartToggle       { SettingsWindowText::synchroStart }; /**< Phase 6 */
+    juce::ToggleButton countInToggle            { SettingsWindowText::countIn };        /**< Phase 6b */
+    juce::ToggleButton chordZoneMuteToggle      { SettingsWindowText::muteChordKeys };
+    juce::ToggleButton nttEnabledToggle         { SettingsWindowText::chordTransposition };                 /**< Phase 7a master */
     juce::Label        nttMinorScaleLabel;                                                        /**< Phase 7a */
-    juce::TextButton   nttMinorDorian   { "Dorian" };                                             /**< Phase 7a */
-    juce::TextButton   nttMinorAeolian  { "Aeolian" };                                            /**< Phase 7a */
-    juce::TextButton   nttMinorHarmonic { "Harmonic" };                                           /**< Phase 7a */
+    juce::TextButton   nttMinorDorian   { SettingsWindowText::dorian };                                             /**< Phase 7a */
+    juce::TextButton   nttMinorAeolian  { SettingsWindowText::aeolian };                                            /**< Phase 7a */
+    juce::TextButton   nttMinorHarmonic { SettingsWindowText::harmonic };                                           /**< Phase 7a */
 	juce::ComboBox comboBoxAudioDevicesOUT;       /**< ComboBox for selecting audio output devices */
     juce::Label midiDevicesLabelIN;           /**< Label for input devices */
     juce::Label midiDevicesLabelOUT;          /**< Label for output devices */
 	juce::Label outputEngineTypeLabel;        /**< Label for audio output engine type */
 	juce::Label audioDevicesLabelOUT;        /**< Label for audio output devices */
-    int lastIndexIN = 1;                       /**< Last selected input device index */
-    int lastIndexOUT = 1;                      /**< Last selected output device index */
-    int lastIndexEngineOption = 1;
-	int lastIndexAudioOut = 1;
+    static constexpr int firstItemId = 1;   ///< ComboBox item ids start at 1
+    int lastIndexIN = firstItemId;                       /**< Last selected input device index */
+    int lastIndexOUT = firstItemId;                      /**< Last selected output device index */
+    int lastIndexEngineOption = firstItemId;
+	int lastIndexAudioOut = firstItemId;
 };

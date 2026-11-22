@@ -100,7 +100,7 @@ private:
 
     /** @brief Stores each key's bounds, active state, and type */
     struct note {
-        juce::Rectangle<int> bounds = { 0,0,0,0 }; ///< Key bounds
+        juce::Rectangle<int> bounds {}; ///< Key bounds
         bool isActive = false; ///< Whether the key is currently pressed
         std::string type = ""; ///< "white" or "black"
     };
@@ -108,7 +108,9 @@ private:
     MidiHandler& midiHandler; ///< Reference to MIDI handler
     std::unordered_map<int, note> keys; ///< Map from MIDI note number to note data
 
-    int min_draw = 0; ///< Minimum visible MIDI note
-    int max_draw = 127; ///< Maximum visible MIDI note
+    static constexpr int lowestMidiNote  = 0;
+    static constexpr int highestMidiNote = 127;
+    int min_draw = lowestMidiNote; ///< Minimum visible MIDI note
+    int max_draw = highestMidiNote; ///< Maximum visible MIDI note
     bool annotationState=false;
 };

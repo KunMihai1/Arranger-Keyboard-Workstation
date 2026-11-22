@@ -240,7 +240,8 @@ private:
     std::unique_ptr<juce::Label> infoLabelModify = nullptr;                    ///< Info label for modify actions
 
     juce::MidiMessageSequence& originalSequence;  ///< Reference to the original MIDI sequence
-    int lastSelectedRow = -1;                     ///< Last selected row for shift selection
+    static constexpr int noSelectedRow = -1;
+    int lastSelectedRow = noSelectedRow;                     ///< Last selected row for shift selection
     std::unordered_map<int, MidiChangeInfo>& changesMap; ///< Map of MIDI changes
-    std::variant<int, double> editorValue=0;      ///< Value entered in the modify dialog
+    std::variant<int, double> editorValue{};      ///< Value entered in the modify dialog
 };

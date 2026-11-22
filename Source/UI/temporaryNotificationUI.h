@@ -74,7 +74,8 @@ private:
     void timerCallback() override;
 
     // Member variables
-    float currentAlpha = 1.0f;           /**< Current alpha value for fading effect */
+    static constexpr float fullyOpaque = 1.0f;
+    float currentAlpha = fullyOpaque;           /**< Current alpha value for fading effect */
     juce::Label labelToShow;             /**< Label showing the notification text */
     FinishedCallback finishedCallback;    /**< Callback called when message finishes */
 };

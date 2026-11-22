@@ -22,10 +22,10 @@ public:
             expect (f.noteOn (60, 100.0f, 20.0f));
             expectEquals ((int) f.held().size(), 1);
             const auto& n = f.held().at (60);
-            expectWithinAbsoluteError (n.x, 100.0f, (float) eps);
+            expectWithinAbsoluteError (n.left, 100.0f, (float) eps);
             expectWithinAbsoluteError (n.width, 20.0f, (float) eps);
             expectWithinAbsoluteError (n.height, 10.0f, (float) eps);
-            expectWithinAbsoluteError (n.y, 490.0f, (float) eps);
+            expectWithinAbsoluteError (n.top, 490.0f, (float) eps);
             expectWithinAbsoluteError (n.alpha, 1.0f, (float) eps);
             expect (! f.isIdle());
         }
@@ -38,7 +38,7 @@ public:
             f.advance (0.1f);
             expect (! f.noteOn (60, 300.0f, 20.0f));
             expectEquals ((int) f.held().size(), 1);
-            expectWithinAbsoluteError (f.held().at (60).x, 100.0f, (float) eps);
+            expectWithinAbsoluteError (f.held().at (60).left, 100.0f, (float) eps);
             expectWithinAbsoluteError (f.held().at (60).height, 50.0f, (float) eps);
         }
 
@@ -50,8 +50,8 @@ public:
             f.advance (0.25f);
             const auto& n = f.held().at (60);
             expectWithinAbsoluteError (n.height, 110.0f, (float) eps);
-            expectWithinAbsoluteError (n.y, 390.0f, (float) eps);
-            expectWithinAbsoluteError (n.y + n.height, 500.0f, (float) eps);
+            expectWithinAbsoluteError (n.top, 390.0f, (float) eps);
+            expectWithinAbsoluteError (n.top + n.height, 500.0f, (float) eps);
         }
 
         beginTest ("a held note stops growing at the field height");
@@ -63,7 +63,7 @@ public:
             f.advance (1.0f);
             const auto& n = f.held().at (60);
             expectWithinAbsoluteError (n.height, 200.0f, (float) eps);
-            expectWithinAbsoluteError (n.y, 0.0f, (float) eps);
+            expectWithinAbsoluteError (n.top, 0.0f, (float) eps);
         }
 
         beginTest ("note-off releases the note with its current geometry; unknown note-offs are ignored");
@@ -78,9 +78,9 @@ public:
             expect (f.held().empty());
             expectEquals ((int) f.falling().size(), 1);
             const auto& n = f.falling().front();
-            expectWithinAbsoluteError (n.x, 40.0f, (float) eps);
+            expectWithinAbsoluteError (n.left, 40.0f, (float) eps);
             expectWithinAbsoluteError (n.height, 110.0f, (float) eps);
-            expectWithinAbsoluteError (n.y, 390.0f, (float) eps);
+            expectWithinAbsoluteError (n.top, 390.0f, (float) eps);
             expectWithinAbsoluteError (n.alpha, 1.0f, (float) eps);
         }
 
@@ -93,11 +93,11 @@ public:
             f.noteOff (60);
 
             f.advance (0.5f);                      // rises 200 px, keeps its height
-            expectWithinAbsoluteError (f.falling().front().y, 190.0f, (float) eps);
+            expectWithinAbsoluteError (f.falling().front().top, 190.0f, (float) eps);
             expectWithinAbsoluteError (f.falling().front().height, 110.0f, (float) eps);
 
-            f.advance (0.5f);                      // would reach y -10: pinned at 0, 10 px shorter
-            expectWithinAbsoluteError (f.falling().front().y, 0.0f, (float) eps);
+            f.advance (0.5f);                      // would reach top -10: pinned at 0, 10 px shorter
+            expectWithinAbsoluteError (f.falling().front().top, 0.0f, (float) eps);
             expectWithinAbsoluteError (f.falling().front().height, 100.0f, (float) eps);
             expectWithinAbsoluteError (f.falling().front().alpha, 1.0f, (float) eps);
 
@@ -134,7 +134,7 @@ public:
             f.setHeight (300.0f);
             f.noteOn (60, 0.0f, 20.0f);
             f.advance (0.0f);
-            expectWithinAbsoluteError (f.held().at (60).y, 290.0f, (float) eps);
+            expectWithinAbsoluteError (f.held().at (60).top, 290.0f, (float) eps);
             expectWithinAbsoluteError (f.held().at (60).height, 10.0f, (float) eps);
         }
     }

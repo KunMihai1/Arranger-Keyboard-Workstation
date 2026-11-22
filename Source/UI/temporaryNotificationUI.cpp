@@ -10,22 +10,33 @@
 
 #include "temporaryNotificationUI.h"
 
+namespace
+{
+    constexpr float labelAlpha      = 0.7f;
+    constexpr int   messageWidth    = 300;
+    constexpr int   messageHeight   = 50;
+    constexpr int   fadeTickMs      = 60;
+    constexpr float cornerRadius    = 10.0f;
+    constexpr float fadeStep        = 0.03f;   // alpha lost per tick
+    constexpr float transparent     = 0.0f;
+}
+
 TemporaryMessage::TemporaryMessage(const juce::String& message)
 {
     labelToShow.setText(message, juce::dontSendNotification);
-    labelToShow.setColour(juce::Label::backgroundColourId, juce::Colours::black.withAlpha(0.7f));
+    labelToShow.setColour(juce::Label::backgroundColourId, juce::Colours::black.withAlpha(labelAlpha));
     labelToShow.setColour(juce::Label::textColourId, juce::Colours::white);
     labelToShow.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(labelToShow);
 
-    setSize(300, 50);
-    startTimer(60);
+    setSize(messageWidth, messageHeight);
+    startTimer(fadeTickMs);
 }
 
 void TemporaryMessage::paint(juce::Graphics& g)
 {
     g.setColour(juce::Colours::black.withAlpha(currentAlpha));
-    g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.0f);
+    g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerRadius);
 }
 
 void TemporaryMessage::resized()
@@ -40,8 +51,8 @@ void TemporaryMessage::setFinishedCallBack(FinishedCallback callBack)
 
 void TemporaryMessage::restartTimer()
 {
-    currentAlpha = 1.0f;
-    startTimer(60);
+    currentAlpha = fullyOpaque;
+    startTimer(fadeTickMs);
 }
 
 void TemporaryMessage::updateText(const juce::String& newText)
@@ -56,11 +67,11 @@ void TemporaryMessage::setCurrentAlpha(float alpha)
 
 void TemporaryMessage::timerCallback()
 {
-    currentAlpha -= 0.03f;
+    currentAlpha -= fadeStep;
 
-    if (currentAlpha <= 0.0f)
+    if (currentAlpha <= transparent)
     {
-        currentAlpha = 0.0f;
+        currentAlpha = transparent;
         stopTimer();
         if (finishedCallback)
             finishedCallback();

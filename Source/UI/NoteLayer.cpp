@@ -367,7 +367,7 @@ void NoteLayer::drawNotes(float width, float height)
     auto addQuad = [this](const NoteField::Note& n, float pulse)
     {
         const float m = 2.0f; // margin so the outline's antialiased outer edge isn't clipped
-        const float x0 = n.x - m, x1 = n.x + n.width + m, y0 = n.y - m, y1 = n.y + n.height + m;
+        const float x0 = n.left - m, x1 = n.left + n.width + m, y0 = n.top - m, y1 = n.top + n.height + m;
         const NoteVertex a { x0, y0, -m, -m, n.width, n.height, n.alpha, pulse };
         const NoteVertex b { x1, y0, n.width + m, -m, n.width, n.height, n.alpha, pulse };
         const NoteVertex c { x0, y1, -m, n.height + m, n.width, n.height, n.alpha, pulse };

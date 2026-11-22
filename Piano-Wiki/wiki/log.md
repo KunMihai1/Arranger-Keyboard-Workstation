@@ -13,6 +13,11 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: UI part 1
+- 23 smaller UI files converted (78 → 57). Shared names: `OutputEngineIds`, `MinorScaleButtons`,
+  `SettingsWindowText`, `InstrumentGroupNames`, section-button prefixes in `SectionGroupNames`.
+  `NoteField::Note` fields `x`/`y` are now `left`/`top`. Review: no defects. Suites 870 / 770 / 130.
+
 ## 2026-11-22 — Names cleanup: Backend (Backend done) + findings
 - All 9 `Source/Backend` files converted (87 → 78); request bodies byte-identical (raw strings became
   escaped strings). Behaviour unchanged.

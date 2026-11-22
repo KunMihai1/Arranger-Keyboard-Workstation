@@ -1,6 +1,19 @@
 #include "MainComponent.h"
 #include "AppInfo.h"
 
+namespace
+{
+    namespace Text
+    {
+        const juce::String errorTitle         = "ERROR";
+        const juce::String okButton           = "OK";
+        const juce::String midiOutputFailed   = "Failed to open MIDI output device.";
+        const juce::String audioOutputFailed  = "Failed to open audio output device.";
+    }
+
+    constexpr int firstSectionNumber = 1;   // "Var" with no number means Var 1
+}
+
 
 void MainComponent::setCallBacksForOverlayWindow()
 {
@@ -92,9 +105,9 @@ void MainComponent::setCallBacksForOverlayWindow()
                 if (display != nullptr)
                     display->setArrangerBassInversion(on);
             };
-            midiWindow->onChordModeChanged = [this](ChordMode m)
+            midiWindow->onChordModeChanged = [this](ChordMode mode)
             {
-                midiHandler.setChordMode(m);
+                midiHandler.setChordMode(mode);
             };
             midiWindow->onChordMemoryChanged = [this](bool on)
             {
@@ -123,22 +136,22 @@ void MainComponent::setCallBacksForOverlayWindow()
             };
             midiWindow->onNttMinorScaleChanged = [this](int idx)
             {
-                const auto c = idx == 1 ? MinorScaleChoice::Aeolian
-                             : idx == 2 ? MinorScaleChoice::HarmonicMinor
-                                        : MinorScaleChoice::Dorian;
+                const auto scale = idx == MinorScaleButtons::aeolian ? MinorScaleChoice::Aeolian
+                                 : idx == MinorScaleButtons::harmonic ? MinorScaleChoice::HarmonicMinor
+                                                                      : MinorScaleChoice::Dorian;
                 if (display != nullptr)
-                    display->setArrangerMinorScale(c);
+                    display->setArrangerMinorScale(scale);
             };
 
             midiWindow->onOutputEngineChanged = [this](int engineOption)
             {
                 disconnectCurrentOutput();
 
-                if (engineOption == 1) // External MIDI
+                if (engineOption == OutputEngineIds::externalMidi)
                 {
                     if (!MIDIDevice.deviceOpenOUT(MIDIDevice.getDeviceIndexOUT()))
                     {
-                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "ERROR", "Failed to open MIDI output device.", "OK");
+                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::midiOutputFailed, Text::okButton);
                         return;
                     }
                     deviceOpenedOUT = MIDIDevice.getDeviceOUT();
@@ -152,11 +165,11 @@ void MainComponent::setCallBacksForOverlayWindow()
                         display->setDeviceOutput(MIDIDevice.getDeviceOUT());
                     }
                 }
-                else if (engineOption == 2) // Internal SFZ
+                else if (engineOption == OutputEngineIds::internalSfz)
                 {
                     if (!MIDIDevice.deviceOpenAudioOUT(MIDIDevice.getDeviceIndexAudioOUT()))
                     {
-                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "ERROR", "Failed to open audio output device.", "OK");
+                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::audioOutputFailed, Text::okButton);
                         return;
                     }
                     ensureAudioHandlerReady();   // re-wires the SFZ inject callback into the players
@@ -316,7 +329,7 @@ void MainComponent::highlightArrangerSection(int sectionIndex, ArrangerSectionTy
     if (!variationsFills || !introsEndings)
         return;
 
-    if (sectionIndex < 0)   // nothing active (stopped before first play): clear both groups
+    if (sectionIndex < SectionHighlight::byTypeAndName)   // nothing active (stopped before first play): clear both groups
     {
         variationsFills->setHighlightedButton({});
         introsEndings->setHighlightedButton({});
@@ -324,16 +337,16 @@ void MainComponent::highlightArrangerSection(int sectionIndex, ArrangerSectionTy
     }
 
     // Map the engine section (e.g. "Variation 2"/"Ending 1") to its live button label by type + number.
-    const int    n = juce::jmax(1, name.getTrailingIntValue());
+    const int    sectionNumber = juce::jmax(firstSectionNumber, name.getTrailingIntValue());
     juce::String buttonName;
     bool         inVariationsFills = true;
     switch (type)
     {
-        case ArrangerSectionType::Variation: buttonName = "Var "    + juce::String(n); break;
-        case ArrangerSectionType::Fill:      buttonName = "Fill "   + juce::String(n); break;
-        case ArrangerSectionType::Break:     buttonName = "Break";                     break;
-        case ArrangerSectionType::Intro:     buttonName = "Intro "  + juce::String(n); inVariationsFills = false; break;
-        case ArrangerSectionType::Ending:    buttonName = "Ending " + juce::String(n); inVariationsFills = false; break;
+        case ArrangerSectionType::Variation: buttonName = SectionGroupNames::variationPrefix + juce::String(sectionNumber); break;
+        case ArrangerSectionType::Fill:      buttonName = SectionGroupNames::fillPrefix      + juce::String(sectionNumber); break;
+        case ArrangerSectionType::Break:     buttonName = SectionGroupNames::breakButton;                                  break;
+        case ArrangerSectionType::Intro:     buttonName = SectionGroupNames::introPrefix     + juce::String(sectionNumber); inVariationsFills = false; break;
+        case ArrangerSectionType::Ending:    buttonName = SectionGroupNames::endingPrefix    + juce::String(sectionNumber); inVariationsFills = false; break;
         case ArrangerSectionType::CountIn:   variationsFills->setHighlightedButton({});
                                              introsEndings->setHighlightedButton({});
                                              return;

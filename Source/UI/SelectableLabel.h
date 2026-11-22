@@ -36,6 +36,6 @@ public:
     void mouseDown(const juce::MouseEvent& event) override;
 
 private:
-    int row = 0;                  /**< Optional row identifier, can be used in a TableListBox */
+    int row {};                  /**< Optional row identifier, can be used in a TableListBox */
     juce::TableListBox* table = nullptr; /**< Optional pointer to parent table, if any */
 };
