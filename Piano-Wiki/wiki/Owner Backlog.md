@@ -19,8 +19,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 
 ## 1. Standing work (do these first)
 - 🟡 **Names, not values in every file** (owner's rule, `docs/names-not-values.md`). One subsystem per PR,
-  behaviour-identical. Done: Common, Audio, Midi, Arranger, Playback, Styles, Backend. Left (57 files on
-  `ci/named-values-allowlist.txt`): UI (16 larger files) → tests (41). When UI is converted, its
+  behaviour-identical. Done: Common, Audio, Midi, Arranger, Playback, Styles, Backend. Left (52 files on
+  `ci/named-values-allowlist.txt`): UI (11 larger files) → tests (41). When UI is converted, its
   `"DEFAULT Style"` copies (Display, DisplayStyleStore, SettingsWindow) and `SFZLibraryUI`'s should use
   `StyleNames::defaultStyle`.
 - ✅ **Faster builds** (research agent, 2026-11-22): 64-bit compiler/linker + one batch for the JUCE
@@ -63,6 +63,9 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - ⬜ `SupabaseClient`: request JSON is built by string concatenation, so a `"` or `\` in an email,
   password or username breaks the request; `signup()` never reads the reply body (sign-up always shows
   "Invalid server response"). Found in the Backend names cleanup, not fixed there.
+- ⬜ Notes table (right-click a track → notes): with **no rows selected**, the reset/modify dialog shows
+  "Change All" / "Cancel", but Cancel gets button id 2 = "selected", so Cancel runs the *selected* action on
+  an empty selection and calls `onConfirmed()` (`TableContainer::showModifyChangeDialog`).
 - ⬜ Renaming a track from the track list doesn't focus the name box: `TrackListComponent::renameFromTrackList`
   looks up the editor "folderName" although its editor is "trackName" (seen in the Playback names cleanup).
 

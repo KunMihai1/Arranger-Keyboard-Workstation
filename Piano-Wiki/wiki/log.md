@@ -13,6 +13,12 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: UI part 2
+- Display, DisplayStyleStore, playback settings panel and the notes tables converted (57 → 52). New persisted
+  names for allStyles.json / mySections.json (`AppDataNames::stylesFile`, `AllStylesJsonKeys::styles`,
+  `StyleNames::defaultStyleId`/`styleIdPrefix`/`newStylePrefix`), exact text kept. Found and logged: the notes
+  table's Cancel runs the "selected" action when nothing is selected.
+
 ## 2026-11-22 — Names cleanup: UI part 1
 - 23 smaller UI files converted (78 → 57). Shared names: `OutputEngineIds`, `MinorScaleButtons`,
   `SettingsWindowText`, `InstrumentGroupNames`, section-button prefixes in `SectionGroupNames`.
