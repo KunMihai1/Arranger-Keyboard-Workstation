@@ -10,7 +10,21 @@
 
 #include "TrackPlayer.h"
 
-MultipleTrackPlayer::MultipleTrackPlayer(std::weak_ptr<juce::MidiOutput> out): outputDevice{out}, currentElapsedTime{0.0}
+namespace
+{
+    constexpr int    lowestMidiChannel  = 1;
+    constexpr int    highestMidiChannel = 16;
+    constexpr int    channelVolumeCC    = 7;
+    constexpr int    timerIntervalMs    = 10;
+    constexpr double ticksPerQuarterNote = 960.0;
+    constexpr double secondsPerMinute   = 60.0;
+    constexpr double noTime             = 0.0;
+    constexpr int    oneSequence        = 1;     // size() - oneSequence is the newest index
+    constexpr int    halves             = 2;     // binary search midpoint
+    constexpr int    oneEvent           = 1;
+}
+
+MultipleTrackPlayer::MultipleTrackPlayer(std::weak_ptr<juce::MidiOutput> out): outputDevice{out}, currentElapsedTime{noTime}
 {
 
 }
@@ -23,23 +37,23 @@ void MultipleTrackPlayer::setTracks(const std::vector<TrackEntry>& newTracks)
 
     const double startupDelay = 0.05;  // 50 ms delay before starting playback
 
-    int j = 0;
+    int melodicCount {};
 
-    for (auto& tr : newTracks)
+    for (auto& trackEntry : newTracks)
     {
         juce::MidiMessageSequence filteredSeq;
         int channel;
-        if (tr.type == TrackType::Percussion)
-            channel = 10;
+        if (trackEntry.type == TrackType::Percussion)
+            channel = drumChannel;
         else
         {
-            channel = j + 2;
-            j++;
+            channel = melodicCount + firstTrackChannel;
+            melodicCount++;
         }
 
-        for (int i = 0; i < tr.sequence.getNumEvents(); ++i)
+        for (int eventIndex {}; eventIndex < trackEntry.sequence.getNumEvents(); ++eventIndex)
         {
-            const auto& msg = tr.sequence.getEventPointer(i)->message;
+            const auto& msg = trackEntry.sequence.getEventPointer(eventIndex)->message;
             if (msg.isNoteOn() || msg.isNoteOff())
             {
                 auto modifiedMsg = msg;
@@ -49,7 +63,7 @@ void MultipleTrackPlayer::setTracks(const std::vector<TrackEntry>& newTracks)
         }
 
         //apply small startup delay, not in the same for so it's safer glitch wise because of pairs note on-note off
-        if (filteredSeq.getNumEvents() > 0)
+        if (filteredSeq.getNumEvents() > int {})
         {
             filteredSeq.updateMatchedPairs();
             
@@ -64,8 +78,8 @@ void MultipleTrackPlayer::setTracks(const std::vector<TrackEntry>& newTracks)
             */
 
             filteredSequences.push_back(filteredSeq);
-            int newIndex = static_cast<int>(filteredSequences.size()) - 1;
-            tracks.push_back(TrackPlaybackData{ newIndex, 0 });
+            int newIndex = static_cast<int>(filteredSequences.size()) - oneSequence;
+            tracks.push_back(TrackPlaybackData{ newIndex, {} });
             
         }
     }
@@ -80,16 +94,16 @@ void MultipleTrackPlayer::stop(bool shouldModify)
 {
     stopTimer();
 
-    this->lastKnownSequenceTime = 0.0;
+    this->lastKnownSequenceTime = noTime;
     if (onElapsedUpdate)
     {
         juce::MessageManager::callAsync([this]() {
-            onElapsedUpdate(0.0);
+            onElapsedUpdate(noTime);
             });
     }
 
     auto sharedPtrDev = outputDevice.lock();
-    for (int channel = 1; channel <= 16; ++channel)
+    for (int channel = lowestMidiChannel; channel <= highestMidiChannel; ++channel)
     {
         auto msg = juce::MidiMessage::allNotesOff(channel);
         if (sharedPtrDev)
@@ -110,26 +124,26 @@ void MultipleTrackPlayer::start()
 {
 
     startTime = static_cast<double>(juce::Time::getHighResolutionTicks()) / static_cast<double>(juce::Time::getHighResolutionTicksPerSecond());
-    lastKnownSequenceTime = 0.0;
-    currentElapsedTime = 0.0;
+    lastKnownSequenceTime = noTime;
+    currentElapsedTime = noTime;
 
     for (auto& track : tracks)
-        track.nextEventIndex = 0;
+        track.nextEventIndex = {};
 
 
     trackPlayerModifyObjectsSubjects.notifyChangeStatesOfObjects();
-    startTimer(10);
+    startTimer(timerIntervalMs);
 }
 
 void MultipleTrackPlayer::updatePlaybackSettings(int channel, int newVolume, int newInstrument)
 {
     if (auto sharedPtrDev=outputDevice.lock())
     {
-        if(newInstrument!=-1 && channel!=10)
+        if (newInstrument != TrackEntryDefaults::keepCurrent && channel != drumChannel)
             sharedPtrDev->sendMessageNow(juce::MidiMessage::programChange(channel, newInstrument));
 
-        if (newVolume != -1)
-            sharedPtrDev->sendMessageNow(juce::MidiMessage::controllerEvent(channel, 7, newVolume));
+        if (newVolume != TrackEntryDefaults::keepCurrent)
+            sharedPtrDev->sendMessageNow(juce::MidiMessage::controllerEvent(channel, channelVolumeCC, newVolume));
     }
 }
 
@@ -145,19 +159,17 @@ void MultipleTrackPlayer::applyBPMchangeDuringPlayback(double newBPM)
 
     double oldElapsed = currentElapsedTime;
 
-    double tpqn = 960.0;
+    double newSecondsPerTick = secondsPerMinute / (newBPM * ticksPerQuarterNote);
 
-    double newSecondsPerTick = 60.0 / (newBPM * tpqn);
-
-    for (size_t i = 0; i < filteredSequences.size(); ++i)
+    for (size_t sequenceIndex {}; sequenceIndex < filteredSequences.size(); ++sequenceIndex)
     {
-        auto& filteredSeq = filteredSequences[i];
+        auto& filteredSeq = filteredSequences[sequenceIndex];
 
-        for (int e = 0; e < filteredSeq.getNumEvents(); ++e)
+        for (int eventIndex {}; eventIndex < filteredSeq.getNumEvents(); ++eventIndex)
         {
-            auto* event = filteredSeq.getEventPointer(e);
+            auto* event = filteredSeq.getEventPointer(eventIndex);
 
-            double originalTickTime = event->message.getTimeStamp() / (60.0 / (currentBPM * tpqn));
+            double originalTickTime = event->message.getTimeStamp() / (secondsPerMinute / (currentBPM * ticksPerQuarterNote));
             double newTimeInSeconds = originalTickTime * newSecondsPerTick;
 
             // Preserve startup delay (assuming first event time includes startup delay)
@@ -165,7 +177,7 @@ void MultipleTrackPlayer::applyBPMchangeDuringPlayback(double newBPM)
 
             juce::MidiMessage newMessage = event->message;
             newMessage.setTimeStamp(newTimeInSeconds);
-            filteredSeq.getEventPointer(e)->message = newMessage;
+            filteredSeq.getEventPointer(eventIndex)->message = newMessage;
         }
 
         filteredSeq.updateMatchedPairs();
@@ -189,21 +201,21 @@ void MultipleTrackPlayer::applyBPMchangeDuringPlayback(double newBPM)
 
 int MultipleTrackPlayer::findNextEventIndex(const juce::MidiMessageSequence& seq, double currentTime)
 {
-    int left = 0;
-    int right = seq.getNumEvents() - 1;
+    int left {};
+    int right = seq.getNumEvents() - oneEvent;
     int result = seq.getNumEvents();
 
     while (left <= right)
     {
-        int mid = (left + right) / 2;
+        int mid = (left + right) / halves;
         if (seq.getEventPointer(mid)->message.getTimeStamp() >= currentTime)
         {
             result = mid;
-            right = mid - 1;
+            right = mid - oneEvent;
         }
         else
         {
-            left = mid + 1;
+            left = mid + oneEvent;
         }
     }
 
@@ -212,16 +224,16 @@ int MultipleTrackPlayer::findNextEventIndex(const juce::MidiMessageSequence& seq
 
 void MultipleTrackPlayer::syncPlaybackSettings()
 {
-    int j = 0;
-    for (int i = 0; i < currentTracks.size(); i++)
+    int melodicCount {};
+    for (int trackIndex {}; trackIndex < currentTracks.size(); trackIndex++)
     {
-        auto& track = currentTracks[i];
+        auto& track = currentTracks[trackIndex];
         int channel;
         if (track.type == TrackType::Percussion)
-            channel = 10;
+            channel = drumChannel;
         else {
-            channel = j + 2;
-            j++;
+            channel = melodicCount + firstTrackChannel;
+            melodicCount++;
         }
         int instrument = track.instrumentAssociated;
         int volume = static_cast<int>(track.volumeAssociated);
@@ -244,9 +256,9 @@ void MultipleTrackPlayer::setTimeSignatureNumerator(int newNumerator)
     this->timeSignatureNumerator = newNumerator;
 }
 
-void MultipleTrackPlayer::setLastSectionUsed(const StyleSection& s)
+void MultipleTrackPlayer::setLastSectionUsed(const StyleSection& section)
 {
-    this->lastStyleSectionUsed = s;
+    this->lastStyleSectionUsed = section;
     sectionApplied = false;
 }
 
@@ -255,24 +267,24 @@ void MultipleTrackPlayer::resetLastSectionUsed()
     this->lastStyleSectionUsed.reset();
 }
 
-void MultipleTrackPlayer::addSubjectTrackPlayerListener(TrackPlayerListener* l)
+void MultipleTrackPlayer::addSubjectTrackPlayerListener(TrackPlayerListener* listener)
 {
-    trackPlayerSubjects.addListener(l);
+    trackPlayerSubjects.addListener(listener);
 }
 
-void MultipleTrackPlayer::addSubjectTrackPlayerModifyListener(TrackPlayerListenerModifyStateObjects* l)
+void MultipleTrackPlayer::addSubjectTrackPlayerModifyListener(TrackPlayerListenerModifyStateObjects* listener)
 {
-    trackPlayerModifyObjectsSubjects.addListener(l);
+    trackPlayerModifyObjectsSubjects.addListener(listener);
 }
 
-void MultipleTrackPlayer::removeSubjectTrackPlayerListener(TrackPlayerListener* l)
+void MultipleTrackPlayer::removeSubjectTrackPlayerListener(TrackPlayerListener* listener)
 {
-    trackPlayerSubjects.removeListener(l);
+    trackPlayerSubjects.removeListener(listener);
 }
 
-void MultipleTrackPlayer::removeSubjectTrackPlayerModifyListener(TrackPlayerListenerModifyStateObjects* l)
+void MultipleTrackPlayer::removeSubjectTrackPlayerModifyListener(TrackPlayerListenerModifyStateObjects* listener)
 {
-    trackPlayerModifyObjectsSubjects.removeListener(l);
+    trackPlayerModifyObjectsSubjects.removeListener(listener);
 }
 
 
@@ -294,7 +306,7 @@ void MultipleTrackPlayer::hiResTimerCallback()
 
     currentElapsedTime = elapsed;
 
-    double beatsElapsed = elapsed * (currentBPM / 60.0);
+    double beatsElapsed = elapsed * (currentBPM / secondsPerMinute);
 
     juce::MessageManager::callAsync([this, beatsElapsed, elapsed]
         {
@@ -323,8 +335,8 @@ void MultipleTrackPlayer::hiResTimerCallback()
     }
 
     bool allDone = std::all_of(tracks.begin(), tracks.end(),
-        [this](const TrackPlaybackData& t) {
-            return t.nextEventIndex >= filteredSequences[t.filteredSequenceIndex].getNumEvents();
+        [this](const TrackPlaybackData& trackData) {
+            return trackData.nextEventIndex >= filteredSequences[trackData.filteredSequenceIndex].getNumEvents();
         });
 
     if (allDone)

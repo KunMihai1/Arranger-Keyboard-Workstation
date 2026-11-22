@@ -14,6 +14,25 @@
 #include "SelectableLabel.h"
 #include "TrackPlayerListener.h"
 
+/** Column ids of the "Notes information" table (CustomTableContainer adds the columns with these ids). */
+namespace NoteTableColumns
+{
+    constexpr int note     = 1;
+    constexpr int time     = 2;
+    constexpr int velocity = 3;
+    constexpr int channel  = 4;
+    constexpr int noRow    = -1;
+}
+
+namespace NoteNames
+{
+    constexpr int  middleCOctave      = 4;      // "C4" is MIDI note 60
+    constexpr bool useSharps          = true;   // getMidiNoteName flags
+    constexpr bool includeOctave      = true;
+    constexpr int  octavesBelowMiddleC = 5;     // MIDI note 0 is five octaves below middle C
+    constexpr int  invalidNote        = -1;
+}
+
 /**
  * @class MidiNotesTableModel
  * @brief A TableListBoxModel for displaying and editing MIDI note events.
@@ -70,7 +89,7 @@ public:
     juce::Component* refreshComponentForCell(int rowNumber, int columnId, bool isRowSelected, juce::Component* existingComponentToUpdate) override;
 
     /** @brief Converts a note name (e.g., "C4") to a MIDI note number */
-    int getMidiNoteNumberFromName(const juce::String& name, int octaveMiddleC = 4);
+    int getMidiNoteNumberFromName(const juce::String& name, int octaveMiddleC = NoteNames::middleCOctave);
 
     /** @brief Finds the first digit position in a note name string */
     int findFirstDigitName(const juce::String& name);
@@ -82,7 +101,7 @@ public:
     void handleMapExistingCase(juce::MidiMessage& newMessage, MidiChangeInfo& str);
 
     /** @brief Checks if two MIDI messages are equal (raw data and timestamp) */
-    bool areMidiMessagesEqual(const juce::MidiMessage& a, const juce::MidiMessage& b);
+    bool areMidiMessagesEqual(const juce::MidiMessage& first, const juce::MidiMessage& second);
 
     /** @brief Refreshes the internal vector of note-on events from a sequence */
     void refreshVectorFromSequence(const juce::MidiMessageSequence& seq);
@@ -113,7 +132,7 @@ public:
     void updateCurrentRowBasedOnTime(double currentTime) override;
 
 private:
-    int highlightedRow = -1; /**< Currently highlighted row during playback */
+    int highlightedRow = NoteTableColumns::noRow; /**< Currently highlighted row during playback */
     //std::unordered_map<int, int> originalIndexToRowMap; /**< Maps original sequence index to table row */
     std::vector<EventWithIndex> noteOnEvents; /**< Filtered note-on events */
     int channel; /**< MIDI channel being displayed */
