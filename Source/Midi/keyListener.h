@@ -24,6 +24,12 @@
  *
  * Inherits from juce::KeyListener.
  */
+namespace KeyboardInputRange
+{
+    inline constexpr int defaultStartNote  = 60;   // middle C on the A key
+    inline constexpr int defaultFinishNote = 77;   // F, seventeen keys up, on the ' key
+}
+
 class KeyboardListener : public juce::KeyListener
 {
 public:
@@ -117,8 +123,8 @@ private:
 
     // Member variables
     MidiHandler& midiHandler;                  /**< Reference to the MIDI handler */
-    int startNoteKeyboardInput = 60;          /**< Starting MIDI note number */
-    int finishNoteKeyboardInput = 77;         /**< Ending MIDI note number */
+    int startNoteKeyboardInput = KeyboardInputRange::defaultStartNote;          /**< Starting MIDI note number */
+    int finishNoteKeyboardInput = KeyboardInputRange::defaultFinishNote;         /**< Ending MIDI note number */
     std::unordered_map<int, int> keyToInt;    /**< Map from key codes to MIDI notes */
     std::unordered_map<int, int> intToKey;    /**< Map from MIDI notes to key codes */
     std::unordered_map<int, int> keyCodeToOffset; /**< Key code -> semitone offset from the start note */

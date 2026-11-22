@@ -39,15 +39,11 @@ Source/Backend/ValidatorUI.cpp
 Source/Backend/ValidatorUI.h
 Source/Backend/addDeviceWindow.cpp
 Source/Backend/addDeviceWindow.h
-Source/Midi/InstrumentHandler.cpp
 Source/Midi/MidiDevice.cpp
 Source/Midi/MidiDevicesDB.cpp
 Source/Midi/MidiHandler.cpp
 Source/Midi/MidiHandler.h
 Source/Midi/MidiRecordPlayer.cpp
-Source/Midi/MidiRecordPlayer.h
-Source/Midi/keyListener.cpp
-Source/Midi/keyListener.h
 Source/Playback/MidiNotesTableModel.cpp
 Source/Playback/MidiNotesTableModel.h
 Source/Playback/Track.cpp

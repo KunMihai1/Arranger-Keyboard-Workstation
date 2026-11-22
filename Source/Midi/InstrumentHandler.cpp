@@ -30,41 +30,69 @@ const std::vector<std::pair<int, int>>& InstrumentHandler::getPreset(int program
     return instrumentPresetsMap[programNumber];
 }
 
+namespace InstrumentPresetValues
+{
+    // The controllers each preset sets, in the order they are listed.
+    constexpr int reverbController     = 91;
+    constexpr int chorusController     = 93;
+    constexpr int cutoffController     = 74;
+    constexpr int resonanceController  = 71;
+    constexpr int expressionController = 11;
+    constexpr int reverbNotSet         = -1;   // no preset sets a reverb value
+
+    struct Preset
+    {
+        int program;                                    // General MIDI program number
+        int chorus, cutoff, resonance, expression;      // controller values 0..127
+    };
+
+    const Preset presets[] =
+    {
+        { 0, 10, 100, 40, 127 },   // grand piano
+        { 4, 70, 90, 30, 127 },   // electric piano
+        { 32, 0, 60, 20, 100 },
+        { 33, 10, 70, 35, 110 },
+        { 34, 15, 80, 45, 115 },
+        { 35, 10, 75, 50, 100 },
+        { 36, 25, 95, 60, 127 },
+        { 37, 30, 100, 55, 127 },
+        { 38, 40, 127, 80, 127 },
+        { 39, 50, 127, 85, 127 },
+        { 24, 10, 70, 40, 100 },
+        { 25, 15, 80, 50, 110 },
+        { 26, 20, 90, 55, 110 },
+        { 27, 25, 100, 60, 115 },
+        { 41, 18, 95, 55, 122 },   // violin
+        { 40, 18, 94, 55, 122 },   // viola
+        { 42, 15, 85, 50, 120 },
+        { 43, 10, 80, 45, 115 },
+        { 56, 40, 100, 30, 127 },
+        { 57, 30, 95, 40, 120 },
+        { 59, 20, 100, 60, 127 },
+        { 68, 10, 85, 35, 115 },
+        { 70, 5, 80, 30, 110 },
+        { 71, 15, 95, 40, 120 },
+        { 73, 20, 110, 45, 127 },
+        { 21, 20, 75, 60, 100 },
+        { 22, 15, 70, 55, 105 },
+        { 23, 10, 68, 52, 98 },
+        { 16, 30, 80, 65, 110 },
+        { 17, 25, 75, 60, 108 },
+        { 18, 40, 85, 55, 115 },
+        { 19, 60, 90, 70, 120 },
+        { 20, 35, 70, 60, 105 },
+    };
+}
+
 void InstrumentHandler::initializeMAP()
 {
+    using namespace InstrumentPresetValues;
     instrumentPresetsMap.clear();
 
-    instrumentPresetsMap[0] = { {91, -1}, {93, 10}, {74, 100}, {71, 40}, {11, 127} }; //grand piano
-    instrumentPresetsMap[4] = { {91, -1}, {93, 70}, {74, 90}, {71, 30}, {11, 127} }; //electric piano
-    instrumentPresetsMap[32] = { {91, -1}, {93, 0}, {74, 60}, {71, 20}, {11, 100} };
-    instrumentPresetsMap[33] = { {91, -1}, {93, 10}, {74, 70}, {71, 35}, {11, 110} };
-    instrumentPresetsMap[34] = { {91, -1}, {93, 15}, {74, 80}, {71, 45}, {11, 115} };
-    instrumentPresetsMap[35] = { {91, -1}, {93, 10}, {74, 75}, {71, 50}, {11, 100} };
-    instrumentPresetsMap[36] = { {91, -1}, {93, 25}, {74, 95}, {71, 60}, {11, 127} };
-    instrumentPresetsMap[37] = { {91, -1}, {93, 30}, {74, 100}, {71, 55}, {11, 127} };
-    instrumentPresetsMap[38] = { {91, -1}, {93, 40}, {74, 127}, {71, 80}, {11, 127} };
-    instrumentPresetsMap[39] = { {91, -1}, {93, 50}, {74, 127}, {71, 85}, {11, 127} };
-    instrumentPresetsMap[24] = { {91, -1}, {93, 10}, {74, 70}, {71, 40}, {11, 100} };
-    instrumentPresetsMap[25] = { {91, -1}, {93, 15}, {74, 80}, {71, 50}, {11, 110} };
-    instrumentPresetsMap[26] = { {91, -1}, {93, 20}, {74, 90}, {71, 55}, {11, 110} };
-    instrumentPresetsMap[27] = { {91, -1}, {93, 25}, {74, 100}, {71, 60}, {11, 115} };
-    instrumentPresetsMap[41] = { {91, -1}, {93, 18}, {74, 95}, {71, 55}, {11, 122} }; //violin
-    instrumentPresetsMap[40] ={ {91, -1},{93, 18},{74, 94},{71, 55},{11, 122}};  //viola
-    instrumentPresetsMap[42] = { {91, -1}, {93, 15}, {74, 85}, {71, 50}, {11, 120} };
-    instrumentPresetsMap[43] = { {91, -1}, {93, 10}, {74, 80}, {71, 45}, {11, 115} };
-    instrumentPresetsMap[56] = { {91, -1}, {93, 40}, {74, 100}, {71, 30}, {11, 127} };
-    instrumentPresetsMap[57] = { {91, -1}, {93, 30}, {74, 95}, {71, 40}, {11, 120} };
-    instrumentPresetsMap[59] = { {91, -1}, {93, 20}, {74, 100}, {71, 60}, {11, 127} };
-    instrumentPresetsMap[68] = { {91, -1}, {93, 10}, {74, 85}, {71, 35}, {11, 115} };
-    instrumentPresetsMap[70] = { {91, -1}, {93, 5}, {74, 80}, {71, 30}, {11, 110} };
-    instrumentPresetsMap[71] = { {91, -1}, {93, 15}, {74, 95}, {71, 40}, {11, 120} };
-    instrumentPresetsMap[73] = { {91, -1}, {93, 20}, {74, 110}, {71, 45}, {11, 127} };
-    instrumentPresetsMap[21] = { {91, -1}, {93, 20}, {74, 75}, {71, 60}, {11, 100} };
-    instrumentPresetsMap[22] = { {91, -1}, {93, 15}, {74, 70}, {71, 55}, {11, 105} };
-    instrumentPresetsMap[23] = { {91, -1}, {93, 10}, {74, 68}, {71, 52}, {11, 98} };
-    instrumentPresetsMap[16] = { {91, -1}, {93, 30}, {74, 80}, {71, 65}, {11, 110} };
-    instrumentPresetsMap[17] = { {91, -1}, {93, 25}, {74, 75}, {71, 60}, {11, 108} };
-    instrumentPresetsMap[18] = { {91, -1}, {93, 40}, {74, 85}, {71, 55}, {11, 115} };
-    instrumentPresetsMap[19] = { {91, -1}, {93, 60}, {74, 90}, {71, 70}, {11, 120} };
-    instrumentPresetsMap[20] = { {91, -1}, {93, 35}, {74, 70}, {71, 60}, {11, 105} };   
+    for (const auto& preset : presets)
+        instrumentPresetsMap[preset.program] = { { reverbController, reverbNotSet },
+                                                 { chorusController, preset.chorus },
+                                                 { cutoffController, preset.cutoff },
+                                                 { resonanceController, preset.resonance },
+                                                 { expressionController, preset.expression } };
 }

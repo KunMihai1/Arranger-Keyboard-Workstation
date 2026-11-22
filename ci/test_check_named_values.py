@@ -27,6 +27,7 @@ cases = {
     'const juce::StringArray names { "C", "C#", "D" };': False,
     "const std::vector<int> majorTriad { 0, 4, 7 };": False,
     "virtual void settingsChanged (int transposeValue) = 0;": False,
+    "[[maybe_unused]] constexpr int keyCharacters[] = { 'A', 'W' };": False,
     "constexpr int lastIndex = base - 1;": True,
     "const bool isFirst = channel == 1;": True,
     "const int masked = value & 0xFF;": True,

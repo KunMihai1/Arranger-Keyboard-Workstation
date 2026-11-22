@@ -40,10 +40,25 @@ namespace
         'O', 'L', 'P', ';', '\''
     };
 
-    constexpr int numPianoKeys = (int) (sizeof (pianoKeyScanCodes) / sizeof (pianoKeyScanCodes[0]));
+    constexpr int numPianoKeys = (int) std::size (pianoKeyScanCodes);
 
-    static_assert (numPianoKeys == (int) (sizeof (pianoKeyCharsUS) / sizeof (pianoKeyCharsUS[0])),
-                   "the scan-code and character tables must describe the same keys");
+    // The scan-code and character tables must describe the same keys.
+    static_assert (numPianoKeys == (int) std::size (pianoKeyCharsUS));
+
+    constexpr int noNote       = -1;    // a key that plays nothing
+    constexpr int fullVelocity = 127;   // the PC keyboard has no touch sensitivity
+
+    // Range guards: the lowest nine keys (offsets 0..8) drop out once the start note is low enough for
+    // them to run off the bottom of the MIDI range, and the top five (13..17) once the finish note
+    // would run off the top.
+    constexpr int lastOfLowestKeys     = 8;
+    constexpr int lowestSafeStartNote  = 24;
+    constexpr int firstOfHighestKeys   = 13;
+    constexpr int highestSafeFinishNote = 101;
+
+    constexpr int noVirtualKey  = 0;
+    constexpr int noCharacter   = 0;
+    constexpr int currentThread = 0;   // GetKeyboardLayout(0): the layout of the calling thread
 }
 
 KeyboardListener::KeyboardListener(MidiHandler& midiHandler) : midiHandler{ midiHandler }
@@ -60,10 +75,10 @@ bool KeyboardListener::keyPressed(const juce::KeyPress& key, juce::Component*)
 
     auto it = std::find(allPressedKeys.begin(), allPressedKeys.end(), midiNote);
 
-    if (midiNote != -1 && it==allPressedKeys.end())
+    if (midiNote != noNote && it==allPressedKeys.end())
     {
         allPressedKeys.push_back(midiNote);
-        this->midiHandler.noteOnKeyboard(midiNote, 127);
+        this->midiHandler.noteOnKeyboard(midiNote, fullVelocity);
     }
     return false;
 }
@@ -71,14 +86,14 @@ bool KeyboardListener::keyPressed(const juce::KeyPress& key, juce::Component*)
 bool KeyboardListener::keyStateChanged(bool isKeyDown, juce::Component*)
 {
 
-    for (int i = static_cast<int>(allPressedKeys.size()) - 1; i >= 0; i--)
+    for (int pressedIndex = static_cast<int>(allPressedKeys.size()); pressedIndex-- > int {};)   // newest first
     {
-        int note = allPressedKeys[i];
+        int note = allPressedKeys[pressedIndex];
         int keyCode = intToKey[note];
         if (!juce::KeyPress::isKeyCurrentlyDown(keyCode))
         {
-            allPressedKeys.erase(allPressedKeys.begin() + i);
-            this->midiHandler.noteOffKeyboard(note, 127);
+            allPressedKeys.erase(allPressedKeys.begin() + pressedIndex);
+            this->midiHandler.noteOffKeyboard(note, fullVelocity);
         }
     }
     return false;
@@ -123,18 +138,18 @@ void KeyboardListener::setFinishNoteKeyboardInput(int value)
 
 void KeyboardListener::releaseAllHeldNotes()
 {
-    for (int i = static_cast<int>(allPressedKeys.size()) - 1; i >= 0; i--)
+    for (int pressedIndex = static_cast<int>(allPressedKeys.size()); pressedIndex-- > int {};)   // newest first
     {
-        int note = allPressedKeys[i];
-        allPressedKeys.erase(allPressedKeys.begin() + i);
-        this->midiHandler.noteOffKeyboard(note, 127);
+        int note = allPressedKeys[pressedIndex];
+        allPressedKeys.erase(allPressedKeys.begin() + pressedIndex);
+        this->midiHandler.noteOffKeyboard(note, fullVelocity);
     }
 }
 
 void KeyboardListener::refreshKeyMapIfLayoutChanged()
 {
 #if JUCE_WINDOWS
-    void* const activeLayout = (void*) GetKeyboardLayout (0);
+    void* const activeLayout = (void*) GetKeyboardLayout (currentThread);
 
     if (activeLayout == keyboardLayoutOfMap && ! keyCodeToOffset.empty())
         return;
@@ -143,7 +158,7 @@ void KeyboardListener::refreshKeyMapIfLayoutChanged()
     keyboardLayoutOfMap = activeLayout;
     keyCodeToOffset.clear();
 
-    for (int offset = 0; offset < numPianoKeys; ++offset)
+    for (int offset {}; offset < numPianoKeys; ++offset)
     {
         // Mirrors JUCE's own scan-code -> key-code computation (juce_Windowing_windows.cpp,
         // doKeyChar), so these are exactly the codes keyPressed() will be handed.
@@ -156,11 +171,11 @@ void KeyboardListener::refreshKeyMapIfLayoutChanged()
         const HKL layout = (HKL) activeLayout;
 
         const UINT virtualKey = MapVirtualKeyExW ((UINT) pianoKeyScanCodes[offset], MAPVK_VSC_TO_VK, layout);
-        if (virtualKey == 0)
+        if (virtualKey == noVirtualKey)
             continue;
 
         const UINT character = LOWORD (MapVirtualKeyExW (virtualKey, MAPVK_VK_TO_CHAR, layout));
-        if (character == 0)
+        if (character == noCharacter)
             continue;   // dead key or unused position on this layout
 
         // emplace, not operator[]: if a layout ever does map two positions to the same character,
@@ -178,7 +193,7 @@ void KeyboardListener::refreshKeyMapIfLayoutChanged()
     if (! keyCodeToOffset.empty())
         return;
 
-    for (int offset = 0; offset < numPianoKeys; ++offset)
+    for (int offset {}; offset < numPianoKeys; ++offset)
         keyCodeToOffset[pianoKeyCharsUS[offset]] = offset;
 #endif
 }
@@ -194,18 +209,18 @@ int KeyboardListener::mapKeyMidi(const juce::KeyPress& key)
 
 
     if (entry == keyCodeToOffset.end())
-        return -1;
+        return noNote;
 
     const int offset = entry->second;
 
     // Range guards carried over from the previous per-key mapping: the lowest nine keys drop out
     // once the start note has been transposed down far enough to run off the bottom of the MIDI
     // range, and the top five once the finish note would run off the top.
-    if (offset <= 8 && startNoteKeyboardInput < 24)
-        return -1;
+    if (offset <= lastOfLowestKeys && startNoteKeyboardInput < lowestSafeStartNote)
+        return noNote;
 
-    if (offset >= 13 && finishNoteKeyboardInput > 101)
-        return -1;
+    if (offset >= firstOfHighestKeys && finishNoteKeyboardInput > highestSafeFinishNote)
+        return noNote;
 
     const int note = startNoteKeyboardInput + offset;
 

@@ -13,6 +13,14 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: Source/Midi, part 1
+- `InstrumentHandler.cpp`: the 33 per-instrument presets are one named table (values unchanged).
+  Finding: `MidiHandler::applyInstrumentPreset` never sends the preset CCs (only the program change),
+  so the presets currently have no effect — left as is for the owner to decide.
+- Key listener: range guards, velocity, default 60..77 range, no-note value named; reverse loops use
+  `index-- > {}`; `std::size` instead of sizeof division. `MidiRecordPlayer.h` defaults named.
+- Checker accepts a `[[attribute]]` before a constant (self-test 18/18). Allowlist 142.
+
 ## 2026-11-22 — Names cleanup: Source/Audio done
 - `AudioHandler.cpp`: MIDI CC numbers (`ControllerNumber`), CC→parameter mappings, smoothing times,
   audibility thresholds, channel layout and the 1-based MIDI channel → array index all named;
