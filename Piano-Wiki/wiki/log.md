@@ -13,6 +13,13 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: Backend (Backend done) + findings
+- All 9 `Source/Backend` files converted (87 → 78); request bodies byte-identical (raw strings became
+  escaped strings). Behaviour unchanged.
+- Found and logged in [[Owner Backlog]], not fixed: playtime tracking is switched off (its creation is
+  commented out; the backlog had it as done), `handleLogin()` skips the credential check, "Forgot Pass?"
+  sends nothing, `signup()` never reads the reply, request JSON is not escaped.
+
 ## 2026-11-22 — Names cleanup: Styles (Styles done)
 - All 11 `Source/Styles` files converted (98 → 87). New shared names: `StyleDialogText`, `SectionGroupNames`,
   `PlayModeIds`, `SectionHighlight`; persisted `StyleNames::defaultStyle` ("DEFAULT Style") and
