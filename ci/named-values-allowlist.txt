@@ -1,14 +1,5 @@
 # Files not yet converted to the 'Names, not values' rule (AGENTS.md). This list may only shrink:
 # each cleanup PR converts files and removes them here. ci/check_named_values.py enforces it.
-Source/Arranger/ArrangerStyleEditor.cpp
-Source/Arranger/ArrangerStyleEditor.h
-Source/Arranger/ArrangerStyleIOHelper.cpp
-Source/Arranger/ArrangerStyleListComponent.cpp
-Source/Arranger/ArrangerStyleListComponent.h
-Source/Arranger/ArrangerTimelineComponent.cpp
-Source/Arranger/ArrangerTimelineComponent.h
-Source/Arranger/ArrangerTimelineGeometry.cpp
-Source/Arranger/ArrangerTimelineGeometry.h
 Source/Backend/LoginComponent.cpp
 Source/Backend/PlaytimeTracker.cpp
 Source/Backend/PlaytimeTracker.h

@@ -2,6 +2,17 @@
 #include <JuceHeader.h>
 #include <functional>
 
+namespace StyleListText
+{
+    inline const juce::String title      = "Saved section configurations";
+    inline const juce::String listName   = "styles";
+    inline const juce::String newButton    = "New";
+    inline const juce::String editButton   = "Edit";
+    inline const juce::String deleteButton = "Delete";
+    inline const juce::String loadButton   = "Load";
+    inline const juce::String closeButton  = "Close";
+}
+
 /** Lists *.style files from the ArrangerStyles folder; fires callbacks to load or edit. */
 class ArrangerStyleListComponent : public juce::Component,
                                    private juce::ListBoxModel
@@ -22,13 +33,17 @@ public:
     void paint (juce::Graphics& g) override;
 
     int getNumRows() override;
-    void paintListBoxItem (int row, juce::Graphics& g, int w, int h, bool selected) override;
+    void paintListBoxItem (int row, juce::Graphics& g, int rowWidth, int rowHeight, bool selected) override;
     void listBoxItemDoubleClicked (int row, const juce::MouseEvent&) override;
 
 private:
-    juce::Label title { {}, "Saved section configurations" };
-    juce::ListBox list { "styles", this };
-    juce::TextButton newBtn { "New" }, editBtn { "Edit" }, deleteBtn { "Delete" }, loadBtn { "Load" }, closeBtn { "Close" };
+    bool isRow (int row) const { return row >= int {} && row < files.size(); }
+
+    juce::Label title { {}, StyleListText::title };
+    juce::ListBox list { StyleListText::listName, this };
+    juce::TextButton newBtn { StyleListText::newButton }, editBtn { StyleListText::editButton },
+                     deleteBtn { StyleListText::deleteButton }, loadBtn { StyleListText::loadButton },
+                     closeBtn { StyleListText::closeButton };
     juce::Array<juce::File> files;
     juce::String activeName;        // configuration currently active for the style (marked in the list)
 };

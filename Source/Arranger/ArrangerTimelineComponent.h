@@ -28,25 +28,27 @@ public:
     static constexpr int kPixelsPerBar = 56;
     int getPreferredWidth() const;     // marginPx*2 + totalBars * kPixelsPerBar
     int xForBar (double bar) const;    // pixel x of a (fractional, 1-based) bar in this component
-    int barForX (int x) const;         // nearest 1-based bar line at a pixel x (inverse of xForBar)
+    int barForX (int pixelX) const;    // nearest 1-based bar line at a pixel x (inverse of xForBar)
 
     void paint (juce::Graphics& g) override;
-    void mouseDown (const juce::MouseEvent& e) override;
-    void mouseDrag (const juce::MouseEvent& e) override;
-    void mouseUp   (const juce::MouseEvent& e) override;
+    void mouseDown (const juce::MouseEvent& event) override;
+    void mouseDrag (const juce::MouseEvent& event) override;
+    void mouseUp   (const juce::MouseEvent& event) override;
 
 private:
+    static constexpr int kMarginPx = 10;
+
     ArrangerTimelineGeometry::Layout layout() const;
-    juce::Colour colourForType (ArrangerSectionType t) const;
+    juce::Colour colourForType (ArrangerSectionType sectionType) const;
 
     std::vector<SectionWindow> windows;
-    int    totalBars   = 1;
-    int    marginPx    = 10;
-    double playheadBar = 1.0;
+    int    totalBars   = ArrangerTimelineGeometry::kFirstBar;
+    int    marginPx    = kMarginPx;
+    double playheadBar = ArrangerTimelineGeometry::kFirstBar;
 
-    int  selectedIndex = -1;
+    int  selectedIndex = ArrangerStyleDefaults::noIndex;
     ArrangerTimelineGeometry::Hit dragMode = ArrangerTimelineGeometry::Hit::None;
-    int  dragGrabOffsetBars = 0;   // bars between the grab point and the region start (body drag)
-    int  dragStartLenValue = 1;
+    int  dragGrabOffsetBars {};   // bars between the grab point and the region start (body drag)
+    int  dragStartLenValue = ArrangerTimelineGeometry::kMinimumBars;
     bool windowsChangedByDrag = false;  // true once a drag actually moved/resized a window this gesture
 };

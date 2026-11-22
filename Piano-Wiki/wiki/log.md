@@ -13,6 +13,12 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: arranger editor UI and style IO
+- Style editor, timeline (component + geometry), configuration list and the `.style` reader/writer
+  converted; `Source/Arranger` is now fully off the allowlist (116 → 107). Behaviour unchanged.
+- UI colours of these screens moved to `AppColours.h` (house rule). `.style` JSON keys are one named
+  table (`StyleJsonKeys`, exact text). The editor's duplicated key-detection loop is one helper.
+
 ## 2026-11-22 — 800-line cap covers docs/
 - Owner: the cap applies to `docs/` too. Seven documents over 800 lines (six old arranger plans and
   `docs/arranger_audio_system.md`, 971–1425 lines) split at their `##` headings, never inside a code

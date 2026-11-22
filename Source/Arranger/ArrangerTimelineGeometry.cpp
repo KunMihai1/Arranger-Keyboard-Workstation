@@ -3,38 +3,44 @@
 
 namespace ArrangerTimelineGeometry
 {
-    double pixelsPerBar (const Layout& L)
+    namespace
     {
-        const int usable = juce::jmax (1, L.widthPx - 2 * L.marginPx);
-        return (double) usable / (double) juce::jmax (1, L.totalBars);
+        constexpr double roundToNearest = 0.5;
+        constexpr int    regionTop     = 0;
     }
 
-    double barToX (double bar, const Layout& L)
+    double pixelsPerBar (const Layout& layout)
     {
-        return (double) L.marginPx + (bar - 1.0) * pixelsPerBar (L);
+        const int usable = juce::jmax (kMinimumPixels, layout.widthPx - kMarginSides * layout.marginPx);
+        return (double) usable / (double) juce::jmax (kMinimumBars, layout.totalBars);
     }
 
-    int xToSnappedBar (double x, const Layout& L)
+    double barToX (double bar, const Layout& layout)
     {
-        const double bar = (x - (double) L.marginPx) / pixelsPerBar (L) + 1.0;
-        const int snapped = (int) std::floor (bar + 0.5);
-        return juce::jlimit (1, L.totalBars + 1, snapped);
+        return (double) layout.marginPx + (bar - kFirstBar) * pixelsPerBar (layout);
     }
 
-    juce::Rectangle<int> regionBounds (int startBar, int lengthBars, const Layout& L, int heightPx)
+    int xToSnappedBar (double pixelX, const Layout& layout)
     {
-        const int x  = (int) std::lround (barToX ((double) startBar, L));
-        const int x2 = (int) std::lround (barToX ((double) (startBar + juce::jmax (1, lengthBars)), L));
-        return juce::Rectangle<int> (x, 0, juce::jmax (1, x2 - x), heightPx);
+        const double bar = (pixelX - (double) layout.marginPx) / pixelsPerBar (layout) + kFirstBar;
+        const int snapped = (int) std::floor (bar + roundToNearest);
+        return juce::jlimit (kFirstBar, layout.totalBars + kPastLastBar, snapped);
     }
 
-    Hit hitTest (int x, const juce::Rectangle<int>& region)
+    juce::Rectangle<int> regionBounds (int startBar, int lengthBars, const Layout& layout, int heightPx)
     {
-        if (x < region.getX() - kEdgeGrabPx || x > region.getRight() + kEdgeGrabPx)
+        const int left  = (int) std::lround (barToX ((double) startBar, layout));
+        const int right = (int) std::lround (barToX ((double) (startBar + juce::jmax (kMinimumBars, lengthBars)), layout));
+        return juce::Rectangle<int> (left, regionTop, juce::jmax (kMinimumPixels, right - left), heightPx);
+    }
+
+    Hit hitTest (int pixelX, const juce::Rectangle<int>& region)
+    {
+        if (pixelX < region.getX() - kEdgeGrabPx || pixelX > region.getRight() + kEdgeGrabPx)
             return Hit::None;
-        if (std::abs (x - region.getX())     <= kEdgeGrabPx) return Hit::LeftEdge;
-        if (std::abs (x - region.getRight())  <= kEdgeGrabPx) return Hit::RightEdge;
-        if (x >= region.getX() && x <= region.getRight())     return Hit::Body;
+        if (std::abs (pixelX - region.getX())     <= kEdgeGrabPx) return Hit::LeftEdge;
+        if (std::abs (pixelX - region.getRight())  <= kEdgeGrabPx) return Hit::RightEdge;
+        if (pixelX >= region.getX() && pixelX <= region.getRight())     return Hit::Body;
         return Hit::None;
     }
 }
