@@ -41,7 +41,6 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - CI caches compiled JUCE objects (filled by runs on `main`; key hashes `ci/JuceLibraryCode`).
 
 ## Active Threads / Next
-- 🔴 Open: "restore down" size = whole screen.
 - 🟡 **Names-not-values cleanup**: rule (`docs/names-not-values.md`) + CI ratchet; 153 files on
   the allowlist (now 142), converted one subsystem per PR; next: rest of Midi.
 - ✅ **Arranger hard testing**: headless + live (sound measured by loopback), results in the test plan.
