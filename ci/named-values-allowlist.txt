@@ -2,7 +2,4 @@
 # each cleanup PR converts files and removes them here. ci/check_named_values.py enforces it.
 tests/unit/test_arranger_engine.cpp
 tests/unit/test_channel_dsp.cpp
-tests/unit/test_chord_transposer.cpp
 tests/unit/test_io_helper.cpp
-tests/unit/test_key_listener.cpp
-tests/unit/test_midi_handler.cpp

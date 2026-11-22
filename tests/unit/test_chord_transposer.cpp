@@ -1,243 +1,334 @@
 #include <juce_core/juce_core.h>
 #include "Arranger/ChordTransposer.h"
 
+namespace ChordTransposerTestValues
+{
+    const juce::String transposerTestName = "ChordTransposer";
+    const juce::String scalesTestName     = "NttScales";
+    const juce::String testCategory       = "Arranger";
+
+    const juce::String fixedNeverTransposed     = "fixed parts (drums) are never transposed";
+    const juce::String invalidActiveIdentity    = "invalid active chord -> identity";
+    const juce::String sameChordIdentity        = "identity when active == original";
+    const juce::String nonChordTonesPreserved   = "non-chord tones are PRESERVED at identity (not snapped to chord tones)";
+    const juce::String passingNotesShift        = "melodic/passing notes shift by the root interval (kept relative to the root)";
+    const juce::String onlyThirdFlips           = "only the 3rd flips on major->minor; other notes just shift";
+    const juce::String thirdMappedDifferently   = "NTT maps the 3rd differently from root/5th (C maj -> A min)";
+    const juce::String blockShift               = "block-shift case (same quality) shifts by root interval";
+    const juce::String resultInMidiRange        = "result stays in 0..127";
+    const juce::String bassInversionRebases     = "bass inversion re-bases the WHOLE bass line on the played bass note";
+    const juce::String parallelShifts           = "Parallel shifts every note by the root interval";
+    const juce::String chordRemapsRoles         = "Chord remaps 3rd/5th to the active chord's roles";
+    const juce::String chordSnapsPassingTone    = "Chord snaps a passing tone to the active scale (tie resolves down)";
+    const juce::String noTransposeIsInput       = "NoTranspose returns the input note";
+    const juce::String fixedKeepsNearestOctave  = "Fixed keeps the octave nearest the original note (no drift)";
+    const juce::String minorScaleChangesSnap    = "minor-scale selector changes the snap target";
+    const juce::String wrapAroundFolds          = "wrap-around folds a >1-octave result back toward the origin";
+    const juce::String chordResultInMidiRange   = "Chord result stays within 0..127 across the whole range";
+    const juce::String bypassReturnsInput       = "master bypass: disabled NTT returns input notes for all parts/types";
+    const juce::String bypassBeatsBassInversion = "master bypass beats bass inversion (regression: bypass used to miss the bass)";
+    const juce::String majorUsesIonian          = "major qualities use Ionian";
+    const juce::String dominantUsesMixolydian   = "dominant + sus use Mixolydian (flat 7)";
+    const juce::String minorRowSwaps            = "minor row swaps with the MinorScaleChoice";
+    const juce::String augAndDimScales          = "aug is whole-tone, dim is whole-half";
+
+    // Pitch classes (0 = C .. 11 = B).
+    constexpr int pitchC      = 0;
+    constexpr int pitchD      = 2;
+    constexpr int pitchE      = 4;
+    constexpr int pitchF      = 5;
+    constexpr int pitchFSharp = 6;
+    constexpr int pitchG      = 7;
+    constexpr int pitchA      = 9;
+    constexpr int pitchB      = 11;
+    constexpr int semitonesPerOctave = 12;
+
+    // Chords as { root, quality, bass note }.
+    const ArrangerChord cMajor        { pitchC, ChordQuality::Maj,  pitchC };
+    const ArrangerChord cMinor        { pitchC, ChordQuality::Min,  pitchC };
+    const ArrangerChord cMajorOverE   { pitchC, ChordQuality::Maj,  pitchE };
+    const ArrangerChord cDiminished   { pitchC, ChordQuality::Dim,  pitchC };
+    const ArrangerChord dMajor        { pitchD, ChordQuality::Maj,  pitchD };
+    const ArrangerChord fMajor        { pitchF, ChordQuality::Maj,  pitchF };
+    const ArrangerChord fMinor        { pitchF, ChordQuality::Min,  pitchF };
+    const ArrangerChord gDominant7    { pitchG, ChordQuality::Dom7, pitchG };
+    const ArrangerChord aMajor        { pitchA, ChordQuality::Maj,  pitchA };
+    const ArrangerChord aMinor        { pitchA, ChordQuality::Min,  pitchA };
+    const ArrangerChord bAugmented    { pitchB, ChordQuality::Aug,  pitchB };
+
+    // MIDI notes.
+    constexpr int noteC2      = 36;
+    constexpr int noteB2      = 47;
+    constexpr int noteG2      = 43;
+    constexpr int noteA3      = 57;
+    constexpr int noteC4      = 60;
+    constexpr int noteCSharp4 = 61;
+    constexpr int noteD4      = 62;
+    constexpr int noteEFlat4  = 63;
+    constexpr int noteE4      = 64;
+    constexpr int noteF4      = 65;
+    constexpr int noteFSharp4 = 66;
+    constexpr int noteG4      = 67;
+    constexpr int noteGSharp4 = 68;
+    constexpr int noteA4      = 69;
+    constexpr int noteBFlat4  = 70;
+    constexpr int noteB4      = 71;
+    constexpr int lowestNote  = 0;
+    constexpr int highestNote = 127;
+
+    // Scale degrees (semitones above the root).
+    const std::vector<int> ionianDegrees    { 0, 2, 4, 5, 7, 9, 11 };
+    const std::vector<int> wholeToneDegrees { 0, 2, 4, 6, 8, 10 };
+    const std::vector<int> wholeHalfDegrees { 0, 2, 3, 5, 6, 8, 9, 11 };
+    constexpr int sharpFourth   = 6;
+    constexpr int flatSixth     = 8;
+    constexpr int naturalSixth  = 9;
+    constexpr int flatSeventh   = 10;
+    constexpr int majorSeventh  = 11;
+    constexpr int ionianCount    = 7;
+    constexpr int wholeToneCount = 6;
+    constexpr int wholeHalfCount = 8;
+}
+
+using namespace ChordTransposerTestValues;
+
 class ChordTransposerTest : public juce::UnitTest
 {
 public:
-    ChordTransposerTest() : juce::UnitTest ("ChordTransposer", "Arranger") {}
+    ChordTransposerTest() : juce::UnitTest (ChordTransposerTestValues::transposerTestName, ChordTransposerTestValues::testCategory) {}
 
     void runTest() override
     {
-        beginTest ("fixed parts (drums) are never transposed");
+        beginTest (fixedNeverTransposed);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });
-            t.setActiveChord   ({ 5, ChordQuality::Maj, 5 });   // F
-            expectEquals (t.transpose (36, PartKind::Fixed), 36);
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);
+            transposer.setActiveChord   (fMajor);   // F
+            expectEquals (transposer.transpose (noteC2, PartKind::Fixed), noteC2);
         }
 
-        beginTest ("invalid active chord -> identity");
+        beginTest (invalidActiveIdentity);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });
-            t.setActiveChord   ({});                            // none
-            expectEquals (t.transpose (60, PartKind::Acc), 60);
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);
+            transposer.setActiveChord   ({});                            // none
+            expectEquals (transposer.transpose (noteC4, PartKind::Acc), noteC4);
         }
 
-        beginTest ("identity when active == original");
+        beginTest (sameChordIdentity);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });
-            t.setActiveChord   ({ 0, ChordQuality::Maj, 0 });
-            expectEquals (t.transpose (64, PartKind::Acc), 64);
-            expectEquals (t.transpose (60, PartKind::Bass), 60);
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);
+            transposer.setActiveChord   (cMajor);
+            expectEquals (transposer.transpose (noteE4, PartKind::Acc), noteE4);
+            expectEquals (transposer.transpose (noteC4, PartKind::Bass), noteC4);
         }
 
-        beginTest ("non-chord tones are PRESERVED at identity (not snapped to chord tones)");
+        beginTest (nonChordTonesPreserved);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });
-            t.setActiveChord   ({ 0, ChordQuality::Maj, 0 });   // identity
-            expectEquals (t.transpose (62, PartKind::Acc), 62);  // D stays D
-            expectEquals (t.transpose (65, PartKind::Acc), 65);  // F stays F
-            expectEquals (t.transpose (69, PartKind::Acc), 69);  // A stays A
-            expectEquals (t.transpose (70, PartKind::Acc), 70);  // Bb stays Bb
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);
+            transposer.setActiveChord   (cMajor);   // identity
+            expectEquals (transposer.transpose (noteD4, PartKind::Acc), noteD4);  // D stays D
+            expectEquals (transposer.transpose (noteF4, PartKind::Acc), noteF4);  // F stays F
+            expectEquals (transposer.transpose (noteA4, PartKind::Acc), noteA4);  // A stays A
+            expectEquals (transposer.transpose (noteBFlat4, PartKind::Acc), noteBFlat4);  // Bb stays Bb
         }
 
-        beginTest ("melodic/passing notes shift by the root interval (kept relative to the root)");
+        beginTest (passingNotesShift);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });   // C
-            t.setActiveChord   ({ 2, ChordQuality::Maj, 2 });   // D (+2)
-            expectEquals (t.transpose (62, PartKind::Acc), 64);  // D (2nd) -> E (2nd above D)
-            expectEquals (t.transpose (65, PartKind::Acc), 67);  // F (4th) -> G (4th above D)
-            expectEquals (t.transpose (69, PartKind::Acc), 71);  // A (6th) -> B (6th above D)
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);   // C
+            transposer.setActiveChord   (dMajor);   // D (+2)
+            expectEquals (transposer.transpose (noteD4, PartKind::Acc), noteE4);  // D (2nd) -> E (2nd above D)
+            expectEquals (transposer.transpose (noteF4, PartKind::Acc), noteG4);  // F (4th) -> G (4th above D)
+            expectEquals (transposer.transpose (noteA4, PartKind::Acc), noteB4);  // A (6th) -> B (6th above D)
         }
 
-        beginTest ("only the 3rd flips on major->minor; other notes just shift");
+        beginTest (onlyThirdFlips);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });   // C major
-            t.setActiveChord   ({ 0, ChordQuality::Min, 0 });   // C minor (same root)
-            expectEquals (t.transpose (64, PartKind::Acc), 63);  // E (maj 3rd) -> Eb (min 3rd)
-            expectEquals (t.transpose (60, PartKind::Acc), 60);  // C (root) unchanged
-            expectEquals (t.transpose (67, PartKind::Acc), 67);  // G (5th) unchanged
-            expectEquals (t.transpose (62, PartKind::Acc), 62);  // D (2nd passing) unchanged
-            expectEquals (t.transpose (65, PartKind::Acc), 65);  // F (4th passing) unchanged
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);   // C major
+            transposer.setActiveChord   (cMinor);   // C minor (same root)
+            expectEquals (transposer.transpose (noteE4, PartKind::Acc), noteEFlat4);  // E (maj 3rd) -> Eb (min 3rd)
+            expectEquals (transposer.transpose (noteC4, PartKind::Acc), noteC4);  // C (root) unchanged
+            expectEquals (transposer.transpose (noteG4, PartKind::Acc), noteG4);  // G (5th) unchanged
+            expectEquals (transposer.transpose (noteD4, PartKind::Acc), noteD4);  // D (2nd passing) unchanged
+            expectEquals (transposer.transpose (noteF4, PartKind::Acc), noteF4);  // F (4th passing) unchanged
         }
 
-        beginTest ("NTT maps the 3rd differently from root/5th (C maj -> A min)");
+        beginTest (thirdMappedDifferently);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });   // C E G
-            t.setActiveChord   ({ 9, ChordQuality::Min, 9 });   // A C E
-            expectEquals (t.transpose (60, PartKind::Acc) % 12, 9);   // root C -> A
-            expectEquals (t.transpose (64, PartKind::Acc) % 12, 0);   // 3rd  E -> C (minor 3rd, not C#)
-            expectEquals (t.transpose (67, PartKind::Acc) % 12, 4);   // 5th  G -> E
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);   // C E G
+            transposer.setActiveChord   (aMinor);   // A C E
+            expectEquals (transposer.transpose (noteC4, PartKind::Acc) % semitonesPerOctave, pitchA);   // root C -> A
+            expectEquals (transposer.transpose (noteE4, PartKind::Acc) % semitonesPerOctave, pitchC);   // 3rd  E -> C (minor 3rd, not C#)
+            expectEquals (transposer.transpose (noteG4, PartKind::Acc) % semitonesPerOctave, pitchE);   // 5th  G -> E
         }
 
-        beginTest ("block-shift case (same quality) shifts by root interval");
+        beginTest (blockShift);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });   // C
-            t.setActiveChord   ({ 2, ChordQuality::Maj, 2 });   // D (+2)
-            expectEquals (t.transpose (60, PartKind::Acc) % 12, 2);   // C -> D
-            expectEquals (t.transpose (64, PartKind::Acc) % 12, 6);   // E -> F#
-            expectEquals (t.transpose (67, PartKind::Acc) % 12, 9);   // G -> A
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);   // C
+            transposer.setActiveChord   (dMajor);   // D (+2)
+            expectEquals (transposer.transpose (noteC4, PartKind::Acc) % semitonesPerOctave, pitchD);   // C -> D
+            expectEquals (transposer.transpose (noteE4, PartKind::Acc) % semitonesPerOctave, pitchFSharp);   // E -> F#
+            expectEquals (transposer.transpose (noteG4, PartKind::Acc) % semitonesPerOctave, pitchA);   // G -> A
         }
 
-        beginTest ("result stays in 0..127");
+        beginTest (resultInMidiRange);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });
-            t.setActiveChord   ({ 7, ChordQuality::Dom7, 7 });
-            for (int n = 0; n <= 127; ++n)
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);
+            transposer.setActiveChord   (gDominant7);
+            for (int note = lowestNote; note <= highestNote; ++note)
             {
-                const int x = t.transpose (n, PartKind::Acc);
-                expect (x >= 0 && x <= 127);
+                const int transposed = transposer.transpose (note, PartKind::Acc);
+                expect (transposed >= lowestNote && transposed <= highestNote);
             }
         }
 
-        beginTest ("bass inversion re-bases the WHOLE bass line on the played bass note");
+        beginTest (bassInversionRebases);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });   // recorded in C
-            t.setActiveChord   ({ 0, ChordQuality::Maj, 4 });   // C major, bass = E (C/E)
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);        // recorded in C
+            transposer.setActiveChord   (cMajorOverE);   // C major, bass = E (C/E)
 
-            t.setBassInversion (true);
+            transposer.setBassInversion (true);
             // the entire bass line shifts onto E: root C -> E, and the 5th G -> B (a 5th above E)
-            expectEquals (t.transpose (36, PartKind::Bass) % 12, 4);    // C -> E
-            expectEquals (t.transpose (43, PartKind::Bass) % 12, 11);   // G -> B (re-based, not just the root)
+            expectEquals (transposer.transpose (noteC2, PartKind::Bass) % semitonesPerOctave, pitchE);    // C -> E
+            expectEquals (transposer.transpose (noteG2, PartKind::Bass) % semitonesPerOctave, pitchB);   // G -> B (re-based, not just the root)
 
             // with inversion off, the bass follows the chord root normally (C, G)
-            t.setBassInversion (false);
-            expectEquals (t.transpose (36, PartKind::Bass) % 12, 0);    // C
-            expectEquals (t.transpose (43, PartKind::Bass) % 12, 7);    // G
+            transposer.setBassInversion (false);
+            expectEquals (transposer.transpose (noteC2, PartKind::Bass) % semitonesPerOctave, pitchC);    // C
+            expectEquals (transposer.transpose (noteG2, PartKind::Bass) % semitonesPerOctave, pitchG);    // G
 
             // bass inversion only affects the Bass part, never Acc
-            t.setBassInversion (true);
-            expectEquals (t.transpose (43, PartKind::Acc) % 12, 7);     // Acc 5th stays G
+            transposer.setBassInversion (true);
+            expectEquals (transposer.transpose (noteG2, PartKind::Acc) % semitonesPerOctave, pitchG);     // Acc 5th stays G
         }
 
         // ---- Phase 7a: explicit NTT types ----------------------------------------------------
 
-        beginTest ("Parallel shifts every note by the root interval");
+        beginTest (parallelShifts);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });   // C
-            t.setActiveChord   ({ 5, ChordQuality::Maj, 5 });   // F (+5)
-            expectEquals (t.transpose (60, PartKind::Acc, NttType::Parallel), 65);
-            expectEquals (t.transpose (62, PartKind::Acc, NttType::Parallel), 67);
-            expectEquals (t.transpose (64, PartKind::Acc, NttType::Parallel), 69);
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);   // C
+            transposer.setActiveChord   (fMajor);   // F (+5)
+            expectEquals (transposer.transpose (noteC4, PartKind::Acc, NttType::Parallel), noteF4);
+            expectEquals (transposer.transpose (noteD4, PartKind::Acc, NttType::Parallel), noteG4);
+            expectEquals (transposer.transpose (noteE4, PartKind::Acc, NttType::Parallel), noteA4);
         }
 
-        beginTest ("Chord remaps 3rd/5th to the active chord's roles");
+        beginTest (chordRemapsRoles);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });   // C E G
-            t.setActiveChord   ({ 9, ChordQuality::Min, 9 });   // A C E
-            expectEquals (t.transpose (60, PartKind::Acc, NttType::Chord) % 12, 9);  // C -> A
-            expectEquals (t.transpose (64, PartKind::Acc, NttType::Chord) % 12, 0);  // E -> C (min 3rd)
-            expectEquals (t.transpose (67, PartKind::Acc, NttType::Chord) % 12, 4);  // G -> E
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);   // C E G
+            transposer.setActiveChord   (aMinor);   // A C E
+            expectEquals (transposer.transpose (noteC4, PartKind::Acc, NttType::Chord) % semitonesPerOctave, pitchA);  // C -> A
+            expectEquals (transposer.transpose (noteE4, PartKind::Acc, NttType::Chord) % semitonesPerOctave, pitchC);  // E -> C (min 3rd)
+            expectEquals (transposer.transpose (noteG4, PartKind::Acc, NttType::Chord) % semitonesPerOctave, pitchE);  // G -> E
         }
 
-        beginTest ("Chord snaps a passing tone to the active scale (tie resolves down)");
+        beginTest (chordSnapsPassingTone);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });   // C maj; passing tones not in {0,4,7}
-            t.setActiveChord   ({ 9, ChordQuality::Min, 9 });   // A min, Dorian default
-            t.setMinorScale (MinorScaleChoice::Dorian);
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);   // C maj; passing tones not in {0,4,7}
+            transposer.setActiveChord   (aMinor);   // A min, Dorian default
+            transposer.setMinorScale (MinorScaleChoice::Dorian);
             // G# (deg 8, passing) + interval 9 -> pc 5 (F); F not in A-Dorian {9,11,0,2,4,6,7};
             // nearest tones 4 and 6 are a tie -> resolve DOWN -> 4 (E)
-            expectEquals (t.transpose (68, PartKind::Acc, NttType::Chord) % 12, 4);
+            expectEquals (transposer.transpose (noteGSharp4, PartKind::Acc, NttType::Chord) % semitonesPerOctave, pitchE);
         }
 
-        beginTest ("NoTranspose returns the input note");
+        beginTest (noTransposeIsInput);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });
-            t.setActiveChord   ({ 5, ChordQuality::Maj, 5 });
-            expectEquals (t.transpose (61, PartKind::Acc, NttType::NoTranspose), 61);
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);
+            transposer.setActiveChord   (fMajor);
+            expectEquals (transposer.transpose (noteCSharp4, PartKind::Acc, NttType::NoTranspose), noteCSharp4);
         }
 
-        beginTest ("Fixed keeps the octave nearest the original note (no drift)");
+        beginTest (fixedKeepsNearestOctave);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });   // C
-            t.setActiveChord   ({ 9, ChordQuality::Maj, 9 });   // A
-            expectEquals (t.transpose (60, PartKind::Acc, NttType::Chord), 69);  // Chord drifts up to A4
-            expectEquals (t.transpose (60, PartKind::Acc, NttType::Fixed), 57);  // Fixed: A nearest C4 is A3
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);   // C
+            transposer.setActiveChord   (aMajor);   // A
+            expectEquals (transposer.transpose (noteC4, PartKind::Acc, NttType::Chord), noteA4);  // Chord drifts up to A4
+            expectEquals (transposer.transpose (noteC4, PartKind::Acc, NttType::Fixed), noteA3);  // Fixed: A nearest C4 is A3
         }
 
-        beginTest ("minor-scale selector changes the snap target");
+        beginTest (minorScaleChangesSnap);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });
-            t.setActiveChord   ({ 9, ChordQuality::Min, 9 });   // A min
-            t.setMinorScale (MinorScaleChoice::Aeolian);        // has F natural (pc 5)
-            expectEquals (t.transpose (68, PartKind::Acc, NttType::Chord) % 12, 5);  // stays on F
-            t.setMinorScale (MinorScaleChoice::Dorian);         // F# instead of F
-            expectEquals (t.transpose (68, PartKind::Acc, NttType::Chord) % 12, 4);  // snaps down to E
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);
+            transposer.setActiveChord   (aMinor);   // A min
+            transposer.setMinorScale (MinorScaleChoice::Aeolian);        // has F natural (pc 5)
+            expectEquals (transposer.transpose (noteGSharp4, PartKind::Acc, NttType::Chord) % semitonesPerOctave, pitchF);  // stays on F
+            transposer.setMinorScale (MinorScaleChoice::Dorian);         // F# instead of F
+            expectEquals (transposer.transpose (noteGSharp4, PartKind::Acc, NttType::Chord) % semitonesPerOctave, pitchE);  // snaps down to E
         }
 
-        beginTest ("wrap-around folds a >1-octave result back toward the origin");
+        beginTest (wrapAroundFolds);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Dim, 0 });   // C dim {0,3,6}
-            t.setActiveChord   ({ 11, ChordQuality::Aug, 11 }); // B aug {0,4,8}, interval +11
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cDiminished);   // C dim {0,3,6}
+            transposer.setActiveChord   (bAugmented);    // B aug {0,4,8}, interval +11
             // Note 66 is F# = the dim 5th (deg 6, idx 2); active aug 5th is deg 8 -> +2.
             // result = 66+11+2 = 79, which is 13 semitones above origin 66 -> fold down an octave to
             // 67 (G, the aug 5th of B), same pitch class.
-            expectEquals (t.transpose (66, PartKind::Acc, NttType::Chord), 67);
-            expectEquals (t.transpose (66, PartKind::Acc, NttType::Chord) % 12, 7);
+            expectEquals (transposer.transpose (noteFSharp4, PartKind::Acc, NttType::Chord), noteG4);
+            expectEquals (transposer.transpose (noteFSharp4, PartKind::Acc, NttType::Chord) % semitonesPerOctave, pitchG);
         }
 
-        beginTest ("Chord result stays within 0..127 across the whole range");
+        beginTest (chordResultInMidiRange);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });
-            t.setActiveChord   ({ 7, ChordQuality::Dom7, 7 });
-            for (int n = 0; n <= 127; ++n)
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);
+            transposer.setActiveChord   (gDominant7);
+            for (int note = lowestNote; note <= highestNote; ++note)
             {
-                const int x = t.transpose (n, PartKind::Acc, NttType::Chord);
-                expect (x >= 0 && x <= 127);
+                const int transposed = transposer.transpose (note, PartKind::Acc, NttType::Chord);
+                expect (transposed >= lowestNote && transposed <= highestNote);
             }
         }
 
-        beginTest ("master bypass: disabled NTT returns input notes for all parts/types");
+        beginTest (bypassReturnsInput);
         {
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });
-            t.setActiveChord   ({ 5, ChordQuality::Min, 5 });
-            t.setNttEnabled (false);
-            expectEquals (t.transpose (60, PartKind::Acc,  NttType::Chord),    60);
-            expectEquals (t.transpose (64, PartKind::Acc,  NttType::Parallel), 64);
-            expectEquals (t.transpose (43, PartKind::Bass, NttType::Parallel), 43);
-            t.setNttEnabled (true);
-            expect (t.transpose (60, PartKind::Acc, NttType::Chord) != 60);   // active again
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);
+            transposer.setActiveChord   (fMinor);
+            transposer.setNttEnabled (false);
+            expectEquals (transposer.transpose (noteC4, PartKind::Acc,  NttType::Chord),    noteC4);
+            expectEquals (transposer.transpose (noteE4, PartKind::Acc,  NttType::Parallel), noteE4);
+            expectEquals (transposer.transpose (noteG2, PartKind::Bass, NttType::Parallel), noteG2);
+            transposer.setNttEnabled (true);
+            expect (transposer.transpose (noteC4, PartKind::Acc, NttType::Chord) != noteC4);   // active again
         }
 
-        beginTest ("master bypass beats bass inversion (regression: bypass used to miss the bass)");
+        beginTest (bypassBeatsBassInversion);
         {
             // The bypass used to rewrite `ntt` instead of returning, so the bass-inversion branch —
             // which returns early — never saw it: the bass stayed transposed while every other part
             // played in the recorded key. ChordDetector sets bassNote on EVERY recognized chord (not
             // just slash voicings), so this fired on ordinary root-position chords too.
-            ChordTransposer t;
-            t.setOriginalChord ({ 0, ChordQuality::Maj, 0 });   // recorded in C major
-            t.setBassInversion (true);
-            t.setNttEnabled (false);
+            ChordTransposer transposer;
+            transposer.setOriginalChord (cMajor);   // recorded in C major
+            transposer.setBassInversion (true);
+            transposer.setNttEnabled (false);
 
-            t.setActiveChord ({ 9, ChordQuality::Min, 9 });     // root-position Am: bassNote == root
-            expectEquals (t.transpose (43, PartKind::Bass, NttType::Parallel), 43);   // was 52 (+9)
-            expectEquals (t.transpose (43, PartKind::Bass, NttType::Chord),    43);
+            transposer.setActiveChord (aMinor);     // root-position Am: bassNote == root
+            expectEquals (transposer.transpose (noteG2, PartKind::Bass, NttType::Parallel), noteG2);   // was 52 (+9)
+            expectEquals (transposer.transpose (noteG2, PartKind::Bass, NttType::Chord),    noteG2);
 
-            t.setActiveChord ({ 0, ChordQuality::Maj, 4 });     // genuine slash chord C/E
-            expectEquals (t.transpose (43, PartKind::Bass, NttType::Parallel), 43);   // was 47 (+4)
+            transposer.setActiveChord (cMajorOverE);     // genuine slash chord C/E
+            expectEquals (transposer.transpose (noteG2, PartKind::Bass, NttType::Parallel), noteG2);   // was 47 (+4)
 
             // ...and inversion must still work once the bypass is off.
-            t.setNttEnabled (true);
-            expectEquals (t.transpose (43, PartKind::Bass, NttType::Parallel), 47);
+            transposer.setNttEnabled (true);
+            expectEquals (transposer.transpose (noteG2, PartKind::Bass, NttType::Parallel), noteB2);
         }
     }
 };
@@ -246,55 +337,55 @@ static ChordTransposerTest chordTransposerTest;
 class NttScalesTest : public juce::UnitTest
 {
 public:
-    NttScalesTest() : juce::UnitTest ("NttScales", "Arranger") {}
+    NttScalesTest() : juce::UnitTest (ChordTransposerTestValues::scalesTestName, ChordTransposerTestValues::testCategory) {}
 
-    static bool hasDegree (const NttScale& s, int d)
+    static bool hasDegree (const NttScale& scale, int degree)
     {
-        for (int i = 0; i < s.count; ++i) if (s.degrees[i] == d) return true;
+        for (int degreeIndex {}; degreeIndex < scale.count; ++degreeIndex) if (scale.degrees[degreeIndex] == degree) return true;
         return false;
     }
 
     void runTest() override
     {
-        beginTest ("major qualities use Ionian");
+        beginTest (majorUsesIonian);
         {
-            auto s = scaleForQuality (ChordQuality::Maj, MinorScaleChoice::Dorian);
-            expectEquals (s.count, 7);
-            for (int d : { 0,2,4,5,7,9,11 }) expect (hasDegree (s, d));
-            expect (! hasDegree (s, 6));   // no #4 in Ionian
+            auto scale = scaleForQuality (ChordQuality::Maj, MinorScaleChoice::Dorian);
+            expectEquals (scale.count, ionianCount);
+            for (int degree : ionianDegrees) expect (hasDegree (scale, degree));
+            expect (! hasDegree (scale, sharpFourth));   // no #4 in Ionian
         }
 
-        beginTest ("dominant + sus use Mixolydian (flat 7)");
+        beginTest (dominantUsesMixolydian);
         {
-            for (auto q : { ChordQuality::Dom7, ChordQuality::Sus2, ChordQuality::Sus4 })
+            for (auto quality : { ChordQuality::Dom7, ChordQuality::Sus2, ChordQuality::Sus4 })
             {
-                auto s = scaleForQuality (q, MinorScaleChoice::Dorian);
-                expect (hasDegree (s, 10));        // b7
-                expect (! hasDegree (s, 11));      // not a major 7
+                auto scale = scaleForQuality (quality, MinorScaleChoice::Dorian);
+                expect (hasDegree (scale, flatSeventh));        // b7
+                expect (! hasDegree (scale, majorSeventh));      // not a major 7
             }
         }
 
-        beginTest ("minor row swaps with the MinorScaleChoice");
+        beginTest (minorRowSwaps);
         {
             auto dor = scaleForQuality (ChordQuality::Min,  MinorScaleChoice::Dorian);
             auto aeo = scaleForQuality (ChordQuality::Min,  MinorScaleChoice::Aeolian);
             auto har = scaleForQuality (ChordQuality::Min7, MinorScaleChoice::HarmonicMinor);
-            expect (  hasDegree (dor, 9));   // Dorian natural-6
-            expect (! hasDegree (dor, 8));
-            expect (  hasDegree (aeo, 8));   // Aeolian b6
-            expect (! hasDegree (aeo, 9));
-            expect (  hasDegree (har, 11));  // harmonic raised-7
-            expect (  hasDegree (har, 8));
+            expect (  hasDegree (dor, naturalSixth));   // Dorian natural-6
+            expect (! hasDegree (dor, flatSixth));
+            expect (  hasDegree (aeo, flatSixth));   // Aeolian b6
+            expect (! hasDegree (aeo, naturalSixth));
+            expect (  hasDegree (har, majorSeventh));  // harmonic raised-7
+            expect (  hasDegree (har, flatSixth));
         }
 
-        beginTest ("aug is whole-tone, dim is whole-half");
+        beginTest (augAndDimScales);
         {
             auto aug = scaleForQuality (ChordQuality::Aug, MinorScaleChoice::Dorian);
-            expectEquals (aug.count, 6);
-            for (int d : { 0,2,4,6,8,10 }) expect (hasDegree (aug, d));
+            expectEquals (aug.count, wholeToneCount);
+            for (int degree : wholeToneDegrees) expect (hasDegree (aug, degree));
             auto dim = scaleForQuality (ChordQuality::Dim, MinorScaleChoice::Dorian);
-            expectEquals (dim.count, 8);
-            for (int d : { 0,2,3,5,6,8,9,11 }) expect (hasDegree (dim, d));
+            expectEquals (dim.count, wholeHalfCount);
+            for (int degree : wholeHalfDegrees) expect (hasDegree (dim, degree));
         }
     }
 };
