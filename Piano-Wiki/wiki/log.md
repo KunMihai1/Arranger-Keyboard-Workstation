@@ -13,6 +13,16 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: arranger engine and model
+- 21 arranger files converted (chord, model, enums, NTT scales, transposer, detector, scheduler,
+  sequencer, builders, time, channels, count-in, MIDI hex, engine); behaviour unchanged, persisted
+  enum / chord / default-section names identical. Shared names live in `Chord.h` (MusicFacts,
+  PitchClasses, ChordShapes, ChordQualityNames), `ArrangerModel.h` (ArrangerStyleDefaults,
+  DefaultSectionNames, BeatTolerance, TrackRoles) and `ArrangerChannels.h`. Allowlist 137 → 116.
+- Checker fix: a UTF-8 byte-order mark hid a file's first `#include` (read as `utf-8-sig` now).
+- Owner answers recorded in [[Owner Backlog]]: `docs/` gets the 800-line cap; auto-fill must play the
+  fill of the variation you leave (Var 2 → Var 1 = Fill 2); presets left as is (owner unsure).
+
 ## 2026-11-22 — Owner Backlog page
 - New [[Owner Backlog]]: standing work, open engineering threads and the owner's TODO file, each with
   its state checked in the code (implemented items marked done). Linked from index, hot and AGENTS.md.
