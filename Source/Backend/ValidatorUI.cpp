@@ -14,7 +14,7 @@ namespace
 {
     constexpr int    lowestMidiValue  = 0;
     constexpr int    highestMidiValue = 127;
-    constexpr double noTimeDifference = 0.0;
+    constexpr double zeroSeconds = 0.0;
     constexpr int    firstCharacter   = 0;
 
     namespace Text
@@ -57,13 +57,13 @@ bool Validator::isValidMidiDoubleValueTimeStamps(double value, double currentTim
         return false;
 
     double newTime = currentTimeStamp + value;
-    if (newTime < noTimeDifference)
+    if (newTime < zeroSeconds)
         return false;
 
-    if (newTime - previousTimeStamp < noTimeDifference)
+    if (newTime - previousTimeStamp < zeroSeconds)
         return false;
 
-    if (newTime - nextTimeStamp > noTimeDifference)
+    if (newTime - nextTimeStamp > zeroSeconds)
         return false;
 
     return true;

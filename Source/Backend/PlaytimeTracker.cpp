@@ -36,6 +36,7 @@ void PlaytimeTracker::timerCallback()
 
     accumulatedSeconds += deltaSec;
 
+    // Known bug (Owner Backlog): batchIntervalSeconds is ignored; batches are always the default.
     if (callbackFunction && accumulatedSeconds>=defaultBatchIntervalSeconds)
     {
         callbackFunction(accumulatedSeconds);
