@@ -11,8 +11,8 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-22. PRs #19–#32: live bugs fixed, test audit, skipped-test counts, arranger stress tests,
-names cleanup (Common, Audio, part of Midi). Live arranger run done; SFZ queue backlog fixed. Detail in [[log]].
+2026-11-22. PRs #19–#35: live bugs fixed, test audit, skipped-test counts, arranger stress tests,
+names cleanup (Common, Audio, Midi). Live arranger run done; SFZ queue backlog and restore-down fixed. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -29,7 +29,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 850, arranger 763, integration 130 (+7 skipped)**; integration runs in CI too.
+  Current: **unit 852, arranger 763, integration 130 (+7 skipped)**; integration runs in CI too.
 
 ## Build / Test
 - App `Builds\VisualStudio2022\Arranger Workstation.sln`, Debug x64; close the app first (PDB lock).
@@ -42,9 +42,11 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 
 ## Active Threads / Next
 - 🟡 **Names-not-values cleanup**: rule (`docs/names-not-values.md`) + CI ratchet; 153 files on
-  the allowlist (now 142), converted one subsystem per PR; next: rest of Midi.
+  the allowlist (now 137), converted one subsystem per PR; `Source/Midi` done; next: Arranger.
 - ✅ **Arranger hard testing**: headless + live (sound measured by loopback), results in the test plan.
-  Owner questions: style switch while playing keeps the old arrangement; an Ending can be a start.
+  Owner decided: a style switch while playing takes effect on the next Start, and any section (Ending
+  too) may be the start section — both intended. Restore-down stays work-area sized: no scaled
+  smaller window (owner: over-engineering).
   Watch: "Notes information" table holds refs into a library entry while open (unreachable today).
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.
