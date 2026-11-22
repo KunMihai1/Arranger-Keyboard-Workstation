@@ -1,11 +1,43 @@
 #include <juce_core/juce_core.h>
 #include "SectionGroupComponent.h"
 
+namespace SectionGroupComponentTestValues
+{
+    const juce::String testName     = "SectionGroupComponent - Unit";
+    const juce::String testCategory = "Unit";
+
+    const juce::String buttonsCreated       = "Buttons are created correctly";
+    const juce::String activationMapStarts  = "Activation map initialized correctly";
+    const juce::String toggleAndTooltip     = "Toggle button and tooltip setup";
+    const juce::String tooltipOnHover       = "Tooltip visibility on hover";
+
+    const juce::String groupTitle  = "TestGroup";
+    const juce::String fillsTitle  = "Fills";
+    const juce::String buttonA     = "A";
+    const juce::String buttonB     = "B";
+    const juce::String buttonC     = "C";
+    const juce::String fillOne     = "Fill 1";
+    const juce::String fillTwo     = "Fill 2";
+
+    constexpr size_t threeButtons = 3;
+    constexpr size_t twoButtons   = 2;
+    constexpr size_t firstButton  = 0;
+    constexpr size_t secondButton = 1;
+    constexpr size_t thirdButton  = 2;
+
+    const juce::Point<float> origin { 0.0f, 0.0f };
+    constexpr float noPressure    = 0.0f;
+    constexpr float noOrientation = 0.0f;
+    constexpr float noRotation    = 0.0f;
+    constexpr float noTilt        = 0.0f;
+    constexpr int   singleClick   = 1;
+}
+
 class SectionGroupComponentUnitTest : public juce::UnitTest
 {
 public:
     SectionGroupComponentUnitTest()
-        : juce::UnitTest("SectionGroupComponent - Unit", "Unit") {}
+        : juce::UnitTest(SectionGroupComponentTestValues::testName, SectionGroupComponentTestValues::testCategory) {}
 
     void runTest() override
     {
@@ -18,37 +50,40 @@ public:
 private:
     void testButtonCreation()
     {
-        beginTest("Buttons are created correctly");
+        using namespace SectionGroupComponentTestValues;
+        beginTest(buttonsCreated);
 
-        std::vector<juce::String> names = { "A", "B", "C" };
-        SectionGroupComponent group("TestGroup", names, false);
+        std::vector<juce::String> names = { buttonA, buttonB, buttonC };
+        SectionGroupComponent group(groupTitle, names, false);
 
         auto& buttons = group.getButtons();
-        expect(buttons.size() == 3);
-        expect(buttons[0]->getButtonText() == "A");
-        expect(buttons[1]->getButtonText() == "B");
-        expect(buttons[2]->getButtonText() == "C");
+        expect(buttons.size() == threeButtons);
+        expect(buttons[firstButton]->getButtonText() == buttonA);
+        expect(buttons[secondButton]->getButtonText() == buttonB);
+        expect(buttons[thirdButton]->getButtonText() == buttonC);
     }
 
     void testActivationMapInitialization()
     {
-        beginTest("Activation map initialized correctly");
+        using namespace SectionGroupComponentTestValues;
+        beginTest(activationMapStarts);
 
-        std::vector<juce::String> names = { "A", "B" };
-        SectionGroupComponent group("TestGroup", names, false);
+        std::vector<juce::String> names = { buttonA, buttonB };
+        SectionGroupComponent group(groupTitle, names, false);
 
         auto& map = group.getActivationMap();
-        expect(map.size() == 2);
-        expect(map["A"] == false);
-        expect(map["B"] == false);
+        expect(map.size() == twoButtons);
+        expect(map[buttonA] == false);
+        expect(map[buttonB] == false);
     }
 
     void testToggleButtonAndTooltip()
     {
-        beginTest("Toggle button and tooltip setup");
+        using namespace SectionGroupComponentTestValues;
+        beginTest(toggleAndTooltip);
 
-        std::vector<juce::String> names = { "Fill 1", "Fill 2" };
-        SectionGroupComponent group("Fills", names, true);
+        std::vector<juce::String> names = { fillOne, fillTwo };
+        SectionGroupComponent group(fillsTitle, names, true);
 
         // Toggle button should exist
         expect(group.getToggleButton() != nullptr);
@@ -60,10 +95,11 @@ private:
 
     void testMouseEnterExitTooltip()
     {
-        beginTest("Tooltip visibility on hover");
+        using namespace SectionGroupComponentTestValues;
+        beginTest(tooltipOnHover);
 
-        std::vector<juce::String> names = { "Fill 1" };
-        SectionGroupComponent group("Fills", names, true);
+        std::vector<juce::String> names = { fillOne };
+        SectionGroupComponent group(fillsTitle, names, true);
 
         auto* toggle = group.getToggleButton();
         auto* tooltip = group.getToggleToolTip();
@@ -75,30 +111,30 @@ private:
         auto& source = juce::Desktop::getInstance().getMainMouseSource();
 
         // Create a MouseEvent with required parameters
-        juce::MouseEvent e(
+        juce::MouseEvent hover(
             source,                            // real mouse input source
-            juce::Point<float>(0, 0),         // local position
+            origin,                            // local position
             juce::ModifierKeys::noModifiers,  // no modifiers
-            0.0f, // pressure
-            0.0f, // orientation
-            0.0f, // rotation
-            0.0f, // tiltX
-            0.0f, // tiltY
+            noPressure,
+            noOrientation,
+            noRotation,
+            noTilt, // tiltX
+            noTilt, // tiltY
             toggle,   // eventComponent
             toggle,   // originator
             juce::Time::getCurrentTime(),     // event time
-            juce::Point<float>(0, 0),         // mouse down pos
+            origin,                            // mouse down pos
             juce::Time::getCurrentTime(),     // mouse down time
-            1,                                // number of clicks
+            singleClick,                       // number of clicks
             false                             // mouse was dragged
         );
 
         // Simulate mouse enter
-        group.mouseEnter(e);
+        group.mouseEnter(hover);
         expect(tooltip->isVisible());
 
         // Simulate mouse exit
-        group.mouseExit(e);
+        group.mouseExit(hover);
         expect(!tooltip->isVisible());
     }
 };
