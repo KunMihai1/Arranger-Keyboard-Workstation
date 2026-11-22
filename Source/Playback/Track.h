@@ -177,9 +177,9 @@ private:
 
     //==============================================================================
     static constexpr int noInstrument = -1;
-    static constexpr int firstChannel = 1;
+    static constexpr int defaultChannel = 1;
     int usedInstrumentNumber = noInstrument;     ///< Currently selected MIDI instrument number.
-    int channel = firstChannel;                   ///< Assigned MIDI channel.
+    int channel = defaultChannel;                  ///< Assigned MIDI channel.
     juce::String typeOfTrack;          ///< Type of track ("melody", "percussion", etc.).
     juce::Uuid uniqueIdentifierTrack;  ///< Unique ID for identifying this track.
 

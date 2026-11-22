@@ -29,8 +29,6 @@ namespace
     constexpr int    lowestVolume        = 0;
     constexpr int    highestVolume       = 127;     // MIDI CC7 range
     constexpr int    volumeStep          = 1;
-    constexpr int    keepCurrent         = -1;      // notify(): leave this value unchanged
-    constexpr int    noInstrument        = -1;      // an empty slot has no program
     constexpr int    firstTrackChannel   = 2;       // style tracks use channels 2..16
     constexpr int    lastTrackChannel    = 16;
     constexpr int    drumChannel         = 10;
@@ -83,8 +81,8 @@ Track::Track()
         if (onChange)
             onChange();
 
-        if (static_cast<int>(volumeSlider.getValue()) != keepCurrent && isPlaying())
-            notify(channel, static_cast<int>(volumeSlider.getValue()), keepCurrent);
+        if (static_cast<int>(volumeSlider.getValue()) != TrackEntryDefaults::keepCurrent && isPlaying())
+            notify(channel, static_cast<int>(volumeSlider.getValue()), TrackEntryDefaults::keepCurrent);
     };
 
     addAndMakeVisible(volumeSlider);
@@ -390,7 +388,7 @@ void Track::setInstrumentNumber(int newInstrumentNumber, bool shouldNotify)
 {
     this->usedInstrumentNumber = newInstrumentNumber;
     if (usedInstrumentNumber != noInstrument && shouldNotify)
-        notify(channel, keepCurrent, usedInstrumentNumber);
+        notify(channel, TrackEntryDefaults::keepCurrent, usedInstrumentNumber);
 }
 
 int Track::getInstrumentNumber() const
@@ -406,8 +404,8 @@ void Track::setVolumeSlider(double value)
 void Track::setVolumeLabel(const juce::String& value, bool shouldNotify)
 {
     volumeLabel.setText(value, juce::dontSendNotification);
-    if (value.getIntValue() != keepCurrent && shouldNotify)
-        notify(channel, value.getIntValue(), keepCurrent);
+    if (value.getIntValue() != TrackEntryDefaults::keepCurrent && shouldNotify)
+        notify(channel, value.getIntValue(), TrackEntryDefaults::keepCurrent);
 }
 
 void Track::setNameLabel(const juce::String& name)
