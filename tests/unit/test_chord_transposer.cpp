@@ -30,7 +30,7 @@ namespace ChordTransposerTestValues
     const juce::String majorUsesIonian          = "major qualities use Ionian";
     const juce::String dominantUsesMixolydian   = "dominant + sus use Mixolydian (flat 7)";
     const juce::String minorRowSwaps            = "minor row swaps with the MinorScaleChoice";
-    const juce::String augAndDimScales          = "aug is whole-tone, dim is whole-half";
+    const juce::String augAndDimScales          = "augmentedScale is whole-tone, diminishedScale is whole-half";
 
     // Pitch classes (0 = C .. 11 = B).
     constexpr int pitchC      = 0;
@@ -274,11 +274,11 @@ public:
         beginTest (wrapAroundFolds);
         {
             ChordTransposer transposer;
-            transposer.setOriginalChord (cDiminished);   // C dim {0,3,6}
-            transposer.setActiveChord   (bAugmented);    // B aug {0,4,8}, interval +11
-            // Note 66 is F# = the dim 5th (deg 6, idx 2); active aug 5th is deg 8 -> +2.
+            transposer.setOriginalChord (cDiminished);   // C diminishedScale {0,3,6}
+            transposer.setActiveChord   (bAugmented);    // B augmentedScale {0,4,8}, interval +11
+            // Note 66 is F# = the diminishedScale 5th (deg 6, idx 2); active augmentedScale 5th is deg 8 -> +2.
             // result = 66+11+2 = 79, which is 13 semitones above origin 66 -> fold down an octave to
-            // 67 (G, the aug 5th of B), same pitch class.
+            // 67 (G, the augmentedScale 5th of B), same pitch class.
             expectEquals (transposer.transpose (noteFSharp4, PartKind::Acc, NttType::Chord), noteG4);
             expectEquals (transposer.transpose (noteFSharp4, PartKind::Acc, NttType::Chord) % semitonesPerOctave, pitchG);
         }
@@ -367,25 +367,25 @@ public:
 
         beginTest (minorRowSwaps);
         {
-            auto dor = scaleForQuality (ChordQuality::Min,  MinorScaleChoice::Dorian);
-            auto aeo = scaleForQuality (ChordQuality::Min,  MinorScaleChoice::Aeolian);
-            auto har = scaleForQuality (ChordQuality::Min7, MinorScaleChoice::HarmonicMinor);
-            expect (  hasDegree (dor, naturalSixth));   // Dorian natural-6
-            expect (! hasDegree (dor, flatSixth));
-            expect (  hasDegree (aeo, flatSixth));   // Aeolian b6
-            expect (! hasDegree (aeo, naturalSixth));
-            expect (  hasDegree (har, majorSeventh));  // harmonic raised-7
-            expect (  hasDegree (har, flatSixth));
+            auto dorian = scaleForQuality (ChordQuality::Min,  MinorScaleChoice::Dorian);
+            auto aeolian = scaleForQuality (ChordQuality::Min,  MinorScaleChoice::Aeolian);
+            auto harmonicMinor = scaleForQuality (ChordQuality::Min7, MinorScaleChoice::HarmonicMinor);
+            expect (  hasDegree (dorian, naturalSixth));   // Dorian natural-6
+            expect (! hasDegree (dorian, flatSixth));
+            expect (  hasDegree (aeolian, flatSixth));   // Aeolian b6
+            expect (! hasDegree (aeolian, naturalSixth));
+            expect (  hasDegree (harmonicMinor, majorSeventh));  // harmonic raised-7
+            expect (  hasDegree (harmonicMinor, flatSixth));
         }
 
         beginTest (augAndDimScales);
         {
-            auto aug = scaleForQuality (ChordQuality::Aug, MinorScaleChoice::Dorian);
-            expectEquals (aug.count, wholeToneCount);
-            for (int degree : wholeToneDegrees) expect (hasDegree (aug, degree));
-            auto dim = scaleForQuality (ChordQuality::Dim, MinorScaleChoice::Dorian);
-            expectEquals (dim.count, wholeHalfCount);
-            for (int degree : wholeHalfDegrees) expect (hasDegree (dim, degree));
+            auto augmentedScale = scaleForQuality (ChordQuality::Aug, MinorScaleChoice::Dorian);
+            expectEquals (augmentedScale.count, wholeToneCount);
+            for (int degree : wholeToneDegrees) expect (hasDegree (augmentedScale, degree));
+            auto diminishedScale = scaleForQuality (ChordQuality::Dim, MinorScaleChoice::Dorian);
+            expectEquals (diminishedScale.count, wholeHalfCount);
+            for (int degree : wholeHalfDegrees) expect (hasDegree (diminishedScale, degree));
         }
     }
 };
