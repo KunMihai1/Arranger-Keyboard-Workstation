@@ -47,7 +47,7 @@ namespace PlayableRangeResult
 
 namespace DeviceNames
 {
-	const juce::String pcKeyboard = "PC Keyboard";   // the computer keyboard, listed as a MIDI input
+	inline const juce::String pcKeyboard = "PC Keyboard";   // the computer keyboard, listed as a MIDI input
 	inline const juce::String noDevicesFound = "No devices found!";   // the only entry of an empty device list
 }
 

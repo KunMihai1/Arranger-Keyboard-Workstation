@@ -9,7 +9,6 @@
 */
 
 #include "MidiRecordPlayer.h"
-#include "MidiHandler.h"
 
 namespace RecordPlayerValues
 {
