@@ -25,7 +25,7 @@ STRING = re.compile(r'(?:u8|u|U|L)?R?"(?:[^"\\\n]|\\.)*"')
 CHAR = re.compile(r"'(?:[^'\\\n]|\\.)+'")
 NUMBER = re.compile(r"(?<![\w.])(?:0[xX][0-9a-fA-F']+|\d[\d']*\.?\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?)[uUlLfF]*(?![\w.])")
 CONSTANT_DEFINITION = re.compile(
-    r"^\s*(?:static\s+|inline\s+|extern\s+)*(?:constexpr|const)\b[^;(]*?\b\w+\s*(?:\[[^\]]*\]\s*)?(?:=|\{)")
+    r"^\s*(?:\[\[[^\]]*\]\]\s*)?(?:static\s+|inline\s+|extern\s+)*(?:constexpr|const)\b[^;(]*?\b\w+\s*(?:\[[^\]]*\]\s*)?(?:=|\{)")
 ENUMERATOR = re.compile(r"^\s*\w+\s*=\s*[^;]*,?\s*$")
 DIRECTIVE = re.compile(r"^\s*(?:#\s*(?:include|pragma|define|error|warning|if|elif)|static_assert|extern\s+\"C\")")
 # A declaration whose name is a single letter: "int i =", "auto& t :", "(const Track& a," ...

@@ -31,6 +31,14 @@ struct RecordedEvent {
  * and save or load recordings from MIDI files. It also supports sending
  * recorded messages to a MIDI output device.
  */
+namespace RecordingDefaults
+{
+    inline constexpr int    firstHandChannel = 1;       // the left/first hand plays on MIDI channel 1
+    inline constexpr double tempoBpm         = 120.0;   // the tempo written into a saved MIDI file
+    inline constexpr float  reverbLevel      = 50.0f;
+    inline constexpr float  volumeLevel      = 100.0f;
+}
+
 class MidiRecordPlayer : private juce::Timer, public MidiHandlerListener
 {
 public:
@@ -83,9 +91,9 @@ public:
     void setInitialProgram(int value);
 
     /** @brief Sets reverb level */
-    void setReverb(int value, int channel=1);
+    void setReverb(int value, int channel = RecordingDefaults::firstHandChannel);
 
-    void setVolume(int value, int channel = 1);
+    void setVolume(int value, int channel = RecordingDefaults::firstHandChannel);
 
     /** @brief Returns true if currently recording */
     bool getIsRecording();
@@ -94,14 +102,14 @@ public:
     bool getIsPlaying();
 
     /** @brief Saves the recorded sequence to a MIDI file */
-    bool saveRecordingToFile(const juce::File& fileToSaveTo, juce::String& errorMsg, double tempo = 120.0);
+    bool saveRecordingToFile(const juce::File& fileToSaveTo, juce::String& errorMsg, double tempo = RecordingDefaults::tempoBpm);
 
     /** @brief Loads a MIDI recording from a file */
     bool parseRecordingFromFile(const juce::File& fileToParse, juce::String& errorMsg);
 
     /** @brief Serializes the recorded sequence to any output stream (the disk-free core of
         saveRecordingToFile). Unit-testable with a juce::MemoryOutputStream. */
-    bool writeRecordingToStream(juce::OutputStream& outputStream, juce::String& errorMsg, double tempo = 120.0);
+    bool writeRecordingToStream(juce::OutputStream& outputStream, juce::String& errorMsg, double tempo = RecordingDefaults::tempoBpm);
 
     /** @brief Parses a recording from any input stream into the file-playback buffer (the disk-free
         core of parseRecordingFromFile). Unit-testable with a juce::MemoryInputStream. */
@@ -126,22 +134,22 @@ public:
     juce::MidiMessage remapChannel(const juce::MidiMessage& message);
 
 private:
-    int initialProgram = 0;                      /**< Initial program number */
-    float reverbFirst = 50.0f;                             /**< Reverb level */
-    float reverbSecond = 50.0f;
+    int initialProgram {};                      /**< Initial program number */
+    float reverbFirst = RecordingDefaults::reverbLevel;                             /**< Reverb level */
+    float reverbSecond = RecordingDefaults::reverbLevel;
 
-    float volumeFirst = 100.0f;
-    float volumeSecond = 100.0f;
+    float volumeFirst = RecordingDefaults::volumeLevel;
+    float volumeSecond = RecordingDefaults::volumeLevel;
 
     bool programChanged = false;                 /**< Whether program changed since recording */
     bool isRecording = false;                    /**< Recording state flag */
     bool isPlaying = false;                      /**< Playback state flag */
     bool isPlayingFile = false;                  /**< File playback state flag */
 
-    double recordStartTime = 0;                  /**< Time when recording started */
-    double playBackStartTime = 0;               /**< Time when playback started */
-    int nextEventIndex = 0;                      /**< Next event index during playback */
-    int nextEventFileIndex = 0;                  /**< Next event index for file playback */
+    double recordStartTime {};                  /**< Time when recording started */
+    double playBackStartTime {};               /**< Time when playback started */
+    int nextEventIndex {};                      /**< Next event index during playback */
+    int nextEventFileIndex {};                  /**< Next event index for file playback */
 
     juce::SpinLock lock;
 
