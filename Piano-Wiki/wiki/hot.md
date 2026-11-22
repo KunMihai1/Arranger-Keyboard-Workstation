@@ -43,7 +43,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 ## Active Threads / Next
 Full task list with states: [[Owner Backlog]].
 - 🟡 **Names-not-values cleanup** (`docs/names-not-values.md`, CI ratchet): one subsystem per PR;
-  everything but 5 UI files and the tests done (46 files left).
+  all of `Source/` done; only the 41 test files left.
 - ✅ **Arranger hard testing**: headless + live (sound measured by loopback), results in the test plan.
   Owner decided: a style switch while playing takes effect on the next Start, and any section (Ending
   too) may be the start section — both intended. Restore-down stays work-area sized: no scaled
