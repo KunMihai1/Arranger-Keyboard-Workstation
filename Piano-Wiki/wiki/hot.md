@@ -41,6 +41,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - CI caches compiled JUCE objects (filled by runs on `main`; key hashes `ci/JuceLibraryCode`).
 
 ## Active Threads / Next
+Full task list with states: [[Owner Backlog]].
 - 🟡 **Names-not-values cleanup**: rule (`docs/names-not-values.md`) + CI ratchet; 153 files on
   the allowlist (now 137), converted one subsystem per PR; `Source/Midi` done; next: Arranger.
 - ✅ **Arranger hard testing**: headless + live (sound measured by loopback), results in the test plan.
