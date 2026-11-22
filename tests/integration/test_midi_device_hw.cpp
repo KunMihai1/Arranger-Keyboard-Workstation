@@ -107,15 +107,15 @@ public:
             }
         }
 
-        beginTest("[HW] getDeviceNameBasedOnIndex - returns non-empty name for valid out0put device");
+        beginTest("[HW] getDeviceNameBasedOnIndex - returns non-empty name for valid output device");
         {
-            if (!hasInputDevice) { logMessage("SKIPPED - no MIDI input device connected"); }
+            if (!hasOutputDevice) { logMessage("SKIPPED - no MIDI output device connected"); }
             else
             {
                 MidiDevice dev;
                 std::vector<std::string> devs;
                 dev.getAvailableDevicesMidiOUT(devs);
-                juce::String name = dev.getDeviceNameBasedOnIndex(inputDeviceIndex,1);
+                juce::String name = dev.getDeviceNameBasedOnIndex(outputDeviceIndex,1);
                 expect(name.isNotEmpty());
             }
         }

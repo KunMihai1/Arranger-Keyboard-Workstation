@@ -1,5 +1,6 @@
 #include <JuceHeader.h>
 #include <iostream>
+#include <map>
 
 // Headless console entry for the test target. Mirrors the category flags the app's old
 // --run-tests path used, but as a standalone main() so the production app carries no test code.
@@ -27,18 +28,43 @@ namespace TestReport
     const juce::String argumentSeparator = " ";
     const juce::String fieldSeparator  = " | passes: ";
     const juce::String failuresLabel   = " | failures: ";
+    const juce::String skippedLabel    = " | skipped: ";
     const juce::String totalLabel      = "TOTAL";
     const juce::String messageIndent   = "    ";
     const juce::String lineBreak       = "\n";
+    const juce::String skippedHeading  = "SKIPPED - not run in this environment:";
+    const juce::String caseSeparator   = " / ";
+    const juce::String reasonSeparator = ": ";
+
+    // A test that can't run here (no MIDI device, no display...) logs a message starting with this
+    // instead of passing silently. Each one counts as a skipped test case.
+    const juce::String skippedMarker = "SKIPPED - ";
 }
 
 // Prints each "Starting test: ..." line as it happens (flushed), so when a test crashes the process
 // the CI log still shows which test was running. JUCE's default only writes to the debugger output.
+// Also collects the skip messages, per test case, so the report can count and list them.
 class ConsoleTestRunner : public juce::UnitTestRunner
 {
+public:
+    juce::StringArray skipReasonsFor (int resultIndex) const
+    {
+        const auto found = skipReasonsByResult.find (resultIndex);
+        return found == skipReasonsByResult.end() ? juce::StringArray() : found->second;
+    }
+
+private:
+    static constexpr int newestResultOffset = 1;   // the case being run is the last result so far
+
+    std::map<int, juce::StringArray> skipReasonsByResult;
+
     void logMessage (const juce::String& message) override
     {
         std::cout << message << std::endl;
+
+        if (message.startsWith (TestReport::skippedMarker) && getNumResults() >= newestResultOffset)
+            skipReasonsByResult[getNumResults() - newestResultOffset]
+                .add (message.fromFirstOccurrenceOf (TestReport::skippedMarker, false, false));
     }
 };
 
@@ -79,21 +105,34 @@ int main (int argc, char* argv[])
         runner.runTests (testsInCategories ({ TestCategory::unit, TestCategory::arranger,
                                               TestCategory::integration, TestCategory::display }));
 
-    int totalPasses {}, totalFailures {};
-    juce::StringArray lines;
+    int totalPasses {}, totalFailures {}, totalSkipped {};
+    juce::StringArray lines, skippedLines;
     for (int resultIndex {}; resultIndex < runner.getNumResults(); ++resultIndex)
     {
         auto* result = runner.getResult (resultIndex);
+        const auto skipReasons = runner.skipReasonsFor (resultIndex);
         totalPasses   += result->passes;
         totalFailures += result->failures;
+        totalSkipped  += skipReasons.size();
         lines.add (result->unitTestName + TestReport::fieldSeparator + juce::String (result->passes)
-                   + TestReport::failuresLabel + juce::String (result->failures));
+                   + TestReport::failuresLabel + juce::String (result->failures)
+                   + TestReport::skippedLabel + juce::String (skipReasons.size()));
         for (auto& message : result->messages)
             if (message.isNotEmpty())
                 lines.add (TestReport::messageIndent + message);
+        for (auto& reason : skipReasons)
+            skippedLines.add (TestReport::messageIndent + result->unitTestName + TestReport::caseSeparator
+                              + result->subcategoryName + TestReport::reasonSeparator + reason);
     }
+    if (! skippedLines.isEmpty())
+    {
+        lines.add (TestReport::skippedHeading);
+        lines.addArray (skippedLines);
+    }
+    // Keep "TOTAL | passes: N" first: CI reads the pass count with that pattern.
     lines.add (TestReport::totalLabel + TestReport::fieldSeparator + juce::String (totalPasses)
-               + TestReport::failuresLabel + juce::String (totalFailures));
+               + TestReport::failuresLabel + juce::String (totalFailures)
+               + TestReport::skippedLabel + juce::String (totalSkipped));
 
     const juce::String report = lines.joinIntoString (TestReport::lineBreak);
     std::cout << report << std::endl;                                   // CI logs

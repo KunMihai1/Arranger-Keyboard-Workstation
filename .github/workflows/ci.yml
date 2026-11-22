@@ -164,7 +164,18 @@ jobs:
           if ($passes -lt $min) {
             throw "unit suite ran only $passes assertions (expected >= $min) - tests are missing from the build"
           }
-          "unit: $passes assertions passed"
+          $skipped = 0
+          if ($line.Line -match 'skipped: (\d+)') { $skipped = [int]$Matches[1] }
+          "unit: $passes assertions passed, $skipped test case(s) skipped"
+          "- **unit:** $passes assertions passed, 0 failed, $skipped skipped" |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          # List each skipped case with its reason (the runner prints them under a SKIPPED heading).
+          $inSkippedList = $false
+          foreach ($reportLine in Get-Content test-results-unit.txt) {
+            if ($reportLine -like 'SKIPPED - not run*') { $inSkippedList = $true; continue }
+            if ($reportLine -like 'TOTAL*') { $inSkippedList = $false }
+            if ($inSkippedList) { "  - skipped: $($reportLine.Trim())" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8 }
+          }
 
       - name: Run arranger tests
         shell: pwsh
@@ -184,7 +195,18 @@ jobs:
           if ($passes -lt $min) {
             throw "arranger suite ran only $passes assertions (expected >= $min) - tests are missing from the build"
           }
-          "arranger: $passes assertions passed"
+          $skipped = 0
+          if ($line.Line -match 'skipped: (\d+)') { $skipped = [int]$Matches[1] }
+          "arranger: $passes assertions passed, $skipped test case(s) skipped"
+          "- **arranger:** $passes assertions passed, 0 failed, $skipped skipped" |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          # List each skipped case with its reason (the runner prints them under a SKIPPED heading).
+          $inSkippedList = $false
+          foreach ($reportLine in Get-Content test-results-arranger.txt) {
+            if ($reportLine -like 'SKIPPED - not run*') { $inSkippedList = $true; continue }
+            if ($reportLine -like 'TOTAL*') { $inSkippedList = $false }
+            if ($inSkippedList) { "  - skipped: $($reportLine.Trim())" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8 }
+          }
 
       # Components working together (overlay, style sections; the MIDI-hardware tests skip without a
       # device). Takes about 2 s. The GL test needs a real desktop and the API tests create real
@@ -207,7 +229,18 @@ jobs:
           if ($passes -lt $min) {
             throw "integration suite ran only $passes assertions (expected >= $min) - tests are missing from the build"
           }
-          "integration: $passes assertions passed"
+          $skipped = 0
+          if ($line.Line -match 'skipped: (\d+)') { $skipped = [int]$Matches[1] }
+          "integration: $passes assertions passed, $skipped test case(s) skipped"
+          "- **integration:** $passes assertions passed, 0 failed, $skipped skipped" |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          # List each skipped case with its reason (the runner prints them under a SKIPPED heading).
+          $inSkippedList = $false
+          foreach ($reportLine in Get-Content test-results-integration.txt) {
+            if ($reportLine -like 'SKIPPED - not run*') { $inSkippedList = $true; continue }
+            if ($reportLine -like 'TOTAL*') { $inSkippedList = $false }
+            if ($inSkippedList) { "  - skipped: $($reportLine.Trim())" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8 }
+          }
 
       - name: Upload test results
         if: always()
