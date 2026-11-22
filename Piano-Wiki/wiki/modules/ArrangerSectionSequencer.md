@@ -41,7 +41,7 @@ The section state machine. Across a monotonic beat window it produces a list of 
 - `setStyle(style)` — copies section metadata (`lengthBars` clamped ≥ 1), computes `beatsPerBar`, resets.
 - `reset()` — back to the first **Variation** (or 0) at beat 0.
 - `startAt(index)` — begin on a specific section (e.g. Intro) while keeping `returnIndex` = first Variation.
-- `queue(type, name)` — set `pendingIndex` via `findSection`. With **Auto Fill** on, queuing a Variation while a Variation plays instead queues the matching Fill (then lands on the target variation). Returns false if none.
+- `queue(type, name)` — set `pendingIndex` via `findSection`. With **Auto Fill** on, queuing a Variation while a Variation plays instead queues the outgoing variation's Fill (then lands on the target variation). Returns false if none.
 - `setAutoFillEnabled(bool)` — toggles the Auto-Fill-on-variation-switch behavior (driven by the live UI toggle; see [[Arranger Style Authoring]]).
 - `advance(from, to)` → `SequencerStep`.
 
@@ -61,7 +61,8 @@ Walks **global bar lines**:
    - `FallThrough` (Intro/Fill/Break) → jump to `returnIndex`.
 
 ### Auto Fill (matches Korg "Auto Fill In")
-When `autoFillEnabled` and you queue a Variation switch *from* a Variation, `queue()` inserts the matching Fill (`Fill N` for `Var N`, else any Fill) as a one-bar transition and sets `fillReturnOverride` to the target variation. The Fill plays once, then `FallThrough` lands on the **new** variation. Break is the *manual* one-shot pause (not auto-inserted); it now also returns to the variation it was triggered from.
+When `autoFillEnabled` and you queue a Variation switch *from* a Variation, `queue()` inserts the Fill of the variation being **left** (`Fill N` when leaving `Var N`, else any
+Fill; owner's rule 2026-11-22: Var 2 → Var 1 plays Fill 2) as a one-bar transition and sets `fillReturnOverride` to the target variation. The Fill plays once, then `FallThrough` lands on the **new** variation. Break is the *manual* one-shot pause (not auto-inserted); it now also returns to the variation it was triggered from.
 
 See [[Bar-Synced Section Switching]] for the timing rationale and [[Arranger Style Authoring]] for the live-button wiring.
 

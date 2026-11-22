@@ -47,7 +47,7 @@ How a user creates and uses a self-contained arranger **configuration** (`.style
 
 ## Section semantics (Korg mapping)
 - **Variation** = `Loop` (the groove that repeats). **Intro/Fill/Break** = `FallThrough` one-shots → return to a Variation. **Ending** = `Stop`. See [[ArrangerSectionSequencer]].
-- **Auto Fill** (live "Variations" toggle): switching `Var N` while a variation plays auto-inserts `Fill N` then lands on `Var N`. Wiring chain: `SectionGroupComponent.onToggleChanged` → `MainComponent` → `Display::setArrangerAutoFillEnabled` → `CurrentStyleComponent::setArrangerAutoFillEnabled` → `ArrangerEngine::setAutoFillEnabled` → sequencer. State is remembered in `Display` and re-applied when a style tab is (re)created.
+- **Auto Fill** (live "Variations" toggle): switching variations while one plays auto-inserts the Fill of the variation being left (`Var 2` → `Var 1` plays `Fill 2`), then lands on the new variation. Wiring chain: `SectionGroupComponent.onToggleChanged` → `MainComponent` → `Display::setArrangerAutoFillEnabled` → `CurrentStyleComponent::setArrangerAutoFillEnabled` → `ArrangerEngine::setAutoFillEnabled` → sequencer. State is remembered in `Display` and re-applied when a style tab is (re)created.
 - Live buttons send `Var N` / `Break`; sections are named `Variation N` / `Break 1` → resolved by [[ArrangerSectionSequencer]]'s type+trailing-number match.
 
 ## Storage

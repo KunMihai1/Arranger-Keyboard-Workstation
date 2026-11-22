@@ -36,8 +36,9 @@ public:
         next bar boundary. Last call before the boundary wins. False if no such section. */
     bool queue (ArrangerSectionType type, const juce::String& name);
 
-    /** When enabled, queuing a Variation while a Variation plays inserts a matching Fill
-        (Fill N for Variation N, else any Fill) as a one-bar transition into the new variation. */
+    /** When enabled, queuing a Variation while a Variation plays inserts the Fill of the variation
+        being left (Fill N when leaving Variation N, else any Fill) as a one-bar transition into the
+        new variation. */
     void setAutoFillEnabled (bool enabled) { autoFillEnabled = enabled; }
 
     /** Advance the monotonic playhead from `fromBeats` to `toBeats` (from <= to). */

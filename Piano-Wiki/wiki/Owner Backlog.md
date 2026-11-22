@@ -26,8 +26,10 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - ✅ **800-line cap** for source, test and wiki files (CI enforces).
 - ⬜ **800-line cap for `docs/` too** (owner, 2026-11-22: yes). Split the five plans in
   `docs/superpowers/plans/` (850–1157 lines) by topic; add `docs/**/*.md` to the CI check.
-- ⬜ **Auto-fill plays the fill of the variation you leave** (owner, 2026-11-22: Var 2 → Var 1 must play
-  Fill 2, not Fill 1). Behaviour change in `ArrangerSectionSequencer::queue`: spec + failing test first.
+- ✅ **Auto-fill plays the fill of the variation you leave** (owner, 2026-11-22: Var 2 → Var 1 plays
+  Fill 2). `ArrangerSectionSequencer::queue`; spec `2026-11-22-autofill-outgoing-variation-design.md`.
+- ⬜ **CI once per PR**: limit `push` runs to `main` (the PR run already tests branch + main), after the
+  build-time agent's `ci.yml` changes land.
 - ✅ **Arranger hard testing** (headless + live, `docs/superpowers/test-plans/2026-11-22-arranger-stress-test-plan.md`).
   Not run live: 🔒 style editor and Section Configurations while playing; 🔒 Synchro Start / Count-In
   from the UI (covered headless); SFZ instrument / audio output switch while playing (no SFZ library on
@@ -63,7 +65,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 | Arranger "sounds different" with SFZ / does it use SFZ | 🟡 doubled output ruled out; found and fixed the SFZ queue backlog (PR #33). Sound on a real SFZ library not checked |
 | Arranger beat bar on the beat | ✅ |
 | "Notes information" for arranger notes (timestamp based) | ✅ kept as is (explained to the owner: the right-click table of a track's notes) |
-| Var 2 → Var 1 plays Fill 1 | ⬜ owner: should be Fill 2 (the variation you leave) — see section 1 |
+| Var 2 → Var 1 plays Fill 1 | ✅ now plays Fill 2, the fill of the variation you leave |
 | Arranger starts again after the end | ✅ (owner: "good thing") |
 
 ## Owner decisions already taken (don't reopen)

@@ -13,6 +13,13 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Auto Fill plays the fill of the variation you leave
+- Owner's rule: Var 2 → Var 1 plays Fill 2 (it used to pick the fill numbered like the target).
+  `ArrangerSectionSequencer::queue` now looks the fill up by the active variation's name; fallback to
+  any Fill and the landing on the target are unchanged. Three new tests (none covered Auto Fill before):
+  the outgoing fill both ways (failed before the fix: Fill 2 / Fill 1 swapped), any-fill fallback, no fill.
+  Arranger suite 763 → 770. Spec `2026-11-22-autofill-outgoing-variation-design.md`.
+
 ## 2026-11-22 — Names cleanup: arranger engine and model
 - 21 arranger files converted (chord, model, enums, NTT scales, transposer, detector, scheduler,
   sequencer, builders, time, channels, count-in, MIDI hex, engine); behaviour unchanged, persisted

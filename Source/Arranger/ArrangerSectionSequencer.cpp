@@ -81,15 +81,17 @@ bool ArrangerSectionSequencer::queue (ArrangerSectionType type, const juce::Stri
     const int target = findSection (type, name);
     if (target == ArrangerStyleDefaults::noIndex) return false;
 
-    // Auto Fill: when switching from one Variation to another, insert a matching Fill (Fill N for
-    // Variation N, else any Fill) as a one-bar transition that then lands on the new variation.
+    // Auto Fill: when switching from one Variation to another, insert the Fill of the variation being
+    // left (Fill N when leaving Variation N, else any Fill) as a one-bar transition that then lands on
+    // the new variation.
     if (autoFillEnabled
         && type == ArrangerSectionType::Variation
         && target != activeIndex
         && activeIndex >= firstSection && activeIndex < (int) sections.size()
         && sections[activeIndex].type == ArrangerSectionType::Variation)
     {
-        const int fill = findSection (ArrangerSectionType::Fill, name);  // matches the trailing number
+        // The fill numbered like the variation being LEFT (Var 2 -> Var 1 plays Fill 2), else any Fill.
+        const int fill = findSection (ArrangerSectionType::Fill, sections[activeIndex].name);
         if (fill != ArrangerStyleDefaults::noIndex)
         {
             pendingIndex       = fill;
