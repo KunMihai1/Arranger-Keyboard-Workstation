@@ -104,6 +104,8 @@ namespace EffectSettings
 namespace VoiceAllocation
 {
     constexpr int voicesPerChannel = 16;
+    constexpr int  everyChannel   = 0;       // juce::Synthesiser::allNotesOff: 0 = all MIDI channels
+    constexpr bool cutWithoutTail = false;   // allowTailOff = false: stop at once
 }
 
 //==============================================================================
@@ -464,16 +466,24 @@ AudioHandler::AudioHandler(MidiHandler& mh) : midiHandler(mh)
 
 AudioHandler::~AudioHandler()
 {
+    midiHandler.setInternalSynthListening(false);   // nothing will drain the queue any more
 }
 
 void AudioHandler::audioDeviceAboutToStart (juce::AudioIODevice* device)
 {
+    // From now on this synth drains MidiHandler's queue; anything queued before (an External MIDI
+    // session) is dropped instead of firing all at once in the first block.
+    midiHandler.setInternalSynthListening(true);
+
     currentSampleRate = device->getCurrentSampleRate();
     const int bufferSize = device->getCurrentBufferSizeSamples();
     tempBuffer.setSize(DspConstants::stereoChannelCount, bufferSize, false, true);
 
     for (int channelIndex {}; channelIndex < DspConstants::midiChannelCount; ++channelIndex)
     {
+        // Note-offs and pedal-ups sent while the synth was stopped were never queued for it, so a note
+        // held across the stop would hang now: start from silence (this also lifts the sustain pedal).
+        sfzSynths[channelIndex].allNotesOff(VoiceAllocation::everyChannel, VoiceAllocation::cutWithoutTail);
         sfzSynths[channelIndex].setCurrentPlaybackSampleRate(currentSampleRate);
         channelDSP[channelIndex].prepare(currentSampleRate, bufferSize);
     }
@@ -481,6 +491,7 @@ void AudioHandler::audioDeviceAboutToStart (juce::AudioIODevice* device)
 
 void AudioHandler::audioDeviceStopped()
 {
+    midiHandler.setInternalSynthListening(false);   // no audio callback will drain the queue now
 }
 
 void AudioHandler::audioDeviceIOCallbackWithContext (const float* const* inputChannelData, int numInputChannels,

@@ -268,6 +268,7 @@ public:
         {
             MidiDevice device;
             MidiHandler handler(device);
+            handler.setInternalSynthListening(true);   // the internal SFZ synth is running and draining the queue
 
             class MockListener : public MidiHandlerListener
             {
@@ -290,6 +291,7 @@ public:
         {
             MidiDevice device;
             MidiHandler handler(device);
+            handler.setInternalSynthListening(true);   // the internal SFZ synth is running and draining the queue
             juce::MidiBuffer buffer;
             handler.getNextMidiBlock(buffer, 0, 512);
             expect(buffer.getNumEvents() == 0);
@@ -303,6 +305,7 @@ public:
         {
             MidiDevice device;
             MidiHandler handler(device);
+            handler.setInternalSynthListening(true);   // the internal SFZ synth is running and draining the queue
 
             auto noteOn = juce::MidiMessage::noteOn(1, 60, (juce::uint8)100);
             handler.handleIncomingMidiMessage(nullptr, noteOn);
@@ -316,6 +319,7 @@ public:
         {
             MidiDevice device;
             MidiHandler handler(device);
+            handler.setInternalSynthListening(true);   // the internal SFZ synth is running and draining the queue
 
             auto noteOff = juce::MidiMessage::noteOff(1, 60, (juce::uint8)0);
             handler.handleIncomingMidiMessage(nullptr, noteOff);
@@ -329,6 +333,7 @@ public:
         {
             MidiDevice device;
             MidiHandler handler(device);
+            handler.setInternalSynthListening(true);   // the internal SFZ synth is running and draining the queue
 
             auto cc = juce::MidiMessage::controllerEvent(1, 64, 127);
             handler.handleIncomingMidiMessage(nullptr, cc);
@@ -342,6 +347,7 @@ public:
         {
             MidiDevice device;
             MidiHandler handler(device);
+            handler.setInternalSynthListening(true);   // the internal SFZ synth is running and draining the queue
 
             handler.handleIncomingMidiMessage(nullptr, juce::MidiMessage::noteOn(1, 60, (juce::uint8)100));
             handler.handleIncomingMidiMessage(nullptr, juce::MidiMessage::noteOff(1, 60, (juce::uint8)0));
@@ -366,6 +372,7 @@ public:
         {
             MidiDevice device;
             MidiHandler handler(device);
+            handler.setInternalSynthListening(true);   // the internal SFZ synth is running and draining the queue
             handler.set_left_right_bounds(0, 100);   // notes < 100 are in the chord (left) zone
             handler.setChordZoneMute(true);
             handler.setArrangerEngaged(true);
@@ -382,6 +389,7 @@ public:
         {
             MidiDevice device;
             MidiHandler handler(device);
+            handler.setInternalSynthListening(true);   // the internal SFZ synth is running and draining the queue
             handler.set_left_right_bounds(0, 100);
             handler.setChordZoneMute(false);        // normal playing: the note must sound
             handler.setArrangerEngaged(true);
@@ -397,6 +405,7 @@ public:
         {
             MidiDevice device;
             MidiHandler handler(device);
+            handler.setInternalSynthListening(true);   // the internal SFZ synth is running and draining the queue
             handler.set_left_right_bounds(0, 100);
             handler.setChordZoneMute(true);
             handler.setArrangerEngaged(true);
@@ -413,6 +422,7 @@ public:
         {
             MidiDevice device;
             MidiHandler handler(device);
+            handler.setInternalSynthListening(true);   // the internal SFZ synth is running and draining the queue
             handler.set_left_right_bounds(0, 100);   // split at 100; notes >= 100 are the right (melody) zone
             handler.setChordZoneMute(true);
             handler.setArrangerEngaged(true);

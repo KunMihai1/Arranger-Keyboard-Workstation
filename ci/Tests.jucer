@@ -81,6 +81,8 @@
               file="../tests/unit/test_midi_record_player.cpp"/>
         <FILE id="splWZk" name="test_midi_handler_keyboard.cpp" compile="1" resource="0"
               file="../tests/unit/test_midi_handler_keyboard.cpp"/>
+        <FILE id="SynQue" name="test_internal_synth_midi_queue.cpp" compile="1" resource="0"
+              file="../tests/unit/test_internal_synth_midi_queue.cpp"/>
       </GROUP>
       <GROUP id="{B2C3D4E5-5555-6666-7777-888899990000}" name="Integration">
         <FILE id="HwMdDv" name="test_midi_device_hw.cpp" compile="1" resource="0"

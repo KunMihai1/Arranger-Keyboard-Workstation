@@ -410,6 +410,14 @@ public:
 	void allOffKeyboard();
 
 	void injectMidiMessage(const juce::MidiMessage& msg);
+
+	/**
+	 * @brief Whether the internal SFZ synth is running and taking MIDI from getNextMidiBlock.
+	 * Messages are queued for it only while it is; switching either way drops whatever is pending,
+	 * so an External MIDI session neither grows the queue nor replays it into the synth later.
+	 * Called by AudioHandler when its audio device starts and stops.
+	 */
+	void setInternalSynthListening(bool isListening);
 	void injectCC(int channel, int ccNumber, int value);
 
 	/**
@@ -509,6 +517,8 @@ private:
 	bool receivedValidNote = false;
 	juce::MidiBuffer incomingMidiMessages;
 	juce::CriticalSection midiMutex;
+	std::atomic<bool> internalSynthListening { false };
+	void queueForInternalSynth(const juce::MidiMessage& message);
 	int programNumberLeftHand = 0;
 	int programNumberRightHand = 0;
 	int startNoteSetting=-1;
