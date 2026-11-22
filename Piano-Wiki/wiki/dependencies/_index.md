@@ -36,6 +36,7 @@ apply to both projects (`ci/Directory.Build.targets` imports the root one) and s
 - the 64-bit-hosted compiler and linker (`PreferredToolArchitecture=x64`);
 - one `/bigobj` option for every JUCE module file, so they compile as one `/MP` batch instead of two.
 
-Measured: clean build 44 → 30 s (app) and 44 → 28 s (tests), header edit 7.1 → 5.5 s, CI-like test
-build with cached JUCE objects 25.6 → 16.5 s; one-file rebuild unchanged (~2.6 s). MultiToolTask
+Measured locally: clean build 44 → 30 s (app) and 44 → 28 s (tests), header edit 7.1 → 5.5 s; one-file
+rebuild unchanged (~2.6 s). On GitHub's runners the warm build step went 41–47 s → 40–41 s (within
+noise; the local 4-slot CI simulation had predicted 25.6 → 16.5 s). MultiToolTask
 was rejected (slower header rebuilds). Spec: `docs/superpowers/specs/2026-11-22-build-time-design.md`.
