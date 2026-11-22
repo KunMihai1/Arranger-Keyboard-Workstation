@@ -51,7 +51,6 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - 🔜 **Arranger: very hard live testing** (owner): stress + edge scenarios in the running app — needs
   the screen unlocked; headless engine stress tests can go first.
   Watch: "Notes information" table holds refs into a library entry while open (unreachable today).
-- ✅ GPU note rendering: in-app test plan 12/12 (the Login button skips credentials).
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.
 - 🟡 **Swap `juce::dsp::Chorus` (CC93) for the BBD model** from `va-effects`; budget = 16 `ChannelDSP`s.
