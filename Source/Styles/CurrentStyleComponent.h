@@ -49,6 +49,8 @@ class CurrentStyleComponent : public juce::Component,
 {
 public:
 
+    static constexpr int trackSlots = 8;   ///< Track slots per style (one row).
+
     //==============================================================================
 
     std::function<bool(const juce::String& name)> tabExsitsCallback;
@@ -332,7 +334,6 @@ private:
     bool          hasActiveArrangerConfig = false;              ///< When set, Start + section buttons use activeArrangerConfig.
     ArrangerStyle activeArrangerConfig;                         ///< The loaded/saved configuration in effect (vs. a demo from live tracks).
     juce::String  activeArrangerConfigName;                     ///< File name (no ext) of the active config; persisted so the style reopens with it selected.
-    static constexpr int trackSlots = 8;                        ///< Track slots per style (one row).
     int           lastPlayModeId = PlayModeIds::allTracks;      ///< Live-track play mode (all tracks or solo). Survives menu-action picks.
 
     ArrangerSectionType pendingStartType = ArrangerSectionType::Variation;  ///< Section Start begins on (chosen pre-play).

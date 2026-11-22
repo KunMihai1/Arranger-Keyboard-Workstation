@@ -10,11 +10,56 @@
 
 #include "CustomTableContainer.h"
 
+namespace
+{
+    namespace Text
+    {
+        const juce::String notesTitlePrefix    = "Notes - ";
+        const juce::String noteColumn          = "Note";
+        const juce::String timeColumn          = "Time";
+        const juce::String velocityColumn      = "Velocity";
+        const juce::String channelColumn       = "Channel";
+        const juce::String changeButton        = "Change";
+        const juce::String applyButton         = "Apply";
+        const juce::String everythingToDefault = "Everything to default";
+        const juce::String notesToDefault      = "Notes to default";
+        const juce::String timeStampsToDefault = "Timestamps to default";
+        const juce::String velocitiesToDefault = "Velocities to default";
+        const juce::String undoSettings        = "Undo settings";
+        const juce::String modifyTimeStamps    = "Modify time stamps";
+        const juce::String modifyVelocities    = "Modify velocities";
+        const juce::String modifySettings      = "Modify settings";
+        const juce::String disclaimer          = "Note: This view shows the data used in the app only.\nYour original files remain unchanged.";
+        const juce::String confirmTitle        = "Confirm Action";
+        const juce::String askTrackProperties  = "What would you like to do with the track properties?";
+        const juce::String askNotes            = "What would you like to do with the notes?";
+        const juce::String askTimeStamps       = "What would you like to do with the time stamps?";
+        const juce::String askVelocities       = "What would you like to do with the velocities?";
+    }
+
+    constexpr int   firstRow            = 0;
+    constexpr int   singleRow           = 1;     // a SparseSet range [row, row + 1) is one row
+    constexpr int   noteColumnWidth     = 100;
+    constexpr int   timeColumnWidth     = 120;
+    constexpr int   velocityColumnWidth = 100;
+    constexpr int   channelColumnWidth  = 80;
+    constexpr float disclaimerFontHeight = 12.0f;
+    constexpr int   labelHeight         = 40;
+    constexpr int   buttonsControlBarHeight = 30;
+    constexpr int   controlBars         = 2;     // the reset bar and the modify bar
+    constexpr int   horizontalPadding   = 10;
+    constexpr int   comboWidth          = 150;
+    constexpr int   buttonWidth         = 50;
+    constexpr int   centringDivisor     = 2;
+    constexpr int   lowestVelocity      = 0;
+    constexpr int   highestVelocity     = 127;
+}
+
 
 
 TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::String& displayName, int channel, std::unordered_map<int, MidiChangeInfo>& map, bool shouldDisable): changesMap{map}, originalSequence{seq}
 {
-    juce::String displayN = "Notes - " + displayName;
+    juce::String displayN = Text::notesTitlePrefix + displayName;
     model = std::make_unique<MidiNotesTableModel>(seq, channel, map);
     table = std::make_unique<juce::TableListBox>(displayN, nullptr);
 
@@ -32,13 +77,13 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
 
     model->onRequestSelectRow = [this](int row)
     {
-        if (row >= 0 && row < model->getNumRows())
+        if (row >= firstRow && row < model->getNumRows())
         {
             auto mods = juce::ModifierKeys::getCurrentModifiers();
 
             if (mods.isShiftDown())
             {
-                int anchor = (lastSelectedRow >= 0) ? lastSelectedRow : row;
+                int anchor = (lastSelectedRow >= firstRow) ? lastSelectedRow : row;
                 int start = std::min(anchor, row);
                 int end = std::max(anchor, row);
 
@@ -46,18 +91,18 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
                 juce::Array<int> selectionArray;
                 auto selectionSet = table->getSelectedRows();
 
-                for (int i = 0; i < selectionSet.size(); ++i)
-                    selectionArray.add(selectionSet[i]);
+                for (int selectionIndex {}; selectionIndex < selectionSet.size(); ++selectionIndex)
+                    selectionArray.add(selectionSet[selectionIndex]);
 
                 // Add the new range to the array if not already selected
-                for (int i = start; i <= end; ++i)
-                    if (!selectionArray.contains(i))
-                        selectionArray.add(i);
+                for (int rowIndex = start; rowIndex <= end; ++rowIndex)
+                    if (!selectionArray.contains(rowIndex))
+                        selectionArray.add(rowIndex);
 
                 // Create new SparseSet for selection
                 juce::SparseSet<int> newSelection;
-                for (auto v : selectionArray)
-                    newSelection.addRange({ v, v + 1 });  // add single row as range [v, v+1)
+                for (auto selectedRow : selectionArray)
+                    newSelection.addRange({ selectedRow, selectedRow + singleRow });  // add single row as range [row, row+1)
 
                 // Set the updated selection
                 table->setSelectedRows(newSelection);
@@ -69,9 +114,9 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
                 juce::Array<int> selectionArray;
                 auto selectionSet = table->getSelectedRows();
 
-                for (int i = 0; i < selectionSet.size(); i++)
+                for (int selectionIndex {}; selectionIndex < selectionSet.size(); selectionIndex++)
                 {
-                    selectionArray.add(selectionSet[i]);
+                    selectionArray.add(selectionSet[selectionIndex]);
                 }
 
                 bool isSelected;
@@ -89,8 +134,8 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
                 }
 
                 juce::SparseSet<int> newSelection;
-                for (auto v : selectionArray)
-                    newSelection.addRange({ v, v + 1 });
+                for (auto selectedRow : selectionArray)
+                    newSelection.addRange({ selectedRow, selectedRow + singleRow });
 
                 table->setSelectedRows(newSelection);
 
@@ -107,7 +152,7 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
 
     model->onMidPlayRepaint = [this](int row)
     {
-        if (row >= 0 && row < model->getNumRows())
+        if (row >= firstRow && row < model->getNumRows())
         {
             table->deselectAllRows();
 
@@ -134,14 +179,14 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
 
     table->setMultipleSelectionEnabled(true);
 
-    table->getHeader().addColumn("Note", 1, 100);
-    table->getHeader().addColumn("Time", 2, 120);
-    table->getHeader().addColumn("Velocity", 3, 100);
-    table->getHeader().addColumn("Channel", 4, 80);
+    table->getHeader().addColumn(Text::noteColumn, NoteTableColumns::note, noteColumnWidth);
+    table->getHeader().addColumn(Text::timeColumn, NoteTableColumns::time, timeColumnWidth);
+    table->getHeader().addColumn(Text::velocityColumn, NoteTableColumns::velocity, velocityColumnWidth);
+    table->getHeader().addColumn(Text::channelColumn, NoteTableColumns::channel, channelColumnWidth);
 
     addAndMakeVisible(table.get());
 
-    changeToOriginalMultipleButton = std::make_unique<juce::TextButton>("Change");
+    changeToOriginalMultipleButton = std::make_unique<juce::TextButton>(Text::changeButton);
     changeToOriginalMultipleButton->setMouseCursor(juce::MouseCursor::PointingHandCursor);
     if (shouldDisable)
         changeToOriginalMultipleButton->setEnabled(false);
@@ -150,19 +195,19 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
     {
         int selectedID = actionToOriginalCB->getSelectedId();
 
-        if (selectedID == 1)
+        if (selectedID == ResetActionIds::everything)
         {
             changeAllUI();
         }
-        else if (selectedID == 2)
+        else if (selectedID == ResetActionIds::notes)
         {
             changeNotesUI();
         }
-        else if (selectedID == 3)
+        else if (selectedID == ResetActionIds::timeStamps)
         {
             changeTimeStampsUI();
         }
-        else if (selectedID == 4)
+        else if (selectedID == ResetActionIds::velocities)
         {
             changeVelocitiesUI();
         }
@@ -172,22 +217,22 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
 
     actionToOriginalCB = std::make_unique<juce::ComboBox>();
 
-    actionToOriginalCB->addItem("Everything to default", 1);
-    actionToOriginalCB->addItem("Notes to default", 2);
-    actionToOriginalCB->addItem("Timestamps to default", 3);
-    actionToOriginalCB->addItem("Velocities to default", 4);
+    actionToOriginalCB->addItem(Text::everythingToDefault, ResetActionIds::everything);
+    actionToOriginalCB->addItem(Text::notesToDefault, ResetActionIds::notes);
+    actionToOriginalCB->addItem(Text::timeStampsToDefault, ResetActionIds::timeStamps);
+    actionToOriginalCB->addItem(Text::velocitiesToDefault, ResetActionIds::velocities);
 
-    actionToOriginalCB->setSelectedId(1);
+    actionToOriginalCB->setSelectedId(ResetActionIds::everything);
 
     addAndMakeVisible(actionToOriginalCB.get());
 
     infoLabelChange = std::make_unique<juce::Label>();
-    infoLabelChange->setText("Undo settings", juce::dontSendNotification);
+    infoLabelChange->setText(Text::undoSettings, juce::dontSendNotification);
     infoLabelChange->setJustificationType(juce::Justification::centred);
 
     addAndMakeVisible(infoLabelChange.get());
 
-    modifyMultipleButton = std::make_unique<juce::TextButton>("Apply");
+    modifyMultipleButton = std::make_unique<juce::TextButton>(Text::applyButton);
     modifyMultipleButton->setMouseCursor(juce::MouseCursor::PointingHandCursor);
     
     if (shouldDisable)
@@ -196,11 +241,11 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
     modifyMultipleButton->onClick = [this]()
     {
         int selectedID = actionModifyCB->getSelectedId();
-        if (selectedID == 1)
+        if (selectedID == ModifyActionIds::timeStamps)
         {
             modifyTimeStampsUI();
         }
-        else if (selectedID == 2)
+        else if (selectedID == ModifyActionIds::velocities)
         {
             modifyVelocitiesUI();
         }
@@ -210,24 +255,24 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
 
     actionModifyCB = std::make_unique<juce::ComboBox>();
 
-    actionModifyCB->addItem("Modify time stamps",1);
-    actionModifyCB->addItem("Modify velocities", 2);
+    actionModifyCB->addItem(Text::modifyTimeStamps,ModifyActionIds::timeStamps);
+    actionModifyCB->addItem(Text::modifyVelocities, ModifyActionIds::velocities);
     
-    actionModifyCB->setSelectedId(1);
+    actionModifyCB->setSelectedId(ModifyActionIds::timeStamps);
 
     addAndMakeVisible(actionModifyCB.get());
 
     infoLabelModify = std::make_unique<juce::Label>();
-    infoLabelModify->setText("Modify settings", juce::dontSendNotification);
+    infoLabelModify->setText(Text::modifySettings, juce::dontSendNotification);
     infoLabelModify->setJustificationType(juce::Justification::centred);
 
     addAndMakeVisible(infoLabelModify.get());
 
     disclaimerLabel = std::make_unique<juce::Label>();
-    disclaimerLabel->setText("Note: This view shows the data used in the app only.\nYour original files remain unchanged.", juce::dontSendNotification);
+    disclaimerLabel->setText(Text::disclaimer, juce::dontSendNotification);
     disclaimerLabel->setJustificationType(juce::Justification::centred);
     disclaimerLabel->setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    disclaimerLabel->setFont(juce::Font(12.0f));
+    disclaimerLabel->setFont(juce::Font(disclaimerFontHeight));
     addAndMakeVisible(disclaimerLabel.get());
     table->setBounds(getLocalBounds());
     table->updateContent();
@@ -236,36 +281,32 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
 void TableContainer::resized()
 {
     auto area = getLocalBounds();
-    auto labelHeight = 40;
-    auto buttonsControlBarHeight = 30;
     const int spacing = 10;
     const int verticalPadding = 5;
     const int infoLabelHeight = 20;
 
-    table->setBounds(area.removeFromTop(area.getHeight() - (labelHeight + buttonsControlBarHeight*2)));
+    table->setBounds(area.removeFromTop(area.getHeight() - (labelHeight + buttonsControlBarHeight*controlBars)));
 
     auto disclaimerArea = area.removeFromBottom(labelHeight);
     auto controlBarChangeArea = area.removeFromBottom(buttonsControlBarHeight);
     auto controlBarModifyArea = area.removeFromBottom(buttonsControlBarHeight);
 
-    auto innerBarChange = controlBarChangeArea.reduced(10, verticalPadding);
-    int comboWidth = 150;
-    int buttonWidth = 50;
+    auto innerBarChange = controlBarChangeArea.reduced(horizontalPadding, verticalPadding);
 
     actionToOriginalCB->setBounds(innerBarChange.removeFromLeft(comboWidth));
     innerBarChange.removeFromLeft(spacing);
     changeToOriginalMultipleButton->setBounds(innerBarChange.removeFromLeft(buttonWidth));
 
-    infoLabelChange->setBounds(innerBarChange.withTrimmedTop((innerBarChange.getHeight() - infoLabelHeight) / 2)
+    infoLabelChange->setBounds(innerBarChange.withTrimmedTop((innerBarChange.getHeight() - infoLabelHeight) / centringDivisor)
         .withHeight(infoLabelHeight));
 
-    auto innerBarModify = controlBarModifyArea.reduced(10, verticalPadding);
+    auto innerBarModify = controlBarModifyArea.reduced(horizontalPadding, verticalPadding);
 
     actionModifyCB->setBounds(innerBarModify.removeFromLeft(comboWidth));
     innerBarModify.removeFromLeft(spacing);
     modifyMultipleButton->setBounds(innerBarModify.removeFromLeft(buttonWidth));
 
-    infoLabelModify->setBounds(innerBarModify.withTrimmedTop((innerBarModify.getHeight() - infoLabelHeight) / 2)
+    infoLabelModify->setBounds(innerBarModify.withTrimmedTop((innerBarModify.getHeight() - infoLabelHeight) / centringDivisor)
         .withHeight(infoLabelHeight));
 
     disclaimerLabel->setBounds(disclaimerArea);
@@ -391,12 +432,12 @@ bool TableContainer::validForErase(MidiChangeInfo& info)
 
 void TableContainer::applyChangeFromSequence(int originalIndex, const MidiChangeInfo& info, bool modifyVelocity, bool shouldApplyChanges)
 {
-    auto* e = originalSequence.getEventPointer(originalIndex);
-    if (e == nullptr)
+    auto* event = originalSequence.getEventPointer(originalIndex);
+    if (event == nullptr)
         return;
 
     double ratio;
-    double fromChange=0;
+    double fromChange {};
     if (shouldApplyChanges) //this is not a good condition
     {
         fromChange = info.oldTimeStamp - info.newTimeStamp;
@@ -406,23 +447,23 @@ void TableContainer::applyChangeFromSequence(int originalIndex, const MidiChange
     
 
 
-    if (e->message.isNoteOn())
+    if (event->message.isNoteOn())
     {
-        double duration=0.0;
-        if (!modifyVelocity && e->noteOffObject != nullptr)
+        double duration {};
+        if (!modifyVelocity && event->noteOffObject != nullptr)
         {
-            auto* noteoffEvent = e->noteOffObject;
-            duration = noteoffEvent->message.getTimeStamp() - e->message.getTimeStamp();
+            auto* noteoffEvent = event->noteOffObject;
+            duration = noteoffEvent->message.getTimeStamp() - event->message.getTimeStamp();
         }
 
         juce::MidiMessage newMsg = juce::MidiMessage::noteOn(
-            e->message.getChannel(),
+            event->message.getChannel(),
             info.newNumber,
-            (juce::uint8)juce::jlimit(0, 127, info.newVelocity)
+            (juce::uint8)juce::jlimit(lowestVelocity, highestVelocity, info.newVelocity)
         );
         bool shouldClamp = false;
 
-        double timeToApplyOn = 0.0;
+        double timeToApplyOn {};
 
         if (shouldApplyChanges)
         {
@@ -440,11 +481,11 @@ void TableContainer::applyChangeFromSequence(int originalIndex, const MidiChange
 
         newMsg.setTimeStamp(timeToApplyOn);
 
-        e->message = newMsg;
+        event->message = newMsg;
 
-        if (!modifyVelocity && e->noteOffObject != nullptr)
+        if (!modifyVelocity && event->noteOffObject != nullptr)
         {
-            auto* noteOffEvent = e->noteOffObject;
+            auto* noteOffEvent = event->noteOffObject;
             juce::MidiMessage offMsg = juce::MidiMessage::noteOff(
                 noteOffEvent->message.getChannel(),
                 info.newNumber
@@ -453,7 +494,7 @@ void TableContainer::applyChangeFromSequence(int originalIndex, const MidiChange
 
             double offTime = info.newTimeStamp + duration;
                 
-            double timetoApplyOff=0.0;
+            double timetoApplyOff {};
             if (shouldApplyChanges)
             {
                 offTime = info.oldTimeStamp + duration;
@@ -494,64 +535,64 @@ void TableContainer::onConfirmed()
 
 void TableContainer::changeAllUI()
 {
-    showModifyChangeDialog("Confirm Action",
-        "What would you like to do with the track properties?",
-        "What would you like to do with the track properties?",
-        { "Change All", "Change selected", "Cancel" },
-        { "Change All", "Cancel" },
+    showModifyChangeDialog(Text::confirmTitle,
+        Text::askTrackProperties,
+        Text::askTrackProperties,
+        { TableDialog::changeAll, TableDialog::changeSelected, TableDialog::cancel },
+        { TableDialog::changeAll, TableDialog::cancel },
         [this](int result)
         {
-            if (result == 1)
+            if (result == TableDialog::applyToAll)
                 allProperties();
-            else if (result == 2)
+            else if (result == TableDialog::applyToSelected)
                 allPropertiesSelected(table->getSelectedRows());
         });
 }
 
 void TableContainer::changeNotesUI()
 {
-    showModifyChangeDialog("Confirm Action",
-        "What would you like to do with the notes?",
-        "What would you like to do with the notes?",
-        { "Change All", "Change selected", "Cancel" },
-        { "Change All", "Cancel" },
+    showModifyChangeDialog(Text::confirmTitle,
+        Text::askNotes,
+        Text::askNotes,
+        { TableDialog::changeAll, TableDialog::changeSelected, TableDialog::cancel },
+        { TableDialog::changeAll, TableDialog::cancel },
         [this](int result)
         {
-            if (result == 1)
+            if (result == TableDialog::applyToAll)
                 onlyNotes();
-            else if (result == 2)
+            else if (result == TableDialog::applyToSelected)
                 onlyNotesSelected(table->getSelectedRows());
         });
 }
 
 void TableContainer::changeTimeStampsUI()
 {
-    showModifyChangeDialog("Confirm Action",
-        "What would you like to do with the time stamps?",
-        "What would you like to do with the time stamps?",
-        { "Change All", "Change selected", "Cancel" },
-        { "Change All", "Cancel" },
+    showModifyChangeDialog(Text::confirmTitle,
+        Text::askTimeStamps,
+        Text::askTimeStamps,
+        { TableDialog::changeAll, TableDialog::changeSelected, TableDialog::cancel },
+        { TableDialog::changeAll, TableDialog::cancel },
         [this](int result)
         {
-            if (result == 1)
+            if (result == TableDialog::applyToAll)
                 onlyTimeStamps();
-            else if (result == 2)
+            else if (result == TableDialog::applyToSelected)
                 onlyTimeStampsSelected(table->getSelectedRows());
         });
 }
 
 void TableContainer::changeVelocitiesUI()
 {
-    showModifyChangeDialog("Confirm Action",
-        "What would you like to do with the velocities?",
-        "What would you like to do with the velocities?",
-        { "Change All", "Change selected", "Cancel" },
-        { "Change All", "Cancel" },
+    showModifyChangeDialog(Text::confirmTitle,
+        Text::askVelocities,
+        Text::askVelocities,
+        { TableDialog::changeAll, TableDialog::changeSelected, TableDialog::cancel },
+        { TableDialog::changeAll, TableDialog::cancel },
         [this](int result)
         {
-            if (result == 1)
+            if (result == TableDialog::applyToAll)
                 onlyVelocities();
-            else if (result == 2)
+            else if (result == TableDialog::applyToSelected)
                 onlyVelocitiesSelected(table->getSelectedRows());
         });
 }

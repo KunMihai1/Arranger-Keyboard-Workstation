@@ -1,12 +1,21 @@
 #include "displayGUI.h"
 
+namespace
+{
+    // A fresh allStyles.json: DEFAULT Style plus "Style 1".."Style 9", each with empty track slots.
+    constexpr float defaultStyleBpm    = 120.0f;
+    constexpr float defaultTrackVolume = 50.0f;
+    constexpr int   numberedStyles     = 9;
+    constexpr int   firstStyleNumber   = 1;
+}
+
 
 void Display::removeTrackFromAllStyles(const juce::Uuid& uuid)
 {
     if (!allStylesJsonVar.isObject())
         return;
 
-    auto stylesArray = allStylesJsonVar["styles"];
+    auto stylesArray = allStylesJsonVar[juce::Identifier { AllStylesJsonKeys::styles }];
 
     if (!stylesArray.isArray())
         return;
@@ -18,7 +27,7 @@ void Display::removeTrackFromAllStyles(const juce::Uuid& uuid)
         if (styleObj == nullptr)
             continue;
 
-        juce::var trackVariable = styleObj->getProperty("tracks");
+        juce::var trackVariable = styleObj->getProperty(AllStylesJsonKeys::tracks);
 
         if (!trackVariable.isArray())
             continue;
@@ -32,13 +41,13 @@ void Display::removeTrackFromAllStyles(const juce::Uuid& uuid)
             if (trackObj == nullptr)
                 continue;
 
-            juce::String uuidString = trackObj->getProperty("uuid").toString();
+            juce::String uuidString = trackObj->getProperty(StyleTrackJsonKeys::uuid).toString();
             if (uuidString == uuid.toString())
             {
-                trackObj->setProperty("uuid", "noID");
-                trackObj->setProperty("name", "None");
-                trackObj->setProperty("instrumentNumber", -1);
-                trackObj->setProperty("type", "None");
+                trackObj->setProperty(StyleTrackJsonKeys::uuid, StyleTrackJsonKeys::noTrackId);
+                trackObj->setProperty(StyleTrackJsonKeys::name, StyleTrackJsonKeys::emptySlot);
+                trackObj->setProperty(StyleTrackJsonKeys::instrumentNumber, TrackEntryDefaults::notSet);
+                trackObj->setProperty(StyleTrackJsonKeys::type, StyleTrackJsonKeys::emptySlot);
             }
         }
     }
@@ -50,7 +59,7 @@ void Display::removeTrackFromAllStyles(const juce::Uuid& uuid)
 
     auto appDataFolder = IOHelper::getAppDataFolder();
 
-    auto jsonFile = IOHelper::getFile("allStyles.json");
+    auto jsonFile = IOHelper::getFile(AppDataNames::stylesFile);
 
     juce::String jsonString = juce::JSON::toString(allStylesJsonVar);
     jsonFile.replaceWithText(jsonString);
@@ -61,7 +70,7 @@ void Display::removeTracksFromAllStyles(const std::vector<juce::Uuid>& uuids)
     if (!allStylesJsonVar.isObject())
         return;
 
-    auto stylesArray = allStylesJsonVar["styles"];
+    auto stylesArray = allStylesJsonVar[juce::Identifier { AllStylesJsonKeys::styles }];
 
     if (!stylesArray.isArray())
         return;
@@ -76,7 +85,7 @@ void Display::removeTracksFromAllStyles(const std::vector<juce::Uuid>& uuids)
         if (styleObj == nullptr)
             continue;
 
-        juce::var trackVariable = styleObj->getProperty("tracks");
+        juce::var trackVariable = styleObj->getProperty(AllStylesJsonKeys::tracks);
 
         if (!trackVariable.isArray())
             continue;
@@ -87,13 +96,13 @@ void Display::removeTracksFromAllStyles(const std::vector<juce::Uuid>& uuids)
             if (trackObj == nullptr)
                 continue;
 
-            juce::String uuidString = trackObj->getProperty("uuid").toString();
+            juce::String uuidString = trackObj->getProperty(StyleTrackJsonKeys::uuid).toString();
             if (uuidSet.count(uuidString))
             {
-                trackObj->setProperty("uuid", "noID");
-                trackObj->setProperty("name", "None");
-                trackObj->setProperty("instrumentNumber", -1);
-                trackObj->setProperty("type", "None");
+                trackObj->setProperty(StyleTrackJsonKeys::uuid, StyleTrackJsonKeys::noTrackId);
+                trackObj->setProperty(StyleTrackJsonKeys::name, StyleTrackJsonKeys::emptySlot);
+                trackObj->setProperty(StyleTrackJsonKeys::instrumentNumber, TrackEntryDefaults::notSet);
+                trackObj->setProperty(StyleTrackJsonKeys::type, StyleTrackJsonKeys::emptySlot);
             }
         }
     }
@@ -105,7 +114,7 @@ void Display::removeTracksFromAllStyles(const std::vector<juce::Uuid>& uuids)
 
     juce::File appDataFolder = IOHelper::getAppDataFolder();
 
-    juce::File jsonFile = appDataFolder.getChildFile("allStyles.json");
+    juce::File jsonFile = appDataFolder.getChildFile(AppDataNames::stylesFile);
 
     juce::String jsonString = juce::JSON::toString(allStylesJsonVar);
     jsonFile.replaceWithText(jsonString);
@@ -116,7 +125,7 @@ void Display::updateTrackNameFromAllStyles(const juce::Uuid& uuid, const juce::S
     if (!allStylesJsonVar.isObject())
         return;
 
-    auto stylesArray = allStylesJsonVar["styles"];
+    auto stylesArray = allStylesJsonVar[juce::Identifier { AllStylesJsonKeys::styles }];
 
     if (!stylesArray.isArray())
         return;
@@ -128,7 +137,7 @@ void Display::updateTrackNameFromAllStyles(const juce::Uuid& uuid, const juce::S
         if (styleObj == nullptr)
             continue;
 
-        juce::var trackVariable = styleObj->getProperty("tracks");
+        juce::var trackVariable = styleObj->getProperty(AllStylesJsonKeys::tracks);
 
         if (!trackVariable.isArray())
             continue;
@@ -139,10 +148,10 @@ void Display::updateTrackNameFromAllStyles(const juce::Uuid& uuid, const juce::S
             if (trackObj == nullptr)
                 continue;
 
-            juce::String uuidString = trackObj->getProperty("uuid").toString();
+            juce::String uuidString = trackObj->getProperty(StyleTrackJsonKeys::uuid).toString();
             if (uuidString == uuid.toString())
             {
-                trackObj->setProperty("name", newName);
+                trackObj->setProperty(StyleTrackJsonKeys::name, newName);
             }
         }
     }
@@ -154,7 +163,7 @@ void Display::updateTrackNameFromAllStyles(const juce::Uuid& uuid, const juce::S
 
     juce::File appDataFolder = IOHelper::getAppDataFolder();
 
-    juce::File jsonFile = appDataFolder.getChildFile("allStyles.json");
+    juce::File jsonFile = appDataFolder.getChildFile(AppDataNames::stylesFile);
 
     juce::String jsonString = juce::JSON::toString(allStylesJsonVar);
     jsonFile.replaceWithText(jsonString);
@@ -167,7 +176,7 @@ void Display::initializeAllStyles()
     if (!appDataFolder.exists())
         appDataFolder.createDirectory();
 
-    auto file = appDataFolder.getChildFile("allStyles.json");
+    auto file = appDataFolder.getChildFile(AppDataNames::stylesFile);
 
     if (file.exists())
         return;
@@ -175,49 +184,49 @@ void Display::initializeAllStyles()
     juce::Array<juce::var> stylesArray;
 
     auto* styleObj = new juce::DynamicObject{};
-    juce::String styleName = "DEFAULT Style";
-    styleObj->setProperty("name", styleName);
-    styleObj->setProperty("BPM", 120.0f);
-    styleObj->setProperty("StyleID", "style_default");
+    juce::String styleName = StyleNames::defaultStyle;
+    styleObj->setProperty(AllStylesJsonKeys::name, styleName);
+    styleObj->setProperty(AllStylesJsonKeys::bpm, defaultStyleBpm);
+    styleObj->setProperty(AllStylesJsonKeys::styleId, StyleNames::defaultStyleId);
     juce::Array<juce::var> tracksArray;
-    for (int t = 0; t < 8; ++t)
+    for (int slotIndex {}; slotIndex < CurrentStyleComponent::trackSlots; ++slotIndex)
     {
         auto* trackObj = new juce::DynamicObject{};
-        trackObj->setProperty("name", "None");
-        trackObj->setProperty("type", "None");
-        trackObj->setProperty("volume", 50.0f);
-        trackObj->setProperty("instrumentNumber", -1);
-        trackObj->setProperty("uuid", "noID");
+        trackObj->setProperty(StyleTrackJsonKeys::name, StyleTrackJsonKeys::emptySlot);
+        trackObj->setProperty(StyleTrackJsonKeys::type, StyleTrackJsonKeys::emptySlot);
+        trackObj->setProperty(StyleTrackJsonKeys::volume, defaultTrackVolume);
+        trackObj->setProperty(StyleTrackJsonKeys::instrumentNumber, TrackEntryDefaults::notSet);
+        trackObj->setProperty(StyleTrackJsonKeys::uuid, StyleTrackJsonKeys::noTrackId);
         tracksArray.add(trackObj);
     }
-    styleObj->setProperty("tracks", tracksArray);
+    styleObj->setProperty(AllStylesJsonKeys::tracks, tracksArray);
     stylesArray.add(styleObj);
 
-    for (int i = 0; i < 9; ++i)
+    for (int styleIndex {}; styleIndex < numberedStyles; ++styleIndex)
     {
         auto* styleObj = new juce::DynamicObject{};
-        juce::String styleName = "Style " + juce::String(i + 1);
-        styleObj->setProperty("name", styleName);
-        styleObj->setProperty("BPM", 120.0f);
-        styleObj->setProperty("StyleID", "style_" + juce::String(i+1));
+        juce::String styleName = StyleNames::newStylePrefix + juce::String(styleIndex + firstStyleNumber);
+        styleObj->setProperty(AllStylesJsonKeys::name, styleName);
+        styleObj->setProperty(AllStylesJsonKeys::bpm, defaultStyleBpm);
+        styleObj->setProperty(AllStylesJsonKeys::styleId, StyleNames::styleIdPrefix + juce::String(styleIndex+firstStyleNumber));
 
         juce::Array<juce::var> tracksArray;
-        for (int t = 0; t < 8; ++t)
+        for (int slotIndex {}; slotIndex < CurrentStyleComponent::trackSlots; ++slotIndex)
         {
             auto* trackObj = new juce::DynamicObject{};
-            trackObj->setProperty("name", "None");
-            trackObj->setProperty("type", "None");
-            trackObj->setProperty("volume", 50.0f);
-            trackObj->setProperty("instrumentNumber", -1);
-            trackObj->setProperty("uuid", "noID");
+            trackObj->setProperty(StyleTrackJsonKeys::name, StyleTrackJsonKeys::emptySlot);
+            trackObj->setProperty(StyleTrackJsonKeys::type, StyleTrackJsonKeys::emptySlot);
+            trackObj->setProperty(StyleTrackJsonKeys::volume, defaultTrackVolume);
+            trackObj->setProperty(StyleTrackJsonKeys::instrumentNumber, TrackEntryDefaults::notSet);
+            trackObj->setProperty(StyleTrackJsonKeys::uuid, StyleTrackJsonKeys::noTrackId);
             tracksArray.add(trackObj);
         }
-        styleObj->setProperty("tracks", tracksArray);
+        styleObj->setProperty(AllStylesJsonKeys::tracks, tracksArray);
         stylesArray.add(styleObj);
     }
 
     auto* rootObj = new juce::DynamicObject{};
-    rootObj->setProperty("styles", stylesArray);
+    rootObj->setProperty(AllStylesJsonKeys::styles, stylesArray);
 
     juce::var jsonVar(rootObj);  // var now owns rootObj pointer
 
@@ -233,7 +242,7 @@ std::vector<juce::String> Display::getAllStylesFromJson()
     if (!allStylesJsonVar.isObject())
         return allStylesNames;
 
-    auto stylesArray = allStylesJsonVar["styles"];
+    auto stylesArray = allStylesJsonVar[juce::Identifier { AllStylesJsonKeys::styles }];
     if (!stylesArray.isArray())
         return allStylesNames;
 
@@ -243,7 +252,7 @@ std::vector<juce::String> Display::getAllStylesFromJson()
         if (obj == nullptr)
             continue;
 
-        juce::String name = obj->getProperty("name").toString();
+        juce::String name = obj->getProperty(AllStylesJsonKeys::name).toString();
         if (name.isNotEmpty())
             allStylesNames.push_back(name);
     }
@@ -255,7 +264,7 @@ void Display::loadAllStyles()
 {
     auto appDataFolder = IOHelper::getAppDataFolder();
 
-    auto file= IOHelper::getFile("allStyles.json");
+    auto file= IOHelper::getFile(AppDataNames::stylesFile);
 
     if (!file.exists())
     {
@@ -272,17 +281,17 @@ void Display::updateStyleInJson(const juce::String& name)
     if (!allStylesJsonVar.isObject())
         return;
 
-    auto stylesArray = allStylesJsonVar["styles"];
+    auto stylesArray = allStylesJsonVar[juce::Identifier { AllStylesJsonKeys::styles }];
 
     if (!stylesArray.isArray())
         return;
 
-    for (int i = 0; i < stylesArray.getArray()->size(); ++i)
+    for (int styleIndex {}; styleIndex < stylesArray.getArray()->size(); ++styleIndex)
     {
-        auto& styleVar = stylesArray.getArray()->getReference(i);
+        auto& styleVar = stylesArray.getArray()->getReference(styleIndex);
         if (auto* obj = styleVar.getDynamicObject())
         {
-            if (obj->getProperty("name").toString() == name)
+            if (obj->getProperty(AllStylesJsonKeys::name).toString() == name)
             {
                 styleVar = juce::var(currentStyleComponent->getJson());
                 break;
@@ -292,7 +301,7 @@ void Display::updateStyleInJson(const juce::String& name)
 
     auto appDataFolder = IOHelper::getAppDataFolder();
 
-    auto file = IOHelper::getFile("allStyles.json");
+    auto file = IOHelper::getFile(AppDataNames::stylesFile);
 
     juce::String jsonString = juce::JSON::toString(allStylesJsonVar);
     file.replaceWithText(jsonString);
@@ -303,28 +312,28 @@ void Display::updateStyleNameInJson(const juce::String& oldName, const juce::Str
     if (!allStylesJsonVar.isObject())
         return;
 
-    auto stylesArray = allStylesJsonVar["styles"];
+    auto stylesArray = allStylesJsonVar[juce::Identifier { AllStylesJsonKeys::styles }];
 
     if (!stylesArray.isArray())
         return;
 
-    for (int i = 0; i < stylesArray.getArray()->size(); i++)
+    for (int styleIndex {}; styleIndex < stylesArray.getArray()->size(); styleIndex++)
     {
-        auto& styleVar = stylesArray.getArray()->getReference(i);
+        auto& styleVar = stylesArray.getArray()->getReference(styleIndex);
         auto* obj = styleVar.getDynamicObject();
         if (obj == nullptr)
             continue;
 
-        if (obj->getProperty("name").toString() == oldName)
+        if (obj->getProperty(AllStylesJsonKeys::name).toString() == oldName)
         {
-            obj->setProperty("name", newName);
+            obj->setProperty(AllStylesJsonKeys::name, newName);
             break;
         }
     }
 
     auto appDataFolder = IOHelper::getAppDataFolder();
 
-    auto jsonFile = IOHelper::getFile("allStyles.json");
+    auto jsonFile = IOHelper::getFile(AppDataNames::stylesFile);
 
     juce::String jsonString = juce::JSON::toString(allStylesJsonVar);
     jsonFile.replaceWithText(jsonString);
@@ -341,7 +350,7 @@ void Display::appendNewStyleInJson(const juce::String& newName)
         return;
 
 
-    juce::var stylesVar = obj->getProperty("styles");
+    juce::var stylesVar = obj->getProperty(AllStylesJsonKeys::styles);
 
     if (!stylesVar.isArray())
         return;
@@ -353,30 +362,30 @@ void Display::appendNewStyleInJson(const juce::String& newName)
         return;
 
     const int numExistingStyles = stylesArray->size();
-    const juce::String styleID = "style_" + juce::String(numExistingStyles);
+    const juce::String styleID = StyleNames::styleIdPrefix + juce::String(numExistingStyles);
 
 
     auto* newStyle = new juce::DynamicObject();
-    newStyle->setProperty("name", newName);
-    newStyle->setProperty("BPM", 120.0f);
-    newStyle->setProperty("StyleID", styleID);
+    newStyle->setProperty(AllStylesJsonKeys::name, newName);
+    newStyle->setProperty(AllStylesJsonKeys::bpm, defaultStyleBpm);
+    newStyle->setProperty(AllStylesJsonKeys::styleId, styleID);
     juce::Array<juce::var> tracksArray;
-    for (int i = 0; i < 8; ++i)
+    for (int slotIndex {}; slotIndex < CurrentStyleComponent::trackSlots; ++slotIndex)
     {
         auto* track = new juce::DynamicObject();
-        track->setProperty("name", "None");
-        track->setProperty("type", "None");
-        track->setProperty("volume", 50.0f);
-        track->setProperty("instrumentNumber", -1);
-        track->setProperty("uuid", "noID");
+        track->setProperty(StyleTrackJsonKeys::name, StyleTrackJsonKeys::emptySlot);
+        track->setProperty(StyleTrackJsonKeys::type, StyleTrackJsonKeys::emptySlot);
+        track->setProperty(StyleTrackJsonKeys::volume, defaultTrackVolume);
+        track->setProperty(StyleTrackJsonKeys::instrumentNumber, TrackEntryDefaults::notSet);
+        track->setProperty(StyleTrackJsonKeys::uuid, StyleTrackJsonKeys::noTrackId);
         tracksArray.add(track);
     }
-    newStyle->setProperty("tracks", tracksArray);
+    newStyle->setProperty(AllStylesJsonKeys::tracks, tracksArray);
     stylesArray->add(newStyle);
 
     auto appDataFolder = IOHelper::getAppDataFolder();
 
-    auto jsonFile = IOHelper::getFile("allStyles.json");
+    auto jsonFile = IOHelper::getFile(AppDataNames::stylesFile);
 
     juce::String jsonString = juce::JSON::toString(allStylesJsonVar);
     jsonFile.replaceWithText(jsonString);
@@ -391,30 +400,30 @@ void Display::removeStyleInJson(const juce::String& name)
     if (obj == nullptr)
         return;
 
-    juce::var styles = obj->getProperty("styles");
+    juce::var styles = obj->getProperty(AllStylesJsonKeys::styles);
     if (!styles.isArray())
         return;
 
     auto* stylesArray = styles.getArray();
 
-    for (int i = 0; i < stylesArray->size(); i++)
+    for (int styleIndex {}; styleIndex < stylesArray->size(); styleIndex++)
     {
-        auto& style = stylesArray->getReference(i);
+        auto& style = stylesArray->getReference(styleIndex);
         auto* styleObj = style.getDynamicObject();
         if (styleObj == nullptr)
             continue;
 
-        juce::String styleName = styleObj->getProperty("name").toString();
+        juce::String styleName = styleObj->getProperty(AllStylesJsonKeys::name).toString();
         if (styleName == name)
         {
-            stylesArray->remove(i);
+            stylesArray->remove(styleIndex);
             break;
         }
     }
 
     auto appDataFolder = IOHelper::getAppDataFolder();
 
-    auto jsonFile = IOHelper::getFile("allStyles.json");
+    auto jsonFile = IOHelper::getFile(AppDataNames::stylesFile);
 
     juce::String jsonString = juce::JSON::toString(allStylesJsonVar);
     jsonFile.replaceWithText(jsonString);

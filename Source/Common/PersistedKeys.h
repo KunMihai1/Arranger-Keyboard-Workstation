@@ -22,6 +22,8 @@ namespace AppDataNames
 {
     inline const juce::String arrangerStylesFolder = "ArrangerStyles";
     inline const juce::String tracksFile           = "myTracks.json";
+    inline const juce::String sectionsFile         = "mySections.json";
+    inline const juce::String stylesFile           = "allStyles.json";
 }
 
 // myTracks.json
@@ -80,6 +82,7 @@ namespace PlaybackSettingsKeys
 // allStyles.json: one object per style (its tracks use StyleTrackJsonKeys).
 namespace AllStylesJsonKeys
 {
+    inline const juce::String styles         = "styles";   // the root array
     inline const juce::String name           = "name";
     inline const juce::String bpm            = "BPM";
     inline const juce::String styleId        = "StyleID";
@@ -90,7 +93,10 @@ namespace AllStylesJsonKeys
 // The built-in style; per-style settings are stored under this name.
 namespace StyleNames
 {
-    inline const juce::String defaultStyle = "DEFAULT Style";
+    inline const juce::String defaultStyle   = "DEFAULT Style";
+    inline const juce::String defaultStyleId = "style_default";
+    inline const juce::String styleIdPrefix  = "style_";   // "style_3"
+    inline const juce::String newStylePrefix = "Style ";   // "Style 3"
 }
 
 // mySections.json

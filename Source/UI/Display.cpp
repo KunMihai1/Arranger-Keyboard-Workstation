@@ -1,5 +1,23 @@
 #include "displayGUI.h"
 
+namespace
+{
+    constexpr int    firstTabIndex       = 0;
+    constexpr int    nextTab             = 1;    // the style tab sits right after the Styles list
+    constexpr int    lastTabOffset       = 1;    // getNumTabs() - 1 is the last tab
+    constexpr int    tabBeforeLastOffset = 2;
+    constexpr int    tabNotFound         = -1;
+    constexpr int    allTracksIndex      = 0;    // CurrentStyleComponent::comboBoxChangeIndex
+    constexpr int    lowestPianoNote     = 21;   // A0, the lowest key of an 88-key piano
+    constexpr int    highestPianoNote    = 108;  // C8
+    constexpr double firstSectionStartSeconds = 4.0;
+    constexpr double sectionSeconds      = 10.0;
+    constexpr int    firstSectionNumber  = 1;
+    const juce::String sectionIdSeparator = "_";    // "intro_1"
+    const juce::String midiFilePattern    = "*.mid";
+    const juce::String saveLogged         = "save happens";
+}
+
 Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile* props, int widthForList) : outputDevice{outputDev}, propertiesFile{props}
 {
     availableTracksFromFolder = std::make_shared<std::deque<TrackEntry>>();
@@ -25,7 +43,7 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
 
     auto appDataFolder = IOHelper::getAppDataFolder();
 
-    auto jsonFile = IOHelper::getFile("myTracks.json");
+    auto jsonFile = IOHelper::getFile(AppDataNames::tracksFile);
 
 
     if (!jsonFile.exists())
@@ -36,7 +54,7 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
         jsonFile.replaceWithText(jsonString);
     }
 
-    auto jsonFileSections = IOHelper::getFile("mySections.json");
+    auto jsonFileSections = IOHelper::getFile(AppDataNames::sectionsFile);
 
     if (!jsonFileSections.exists())
     {
@@ -67,9 +85,9 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
     list->onStyleRename = [this](const juce::String& oldName, const juce::String& newName)
     {
         int index = tabComp->getCurrentTabIndex();
-        if (index>=0 && index + 1 < tabComp->getNumTabs())
+        if (index>=firstTabIndex && index + nextTab < tabComp->getNumTabs())
         {
-            tabComp->setTabName(index + 1, newName);
+            tabComp->setTabName(index + nextTab, newName);
 
             currentStyleComponent->updateName(newName);
         }
@@ -87,12 +105,12 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
         if (tabComp)
         {
             int currentTabIndex = tabComp->getCurrentTabIndex();
-            if (currentTabIndex + 1 <= tabComp->getNumTabs())
+            if (currentTabIndex + nextTab <= tabComp->getNumTabs())
             {
-                juce::String tabName = tabComp->getTabNames()[currentTabIndex + 1];
+                juce::String tabName = tabComp->getTabNames()[currentTabIndex + nextTab];
                 if (tabName == name)
                 {
-                    tabComp->removeTab(currentTabIndex + 1);
+                    tabComp->removeTab(currentTabIndex + nextTab);
                     currentStyleComponent.reset();
                     created = false;
                 }
@@ -104,7 +122,7 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
     //auto* scrollableView = new juce::Viewport();
     //scrollableView->setScrollBarsShown(true, false); // only vertical
     //scrollableView->setViewedComponent(list, true);
-    tabComp->addTab(StylePanelTabs::styles, juce::Colour::fromRGB(10, 15, 10), list.get(), false);
+    tabComp->addTab(StylePanelTabs::styles, AppColours::stylePanelTab, list.get(), false);
 
     stylesListComponent = std::move(list);
     //list->resized();
@@ -129,7 +147,7 @@ void Display::changeListenerCallback(juce::ChangeBroadcaster* source)
         int currentIndex = tabComp->getCurrentTabIndex();
         int tracksTabIndex = getTabIndexByName(StylePanelTabs::myTracks);
 
-        if (tracksTabIndex >= 0 && currentIndex != tracksTabIndex)
+        if (tracksTabIndex >= firstTabIndex && currentIndex != tracksTabIndex)
         {
             tabComp->removeTab(tracksTabIndex);
         }
@@ -140,26 +158,26 @@ juce::String Display::getStyleID() const
 {
     if (currentStyleComponent)
         return this->currentStyleComponent->getStyleID();
-    else return "style_default";
+    else return StyleNames::defaultStyleId;
 }
 
 juce::String Display::getStyleName() const
 {
     if (currentStyleComponent)
         return this->currentStyleComponent->getName();
-    else return "DEFAULT Style";
+    else return StyleNames::defaultStyle;
 }
 
 int Display::getTabIndexByName(const juce::String& name)
 {
     auto& tabBar = tabComp->getTabbedButtonBar();
 
-    for (int i = 0; i < tabComp->getNumTabs(); ++i)
+    for (int tabIndex {}; tabIndex < tabComp->getNumTabs(); ++tabIndex)
     {
-        if (tabBar.getTabButton(i)->getName() == name)
-            return i;
+        if (tabBar.getTabButton(tabIndex)->getName() == name)
+            return tabIndex;
     }
-    return -1;
+    return tabNotFound;
 }
 
 void Display::showCurrentStyleTab(const juce::String& name)
@@ -178,7 +196,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
         {
             auto appDataFolder = IOHelper::getAppDataFolder();
 
-            auto jsonFile = IOHelper::getFile("myTracks.json");
+            auto jsonFile = IOHelper::getFile(AppDataNames::tracksFile);
             TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
         };
 
@@ -187,7 +205,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
 
             int existingIndex = getTabIndexByName(StylePanelTabs::playbackSettings);
 
-            if (existingIndex >= 0)
+            if (existingIndex >= firstTabIndex)
             {
                 tabComp->setCurrentTabIndex(existingIndex);
                 return;
@@ -211,15 +229,15 @@ void Display::showCurrentStyleTab(const juce::String& name)
             };
 
             temporaryTabs->playbackSettingsOpened();
-            tabComp->addTab(StylePanelTabs::playbackSettings, juce::Colour::fromRGB(10, 15, 10), playBackSettings.get(), false);
+            tabComp->addTab(StylePanelTabs::playbackSettings, AppColours::stylePanelTab, playBackSettings.get(), false);
 
-            existingIndex = tabComp->getNumTabs() - 1;
+            existingIndex = tabComp->getNumTabs() - lastTabOffset;
 
 
             tabComp->setCurrentTabIndex(existingIndex);
         };
 
-        tabComp->addTab(name, juce::Colour::fromRGB(10, 15, 10), currentStyleComponent.get(), false);
+        tabComp->addTab(name, AppColours::stylePanelTab, currentStyleComponent.get(), false);
         created = true;
 
         if (pendingMidiInjectCallback)
@@ -238,7 +256,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
         for (auto& track : currentStyleComponent->getAllTracks())
             track->removeListener(currentStyleComponent->getTrackPlayer());
 
-        int index = tabComp->getNumTabs() - 1;
+        int index = tabComp->getNumTabs() - lastTabOffset;
         tabComp->getTabbedButtonBar().setTabName(index, name);
         currentStyleComponent->updateName(name);
     }
@@ -284,14 +302,14 @@ void Display::showCurrentStyleTab(const juce::String& name)
 
     if (allStylesJsonVar.isObject())
     {
-        auto stylesArray = allStylesJsonVar["styles"];
+        auto stylesArray = allStylesJsonVar[juce::Identifier { AllStylesJsonKeys::styles }];
         if (stylesArray.isArray())
         {
             for (const auto& style : *stylesArray.getArray())
             {
                 if (auto* obj = style.getDynamicObject())
                 {
-                    if (obj->getProperty("name").toString() == name)
+                    if (obj->getProperty(AllStylesJsonKeys::name).toString() == name)
                     {
                         currentStyleComponent->loadJson(style);
                         break;
@@ -300,14 +318,14 @@ void Display::showCurrentStyleTab(const juce::String& name)
             }
         }
     }
-    tabComp->setCurrentTabIndex(tabComp->getNumTabs() - 1);
+    tabComp->setCurrentTabIndex(tabComp->getNumTabs() - lastTabOffset);
 
     juce::String styleID = currentStyleComponent->getStyleID();
 
     if ((*sectionsPerStyleMap)[styleID].empty())
     {
         initializeSectionsForStyle((*sectionsPerStyleMap)[styleID]);
-        SectionIOHelper::saveToFile(IOHelper::getFile("mySections.json"), *sectionsPerStyleMap);
+        SectionIOHelper::saveToFile(IOHelper::getFile(AppDataNames::sectionsFile), *sectionsPerStyleMap);
     }
 
     double bpmToUse = currentStyleComponent->getTempo();
@@ -349,12 +367,12 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
 
             if (trackListComp)
                 trackListComp->removeListener(this);
-            int in = tabComp->getNumTabs() - 2;
-            if (in >= 0)
+            int styleTabIndex = tabComp->getNumTabs() - tabBeforeLastOffset;
+            if (styleTabIndex >= firstTabIndex)
             {
-                DBG("save happens");
+                DBG(saveLogged);
                 updateStyleInJson(currentStyleComponent->getName());
-                tabComp->setCurrentTabIndex(in);
+                tabComp->setCurrentTabIndex(styleTabIndex);
             }
         });
 
@@ -385,8 +403,8 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
         mapUuidToTrack[newEntry->getUniqueID()] = newEntry;
     };
 
-    tabComp->addTab(StylePanelTabs::myTracks, juce::Colour::fromRGB(10, 15, 10), trackListComp.get(), false);
-    tabComp->setCurrentTabIndex(tabComp->getNumTabs() - 1);
+    tabComp->addTab(StylePanelTabs::myTracks, AppColours::stylePanelTab, trackListComp.get(), false);
+    tabComp->setCurrentTabIndex(tabComp->getNumTabs() - lastTabOffset);
 
     temporaryTabs->tracksOpened();
 }
@@ -398,7 +416,7 @@ std::vector<TrackEntry> Display::getAvailableTracksFromFolder(const juce::File& 
     if (!folder.exists() || !folder.isDirectory())
         return tracks;
 
-    juce::DirectoryIterator iter(folder, false, "*.mid", juce::File::findFiles);
+    juce::DirectoryIterator iter(folder, false, midiFilePattern, juce::File::findFiles);
 
     while (iter.next())
     {
@@ -514,12 +532,12 @@ void Display::updateUIbeforeAnyLoadingCase()
 
 void Display::set_min_max(int min, int max)
 {
-    if (min < 21)
-        this->minNote = 21;
+    if (min < lowestPianoNote)
+        this->minNote = lowestPianoNote;
     else this->minNote = min;
 
-    if (max > 108)
-        this->maxNote = 108;
+    if (max > highestPianoNote)
+        this->maxNote = highestPianoNote;
     else this->maxNote = max;
     if (playBackSettings)
         this->playBackSettings->setLowestHighest(minNote, maxNote);
@@ -550,7 +568,7 @@ void Display::readPlaybackSettingsFromProperties()
 void Display::homeButtonInteraction()
 {
     temporaryTabs->homePressed();
-    this->currentStyleComponent->comboBoxChangeIndex(0);
+    this->currentStyleComponent->comboBoxChangeIndex(allTracksIndex);
     this->playBackSettings.reset();
 }
 
@@ -591,29 +609,29 @@ int Display::getNumTabs()
 
 void Display::setNewSettingsHelperFunction(int value)
 {
-    if(settings.startNote!=-1)
+    if(settings.startNote!=PlaybackSettingsKeys::notSet)
         settings.startNote += value;
 
-    if(settings.endNote!=-1)
+    if(settings.endNote!=PlaybackSettingsKeys::notSet)
         settings.endNote += value;
 
-    if(settings.leftHandBound!=-1)
+    if(settings.leftHandBound!=PlaybackSettingsKeys::notSet)
         settings.leftHandBound += value;
 
-    if(settings.rightHandBound!=-1)
+    if(settings.rightHandBound!=PlaybackSettingsKeys::notSet)
         settings.rightHandBound += value;
 
-    if (settings.startNote < 21 && settings.startNote!=-1)
-        settings.startNote = 21;
+    if (settings.startNote < lowestPianoNote && settings.startNote!=PlaybackSettingsKeys::notSet)
+        settings.startNote = lowestPianoNote;
 
-    if (settings.endNote > 108 && settings.endNote!=-1)
-        settings.endNote = 108;
+    if (settings.endNote > highestPianoNote && settings.endNote!=PlaybackSettingsKeys::notSet)
+        settings.endNote = highestPianoNote;
 
-    if (settings.leftHandBound < 21)
-        settings.leftHandBound = 21;
+    if (settings.leftHandBound < lowestPianoNote)
+        settings.leftHandBound = lowestPianoNote;
 
-    if (settings.rightHandBound > 108)
-        settings.rightHandBound = 108;
+    if (settings.rightHandBound > highestPianoNote)
+        settings.rightHandBound = highestPianoNote;
 
     if(playBackSettings)
         this->playBackSettings->setNewSettings(settings);
@@ -634,10 +652,8 @@ void Display::initializeSectionsForStyle(std::unordered_map<juce::String,StyleSe
 {
     sections.clear();
 
-    double startTime = 4.0;
-    double duration = 10.0;
-
-    std::vector<std::vector<juce::String>> names = {
+    // Saved to mySections.json: the names and ids must not change.
+    static const std::vector<std::vector<juce::String>> names = {
         { "Intro 1", "Intro 2", "Intro 3" },
         { "Var 1", "Var 2", "Var 3", "Var 4" },
         { "Fill 1", "Fill 2", "Fill 3", "Fill 4" },
@@ -645,24 +661,24 @@ void Display::initializeSectionsForStyle(std::unordered_map<juce::String,StyleSe
         { "Break" }
     };
 
-    std::vector<juce::String> categories = { "Intro", "Variation", "Fill", "Ending", "Break" };
+    static const std::vector<juce::String> categories = { "Intro", "Variation", "Fill", "Ending", "Break" };
 
-    int c= 0;
+    int sectionCount {};
 
-    for (int i = 0; i < names.size(); i++)
+    for (int groupIndex {}; groupIndex < names.size(); groupIndex++)
     {
-        for (int j = 0; j < names[i].size(); j++)
+        for (int sectionIndex {}; sectionIndex < names[groupIndex].size(); sectionIndex++)
         {
-            StyleSection s;
-            s.id = categories[i].toLowerCase() + "_" + juce::String(j + 1);
-            s.name = names[i][j];
-            s.startTimeSeconds = startTime + c * duration;
-            s.endTimeSeconds = s.startTimeSeconds + duration;
-            s.startBar = -1;
-            s.endBar = -1;
+            StyleSection section;
+            section.id = categories[groupIndex].toLowerCase() + sectionIdSeparator + juce::String(sectionIndex + firstSectionNumber);
+            section.name = names[groupIndex][sectionIndex];
+            section.startTimeSeconds = firstSectionStartSeconds + sectionCount * sectionSeconds;
+            section.endTimeSeconds = section.startTimeSeconds + sectionSeconds;
+            section.startBar = StyleSection::barNotSet;
+            section.endBar = StyleSection::barNotSet;
 
-            sections[s.name] = s;
-            c++;
+            sections[section.name] = section;
+            sectionCount++;
         }
     }
 }
