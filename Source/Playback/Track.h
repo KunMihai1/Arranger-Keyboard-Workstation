@@ -176,8 +176,10 @@ private:
     void mouseDown(const juce::MouseEvent& event) override;
 
     //==============================================================================
-    int usedInstrumentNumber = -1;     ///< Currently selected MIDI instrument number.
-    int channel = 1;                   ///< Assigned MIDI channel.
+    static constexpr int noInstrument = -1;
+    static constexpr int firstChannel = 1;
+    int usedInstrumentNumber = noInstrument;     ///< Currently selected MIDI instrument number.
+    int channel = firstChannel;                   ///< Assigned MIDI channel.
     juce::String typeOfTrack;          ///< Type of track ("melody", "percussion", etc.).
     juce::Uuid uniqueIdentifierTrack;  ///< Unique ID for identifying this track.
 

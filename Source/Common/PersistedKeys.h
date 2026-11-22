@@ -21,6 +21,7 @@ namespace DeviceSettingsKeys
 namespace AppDataNames
 {
     inline const juce::String arrangerStylesFolder = "ArrangerStyles";
+    inline const juce::String tracksFile           = "myTracks.json";
 }
 
 // myTracks.json
@@ -33,6 +34,18 @@ namespace TrackJsonKeys
     inline const juce::String displayName = "displayName";
     inline const juce::String uuid        = "uuid";
     inline const juce::String styles      = "Styles";
+}
+
+// One track slot of a style inside allStyles.json.
+namespace StyleTrackJsonKeys
+{
+    inline const juce::String name             = "name";
+    inline const juce::String type             = "type";
+    inline const juce::String volume           = "volume";
+    inline const juce::String instrumentNumber = "instrumentNumber";
+    inline const juce::String uuid             = "uuid";
+    inline const juce::String emptySlot        = "None";   // name and type of an empty slot
+    inline const juce::String noTrackId        = "noID";   // uuid of an empty slot
 }
 
 // Per-style note edits inside myTracks.json ("Notes information").
