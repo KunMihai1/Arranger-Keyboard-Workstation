@@ -13,6 +13,12 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-22 — Names cleanup: Source/Audio done
+- `AudioHandler.cpp`: MIDI CC numbers (`ControllerNumber`), CC→parameter mappings, smoothing times,
+  audibility thresholds, channel layout and the 1-based MIDI channel → array index all named;
+  loop indices and `sr`/`ch`/`cc`/`val` renamed. `SFZLibraryUI.cpp`: layout, colours, dialog texts
+  named (`style_default` id text unchanged). Allowlist 146.
+
 ## 2026-11-22 — Names cleanup: Source/Audio, part 1
 - `AudioHandler.h`: DSP facts named in `DspConstants` (16 MIDI channels, stereo, fallback sample rate,
   the smoothing formula 1 - e^(-1/samples), ln 2 in the overflow-safe log-cosh, the ADAA near-equal
