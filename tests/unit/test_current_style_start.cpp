@@ -48,7 +48,6 @@ public:
 
     void runTest() override
     {
-        using namespace CurrentStyleStartTestValues;
         checkStartWithNoTracks (false);
         checkStartWithNoTracks (true);
         checkSoloStartOnNoneTrack();
@@ -137,7 +136,7 @@ private:
         CurrentStyleComponent panel (styleName, noTrackEntries, {}, {});
         panel.setMidiInjectCallback ([] (const juce::MidiMessage&) {});   // audio output present, as in the app
         panel.setArrangerModeEnabled (arrangerMode);
-        panel.setSize (panelWidth, panelHeight);                                          // resized() labels the buttons
+        panel.setSize (panelWidth, panelHeight);   // resized() labels the buttons
 
         auto* start = findChild<juce::TextButton> (panel, [] (juce::TextButton& button) { return button.getButtonText() == startButton; });
         auto* beat  = findChild<BeatBar> (panel, [] (BeatBar&) { return true; });
