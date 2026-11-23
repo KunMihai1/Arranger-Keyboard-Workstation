@@ -2,6 +2,16 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "keyListener.h"
 
+#if JUCE_WINDOWS
+ #ifndef NOMINMAX
+  #define NOMINMAX 1
+ #endif
+ #ifndef WIN32_LEAN_AND_MEAN
+  #define WIN32_LEAN_AND_MEAN 1
+ #endif
+ #include <windows.h>
+#endif
+
 namespace KeyListenerTestValues
 {
     const juce::String testName     = "KeyboardListener";
@@ -27,13 +37,13 @@ namespace KeyListenerTestValues
     const juce::String mapKeyMidiOReturns1WhenFinishNote101 = "mapKeyMidi - 'O' returns -1 when finishNote > 101";
     const juce::String mapKeyMidiLReturns1WhenFinishNote101 = "mapKeyMidi - 'L' returns -1 when finishNote > 101";
     const juce::String mapKeyMidiPReturns1WhenFinishNote101 = "mapKeyMidi - 'P' returns -1 when finishNote > 101";
-    const juce::String mapKeyMidiReturns1WhenFinishNote101 = "mapKeyMidi - ';' returns -1 when finishNote > 101";
-    const juce::String mapKeyMidiApostropheReturns1WhenFinishNote101 = "mapKeyMidi - apostrophe returns -1 when finishNote > 101";
+    const juce::String mapKeyMidiReturns1WhenFinishNote101 = "mapKeyMidi - the key right of L (';' on US) returns -1 when finishNote > 101";
+    const juce::String mapKeyMidiApostropheReturns1WhenFinishNote101 = "mapKeyMidi - the second key right of L (apostrophe on US) returns -1 when finishNote > 101";
     const juce::String mapKeyMidiCustomStartNoteShiftsAllMappings = "mapKeyMidi - custom startNote shifts all mappings";
     const juce::String resetStateClearsInternalMapsWithoutCrash = "resetState - clears internal maps without crash";
     const juce::String mapKeyMidiOMapsToStartNote13When = "mapKeyMidi - 'O' maps to startNote+13 when finishNote <= 101";
     const juce::String mapKeyMidiLMapsToStartNote14When = "mapKeyMidi - 'L' maps to startNote+14 when finishNote <= 101";
-    const juce::String mapKeyMidiApostropheMapsToStartNote17When = "mapKeyMidi - apostrophe maps to startNote+17 when finishNote <= 101";
+    const juce::String mapKeyMidiApostropheMapsToStartNote17When = "mapKeyMidi - the second key right of L (apostrophe on US) maps to startNote+17 when finishNote <= 101, on any layout";
     const juce::String mapKeyMidiTMapsToStartNote6 = "mapKeyMidi - 'T' maps to startNote + 6";
     const juce::String mapKeyMidiGMapsToStartNote7 = "mapKeyMidi - 'G' maps to startNote + 7";
     const juce::String mapKeyMidiYMapsToStartNote8 = "mapKeyMidi - 'Y' maps to startNote + 8";
@@ -43,13 +53,13 @@ namespace KeyListenerTestValues
     const juce::String mapKeyMidiUMapsToStartNote10 = "mapKeyMidi - 'U' maps to startNote + 10";
     const juce::String mapKeyMidiJMapsToStartNote11 = "mapKeyMidi - 'J' maps to startNote + 11";
     const juce::String mapKeyMidiPMapsToStartNote15When = "mapKeyMidi - 'P' maps to startNote+15 when finishNote <= 101";
-    const juce::String mapKeyMidiMapsToStartNote16WhenFinishNote = "mapKeyMidi - ';' maps to startNote+16 when finishNote <= 101";
+    const juce::String mapKeyMidiMapsToStartNote16WhenFinishNote = "mapKeyMidi - the key right of L (';' on US) maps to startNote+16 when finishNote <= 101, on any layout";
     const juce::String mapKeyMidiCustomStartNoteShiftsTGY = "mapKeyMidi - custom startNote shifts T, G, Y, U, J mappings";
     const juce::String keyPressedReturnsFalseWhenKeyboardInputIs = "keyPressed - returns false when keyboard input is disabled";
     const juce::String keyPressedReturnsFalseWhenKeyboardInputIs2 = "keyPressed - returns false when keyboard input is enabled";
     const juce::String keyPressedUnmappedKeyDoesNotCrashWhen = "keyPressed - unmapped key does not crash when enabled";
 
-    // Key codes of the PC keys the listener maps (and two it does not).
+    // The US characters of the PC keys the listener maps (and two it does not).
     constexpr int keyCodeA = 'A';
     constexpr int keyCodeW = 'W';
     constexpr int keyCodeS = 'S';
@@ -70,6 +80,45 @@ namespace KeyListenerTestValues
     constexpr int keyCodeApostrophe = '\'';
     constexpr int keyCodeX = 'X';
     constexpr int keyCodeZ = 'Z';
+
+    // Where those keys sit (PS/2 set-1 scan codes). The listener maps key positions, not characters,
+    // so a test presses a position and lets the active layout say which character it types:
+    // on a Romanian layout the key right of L types s-comma, not ';' (the 2026-11-23 failures).
+    constexpr int scanCodeA = 0x1E;
+    constexpr int scanCodeW = 0x11;
+    constexpr int scanCodeS = 0x1F;
+    constexpr int scanCodeE = 0x12;
+    constexpr int scanCodeD = 0x20;
+    constexpr int scanCodeF = 0x21;
+    constexpr int scanCodeT = 0x14;
+    constexpr int scanCodeG = 0x22;
+    constexpr int scanCodeY = 0x15;
+    constexpr int scanCodeH = 0x23;
+    constexpr int scanCodeU = 0x16;
+    constexpr int scanCodeJ = 0x24;
+    constexpr int scanCodeK = 0x25;
+    constexpr int scanCodeO = 0x18;
+    constexpr int scanCodeL = 0x26;
+    constexpr int scanCodeP = 0x19;
+    constexpr int scanCodeSemicolon = 0x27;
+    constexpr int scanCodeApostrophe = 0x28;
+    constexpr int scanCodeX = 0x2D;
+    constexpr int scanCodeZ = 0x2C;
+    constexpr int currentThread = 0;   // GetKeyboardLayout(0): the layout of the calling thread
+
+    /** The key press JUCE hands keyPressed() for the key at this position under the active layout
+        (the US character where there is no layout lookup). */
+    juce::KeyPress keyAt ([[maybe_unused]] int scanCode, [[maybe_unused]] int usCharacter)
+    {
+       #if JUCE_WINDOWS
+        const auto layout = GetKeyboardLayout (currentThread);
+        const auto virtualKey = MapVirtualKeyExW (static_cast<UINT> (scanCode), MAPVK_VSC_TO_VK, layout);
+        const auto character = static_cast<int> (LOWORD (MapVirtualKeyExW (virtualKey, MAPVK_VK_TO_CHAR, layout)));
+        return juce::KeyPress (character);
+       #else
+        return juce::KeyPress (usCharacter);
+       #endif
+    }
 
     // Semitones above the start note that each key plays.
     constexpr int offsetA = 0;
@@ -197,7 +246,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyA(keyCodeA);
+            const auto keyA = keyAt (scanCodeA, keyCodeA);
             expect(listener.mapKeyMidi(keyA) == defaultStartNote + offsetA);
         }
 
@@ -207,7 +256,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyW(keyCodeW);
+            const auto keyW = keyAt (scanCodeW, keyCodeW);
             expect(listener.mapKeyMidi(keyW) == defaultStartNote + offsetW);
         }
 
@@ -217,7 +266,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyS(keyCodeS);
+            const auto keyS = keyAt (scanCodeS, keyCodeS);
             expect(listener.mapKeyMidi(keyS) == defaultStartNote + offsetS);
         }
 
@@ -227,7 +276,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyE(keyCodeE);
+            const auto keyE = keyAt (scanCodeE, keyCodeE);
             expect(listener.mapKeyMidi(keyE) == defaultStartNote + offsetE);
         }
 
@@ -237,7 +286,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyD(keyCodeD);
+            const auto keyD = keyAt (scanCodeD, keyCodeD);
             expect(listener.mapKeyMidi(keyD) == defaultStartNote + offsetD);
         }
 
@@ -247,7 +296,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyF(keyCodeF);
+            const auto keyF = keyAt (scanCodeF, keyCodeF);
             expect(listener.mapKeyMidi(keyF) == defaultStartNote + offsetF);
         }
 
@@ -257,7 +306,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyK(keyCodeK);
+            const auto keyK = keyAt (scanCodeK, keyCodeK);
             expect(listener.mapKeyMidi(keyK) == defaultStartNote + offsetK);
         }
 
@@ -267,7 +316,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyH(keyCodeH);
+            const auto keyH = keyAt (scanCodeH, keyCodeH);
             expect(listener.mapKeyMidi(keyH) == defaultStartNote + offsetH);
         }
 
@@ -277,10 +326,10 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyZ(keyCodeZ);
+            const auto keyZ = keyAt (scanCodeZ, keyCodeZ);
             expect(listener.mapKeyMidi(keyZ) == unmappedKey);
 
-            juce::KeyPress keyX(keyCodeX);
+            const auto keyX = keyAt (scanCodeX, keyCodeX);
             expect(listener.mapKeyMidi(keyX) == unmappedKey);
         }
 
@@ -293,7 +342,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setStartNoteKeyboardInput(startNoteTooLow);  // below 24
-            juce::KeyPress keyA(keyCodeA);
+            const auto keyA = keyAt (scanCodeA, keyCodeA);
             expect(listener.mapKeyMidi(keyA) == unmappedKey);
         }
 
@@ -304,7 +353,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setStartNoteKeyboardInput(startNoteFarTooLow);
-            juce::KeyPress keyW(keyCodeW);
+            const auto keyW = keyAt (scanCodeW, keyCodeW);
             expect(listener.mapKeyMidi(keyW) == unmappedKey);
         }
 
@@ -315,7 +364,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setFinishNoteKeyboardInput(finishNoteTooHigh);  // above 101
-            juce::KeyPress keyO(keyCodeO);
+            const auto keyO = keyAt (scanCodeO, keyCodeO);
             expect(listener.mapKeyMidi(keyO) == unmappedKey);
         }
 
@@ -326,7 +375,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setFinishNoteKeyboardInput(finishNoteFarTooHigh);
-            juce::KeyPress keyL(keyCodeL);
+            const auto keyL = keyAt (scanCodeL, keyCodeL);
             expect(listener.mapKeyMidi(keyL) == unmappedKey);
         }
 
@@ -337,7 +386,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setFinishNoteKeyboardInput(finishNoteJustTooHigh);
-            juce::KeyPress keyP(keyCodeP);
+            const auto keyP = keyAt (scanCodeP, keyCodeP);
             expect(listener.mapKeyMidi(keyP) == unmappedKey);
         }
 
@@ -348,7 +397,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setFinishNoteKeyboardInput(finishNoteWayTooHigh);
-            juce::KeyPress keySemicolon(keyCodeSemicolon);
+            const auto keySemicolon = keyAt (scanCodeSemicolon, keyCodeSemicolon);
             expect(listener.mapKeyMidi(keySemicolon) == unmappedKey);
         }
 
@@ -359,7 +408,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setFinishNoteKeyboardInput(finishNoteStillTooHigh);
-            juce::KeyPress keyApostrophe(keyCodeApostrophe);
+            const auto keyApostrophe = keyAt (scanCodeApostrophe, keyCodeApostrophe);
             expect(listener.mapKeyMidi(keyApostrophe) == unmappedKey);
         }
 
@@ -373,16 +422,16 @@ public:
 
             listener.setStartNoteKeyboardInput(customStartNote);
 
-            juce::KeyPress keyA(keyCodeA);
+            const auto keyA = keyAt (scanCodeA, keyCodeA);
             expect(listener.mapKeyMidi(keyA) == customStartNote + offsetA);
 
-            juce::KeyPress keyW(keyCodeW);
+            const auto keyW = keyAt (scanCodeW, keyCodeW);
             expect(listener.mapKeyMidi(keyW) == customStartNote + offsetW);
 
-            juce::KeyPress keyK(keyCodeK);
+            const auto keyK = keyAt (scanCodeK, keyCodeK);
             expect(listener.mapKeyMidi(keyK) == customStartNote + offsetK);
 
-            juce::KeyPress keyH(keyCodeH);
+            const auto keyH = keyAt (scanCodeH, keyCodeH);
             expect(listener.mapKeyMidi(keyH) == customStartNote + offsetH);
         }
 
@@ -395,9 +444,9 @@ public:
             KeyboardListener listener(handler);
 
             // map some keys first
-            juce::KeyPress keyA(keyCodeA);
+            const auto keyA = keyAt (scanCodeA, keyCodeA);
             listener.mapKeyMidi(keyA);
-            juce::KeyPress keyW(keyCodeW);
+            const auto keyW = keyAt (scanCodeW, keyCodeW);
             listener.mapKeyMidi(keyW);
 
             listener.resetState();
@@ -417,7 +466,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setFinishNoteKeyboardInput(allowedFinishNote);
-            juce::KeyPress keyO(keyCodeO);
+            const auto keyO = keyAt (scanCodeO, keyCodeO);
             expect(listener.mapKeyMidi(keyO) == defaultStartNote + offsetO);
         }
 
@@ -428,7 +477,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setFinishNoteKeyboardInput(lowerFinishNote);
-            juce::KeyPress keyL(keyCodeL);
+            const auto keyL = keyAt (scanCodeL, keyCodeL);
             expect(listener.mapKeyMidi(keyL) == defaultStartNote + offsetL);
         }
 
@@ -439,7 +488,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setFinishNoteKeyboardInput(finishNoteAt95);
-            juce::KeyPress keyApostrophe(keyCodeApostrophe);
+            const auto keyApostrophe = keyAt (scanCodeApostrophe, keyCodeApostrophe);
             expect(listener.mapKeyMidi(keyApostrophe) == defaultStartNote + offsetApostrophe);
         }
 
@@ -451,7 +500,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyT(keyCodeT);
+            const auto keyT = keyAt (scanCodeT, keyCodeT);
             expect(listener.mapKeyMidi(keyT) == defaultStartNote + offsetT);
         }
 
@@ -461,7 +510,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyG(keyCodeG);
+            const auto keyG = keyAt (scanCodeG, keyCodeG);
             expect(listener.mapKeyMidi(keyG) == defaultStartNote + offsetG);
         }
 
@@ -471,7 +520,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyY(keyCodeY);
+            const auto keyY = keyAt (scanCodeY, keyCodeY);
             expect(listener.mapKeyMidi(keyY) == defaultStartNote + offsetY);
         }
 
@@ -482,7 +531,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setStartNoteKeyboardInput(startNoteTooLow);
-            juce::KeyPress keyT(keyCodeT);
+            const auto keyT = keyAt (scanCodeT, keyCodeT);
             expect(listener.mapKeyMidi(keyT) == unmappedKey);
         }
 
@@ -493,7 +542,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setStartNoteKeyboardInput(startNoteFarTooLow);
-            juce::KeyPress keyG(keyCodeG);
+            const auto keyG = keyAt (scanCodeG, keyCodeG);
             expect(listener.mapKeyMidi(keyG) == unmappedKey);
         }
 
@@ -504,7 +553,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setStartNoteKeyboardInput(startNoteStillTooLow);
-            juce::KeyPress keyY(keyCodeY);
+            const auto keyY = keyAt (scanCodeY, keyCodeY);
             expect(listener.mapKeyMidi(keyY) == unmappedKey);
         }
 
@@ -516,7 +565,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyU(keyCodeU);
+            const auto keyU = keyAt (scanCodeU, keyCodeU);
             expect(listener.mapKeyMidi(keyU) == defaultStartNote + offsetU);
         }
 
@@ -526,7 +575,7 @@ public:
             MidiHandler handler(device);
             KeyboardListener listener(handler);
 
-            juce::KeyPress keyJ(keyCodeJ);
+            const auto keyJ = keyAt (scanCodeJ, keyCodeJ);
             expect(listener.mapKeyMidi(keyJ) == defaultStartNote + offsetJ);
         }
 
@@ -539,7 +588,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setFinishNoteKeyboardInput(lowerFinishNote);
-            juce::KeyPress keyP(keyCodeP);
+            const auto keyP = keyAt (scanCodeP, keyCodeP);
             expect(listener.mapKeyMidi(keyP) == defaultStartNote + offsetP);
         }
 
@@ -550,7 +599,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setFinishNoteKeyboardInput(lowerFinishNote);
-            juce::KeyPress keySemicolon(keyCodeSemicolon);
+            const auto keySemicolon = keyAt (scanCodeSemicolon, keyCodeSemicolon);
             expect(listener.mapKeyMidi(keySemicolon) == defaultStartNote + offsetSemicolon);
         }
 
@@ -564,19 +613,19 @@ public:
 
             listener.setStartNoteKeyboardInput(customStartNote);
 
-            juce::KeyPress keyT(keyCodeT);
+            const auto keyT = keyAt (scanCodeT, keyCodeT);
             expect(listener.mapKeyMidi(keyT) == customStartNote + offsetT);  // 48 + 6
 
-            juce::KeyPress keyG(keyCodeG);
+            const auto keyG = keyAt (scanCodeG, keyCodeG);
             expect(listener.mapKeyMidi(keyG) == customStartNote + offsetG);  // 48 + 7
 
-            juce::KeyPress keyY(keyCodeY);
+            const auto keyY = keyAt (scanCodeY, keyCodeY);
             expect(listener.mapKeyMidi(keyY) == customStartNote + offsetY);  // 48 + 8
 
-            juce::KeyPress keyU(keyCodeU);
+            const auto keyU = keyAt (scanCodeU, keyCodeU);
             expect(listener.mapKeyMidi(keyU) == customStartNote + offsetU);  // 48 + 10
 
-            juce::KeyPress keyJ(keyCodeJ);
+            const auto keyJ = keyAt (scanCodeJ, keyCodeJ);
             expect(listener.mapKeyMidi(keyJ) == customStartNote + offsetJ);  // 48 + 11
         }
 
@@ -589,7 +638,7 @@ public:
             KeyboardListener listener(handler);
 
             // keyboard input is disabled by default
-            juce::KeyPress keyA(keyCodeA);
+            const auto keyA = keyAt (scanCodeA, keyCodeA);
             expect(listener.keyPressed(keyA, nullptr) == false);
         }
 
@@ -600,7 +649,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setIsKeyboardInput(true);
-            juce::KeyPress keyA(keyCodeA);
+            const auto keyA = keyAt (scanCodeA, keyCodeA);
             // keyPressed always returns false regardless of key validity
             expect(listener.keyPressed(keyA, nullptr) == false);
         }
@@ -612,7 +661,7 @@ public:
             KeyboardListener listener(handler);
 
             listener.setIsKeyboardInput(true);
-            juce::KeyPress keyZ(keyCodeZ);
+            const auto keyZ = keyAt (scanCodeZ, keyCodeZ);
             expect(listener.keyPressed(keyZ, nullptr) == false);
         }
     }
