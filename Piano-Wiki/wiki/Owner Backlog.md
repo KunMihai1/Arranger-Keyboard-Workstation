@@ -43,7 +43,12 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 ## 1b. UI refinement (owner, 2026-11-22) — after section 1, before the TODO file; owner reviews it first
 - **Most important (owner): it must NOT look AI-generated** — a real-music-gear, human-designed look (think
   hardware keyboards, studio gear), not generic gradients/glows/rounded cards.
-- 🟡 **Design done, spec awaiting approval (2026-11-23):** owner picked direction A "Stage" (matte charcoal
+- 🟡 **Building phase 1, the Stage panel (2026-11-23):** spec + plan approved
+  (`docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md`). Owner changed the panel layout
+  (labels ran into each other, buttons too tight): Rec/File/Sync Start/Stop/Start moved to the right third,
+  Quick FX down to Volume + Reverb, Auto Fill stays with the sections. Task 1 (embedded fonts, `c38fb13`)
+  and Task 2 (palette, metrics, scaling, `6291080`) done; next Task 3 (tempo/lamp/message/page models).
+- Design (2026-11-23): owner picked direction A "Stage" (matte charcoal
   hardware panel), revised: slim panel, bigger centred screen, beat lamps in the app's colours, every
   feature on the panel or a page, realistic keys, real knobs/faders, new smooth Dust, six instrument
   finishes (Korg-edition quality, original), Sections editor v2, tempo hold/type/wheel/reset, Remember me.

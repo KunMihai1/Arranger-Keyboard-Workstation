@@ -13,6 +13,23 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-23 — Stage panel re-laid out; Stage fonts embedded
+- Owner: panel labels must not run into each other and the buttons were too tight. Measured with the
+  real font: section buttons 32 px apart, "INTRO 2/3" 32.8 px, "AUTO FILL" 42.9 px, "SYNC ST." 38.1 px;
+  21 buttons cannot fit the 280 × 110 px left third with real gaps. Owner chose: transport (Rec, File /
+  Sync Start, Stop, Start) moves to the right third, Quick FX keeps Volume + Reverb (Chorus and
+  Brightness stay on the Effects page), Auto Fill stays on the left after Fill 4. LEDs now sit beside
+  the buttons; labels ≥ 12.2 px apart, buttons ≥ 20 px. Board, spec §2/§3.3/§4.2, part 2 map and plan
+  updated (`f946646`).
+- Plan Task 1: Barlow Semi Condensed (Medium, SemiBold) + Share Tech Mono (SIL OFL 1.1) in
+  `Resources/Fonts/`, in BinaryData of both `.jucer`s; `Source/UI/Stage/StageFonts` (`c38fb13`).
+  Found: DirectWrite names Barlow as family "Barlow" + style "Semi Condensed SemiBold".
+- Plan Task 2 (`6291080`): `StagePalette` (spec §3.1) in `AppColours.h`, `StageMetrics.h` (board sizes,
+  new layout), `StageScale::regionsFor` (scale = min (w / 1200, h / 645); 1920 × 1032 → panel 198,
+  felt 6, notes 585, keys 224, slip 19; note area never negative).
+- Tests: unit 957 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped). App builds.
+- Owner: plan tasks (and their wiki sync) are committed without asking once green; push/PR still asked.
+
 ## 2026-11-23 — UI redesign designed with the owner; spec written
 - Mock-ups on a private canvas, iterated with the owner: three real-gear directions → A "Stage" chosen and
   revised (slim panel, centred bigger screen); beat lamps in the app's red/yellow; every feature mapped to
