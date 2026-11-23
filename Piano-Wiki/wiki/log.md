@@ -13,6 +13,18 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-23 — Stage panel branch review (plan Task 9)
+- Sonnet review of `main..feat/ui-stage-panel`, every claim checked against the code. Fixed (`92a5803`): chords from a
+  hardware keyboard updated the Stage screen on the MIDI input thread (now `callAsync` + `SafePointer`); every tempo
+  step committed to the style and re-scaled all tracks (up to 33×/s while holding Tempo +) — holds and drags now
+  commit once on release, like the old BPM slider, and the refresh no longer pulls the screen back mid-gesture; a
+  quick knob turned with no part chosen stayed moved (springs back now). All three checked live.
+- Rejected with reasons: section LED sync on other paths (no failing path), note-layer restore order with the
+  arranger overlay (the overlay closes first), "/4" label (nothing sets a denominator today), per-tick screen refresh
+  (same rate as the old beat bar; repaints coalesce).
+- Repeatable manual check for the wiring added to the visual test plan (`d4fb477`).
+- Tests: unit 1501 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 8 / 0. Next: PR (owner's go).
+
 ## 2026-11-23 — Reference PNGs (plan Task 8); 1:1 visual check write-up; message fix
 - Boards rendered without the design canvas (`7a9d799`): `specs/assets/2026-11-23-ui-redesign/render/render.sh`
   (headless Edge + stand-in runtime `support.js`, `<dc-import>` supported) → 16 PNGs at 2× in `png/`; a second run

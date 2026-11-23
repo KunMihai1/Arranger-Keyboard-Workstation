@@ -11,8 +11,8 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-23. **UI redesign phase 1 (Stage panel) on `feat/ui-stage-panel`:** Tasks 1-8 committed and the 1:1 check
-written up (`37d0ce9`). Next: Sonnet review, then the PR (ask the owner first). Detail in [[log]].
+2026-11-23. **UI redesign phase 1 (Stage panel) on `feat/ui-stage-panel`:** Tasks 1-9 done (1:1 check `37d0ce9`,
+review fixes `92a5803`). Next: the PR, after the owner's go. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -28,7 +28,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 1488, arranger 770, integration 130 (+7 skipped), display 8**.
+  Current: **unit 1501, arranger 770, integration 130 (+7 skipped), display 8**.
 - Visual checks: screenshot/click the app's largest window; boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
