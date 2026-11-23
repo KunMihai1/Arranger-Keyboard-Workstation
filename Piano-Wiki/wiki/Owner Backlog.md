@@ -43,15 +43,16 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 ## 1b. UI refinement (owner, 2026-11-22) — after section 1, before the TODO file; owner reviews it first
 - **Most important (owner): it must NOT look AI-generated** — a real-music-gear, human-designed look (think
   hardware keyboards, studio gear), not generic gradients/glows/rounded cards.
-- 🟡 **Building phase 1, the Stage panel (2026-11-23):** spec + plan approved
+- ✅ **Phase 1, the Stage panel — merged 2026-11-23 (PR #61, `908891f`):** spec + plan approved
   (`docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md`). Owner changed the panel layout
   (labels ran into each other, buttons too tight): Rec/File/Sync Start/Stop/Start moved to the right third,
   Quick FX down to Volume + Reverb, Auto Fill stays with the sections. Task 1 (embedded fonts, `c38fb13`)
   Task 2 (palette, metrics, scaling, `6291080`) and Task 3 (models, `017837b`) , Task 4 (rubber
   buttons + knobs, `6cb3f71`), Task 5 (screen, `3e2d85d`) and Task 6 (panel, `11d1b82`) done; Task 7 (wire the
   panel into the app, `d425e08`) live-checked 2026-11-23; Task 8 (reference PNGs rendered locally, owner's
-  choice, `7a9d799`), the 1:1 check write-up (`37d0ce9`) and the Sonnet review (fixes `92a5803`) done; next the PR
-  (ask first). Owner reports fixed: knobs turn like real knobs, knob lag (save on
+  choice, `7a9d799`), the 1:1 check write-up (`37d0ce9`) and the Sonnet review (fixes `92a5803`) done; merged.
+  Owner to try: playback with a style that has tracks, chords from a hardware keyboard (manual check steps 6, 10).
+  Next phases (keys, each page, Dust, finishes, sign-in) need their own plans. Owner reports fixed: knobs turn like real knobs, knob lag (save on
   release), hand cursor on every button, LED glow cut on the left; key tests failing on the Romanian layout.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and

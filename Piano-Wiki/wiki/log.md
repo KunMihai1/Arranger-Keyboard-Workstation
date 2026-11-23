@@ -13,6 +13,13 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-23 — UI redesign phase 1 merged (PR #61)
+- `feat/ui-stage-panel` merged into `main` (`908891f`, merge commit as usual). CI: unit 1501 / 0, arranger 770 / 0,
+  integration 95 / 0 (+13 skipped: no MIDI hardware or display on the runner, same as `main`), names 0, 800-line OK.
+- `gh` is now installed system-wide (`C:\Program Files\GitHub CLI\gh.exe`) and git's credential helper uses it.
+- Still for the owner to try: real playback with a style that has tracks, and chords from a hardware keyboard
+  (steps 6 and 10 of `docs/superpowers/test-plans/2026-11-23-ui-redesign-phase1-visual.md`).
+
 ## 2026-11-23 — Stage panel branch review (plan Task 9)
 - Sonnet review of `main..feat/ui-stage-panel`, every claim checked against the code. Fixed (`92a5803`): chords from a
   hardware keyboard updated the Stage screen on the MIDI input thread (now `callAsync` + `SafePointer`); every tempo

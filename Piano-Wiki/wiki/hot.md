@@ -11,8 +11,8 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-23. **UI redesign phase 1 (Stage panel) on `feat/ui-stage-panel`:** Tasks 1-9 done (1:1 check `37d0ce9`,
-review fixes `92a5803`). Next: the PR, after the owner's go. Detail in [[log]].
+2026-11-23. **UI redesign phase 1 (Stage panel) merged** (PR #61, `908891f`). Owner to try playback with
+tracks and hardware-keyboard chords. Next phases (keys, pages, Dust, finishes, sign-in) need plans. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -47,7 +47,7 @@ Full task list with states: [[Owner Backlog]].
   token) awaits owner sign-off: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
 - 🟡 **UI redesign** ("Stage" panel, pages, real keys/knobs, new Dust, six finishes, Remember me):
   spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2, plan
-  `docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md` (Tasks 1-7 done). Owner: same look on
+  `docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md` (phase 1 merged, PR #61). Owner: same look on
   every resolution; agent checks the running app **1:1** against the boards before finishing.
 - ✅ **Arranger hard testing** done. Owner: style switch while playing applies on the next Start; any
   section may start; restore-down stays work-area sized.
