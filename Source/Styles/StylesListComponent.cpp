@@ -1,4 +1,6 @@
 #include "displayGUI.h"
+#include "PersistedKeys.h"
+#include "UI/Stage/StageMetrics.h"
 
 namespace
 {
@@ -13,69 +15,117 @@ namespace
         const juce::String fallbackStylePrefix = "Style ";
     }
 
-    constexpr int   controlBarHeight   = 24;
-    constexpr int   buttonWidth        = 80;
-    constexpr int   buttonHeight       = 20;
-    constexpr int   spacing            = 10;
-    constexpr int   columns            = 2;
-    constexpr int   gapsBetweenColumns = 1;       // keep at columns - 1 (two columns, one gap)
-    constexpr int   paddedSides        = 2;       // left and right
-    constexpr int   trailingGap        = 1;       // a gap after the last row too
-    constexpr int   itemHeight         = 50;
-    constexpr int   centringDivisor    = 2;
-    constexpr int   halvingDivisor     = 2;
-    constexpr int   leftEdge           = 0;
-    constexpr int   topEdge            = 0;
-    constexpr int   separatorRowOffset = 1;       // the separator sits on the bar's last pixel row
-    constexpr float headerGlow         = 0.05f;
-    constexpr float separatorStartX    = 0.0f;
-    constexpr float separatorThickness = 1.0f;
+    // Board StageRevised openPage=styles: heading, list 8 below it, buttons 8 below the list, 6 apart.
+    constexpr int sectionGap    = 8;
+    constexpr int buttonGap     = 6;
+    constexpr int panelPaddings = 2;   // the list's padding above and below its rows
 }
 
 StylesListComponent::StylesListComponent(std::vector<juce::String> stylesNamesOut, std::function<void(const juce::String&)> onStyleClicked, int widthSize) : stylesNames{stylesNamesOut}, onStyleClicked{onStyleClicked}
 {
     addAndMakeVisible(addButton);
-
-    addButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    addButton.setLookAndFeel(&laf);
-    addButton.setColour(juce::TextButton::buttonColourId, AppColours::accent7);
+    addAndMakeVisible(renameButton);
+    addAndMakeVisible(deleteButton);
 
     addButton.onClick = [this]()
     {
         addNewStyle();
+    };
+    renameButton.onClick = [this]()
+    {
+        if (auto* row = openRow())
+            row->changeNameLabel();
+    };
+    deleteButton.onClick = [this]()
+    {
+        if (auto* row = openRow())
+            row->removeStyle();
     };
 
     this->widthSize = widthSize;
 
     styleItemsContainer = std::make_unique<juce::Component>();
     viewport.setViewedComponent(styleItemsContainer.get(), false);
+    viewport.setScrollBarsShown(true, false);
     addAndMakeVisible(viewport);
 
     populate();
+    refreshRows();
 }
 
 void StylesListComponent::resized()
 {
-
+    using namespace StageMetrics;
     this->widthSize = getWidth();
+    auto scaled = [this] (int boardLength) { return juce::roundToInt(static_cast<float>(boardLength) * scale); };
 
-    addButton.setBounds(spacing / halvingDivisor, (controlBarHeight - buttonHeight) / centringDivisor, buttonWidth, buttonHeight);
-    viewport.setBounds(leftEdge, controlBarHeight, getWidth(), getHeight() - controlBarHeight);
+    // Heading, then the LCD list as tall as its rows (up to the room left above the buttons), then the buttons.
+    const auto listTop    = scaled(headingHeight + sectionGap);
+    const auto rowsHeight = allStyles.size() * scaled(lcdRowHeight) + scaled(lcdListPadding) * panelPaddings;
+    const auto maxHeight  = getHeight() - listTop - scaled(sectionGap + segHeight);
+    listBounds = { int {}, listTop, getWidth(), juce::jmax(int {}, juce::jmin(rowsHeight, maxHeight)) };
+    viewport.setBounds(listBounds.reduced(int {}, scaled(lcdListPadding)));
+
+    int buttonX {};
+    const auto buttonsTop = listBounds.getBottom() + scaled(sectionGap);
+    for (auto* button : { &addButton, &renameButton, &deleteButton })
+    {
+        button->setScale(scale);
+        button->setBounds(buttonX, buttonsTop, button->getPreferredWidth(), button->getPreferredHeight());
+        buttonX += button->getPreferredWidth() + scaled(buttonGap);
+    }
 
     layoutStyles();
 }
 
 void StylesListComponent::paint(juce::Graphics& g)
 {
-    g.fillAll(AppColours::panelBg);
+    StageLcd::paintHeading(g, getLocalBounds().toFloat().withHeight(static_cast<float>(StageMetrics::headingHeight) * scale),
+                           scale, StylesListText::heading, {});
+    StageLcd::paintPanel(g, listBounds.toFloat(), scale);
+}
 
-    juce::ColourGradient gradient(AppColours::cardBg.brighter(headerGlow), leftEdge, topEdge,
-                                  AppColours::cardBg, leftEdge, (float)controlBarHeight, false);
-    g.setGradientFill(gradient);
-    g.fillRect(leftEdge, topEdge, getWidth(), controlBarHeight);
+void StylesListComponent::setOpenStyle(const juce::String& name)
+{
+    openStyle = name;
+    refreshRows();
+}
 
-    g.setColour(AppColours::separator);
-    g.drawLine(separatorStartX, (float)(controlBarHeight - separatorRowOffset), (float)getWidth(), (float)(controlBarHeight - separatorRowOffset), separatorThickness);
+juce::String StylesListComponent::getOpenStyle() const { return openStyle; }
+
+void StylesListComponent::setScale(float newScale)
+{
+    scale = newScale;
+    for (auto* row : allStyles)
+        row->setScale(scale);
+    resized();
+    repaint();
+}
+
+juce::Rectangle<int> StylesListComponent::getListBounds() const { return listBounds; }
+SegButton& StylesListComponent::getAddButton()    { return addButton; }
+SegButton& StylesListComponent::getRenameButton() { return renameButton; }
+SegButton& StylesListComponent::getDeleteButton() { return deleteButton; }
+
+StyleViewComponent* StylesListComponent::openRow() const
+{
+    for (auto* row : allStyles)
+        if (row->getNameLabel() == openStyle)
+            return row;
+    return nullptr;
+}
+
+void StylesListComponent::refreshRows()
+{
+    for (auto* row : allStyles)
+    {
+        row->setScale(scale);
+        row->setOpen(row->getNameLabel() == openStyle);
+    }
+    // DEFAULT Style cannot be renamed or deleted (as its right-click menu says).
+    const bool editable = openRow() != nullptr && openStyle != StyleNames::defaultStyle;
+    renameButton.setEnabled(editable);
+    deleteButton.setEnabled(editable);
 }
 
 void StylesListComponent::setWidthSize(const int newWidth)
@@ -85,35 +135,16 @@ void StylesListComponent::setWidthSize(const int newWidth)
 
 void StylesListComponent::layoutStyles()
 {
-    const int sidePadding = spacing;
-
-    const int totalSpacing = gapsBetweenColumns * spacing + paddedSides * sidePadding;
-    const int itemWidth = (getWidth() - totalSpacing) / columns;
-
-    int itemX = sidePadding;
-    int itemY = spacing;
-
-    int placedCount {};
+    // One LCD row per style, top to bottom.
+    const auto rowHeight = juce::roundToInt(static_cast<float>(StageMetrics::lcdRowHeight) * scale);
+    const auto rowWidth  = viewport.getMaximumVisibleWidth();
+    int rowTop {};
     for (auto* style : allStyles)
     {
-        style->setBounds(itemX, itemY, itemWidth, itemHeight);
-        placedCount++;
-
-        if (placedCount % columns == int{})
-        {
-            itemX = sidePadding;
-            itemY += itemHeight + spacing;
-        }
-        else
-        {
-            itemX += itemWidth + spacing;
-        }
+        style->setBounds(int {}, rowTop, rowWidth, rowHeight);
+        rowTop += rowHeight;
     }
-
-    int rows = static_cast<int>(std::ceil(allStyles.size() / (float)columns));
-    int totalHeight = rows * itemHeight + (rows + trailingGap) * spacing;
-
-    styleItemsContainer->setSize(getWidth(), totalHeight);
+    styleItemsContainer->setSize(rowWidth, rowTop);
 }
 
 void StylesListComponent::repopulate()
@@ -123,6 +154,7 @@ void StylesListComponent::repopulate()
         stylesNames.push_back(styleView->getNameLabel());
 
     populate();
+    refreshRows();
     resized();
 }
 
@@ -170,6 +202,7 @@ void StylesListComponent::addNewStyle()
                 stylesNames.push_back(newName);
                 styleItemsContainer->addAndMakeVisible(newStyle);
                 allStyles.add(newStyle);
+                refreshRows();
                 resized(); // instead of repopulating, we just layout the styles again ( repopulating would mean creating all the lambdas again and so on )
 
                 juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::styleAddedTitle, Text::styleAddedStart + newName + Text::styleAddedEnd);
@@ -190,7 +223,10 @@ void StylesListComponent::allCallBacks(StyleViewComponent* newStyle, const juce:
 
     newStyle->onStyleRenamed = [this](const juce::String& oldName, const juce::String& newName)
     {
+        if (oldName == openStyle)
+            openStyle = newName;   // the open style keeps its mark under its new name
         onStyleRename(oldName, newName);
+        refreshRows();
     };
 
     newStyle->onStyleRemoveComponent = [this](const juce::String& name)
@@ -230,12 +266,16 @@ void StylesListComponent::removeStyleLocally(const juce::String& name)
     for (auto* styleView : allStyles)
         stylesNames.push_back(styleView->getNameLabel());
 
+    if (name == openStyle)
+        openStyle = {};
+
     if (onStyleRemove)
         onStyleRemove(name);
 
     styleItemsContainer->removeAllChildren();
     allStyles.clear();
     populate();
+    refreshRows();
     resized();
 }
 
@@ -246,6 +286,7 @@ void StylesListComponent::addStyleLocally(const juce::String& newName)
     styleItemsContainer->removeAllChildren();
     allStyles.clear();
     populate();
+    refreshRows();
     resized();
 }
 

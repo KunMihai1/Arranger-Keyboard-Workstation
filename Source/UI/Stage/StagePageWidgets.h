@@ -112,11 +112,18 @@ public:
 
     void paint (juce::Graphics& g) override;
 
+    /** The cap follows the hand: a drag moves it by the mouse's travel (Slider's own drag maps the
+        whole component height, so the cap lagged behind the mouse). Press and release stay Slider's,
+        so onDragStart / onDragEnd still fire. */
+    void mouseDown (const juce::MouseEvent& event) override;
+    void mouseDrag (const juce::MouseEvent& event) override;
+
 private:
     float scaled (float referenceLength) const;
     float scaled (int referenceLength) const;
 
     float scale { StageMetrics::referenceScale };
+    double valueAtGrab {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StageFader)
 };

@@ -1,7 +1,15 @@
 #pragma once
 #include <JuceHeader.h>
 #include "StyleViewComponent.h"
-#include "PlayScreenLookAndFeel.h"
+#include "UI/Stage/StagePageWidgets.h"
+
+namespace StylesListText
+{
+    inline const juce::String heading   = "Styles";
+    inline const juce::String add       = "Add";
+    inline const juce::String rename    = "Rename";
+    inline const juce::String remove    = "Delete";
+}
 
 /**
  * @class StylesListComponent
@@ -88,19 +96,35 @@ public:
     /** @brief Rebuilds the internal vector of style names from the current components. */
     void rebuildStyleNames();
 
+    /** The open style's row is marked; Rename and Delete act on it (DEFAULT Style: disabled). */
+    void setOpenStyle(const juce::String& name);
+    juce::String getOpenStyle() const;
+    void setScale(float newScale);
+
+    /** The LCD list (inside this component) and the three buttons under it. */
+    juce::Rectangle<int> getListBounds() const;
+    SegButton& getAddButton();
+    SegButton& getRenameButton();
+    SegButton& getDeleteButton();
+
 private:
     //==============================================================================
     /** @brief Populates the container with `StyleViewComponent`s based on `stylesNames`. */
     void populate();
+    void refreshRows();
+    StyleViewComponent* openRow() const;
 
-    PlayScreenLookAndFeel laf;
     juce::OwnedArray<StyleViewComponent> allStyles;  ///< All style components.
     std::function<void(const juce::String&)> onStyleClicked;  ///< Callback when a style is clicked.
     std::vector<juce::String> stylesNames;  ///< Names of all styles.
     int widthSize;  ///< Width used for layout calculations.
 
-    inline static const juce::String addCaption = "Add";
-    juce::TextButton addButton{ addCaption };  ///< Button to add a new style.
+    SegButton addButton    { StylesListText::add,    SegButton::Style::seg };
+    SegButton renameButton { StylesListText::rename, SegButton::Style::seg };
+    SegButton deleteButton { StylesListText::remove, SegButton::Style::seg };
+    juce::String openStyle;
+    float scale = StageMetrics::referenceScale;
+    juce::Rectangle<int> listBounds;
     std::unique_ptr<juce::Component> styleItemsContainer = nullptr;  ///< Container holding all styles.
     juce::Viewport viewport;  ///< Scrollable viewport for the style list.
 

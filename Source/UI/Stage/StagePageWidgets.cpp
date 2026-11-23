@@ -147,19 +147,30 @@ void SegButton::paintButton (juce::Graphics& g, bool isHighlighted, bool isDown)
         g.drawRect (face, border);
     }
 
-    auto textArea = face.reduced (style == Style::instrument ? scaled (instrumentPadding) : scaled (segBorder + paddingSide), float {});
     if (hasLed)
-    {
         StageDrawing::drawLed (g, getLedBounds(), ledOn, StagePalette::ledRed, scale);
-        textArea.removeFromLeft (scaled (ledDiameter + segLedGap));
-    }
 
     auto colour = lit ? StagePalette::litText : StagePalette::silkscreenText;
     if (! isEnabled())
         colour = colour.withAlpha (disabledAlpha);
     g.setColour (colour);
     g.setFont (labelFont());
-    g.drawText (shownText(), textArea, juce::Justification::centred, style == Style::instrument);
+
+    if (style == Style::instrument)
+    {
+        // .inst: centred, cut with an ellipsis inside its padding.
+        g.drawText (shownText(), face.reduced (scaled (instrumentPadding), float {}), juce::Justification::centred, true);
+        return;
+    }
+
+    // .seg: the text starts after the padding (and LED). A button wider than its text (e.g. the full-width
+    // "Open folder") centres it. The area runs to the border, so rounding never drops the last letter.
+    const auto textStart = scaled (segBorder + paddingSide) + (hasLed ? scaled (ledDiameter + segLedGap) : float {});
+    auto textArea = face.withTrimmedLeft (textStart).withTrimmedRight (scaled (segBorder));
+    const bool widerThanText = getWidth() > getPreferredWidth() + juce::roundToInt (scaled (segPaddingSide));
+    if (widerThanText)
+        textArea = face.withTrimmedLeft (hasLed ? textStart : float {}).reduced (scaled (segBorder), float {});
+    g.drawText (shownText(), textArea, widerThanText ? juce::Justification::centred : juce::Justification::centredLeft, false);
 }
 
 //==============================================================================
@@ -243,6 +254,21 @@ void StageFader::setScale (float newScale)
 
 float StageFader::scaled (float referenceLength) const { return referenceLength * scale; }
 float StageFader::scaled (int referenceLength) const   { return static_cast<float> (referenceLength) * scale; }
+
+void StageFader::mouseDown (const juce::MouseEvent& event)
+{
+    valueAtGrab = getValue();
+    juce::Slider::mouseDown (event);
+}
+
+void StageFader::mouseDrag (const juce::MouseEvent& event)
+{
+    if (! isEnabled())
+        return;
+    const auto travel = scaled (StageMetrics::faderCapTravel);
+    const auto moved  = -static_cast<double> (event.getDistanceFromDragStartY()) / static_cast<double> (travel);
+    setValue (valueAtGrab + moved * (getMaximum() - getMinimum()), juce::sendNotificationSync);
+}
 
 float StageFader::capTopFor (double value)
 {

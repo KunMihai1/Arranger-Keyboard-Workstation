@@ -21,6 +21,7 @@ namespace
     }
 
     constexpr double beatsAtStart        = 0.0;
+    constexpr int    firstSlotNumber     = 1;      // the strips are numbered 1..8
     constexpr double minTempoBpm         = 60.0;
     constexpr double maxTempoBpm         = 200.0;
     constexpr double tempoStepBpm        = 1.0;
@@ -132,16 +133,18 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
     addMouseListener(this, true);
     nameOfStyle.setText(name, juce::dontSendNotification);
     nameOfStyle.setTooltip(name);
-    addAndMakeVisible(nameOfStyle);
+    addChildComponent(nameOfStyle);   // the Style page shows the name in its tracks heading
 
     playSettingsTracks.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     playSettingsTracks.addListener(this);
     rebuildPlaySettingsItems();   // All tracks / Solo / [active config] / --- / Section Configurations / Settings
 
-    addAndMakeVisible(playSettingsTracks);
-    addAndMakeVisible(startPlayingTracks);
-    addAndMakeVisible(stopPlayingTracks);
-    addAndMakeVisible(customBeatBar);
+    // Kept as state holders, not shown: the Stage panel has Start / Stop, tempo and the beat lamps, the
+    // Style page's title row has All tracks / Solo / Sections... / Style settings...
+    addChildComponent(playSettingsTracks);
+    addChildComponent(startPlayingTracks);
+    addChildComponent(stopPlayingTracks);
+    addChildComponent(customBeatBar);
     customBeatBar.onBeatsElapsed = [this](double elapsedBeats, int beatsPerBar)
     {
         if (onBeatPosition)
@@ -298,6 +301,9 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
             return isPlaying;
         };
 
+        newTrack->setSlotNumber(trackIndex + firstSlotNumber);
+        newTrack->onInfo = [this](const juce::String& text) { if (onInfo) onInfo(text); };
+
         addAndMakeVisible(newTrack);
         allTracks.add(newTrack);
     }
@@ -332,7 +338,7 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
         commitTempo(tempoSlider.getValue());
     };
 
-    addAndMakeVisible(tempoSlider);
+    addChildComponent(tempoSlider);
 
     trackPlayer->addSubjectTrackPlayerModifyListener(this);
 }

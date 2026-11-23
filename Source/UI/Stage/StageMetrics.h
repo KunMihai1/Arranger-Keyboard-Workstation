@@ -40,6 +40,7 @@ namespace StageMetrics
     inline constexpr int   pagePaddingTop    = 16;
     inline constexpr int   pagePaddingSide   = 28;
     inline constexpr int   pageRowGap        = 14;    // title row to content
+    inline constexpr int   subPageRowGap     = 12;    // the track picker and notes pages (PageTracks, PageNotes)
     inline constexpr float pageTitleSize     = 14.0f;
     inline constexpr float pageTitleSpacing  = 0.2f;
     inline constexpr int   pageTitleRuleGap  = 14;
@@ -205,4 +206,8 @@ namespace StageMetrics
     inline constexpr int   stripNotesHeight   = 18;
     inline constexpr int   stripNotesPadding  = 8;
     inline constexpr int   stripBorder        = 1;   // border-left
+    inline constexpr int   stripHeight        = 257; // padding, 6 parts and their gaps
+    inline constexpr int   tracksHeadingGap   = 6;   // tracks heading to the strips
+    inline constexpr int   stylesColumnWidth  = 230; // Style page: styles column, gap, tracks
+    inline constexpr int   stylesColumnGap    = 24;
 }

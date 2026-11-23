@@ -20,7 +20,6 @@ namespace
         const juce::String deviceUpdated        = "Device updated successfully!";
     }
 
-    constexpr int tabsWithStyleOpen = 3;    // Styles list, style tab and one temporary tab
     constexpr int rangeAccepted     = 0;    // handlePlayableRange: negative means the device was refused
     constexpr int usbIdLength       = 4;    // four hex digits
     constexpr int firstChordMode    = 0;    // ChordMode values as stored
@@ -285,8 +284,8 @@ void MainComponent::homeButtonOnClick()
     if(this->recordPlayer.getIsPlaying())
         this->recordPlayer.stopPlayBack();
 
-    if (display && display->getNumTabs()==tabsWithStyleOpen)
-        display->homeButtonInteraction();
+    if (display && display->hasOpenStyle() && display->getView() != StyleView::style)
+        display->homeButtonInteraction();   // a sub-page of the style was open (formerly a temporary tab)
 
     grabKeyboardFocus();
 }

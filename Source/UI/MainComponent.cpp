@@ -437,6 +437,11 @@ bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component*)
         // Esc first closes an open page (spec part 2 P.12), then opens the Esc menu.
         if (pageRouter.open() != StagePage::none && ! overlayWindow->isVisible())
         {
+            if (pageRouter.open() == StagePage::styles && display != nullptr && display->getView() != StyleView::style)
+            {
+                display->closeSubView();   // the track picker / notes / settings go back to the style first
+                return true;
+            }
             closeStagePage();
             refreshStage();
             return true;

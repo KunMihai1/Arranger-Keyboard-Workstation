@@ -95,6 +95,19 @@ public:
     /** Every beat position the beat bar shows, with its beats per bar (message thread). */
     std::function<void(double elapsedBeats, int beatsPerBar)> onBeatPosition;
 
+    /** A short message for the Stage screen (from a track strip). */
+    std::function<void(const juce::String& text)> onInfo;
+
+    // --- The Style page (board StageRevised openPage=styles) ---
+    /** All tracks / Solo: set through the old play-mode choice, so its rules (an active section
+        configuration is cleared) stay. */
+    void setPlayModeSolo(bool solo);
+    bool isPlayModeSolo() const;
+    /** Sections...: today's section-configuration browser (until the new sections editor). */
+    void openSectionConfigurations();
+    void setScale(float newScale);
+    void paint(juce::Graphics& g) override;
+
     //==============================================================================
     /**
      * @brief Constructs the CurrentStyleComponent.
@@ -388,6 +401,7 @@ private:
     juce::String styleID;                                   ///< Unique ID of the current style.
 
     std::unique_ptr<Track> copiedTrack = nullptr;           ///< Track object used for copy/paste operations.
+    float scale = StageMetrics::referenceScale;
     BeatBar customBeatBar;                                  ///< Visual component displaying beat progression.
 
     std::weak_ptr<std::unordered_map<juce::String, std::unordered_map<juce::String,StyleSection>>> styleSectionsMap;

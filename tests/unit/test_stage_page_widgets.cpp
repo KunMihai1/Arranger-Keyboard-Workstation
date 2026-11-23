@@ -17,6 +17,17 @@ namespace StagePageWidgetsTestValues
     const juce::String litLed         = "a seg button's lit LED is drawn red";
     const juce::String faderCap       = "the fader cap runs from 116 (value 0) to 0 (value 127) like the board's capTop";
     const juce::String faderRange     = "the fader is a vertical 0-127 slider that does not jump to the click";
+    const juce::String faderFollows   = "the fader cap follows the hand: dragged 58 px up at scale 1 it moves 58 px (half its travel)";
+    constexpr float dragDistance = 58.0f;   // half of the 116 px cap travel
+    constexpr double halfTravelValue = 63.5;
+    constexpr double stepTolerance   = 1.0;
+    constexpr int   faderBoxWidth  = 40;
+    constexpr int   faderBoxHeight = 132;
+    constexpr float grabX = 20.0f;
+    constexpr float grabY = 124.0f;
+    constexpr float noPressure = 0.0f;
+    constexpr float noAngle    = 0.0f;
+    constexpr int   singleClick = 1;
     const juce::String lcdRowInverts  = "a selected LCD row is dark with light text; an unselected one the reverse";
     const juce::String headingRule    = "a section heading's rule starts after the title and fills to the right edge";
     const juce::String headingDimText = "a section heading's dim text sits at the right edge, the rule ends before it";
@@ -126,6 +137,25 @@ public:
             expectEquals (fader.getMaximum(), valueTop);
             expect (! fader.getSliderSnapsToMousePosition());
             expect (fader.getTextBoxPosition() == juce::Slider::NoTextBox);
+        }
+
+        beginTest (faderFollows);
+        {
+            StageFader fader;
+            fader.setScale (referenceScale);
+            fader.setSize (faderBoxWidth, faderBoxHeight);
+            fader.setValue (valueBottom);
+            const juce::Point<float> grab { grabX, grabY };
+            const juce::Point<float> moved { grabX, grabY - dragDistance };
+            const auto now = juce::Time::getCurrentTime();
+            const juce::MouseEvent down { juce::Desktop::getInstance().getMainMouseSource(), grab, juce::ModifierKeys::leftButtonModifier,
+                                          noPressure, noAngle, noAngle, noAngle, noAngle, &fader, &fader, now, grab, now, singleClick, false };
+            const juce::MouseEvent drag { juce::Desktop::getInstance().getMainMouseSource(), moved, juce::ModifierKeys::leftButtonModifier,
+                                          noPressure, noAngle, noAngle, noAngle, noAngle, &fader, &fader, now, grab, now, singleClick, true };
+            fader.mouseDown (down);
+            fader.mouseDrag (drag);
+            fader.mouseUp (drag);
+            expectWithinAbsoluteError (fader.getValue(), halfTravelValue, stepTolerance);
         }
 
         beginTest (lcdRowInverts);

@@ -4,6 +4,8 @@
 #include "Arranger/ArrangerSourceBuilder.h"
 #include "Arranger/ArrangerStyleIOHelper.h"
 #include "IOHelper.h"
+#include "UI/Stage/StagePageWidgets.h"
+#include "UI/Stage/StageMetrics.h"
 
 namespace
 {
@@ -16,23 +18,11 @@ namespace
         const juce::String playModeTooltip       = "Play mode - manage configurations in Section Configurations";
         const juce::String start                 = "Start";
         const juce::String stop                  = "Stop";
+        const char* const  tracksHeadingUtf8     = "Tracks \xc2\xb7 ";   // "Tracks · <style>"
+        const juce::String clickInstrument       = "Click an instrument to change it";
     }
 
     constexpr int   soloTrackIndex      = 1;      // comboBoxChangeIndex(): 0 = all tracks, 1 = solo
-    constexpr float trackRowHeight      = 80.0f;
-    constexpr int   topEdge             = 0;
-    constexpr int   leftEdge            = 0;
-    constexpr int   styleLabelWidth     = 50;
-    constexpr int   playSettingsWidth   = 40;
-    constexpr int   controlRowHeight    = 20;
-    constexpr int   startStopWidth      = 35;
-    constexpr int   padding             = 2;
-    constexpr int   paddedSides         = 2;      // above and below
-    constexpr int   centringDivisor     = 2;
-    constexpr int   nameWidthDivisor    = 6;      // the style name takes a sixth of the width...
-    constexpr int   nameWidthTrim       = 15;     // ...minus this
-    constexpr int   startButtonTrim     = 2;
-    constexpr int   controlGap          = 5;
 }
 
 void CurrentStyleComponent::mouseDown(const juce::MouseEvent& event)
@@ -180,54 +170,52 @@ void CurrentStyleComponent::handleBreakCurrentStyle(const juce::String& name, co
 
 void CurrentStyleComponent::resized()
 {
-    float width = getWidth() / static_cast<float>(trackSlots);
-    float height = trackRowHeight;
-    float trackRowY = getHeight() - height;
-    int yInt = static_cast<int>(trackRowY);
-
-    int labelWidth = styleLabelWidth;
-    int heightFirst = controlRowHeight;
-
-    // Clamp heights so they never go below or above the track start y
-    int playSettingsHeight = juce::jmin(heightFirst, yInt)-padding;
-    int nameOfStyleHeight = juce::jmin(heightFirst, yInt)-padding;
-    int startStopHeight = juce::jmin(heightFirst - padding * paddedSides, yInt)-padding;
-    int beatBarHeight = juce::jmin(heightFirst - padding * paddedSides, yInt)-padding;
-    int tempoSliderHeight = juce::jmin(heightFirst, yInt)-padding;
-
-    playSettingsTracks.setBounds(getWidth() - playSettingsWidth, topEdge, playSettingsWidth, playSettingsHeight);
-    playSettingsTracks.setMouseCursor(juce::MouseCursor::PointingHandCursor);
-
-    nameOfStyle.setBounds((getWidth() - labelWidth) / centringDivisor, topEdge, getWidth() / nameWidthDivisor - nameWidthTrim, nameOfStyleHeight);
-
-    startPlayingTracks.setBounds(leftEdge, padding, startStopWidth - startButtonTrim, startStopHeight);
-    startPlayingTracks.setButtonText(Text::start);
-    startPlayingTracks.setMouseCursor(juce::MouseCursor::PointingHandCursor);
-
-    stopPlayingTracks.setBounds(startPlayingTracks.getWidth() + controlGap, padding, startStopWidth, startStopHeight);
+    // Board StageRevised openPage=styles, tracks area: the heading, then 8 equal strips.
+    using namespace StageMetrics;
+    startPlayingTracks.setButtonText(Text::start);   // hidden; the panel's Start / Stop click them
     stopPlayingTracks.setButtonText(Text::stop);
-    stopPlayingTracks.setMouseCursor(juce::MouseCursor::PointingHandCursor);
 
-    int xStarting = stopPlayingTracks.getX() + stopPlayingTracks.getWidth() + controlGap;
-    customBeatBar.setBounds(xStarting, padding, nameOfStyle.getX() - xStarting, beatBarHeight);
-
-    int paddingBetween = controlGap;
-    int sliderX = nameOfStyle.getX() + nameOfStyle.getWidth() + paddingBetween;
-    int sliderWidth = playSettingsTracks.getX() - sliderX - paddingBetween;
-    tempoSlider.setBounds(sliderX, topEdge, sliderWidth, tempoSliderHeight);
-
+    const auto stripTop    = static_cast<float>(headingHeight + tracksHeadingGap) * scale;
+    const auto stripWidth  = static_cast<float>(getWidth()) / static_cast<float>(trackSlots);
+    const auto stripHigh   = static_cast<float>(stripHeight) * scale;
     for (int trackIndex {}; trackIndex < allTracks.size(); trackIndex++)
     {
-        allTracks[trackIndex]->setBounds(juce::Rectangle<int>(
-            static_cast<int>(trackIndex * width),
-            yInt,
-            static_cast<int>(width),
-            static_cast<int>(height)
-            ));
+        allTracks[trackIndex]->setScale(scale);
+        allTracks[trackIndex]->setBounds(juce::Rectangle<float>(static_cast<float>(trackIndex) * stripWidth, stripTop,
+                                                                stripWidth, stripHigh).toNearestInt());
     }
 
     // Phase 3 authoring overlays are parented to the top-level window (full screen),
     // so they are sized in presentOverlay(), not here.
+}
+
+void CurrentStyleComponent::paint(juce::Graphics& g)
+{
+    const auto heading = getLocalBounds().toFloat().withHeight(static_cast<float>(StageMetrics::headingHeight) * scale);
+    StageLcd::paintHeading(g, heading, scale, juce::String::fromUTF8(Text::tracksHeadingUtf8) + name, Text::clickInstrument);
+}
+
+void CurrentStyleComponent::setScale(float newScale)
+{
+    scale = newScale;
+    resized();
+    repaint();
+}
+
+void CurrentStyleComponent::setPlayModeSolo(bool solo)
+{
+    // Through the combo with a notification: comboBoxChanged() keeps today's rules.
+    playSettingsTracks.setSelectedId(solo ? PlayModeIds::soloTrack : PlayModeIds::allTracks, juce::sendNotificationSync);
+}
+
+bool CurrentStyleComponent::isPlayModeSolo() const
+{
+    return lastPlayModeId == PlayModeIds::soloTrack;
+}
+
+void CurrentStyleComponent::openSectionConfigurations()
+{
+    showStyleList(true);
 }
 
 
@@ -236,6 +224,7 @@ void CurrentStyleComponent::updateName(const juce::String& newName)
     name = newName;
     nameOfStyle.setText(name, juce::dontSendNotification);
     nameOfStyle.setTooltip(name);
+    repaint();   // the tracks heading shows the name
 }
 
 void CurrentStyleComponent::updateObjects()

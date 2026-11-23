@@ -504,6 +504,7 @@ private:
     std::unique_ptr<ChordBrowserComponent> chordsBrowser;   ///< today's chord helper, hosted by the Chords page
     static constexpr int stagePageCount = 4;   ///< Styles, Recorder, Settings, Chords
     std::array<StagePageFrame*, stagePageCount> stagePageFrames() const;
+    void syncStylesPage();
     juce::TextButton midiSettingsPageButton;   ///< the Settings page's way into today's MIDI Settings window
     PageRouter pageRouter;
     StageRegions stageRegions;
