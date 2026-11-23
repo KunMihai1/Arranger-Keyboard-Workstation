@@ -1,0 +1,400 @@
+#include "StageWidgets.h"
+#include "StageFonts.h"
+#include "../../Common/AppColours.h"
+
+namespace
+{
+    // Drawing details of the board's CSS (StageRevised .btn / .led / .qknob), reference px.
+    constexpr float capCornerRadius   = 3.0f;
+    constexpr float capBorderWidth    = 1.0f;
+    constexpr float capHighlightWidth = 1.0f;
+    constexpr float pressedTravel     = 1.0f;   // the cap moves down 1 px and its drop edge shrinks by 1
+    constexpr float ledGlowRadius     = 3.0f;
+    constexpr float ledShadeAlpha     = 0.6f;   // inset shadow at the top of an unlit LED
+    constexpr float ledShadeEnd       = 0.6f;   // ... fading out by 60 % of its height
+    constexpr float knobShadowAlpha   = 0.55f;
+    constexpr float knobOutlineWidth  = 1.0f;
+    constexpr float capGradientCentreX = 0.38f;
+    constexpr float capGradientCentreY = 0.30f;
+    constexpr float capGradientMidStop = 0.55f;
+    constexpr float capHighlightAlpha  = 0.14f;
+    constexpr float capHighlightArcDegrees = 60.0f;   // each side of 12 o'clock
+    constexpr float knobRingOffsetY    = 0.0f;
+    constexpr float halves             = 2.0f;
+    constexpr bool  semiBold           = true;
+    constexpr bool  medium             = false;
+    const juce::String lineBreak       = "\n";
+    const juce::String space           = " ";
+    constexpr int skirtColourCount     = 2;   // the knurl alternates dark / light
+    constexpr double knobLowest        = 0.0;
+    constexpr double knobHighest       = 127.0;   // MIDI controller range
+    constexpr double knobStep          = 1.0;
+    const juce::Colour outlineColour   { 0xff050505 };
+
+    struct KnobGeometry
+    {
+        int cellWidth, ring, skirt, cap, tickLength, pointerTop, pointerLength;
+        int shadowOffset, shadowBlur, segmentDegrees, labelGap;
+    };
+
+    KnobGeometry geometryFor (StageKnob::Size size)
+    {
+        using namespace StageMetrics;
+        if (size == StageKnob::Size::effects)
+            return { effectsKnobCellWidth, effectsKnobRing, effectsKnobSkirt, effectsKnobCap, effectsKnobTickLength,
+                     effectsKnobPointerTop, effectsKnobPointerLength, effectsKnobShadowOffset, effectsKnobShadowBlur,
+                     effectsKnobSegmentDegrees, effectsKnobLabelGap };
+
+        return { quickKnobCellWidth, quickKnobRing, quickKnobSkirt, quickKnobCap, quickKnobTickLength,
+                 quickKnobPointerTop, quickKnobPointerLength, quickKnobShadowOffset, quickKnobShadowBlur,
+                 quickKnobSegmentDegrees, quickKnobLabelGap };
+    }
+
+    juce::Colour colourOf (RubberButton::LedColour ledColour)
+    {
+        return ledColour == RubberButton::LedColour::green ? StagePalette::ledGreen : StagePalette::ledRed;
+    }
+
+    void drawLed (juce::Graphics& g, juce::Rectangle<float> led, bool lit, juce::Colour litColour, float scale)
+    {
+        if (lit)
+        {
+            const auto glowRadius = ledGlowRadius * scale;
+            const auto glowArea   = led.expanded (glowRadius);
+            juce::ColourGradient glow (litColour.withAlpha (StagePalette::ledGlowAlpha), led.getCentre(),
+                                       litColour.withAlpha (float {}), { led.getCentreX(), glowArea.getY() }, true);
+            glow.addColour (led.getWidth() / glowArea.getWidth(), litColour.withAlpha (StagePalette::ledGlowAlpha));
+            g.setGradientFill (glow);
+            g.fillEllipse (glowArea);
+            g.setColour (litColour);
+            g.fillEllipse (led);
+            return;
+        }
+
+        g.setColour (StagePalette::ledOff);
+        g.fillEllipse (led);
+        g.setGradientFill (juce::ColourGradient::vertical (juce::Colours::black.withAlpha (ledShadeAlpha), led.getY(),
+                                                          juce::Colours::transparentBlack, led.getY() + led.getHeight() * ledShadeEnd));
+        g.fillEllipse (led);
+    }
+
+    void drawCap (juce::Graphics& g, juce::Rectangle<float> cap, bool down, float scale)
+    {
+        const auto travel = down ? pressedTravel * scale : float {};
+        const auto drop   = StageMetrics::buttonDropEdge * scale - travel;
+        const auto corner = capCornerRadius * scale;
+        const auto face   = cap.translated (float {}, travel);
+
+        g.setColour (StagePalette::rubberDropEdge);
+        g.fillRoundedRectangle (face.translated (float {}, drop), corner);
+
+        g.setGradientFill (juce::ColourGradient::vertical (StagePalette::rubberTop, face.getY(), StagePalette::rubberBottom, face.getBottom()));
+        g.fillRoundedRectangle (face, corner);
+
+        const auto border = capBorderWidth * scale;
+        g.setColour (StagePalette::rubberHighlight);
+        g.fillRect (face.reduced (corner, float {}).withY (face.getY() + border).withHeight (capHighlightWidth * scale));
+
+        g.setColour (StagePalette::rubberBorder);
+        g.drawRoundedRectangle (face.reduced (border / halves), corner, border);
+    }
+
+    void drawLabelLines (juce::Graphics& g, const juce::StringArray& lines, juce::Rectangle<float> area,
+                         float lineHeight, juce::Justification justification)
+    {
+        for (const auto& line : lines)
+        {
+            g.drawText (line.toUpperCase(), area.removeFromTop (lineHeight), justification, false);
+        }
+    }
+}
+
+//==============================================================================
+RubberButton::RubberButton (const juce::String& labelText, Style buttonStyle, LedColour buttonLedColour)
+    : juce::Button (labelText),
+      label (labelText),
+      style (buttonStyle),
+      ledColour (buttonLedColour)
+{
+    labelLines.addTokens (label, lineBreak, {});
+    setTitle (label.replace (lineBreak, space));
+}
+
+void RubberButton::setLedOn (bool shouldBeOn)
+{
+    if (ledOn != shouldBeOn)
+    {
+        ledOn = shouldBeOn;
+        repaint();
+    }
+}
+
+bool RubberButton::isLedOn() const                      { return ledOn; }
+void RubberButton::setScale (float newScale)             { scale = newScale; repaint(); }
+void RubberButton::setLabelTone (LabelTone newTone)      { labelTone = newTone; repaint(); }
+void RubberButton::setLabelSide (LabelSide newSide)      { labelSide = newSide; repaint(); }
+RubberButton::Style RubberButton::getStyle() const       { return style; }
+RubberButton::LedColour RubberButton::getLedColour() const { return ledColour; }
+juce::String RubberButton::getLabel() const              { return label; }
+int RubberButton::getLabelLineCount() const              { return labelLines.size(); }
+float RubberButton::scaled (float referenceLength) const { return referenceLength * scale; }
+float RubberButton::scaled (int referenceLength) const   { return scaled (static_cast<float> (referenceLength)); }
+
+juce::Font RubberButton::labelFont() const
+{
+    const auto isKey = style == Style::key;
+    return StageFonts::silkscreen (scaled (isKey ? StageMetrics::keyLabelSize : StageMetrics::silkLabelSize),
+                                   labelTone == LabelTone::bright ? semiBold : medium,
+                                   isKey ? StageMetrics::keyLabelSpacing : StageMetrics::silkLabelSpacing);
+}
+
+float RubberButton::labelWidth() const
+{
+    const auto font = labelFont();
+    float widest {};
+    for (const auto& line : labelLines)
+        widest = juce::jmax (widest, juce::GlyphArrangement::getStringWidth (font, line.toUpperCase()));
+    return widest;
+}
+
+int RubberButton::getPreferredWidth() const
+{
+    using namespace StageMetrics;
+    switch (style)
+    {
+        case Style::key:       return juce::roundToInt (scaled (keyComponentWidth));
+        case Style::screen:    return juce::roundToInt (labelWidth() + scaled (screenButtonGap + screenButtonWidth + screenButtonGap + ledDiameter));
+        case Style::ledToggle: return juce::roundToInt (scaled (ledDiameter + toggleGap) + labelWidth());
+    }
+    return {};
+}
+
+int RubberButton::getPreferredHeight() const
+{
+    using namespace StageMetrics;
+    switch (style)
+    {
+        case Style::key:       return juce::roundToInt (scaled (buttonHeight + buttonToLabelGap + keyLabelLineHeight * getLabelLineCount()));
+        case Style::screen:    return juce::roundToInt (scaled (screenButtonHeight));
+        case Style::ledToggle: return juce::roundToInt (scaled (toggleHeight));
+    }
+    return {};
+}
+
+juce::Rectangle<float> RubberButton::getCapBounds() const
+{
+    using namespace StageMetrics;
+    const auto bounds = getLocalBounds().toFloat();
+    switch (style)
+    {
+        case Style::key:
+            return { bounds.getCentreX() - scaled (buttonWidth) / halves, bounds.getY(), scaled (buttonWidth), scaled (buttonHeight) };
+
+        case Style::screen:
+        {
+            const auto fromSide = scaled (screenButtonGap + ledDiameter);
+            const auto capX = labelSide == LabelSide::left ? bounds.getRight() - fromSide - scaled (screenButtonWidth)
+                                                           : bounds.getX() + fromSide;
+            return { capX, bounds.getY(), scaled (screenButtonWidth), scaled (screenButtonHeight) };
+        }
+
+        case Style::ledToggle:
+            return {};
+    }
+    return {};
+}
+
+juce::Rectangle<float> RubberButton::getLedBounds() const
+{
+    using namespace StageMetrics;
+    const auto diameter = scaled (ledDiameter);
+    const auto bounds = getLocalBounds().toFloat();
+    const auto cap = getCapBounds();
+
+    switch (style)
+    {
+        case Style::key:
+            return { cap.getX() - scaled (ledToButtonGap) - diameter, cap.getCentreY() - diameter / halves, diameter, diameter };
+
+        case Style::screen:
+        {
+            const auto ledX = labelSide == LabelSide::left ? bounds.getRight() - diameter : bounds.getX();
+            return { ledX, cap.getCentreY() - diameter / halves, diameter, diameter };
+        }
+
+        case Style::ledToggle:
+            return { bounds.getX(), bounds.getCentreY() - diameter / halves, diameter, diameter };
+    }
+    return {};
+}
+
+juce::Rectangle<float> RubberButton::getLabelBounds() const
+{
+    using namespace StageMetrics;
+    const auto bounds = getLocalBounds().toFloat();
+    switch (style)
+    {
+        case Style::key:
+        {
+            const auto top = getCapBounds().getBottom() + scaled (buttonToLabelGap);
+            return bounds.withTop (top);
+        }
+
+        case Style::screen:
+        {
+            const auto width = labelWidth();
+            const auto labelX = labelSide == LabelSide::left ? bounds.getX() : bounds.getRight() - width;
+            return { labelX, bounds.getY(), width, bounds.getHeight() };
+        }
+
+        case Style::ledToggle:
+            return bounds.withLeft (getLedBounds().getRight() + scaled (toggleGap));
+    }
+    return {};
+}
+
+bool RubberButton::hitTest (int xPosition, int yPosition)
+{
+    if (style == Style::ledToggle)
+        return getLocalBounds().contains (xPosition, yPosition);
+
+    // The cap and its drop edge take clicks; the label and the LED are print on the panel.
+    const auto cap = getCapBounds().withHeight (getCapBounds().getHeight() + scaled (StageMetrics::buttonDropEdge));
+    return cap.contains (static_cast<float> (xPosition), static_cast<float> (yPosition));
+}
+
+void RubberButton::paintButton (juce::Graphics& g, bool, bool isDown)
+{
+    if (style != Style::ledToggle)
+        drawCap (g, getCapBounds(), isDown, scale);
+
+    drawLed (g, getLedBounds(), ledOn, colourOf (ledColour), scale);
+
+    g.setFont (labelFont());
+    g.setColour (labelTone == LabelTone::bright ? StagePalette::silkscreenText : StagePalette::silkscreenDimText);
+
+    switch (style)
+    {
+        case Style::key:
+            drawLabelLines (g, labelLines, getLabelBounds(), scaled (StageMetrics::keyLabelLineHeight), juce::Justification::centredTop);
+            break;
+        case Style::screen:
+        case Style::ledToggle:
+            drawLabelLines (g, labelLines, getLabelBounds(), getLabelBounds().getHeight(), juce::Justification::centredLeft);
+            break;
+    }
+}
+
+//==============================================================================
+StageKnob::StageKnob (const juce::String& labelText, Size knobSize)
+    : juce::Slider (juce::Slider::RotaryVerticalDrag, juce::Slider::NoTextBox),
+      label (labelText),
+      size (knobSize)
+{
+    setRange (knobLowest, knobHighest, knobStep);
+
+    const auto fullTurn = juce::MathConstants<float>::twoPi;
+    const auto sweep    = juce::degreesToRadians (StageMetrics::knobSweepDegrees);
+    setRotaryParameters (fullTurn - sweep, fullTurn + sweep, true);
+    setTitle (label);
+}
+
+void StageKnob::setScale (float newScale)       { scale = newScale; repaint(); }
+StageKnob::Size StageKnob::getSize() const      { return size; }
+juce::String StageKnob::getLabel() const        { return label; }
+float StageKnob::scaled (float referenceLength) const { return referenceLength * scale; }
+float StageKnob::scaled (int referenceLength) const   { return scaled (static_cast<float> (referenceLength)); }
+
+int StageKnob::getPreferredWidth() const
+{
+    return juce::roundToInt (scaled (geometryFor (size).cellWidth));
+}
+
+int StageKnob::getPreferredHeight() const
+{
+    const auto geometry = geometryFor (size);
+    return juce::roundToInt (scaled (geometry.ring + geometry.labelGap + StageMetrics::silkLabelLineHeight));
+}
+
+juce::Rectangle<float> StageKnob::getRingBounds() const
+{
+    const auto ring = scaled (geometryFor (size).ring);
+    const auto bounds = getLocalBounds().toFloat();
+    return { bounds.getCentreX() - ring / halves, bounds.getY() + knobRingOffsetY, ring, ring };
+}
+
+void StageKnob::paint (juce::Graphics& g)
+{
+    using namespace StageMetrics;
+    const auto geometry = geometryFor (size);
+    const auto ring     = getRingBounds();
+    const auto centre   = ring.getCentre();
+    const auto rotary   = getRotaryParameters();
+
+    // Scale ticks: 11 marks from -135 to +135 degrees at the ring's edge.
+    g.setColour (StagePalette::knobTick);
+    const auto tickWidth = scaled (knobTickWidth);
+    const auto tickLength = scaled (geometry.tickLength);
+    for (int tickIndex {}; tickIndex <= knobTickIntervals; ++tickIndex)
+    {
+        const auto proportion = static_cast<float> (tickIndex) / static_cast<float> (knobTickIntervals);
+        const auto angle = rotary.startAngleRadians + proportion * (rotary.endAngleRadians - rotary.startAngleRadians);
+        juce::Path tick;
+        tick.addRectangle (centre.x - tickWidth / halves, ring.getY(), tickWidth, tickLength);
+        g.fillPath (tick, juce::AffineTransform::rotation (angle, centre.x, centre.y));
+    }
+
+    // Knurled skirt with its drop shadow and dark outline.
+    const auto skirtDiameter = scaled (geometry.skirt);
+    const auto skirt = juce::Rectangle<float> (skirtDiameter, skirtDiameter).withCentre (centre);
+    juce::Path skirtShape;
+    skirtShape.addEllipse (skirt);
+    juce::DropShadow (juce::Colours::black.withAlpha (knobShadowAlpha), juce::roundToInt (scaled (geometry.shadowBlur)),
+                      { int {}, juce::roundToInt (scaled (geometry.shadowOffset)) }).drawForPath (g, skirtShape);
+
+    const auto segment = juce::degreesToRadians (static_cast<float> (geometry.segmentDegrees));
+    const auto segmentCount = juce::roundToInt (juce::MathConstants<float>::twoPi / segment);
+    for (int segmentIndex {}; segmentIndex < segmentCount; ++segmentIndex)
+    {
+        const auto segmentStart = segment * static_cast<float> (segmentIndex);
+        juce::Path wedge;
+        wedge.addPieSegment (skirt, segmentStart, segmentStart + segment, float {});
+        g.setColour (segmentIndex % skirtColourCount == int {} ? StagePalette::knobSkirtDark : StagePalette::knobSkirtLight);
+        g.fillPath (wedge);
+    }
+    g.setColour (outlineColour);
+    g.drawEllipse (skirt.reduced (scaled (knobOutlineWidth) / halves), scaled (knobOutlineWidth));
+
+    // Cap: radial gradient lit from the upper left, with a thin highlight at the top edge.
+    const auto capDiameter = scaled (geometry.cap);
+    const auto cap = juce::Rectangle<float> (capDiameter, capDiameter).withCentre (centre);
+    const juce::Point<float> lightSpot { cap.getX() + cap.getWidth() * capGradientCentreX, cap.getY() + cap.getHeight() * capGradientCentreY };
+    const auto farthestCorner = lightSpot.getDistanceFrom (cap.getBottomRight());
+    juce::ColourGradient capFill (StagePalette::knobCapHighlight, lightSpot,
+                                  StagePalette::knobCapEdge, lightSpot.translated (farthestCorner, float {}), true);
+    capFill.addColour (capGradientMidStop, StagePalette::knobCapMid);
+    g.setGradientFill (capFill);
+    g.fillEllipse (cap);
+
+    juce::Path highlight;
+    const auto highlightArc = juce::degreesToRadians (capHighlightArcDegrees);
+    highlight.addCentredArc (centre.x, centre.y, capDiameter / halves - scaled (capHighlightWidth) / halves,
+                             capDiameter / halves - scaled (capHighlightWidth) / halves, float {}, -highlightArc, highlightArc, true);
+    g.setColour (juce::Colours::white.withAlpha (capHighlightAlpha));
+    g.strokePath (highlight, juce::PathStrokeType (scaled (capHighlightWidth)));
+
+    // Pointer: a white line from near the skirt's edge, turned to the value.
+    const auto valueAngle = rotary.startAngleRadians
+                          + static_cast<float> (valueToProportionOfLength (getValue())) * (rotary.endAngleRadians - rotary.startAngleRadians);
+    const auto pointerWidth = scaled (knobPointerWidth);
+    juce::Path pointer;
+    pointer.addRectangle (centre.x - pointerWidth / halves, skirt.getY() + scaled (geometry.pointerTop), pointerWidth, scaled (geometry.pointerLength));
+    g.setColour (StagePalette::knobPointer);
+    g.fillPath (pointer, juce::AffineTransform::rotation (valueAngle, centre.x, centre.y));
+
+    // Label under the ring.
+    g.setColour (StagePalette::silkscreenText);
+    g.setFont (StageFonts::silkscreen (scaled (silkLabelSize), semiBold, silkLabelSpacing));
+    const auto labelTop = ring.getBottom() + scaled (geometry.labelGap);
+    g.drawText (label.toUpperCase(), getLocalBounds().toFloat().withTop (labelTop), juce::Justification::centredTop, false);
+}

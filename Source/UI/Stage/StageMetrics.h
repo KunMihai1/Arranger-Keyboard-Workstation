@@ -43,6 +43,21 @@ namespace StageMetrics
     inline constexpr int ledDiameter        = 5;
     inline constexpr int ledToButtonGap     = 3;    // LED sits left of the button
     inline constexpr int buttonToLabelGap   = 3;    // label centred under the button
+    inline constexpr int buttonDropEdge     = 2;    // the dark edge under a cap (1 while pressed)
+    inline constexpr int keyComponentWidth  = 46;   // a key button's component: wide enough for "AUTO FILL"
+
+    // --- Labels (CSS font-size / letter-spacing em / line-height) ---
+    inline constexpr float keyLabelSize        = 9.0f;
+    inline constexpr float keyLabelSpacing     = 0.08f;
+    inline constexpr int   keyLabelLineHeight  = 10;
+    inline constexpr float silkLabelSize       = 10.0f;   // screen buttons, toggles, knob labels
+    inline constexpr float silkLabelSpacing    = 0.12f;
+    inline constexpr int   silkLabelLineHeight = 12;
+
+    // --- Screen buttons and LED toggles ---
+    inline constexpr int screenButtonGap = 6;   // label - cap - LED
+    inline constexpr int toggleGap       = 6;   // LED - label
+    inline constexpr int toggleHeight    = 14;
 
     // --- Left third: section buttons ---
     inline constexpr int sectionGridColumns = 6;
@@ -58,8 +73,32 @@ namespace StageMetrics
     inline constexpr int quickFxWidth         = 130;
     inline constexpr int quickKnobCellWidth   = 62;
 
-    // --- Quick knob ---
-    inline constexpr int quickKnobRing  = 52;
-    inline constexpr int quickKnobSkirt = 36;
-    inline constexpr int quickKnobCap   = 24;
+    // --- Knobs: ring with ticks, knurled skirt, cap, pointer; label under the ring ---
+    inline constexpr int quickKnobRing          = 52;
+    inline constexpr int quickKnobSkirt         = 36;
+    inline constexpr int quickKnobCap           = 24;
+    inline constexpr int quickKnobTickLength    = 4;
+    inline constexpr int quickKnobPointerTop    = 4;
+    inline constexpr int quickKnobPointerLength = 10;
+    inline constexpr int quickKnobShadowOffset  = 3;
+    inline constexpr int quickKnobShadowBlur    = 4;
+    inline constexpr int quickKnobSegmentDegrees = 6;
+    inline constexpr int quickKnobLabelGap      = 1;
+
+    inline constexpr int effectsKnobCellWidth     = 96;
+    inline constexpr int effectsKnobRing          = 72;
+    inline constexpr int effectsKnobSkirt         = 50;
+    inline constexpr int effectsKnobCap           = 34;
+    inline constexpr int effectsKnobTickLength    = 5;
+    inline constexpr int effectsKnobPointerTop    = 5;
+    inline constexpr int effectsKnobPointerLength = 13;
+    inline constexpr int effectsKnobShadowOffset  = 4;
+    inline constexpr int effectsKnobShadowBlur    = 6;
+    inline constexpr int effectsKnobSegmentDegrees = 5;
+    inline constexpr int effectsKnobLabelGap      = 2;
+
+    inline constexpr int knobTickIntervals  = 10;   // 11 ticks from -135 to +135 degrees
+    inline constexpr int knobTickWidth      = 2;
+    inline constexpr int knobPointerWidth   = 2;
+    inline constexpr float knobSweepDegrees = 135.0f;   // each side of 12 o'clock
 }

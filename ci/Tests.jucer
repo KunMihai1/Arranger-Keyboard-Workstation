@@ -5,6 +5,8 @@
   <MAINGROUP id="vwDzJM" name="Project Tests">
     <GROUP id="{0080393B-1406-4B96-0572-E3585FB0DAEC}" name="Tests">
       <GROUP id="{A1B2C3D4-1111-2222-3333-444455556666}" name="Unit">
+        <FILE id="stgWdT" name="test_stage_widgets.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_widgets.cpp"/>
         <FILE id="stgMdT" name="test_stage_models.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_models.cpp"/>
         <FILE id="stgScT" name="test_stage_scale.cpp" compile="1" resource="0"
@@ -388,6 +390,10 @@
                 file="../Source/UI/Stage/StageModels.cpp"/>
           <FILE id="stgMdH" name="StageModels.h" compile="0" resource="0"
                 file="../Source/UI/Stage/StageModels.h"/>
+          <FILE id="stgWdC" name="StageWidgets.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StageWidgets.cpp"/>
+          <FILE id="stgWdH" name="StageWidgets.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StageWidgets.h"/>
         </GROUP>
         <FILE id="OQf8Oe" name="SettingsWindow.h" compile="0" resource="0"
               file="../Source/UI/SettingsWindow.h"/>

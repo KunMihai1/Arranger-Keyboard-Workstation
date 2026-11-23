@@ -8,7 +8,8 @@ namespace StageFontsTestValues
 
     const juce::String silkscreenIsBarlow = "silkscreen labels use the embedded Barlow Semi Condensed";
     const juce::String lcdIsShareTechMono = "screen text uses the embedded Share Tech Mono";
-    const juce::String heightIsKept       = "the requested height is kept";
+    const juce::String sizeIsCssSize      = "the size is the board's CSS font-size (JUCE point height)";
+    const juce::String spacingIsCssEm     = "letter spacing is the board's CSS em value";
 
     // DirectWrite reports Barlow as family "Barlow" + style "Semi Condensed SemiBold",
     // so the checks read the family and the style together.
@@ -19,11 +20,13 @@ namespace StageFontsTestValues
     const juce::String shareTechFamily = "Share Tech Mono";
     const juce::String nameSeparator   = " ";
 
-    constexpr float labelHeight  = 10.0f;
-    constexpr float screenHeight = 28.0f;
-    constexpr float tolerance    = 0.01f;
-    constexpr bool  semiBold     = true;
-    constexpr bool  medium       = false;
+    constexpr float labelSize     = 10.0f;
+    constexpr float labelSpacing  = 0.12f;
+    constexpr float noSpacing     = 0.0f;
+    constexpr float screenSize    = 28.0f;
+    constexpr float tolerance     = 0.01f;
+    constexpr bool  semiBold      = true;
+    constexpr bool  medium        = false;
 }
 
 class StageFontsTest : public juce::UnitTest
@@ -52,19 +55,28 @@ public:
 
         beginTest (silkscreenIsBarlow);
         {
-            expectBarlow (StageFonts::silkscreen (labelHeight, semiBold), semiBoldWeight);
-            expectBarlow (StageFonts::silkscreen (labelHeight, medium), mediumWeight);
+            expectBarlow (StageFonts::silkscreen (labelSize, semiBold, labelSpacing), semiBoldWeight);
+            expectBarlow (StageFonts::silkscreen (labelSize, medium, labelSpacing), mediumWeight);
         }
 
         beginTest (lcdIsShareTechMono);
         {
-            const auto lcdName = familyAndStyle (StageFonts::lcd (screenHeight));
+            const auto lcdName = familyAndStyle (StageFonts::lcd (screenSize));
             expect (lcdName.startsWith (shareTechFamily), lcdName);
         }
 
-        beginTest (heightIsKept);
+        beginTest (sizeIsCssSize);
         {
-            expectWithinAbsoluteError (StageFonts::lcd (screenHeight).getHeight(), screenHeight, tolerance);
+            expectWithinAbsoluteError (StageFonts::lcd (screenSize).getHeightInPoints(), screenSize, tolerance);
+            expectWithinAbsoluteError (StageFonts::silkscreen (labelSize, semiBold, labelSpacing).getHeightInPoints(), labelSize, tolerance);
+        }
+
+        beginTest (spacingIsCssEm);
+        {
+            // JUCE adds kerning factor x font height between glyphs; CSS adds spacing (em) x font-size.
+            const auto label = StageFonts::silkscreen (labelSize, semiBold, labelSpacing);
+            expectWithinAbsoluteError (label.getExtraKerningFactor() * label.getHeight(), labelSpacing * labelSize, tolerance);
+            expectWithinAbsoluteError (StageFonts::silkscreen (labelSize, medium, noSpacing).getExtraKerningFactor(), noSpacing, tolerance);
         }
     }
 };

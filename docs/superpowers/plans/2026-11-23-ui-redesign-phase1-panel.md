@@ -69,16 +69,16 @@
 - [x] Tests (exact values): `step(+1)` from 120 → 121; 200 + step → 200; `applyTyped("140")` → 140; `applyTyped("999")` → 200; `applyTyped("40")` → 60; `applyTyped("")`/`("abc")` → false, value unchanged; `wheel(1,false)` → +1, `wheel(1,true)` → +5, `wheel(-2,false)` → −2; locked: all return false; `resetToStyle()` → style tempo; `holdDelayMs(0)` = 400, `(1)` = 120, `(5)` = 80, `(20)` = 30 (board: `max(30, 130 − 10 × step)`; the earlier "(1) = 130" contradicted "(5) = 80"). Lamps: 4/4 elapsed 0.0 playing → `{downbeat, off, off, off}`; elapsed 2.3 → index 2 `beat`; 3/4 → 3 lamps; not playing → all off; asleep → all off. Messages: post "Recording started!" at 0 → current at 100 = "RECORDING STARTED!", at 2600 = ""; post A at 0, B at 2000 → at 4000 = "B". Router: toggle(effects) → effects; toggle(effects) again → none; toggle(settings) while effects → settings; close() → none.
 - [x] Fail → implement → pass → commit `feat(ui): Stage panel models (tempo, lamps, messages, pages)`.
 
-### Task 4: `StageLookAndFeel` and widgets
+### Task 4: `StageWidgets` (rubber buttons, knobs)
 
-**Files:** Create `Source/UI/Stage/StageLookAndFeel.h/.cpp`, `Source/UI/Stage/StageWidgets.h/.cpp`; Test `tests/unit/test_stage_widgets.cpp` (state only, no pixels).
+**Files:** Create `Source/UI/Stage/StageWidgets.h/.cpp`; Modify `StageFonts` (sizes are CSS px = JUCE point height, letter spacing in CSS em), `StageMetrics.h`; Test `tests/unit/test_stage_widgets.cpp` (state and geometry, no pixels).
 
-**Produces:**
-- `class StageLookAndFeel : public juce::LookAndFeel_V4` — `drawButtonBackground` (rubber / lit / segment variants via `RubberButton::Style` property), `drawRotarySlider` (knurled skirt, cap, pointer, ticks; size from `StageKnob::Size`), `getTextButtonFont` (silkscreen).
-- `class RubberButton : public juce::TextButton { public: enum class Style { rubber, soft, segment, lit }; enum class LedColour { none, red, green }; RubberButton (const juce::String& label, Style, LedColour); void setLedOn (bool); bool isLedOn() const; }` — the label is painted beside/under the button (board), not on it, for `rubber` / `soft`.
-- `class StageKnob : public juce::Slider { public: enum class Size { quick, effects }; StageKnob (const juce::String& label, Size); }` — `RotaryVerticalDrag`, range 0–127, step 1, −135°…+135°.
-- [ ] Tests: LED default off; `setLedOn(true)` → `isLedOn()`; knob range 0–127, rotary params ±135° in radians; style stored.
-- [ ] Fail → implement (draw values = spec §3.1 / §3.3 exactly) → pass → commit `feat(ui): Stage look-and-feel, rubber buttons, knobs`.
+**Produces (as built):**
+- `class RubberButton : public juce::Button` — `Style { key, screen, ledToggle }`, `LedColour { red, green }`, `LabelTone { bright, dim }`, `LabelSide { left, right }`; `setLedOn / isLedOn`, `setScale`, `getPreferredWidth/Height`, `getCapBounds / getLedBounds / getLabelBounds`. Each draws its own LED, cap and label (board `.btn` / `.led` / `.silk`); a key button is centred on its cap and only the cap takes clicks.
+- `class StageKnob : public juce::Slider` — `Size { quick, effects }`, `RotaryVerticalDrag`, 0–127 step 1, ±135°, draws ticks, knurled skirt, cap, pointer and label.
+- No separate `StageLookAndFeel`: nothing in phase 1 needs one (each widget paints itself); add one when a page needs JUCE-drawn controls.
+- [x] Tests: LED state; style / colour / label lines; key geometry (cap centred, LED 3 px left, label 3 px under); only the cap takes clicks; knob range, ±135°, vertical drag. Fonts: point height = CSS size, kerning = CSS em.
+- [x] Implemented; a deliberate break of the cap position made 2 checks fail, then reverted → pass → commit `feat(ui): Stage rubber buttons and knobs`.
 
 ### Task 5: `StageScreen` (LCD rows, lamps, tempo interactions, messages)
 
