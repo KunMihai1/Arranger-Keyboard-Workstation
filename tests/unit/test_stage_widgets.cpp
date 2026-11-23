@@ -13,6 +13,11 @@ namespace StageWidgetsTestValues
     const juce::String keyGeometry   = "a key button's cap is centred, LED left of it, label under it";
     const juce::String knobRange     = "a knob runs 0-127 in steps of 1 over -135..+135 degrees";
     const juce::String knobDrag      = "a knob turns with a vertical drag";
+    const juce::String labelsFit     = "every label fits its bounds whole (was: LEFT drawn as LEF)";
+    const juce::String leftLabel     = "Left";
+    const juce::String rightLabel    = "Right";
+    const juce::String settingsLabel = "Settings";
+    const juce::String autoFillLabel = "Auto Fill";
 
     const juce::String sectionLabel  = "Intro 1";
     const juce::String twoLineLabel  = "Sync\nStart";
@@ -109,6 +114,24 @@ public:
             expectWithinAbsoluteError (rotary.endAngleRadians,   fullTurn + juce::degreesToRadians (degreesFromTop), tolerance);
             expect (rotary.stopAtEnd);
             expectEquals (knob.getLabel(), knobLabel);
+        }
+
+        beginTest (labelsFit);
+        {
+            const std::vector<std::pair<juce::String, RubberButton::Style>> labelled {
+                { leftLabel, RubberButton::Style::ledToggle }, { rightLabel, RubberButton::Style::ledToggle },
+                { settingsLabel, RubberButton::Style::screen }, { autoFillLabel, RubberButton::Style::key } };
+            for (const auto& [labelText, labelStyle] : labelled)
+            {
+                RubberButton button { labelText, labelStyle, RubberButton::LedColour::red };
+                button.setScale (ownerScale);
+                button.setSize (button.getPreferredWidth(), button.getPreferredHeight());
+                const auto area = button.getLabelBounds();
+                const auto upper = labelText.toUpperCase();
+                juce::GlyphArrangement laidOut;   // what Graphics::drawText does: glyphs that do not fit are dropped
+                laidOut.addCurtailedLineOfText (button.getLabelFont(), upper, area.getX(), area.getBottom(), area.getWidth(), false);
+                expectEquals (laidOut.getNumGlyphs(), upper.length(), upper);
+            }
         }
 
         beginTest (knobDrag);

@@ -50,6 +50,7 @@ public:
     juce::Rectangle<float> getCapBounds() const;
     juce::Rectangle<float> getLedBounds() const;
     juce::Rectangle<float> getLabelBounds() const;
+    juce::Font getLabelFont() const;
 
     bool hitTest (int xPosition, int yPosition) override;
 
@@ -57,7 +58,6 @@ protected:
     void paintButton (juce::Graphics& g, bool isHighlighted, bool isDown) override;
 
 private:
-    juce::Font labelFont() const;
     float labelWidth() const;
     float scaled (float referenceLength) const;
     float scaled (int referenceLength) const;

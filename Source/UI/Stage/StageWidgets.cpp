@@ -140,7 +140,7 @@ int RubberButton::getLabelLineCount() const              { return labelLines.siz
 float RubberButton::scaled (float referenceLength) const { return referenceLength * scale; }
 float RubberButton::scaled (int referenceLength) const   { return scaled (static_cast<float> (referenceLength)); }
 
-juce::Font RubberButton::labelFont() const
+juce::Font RubberButton::getLabelFont() const
 {
     const auto isKey = style == Style::key;
     return StageFonts::silkscreen (scaled (isKey ? StageMetrics::keyLabelSize : StageMetrics::silkLabelSize),
@@ -150,11 +150,17 @@ juce::Font RubberButton::labelFont() const
 
 float RubberButton::labelWidth() const
 {
-    const auto font = labelFont();
+    const auto font = getLabelFont();
     float widest {};
     for (const auto& line : labelLines)
         widest = juce::jmax (widest, juce::GlyphArrangement::getStringWidth (font, line.toUpperCase()));
-    return widest;
+
+    // CSS letter-spacing also follows the last letter; and a label cut by rounding loses its last glyph,
+    // so round up (seen: "LEFT" drawn as "LEF").
+    const auto isKey = style == Style::key;
+    const auto trailingSpacing = scaled (isKey ? StageMetrics::keyLabelSize : StageMetrics::silkLabelSize)
+                               * (isKey ? StageMetrics::keyLabelSpacing : StageMetrics::silkLabelSpacing);
+    return std::ceil (widest + trailingSpacing);
 }
 
 int RubberButton::getPreferredWidth() const
@@ -270,7 +276,7 @@ void RubberButton::paintButton (juce::Graphics& g, bool, bool isDown)
 
     drawLed (g, getLedBounds(), ledOn, colourOf (ledColour), scale);
 
-    g.setFont (labelFont());
+    g.setFont (getLabelFont());
     g.setColour (labelTone == LabelTone::bright ? StagePalette::silkscreenText : StagePalette::silkscreenDimText);
 
     switch (style)
