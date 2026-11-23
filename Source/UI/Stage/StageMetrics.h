@@ -151,4 +151,46 @@ namespace StageMetrics
     inline constexpr int knobPointerWidth   = 2;
     inline constexpr float knobSweepDegrees = 135.0f;   // each side of 12 o'clock
     inline constexpr int   knobDeadZone     = 5;        // px around the centre where a turn has no direction
+
+    // --- Page materials (StageRevised .seg / .inst / .fader / .lcd-list; PageTracks .seg-lit) ---
+    inline constexpr int   segHeight          = 22;
+    inline constexpr int   segPaddingSide     = 10;
+    inline constexpr int   segBorder          = 1;
+    inline constexpr int   segLedGap          = 6;     // LED to text
+    inline constexpr float segLabelSize       = 10.0f;
+    inline constexpr float segLabelSpacing    = 0.1f;
+    inline constexpr int   instrumentWidth    = 88;
+    inline constexpr int   instrumentHeight   = 22;
+    inline constexpr int   instrumentPadding  = 4;
+    inline constexpr int   instrumentCorner   = 3;
+    inline constexpr int   instrumentDropEdge = 2;
+    inline constexpr float instrumentSpacing  = 0.04f;
+    inline constexpr float silkDimSpacing     = 0.1f;
+    inline constexpr int   dividerHeight      = 20;
+    inline constexpr int   faderWidth         = 40;
+    inline constexpr int   faderHeight        = 132;
+    inline constexpr int   faderSlotLeft      = 18;
+    inline constexpr int   faderSlotTop       = 4;
+    inline constexpr int   faderSlotWidth     = 4;
+    inline constexpr int   faderSlotHeight    = 124;
+    inline constexpr int   faderSlotCorner    = 2;
+    inline constexpr int   faderScaleLeft     = 4;
+    inline constexpr int   faderScaleWidth    = 8;
+    inline constexpr int   faderScaleMarks    = 5;
+    inline constexpr int   faderScaleStep     = 30;    // marks at 4, 34, 64, 94, 124
+    inline constexpr int   faderCapLeft       = 6;
+    inline constexpr int   faderCapWidth      = 28;
+    inline constexpr int   faderCapHeight     = 16;
+    inline constexpr int   faderCapCorner     = 2;
+    inline constexpr int   faderCapTravel     = 116;   // cap top runs 116 (value 0) .. 0 (value 127)
+    inline constexpr int   faderCapShadowY    = 3;
+    inline constexpr int   faderCapShadowBlur = 4;
+    inline constexpr int   lcdListCorner      = 2;
+    inline constexpr int   lcdListPadding     = 4;     // top and bottom
+    inline constexpr int   lcdInsetShadow     = 3;     // inset 0 1px 3px
+    inline constexpr int   lcdRowHeight       = 21;    // 14 px mono line + padding 3 / 3
+    inline constexpr int   lcdRowPaddingSide  = 10;
+    inline constexpr float lcdListTextSize    = 14.0f;
+    inline constexpr int   headingGap         = 10;    // section heading: title, rule, dim text
+    inline constexpr int   headingHeight      = 12;
 }

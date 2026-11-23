@@ -288,6 +288,10 @@
                 file="Source/UI/Stage/StageWidgets.cpp"/>
           <FILE id="stgWdH" name="StageWidgets.h" compile="0" resource="0"
                 file="Source/UI/Stage/StageWidgets.h"/>
+          <FILE id="stgPwC" name="StagePageWidgets.cpp" compile="1" resource="0"
+                file="Source/UI/Stage/StagePageWidgets.cpp"/>
+          <FILE id="stgPwH" name="StagePageWidgets.h" compile="0" resource="0"
+                file="Source/UI/Stage/StagePageWidgets.h"/>
           <FILE id="stgSrC" name="StageScreen.cpp" compile="1" resource="0"
                 file="Source/UI/Stage/StageScreen.cpp"/>
           <FILE id="stgSrH" name="StageScreen.h" compile="0" resource="0"

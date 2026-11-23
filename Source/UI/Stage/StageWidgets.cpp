@@ -59,41 +59,45 @@ namespace
         return ledColour == RubberButton::LedColour::green ? StagePalette::ledGreen : StagePalette::ledRed;
     }
 
-    void drawLed (juce::Graphics& g, juce::Rectangle<float> led, bool lit, juce::Colour litColour, float scale)
-    {
-        if (lit)
-        {
-            // .led-on box-shadow 0 0 3px: the LED blurred by a Gaussian, so the glow starts at half
-            // strength at the LED's edge and has all but gone by the blur radius.
-            const auto blur     = StageMetrics::ledGlowRadius * scale;
-            const auto sigma    = blur * cssBlurSigmaPerRadius;
-            const auto radius   = led.getWidth() / halves;
-            const auto glowArea = led.expanded (blur);
-            auto glowAt = [&] (float gap)
-            {
-                const auto coverage = blurredEdgeCoverage * static_cast<float> (std::erfc (gap / (sigma * juce::MathConstants<float>::sqrt2)));
-                return litColour.withAlpha (StagePalette::ledGlowAlpha * coverage);
-            };
-            juce::ColourGradient glow (glowAt (float {}), led.getCentre(), glowAt (blur), { led.getCentreX(), glowArea.getY() }, true);
-            for (int stop {}; stop <= glowStops; ++stop)
-            {
-                const auto gap = blur * static_cast<float> (stop) / static_cast<float> (glowStops);
-                glow.addColour ((radius + gap) / (radius + blur), glowAt (gap));
-            }
-            g.setGradientFill (glow);
-            g.fillEllipse (glowArea);
-            g.setColour (litColour);
-            g.fillEllipse (led);
-            return;
-        }
+}
 
-        g.setColour (StagePalette::ledOff);
+void StageDrawing::drawLed (juce::Graphics& g, juce::Rectangle<float> led, bool lit, juce::Colour litColour, float scale)
+{
+    if (lit)
+    {
+        // .led-on box-shadow 0 0 3px: the LED blurred by a Gaussian, so the glow starts at half
+        // strength at the LED's edge and has all but gone by the blur radius.
+        const auto blur     = StageMetrics::ledGlowRadius * scale;
+        const auto sigma    = blur * cssBlurSigmaPerRadius;
+        const auto radius   = led.getWidth() / halves;
+        const auto glowArea = led.expanded (blur);
+        auto glowAt = [&] (float gap)
+        {
+            const auto coverage = blurredEdgeCoverage * static_cast<float> (std::erfc (gap / (sigma * juce::MathConstants<float>::sqrt2)));
+            return litColour.withAlpha (StagePalette::ledGlowAlpha * coverage);
+        };
+        juce::ColourGradient glow (glowAt (float {}), led.getCentre(), glowAt (blur), { led.getCentreX(), glowArea.getY() }, true);
+        for (int stop {}; stop <= glowStops; ++stop)
+        {
+            const auto gap = blur * static_cast<float> (stop) / static_cast<float> (glowStops);
+            glow.addColour ((radius + gap) / (radius + blur), glowAt (gap));
+        }
+        g.setGradientFill (glow);
+        g.fillEllipse (glowArea);
+        g.setColour (litColour);
         g.fillEllipse (led);
-        g.setGradientFill (juce::ColourGradient::vertical (juce::Colours::black.withAlpha (ledShadeAlpha), led.getY(),
-                                                          juce::Colours::transparentBlack, led.getY() + led.getHeight() * ledShadeEnd));
-        g.fillEllipse (led);
+        return;
     }
 
+    g.setColour (StagePalette::ledOff);
+    g.fillEllipse (led);
+    g.setGradientFill (juce::ColourGradient::vertical (juce::Colours::black.withAlpha (ledShadeAlpha), led.getY(),
+                                                      juce::Colours::transparentBlack, led.getY() + led.getHeight() * ledShadeEnd));
+    g.fillEllipse (led);
+}
+
+namespace
+{
     void drawCap (juce::Graphics& g, juce::Rectangle<float> cap, bool down, float scale)
     {
         const auto travel = down ? pressedTravel * scale : float {};
@@ -303,7 +307,7 @@ void RubberButton::paintButton (juce::Graphics& g, bool, bool isDown)
     if (style != Style::ledToggle)
         drawCap (g, getCapBounds(), isDown, scale);
 
-    drawLed (g, getLedBounds(), ledOn, colourOf (ledColour), scale);
+    StageDrawing::drawLed (g, getLedBounds(), ledOn, colourOf (ledColour), scale);
 
     g.setFont (getLabelFont());
     g.setColour (labelTone == LabelTone::bright ? StagePalette::silkscreenText : StagePalette::silkscreenDimText);

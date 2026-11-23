@@ -146,4 +146,18 @@ namespace StagePalette
 
     // --- Accent ---
     static const juce::Colour tempoAccent { 0xffffa63a };   // tempo and playhead
+
+    // --- Page materials (StageRevised .strip / .fader*) ---
+    static const juce::Colour stripBorder     { 0xff34363a };
+    static const juce::Colour faderSlot       { 0xff0c0c0d };
+    static const juce::Colour faderSlotShade  { 0xcc000000 };   // inset 0 1px 1px rgba(0,0,0,.8)
+    static const juce::Colour faderSlotShine  { 0x0fffffff };   // 0 1px 0 rgba(255,255,255,.06)
+    static const juce::Colour faderScale      { 0xff6c6e73 };
+    static const juce::Colour faderCapTop     { 0xff5b5c60 };
+    static const juce::Colour faderCapMid     { 0xff3a3b3e };
+    static const juce::Colour faderCapGroove  { 0xff1c1d1f };
+    static const juce::Colour faderCapBottom  { 0xff2c2d30 };
+    static const juce::Colour faderCapShadow  { 0x99000000 };   // 0 3px 4px rgba(0,0,0,.6)
+    static const juce::Colour faderCapShine   { 0x2effffff };   // inset 0 1px 0 rgba(255,255,255,.18)
+    static const juce::Colour lcdInset        { 0x80000000 };   // inset 0 1px 3px rgba(0,0,0,.5)
 }

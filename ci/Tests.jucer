@@ -11,6 +11,8 @@
               file="../tests/unit/test_chord_browser.cpp"/>
         <FILE id="cbLifT" name="test_callback_lifetime.cpp" compile="1" resource="0"
               file="../tests/unit/test_callback_lifetime.cpp"/>
+        <FILE id="stgPwT" name="test_stage_page_widgets.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_page_widgets.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"
@@ -404,6 +406,10 @@
                 file="../Source/UI/Stage/StageWidgets.cpp"/>
           <FILE id="stgWdH" name="StageWidgets.h" compile="0" resource="0"
                 file="../Source/UI/Stage/StageWidgets.h"/>
+          <FILE id="stgPwC" name="StagePageWidgets.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StagePageWidgets.cpp"/>
+          <FILE id="stgPwH" name="StagePageWidgets.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StagePageWidgets.h"/>
           <FILE id="stgSrC" name="StageScreen.cpp" compile="1" resource="0"
                 file="../Source/UI/Stage/StageScreen.cpp"/>
           <FILE id="stgSrH" name="StageScreen.h" compile="0" resource="0"
