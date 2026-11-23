@@ -105,7 +105,7 @@ Sound comes from **sampled instruments (SFZ)**, not synthesis — there are no o
   engine state directly from the message thread.
 
 Full overview with diagrams: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Per-module deep dives and
-decision records live in the `Piano-Wiki/` vault; design specs and plans in `docs/superpowers/`.
+decision records live in the `Piano-Wiki/` vault.
 Contributor (and AI agent) rules: [`AGENTS.md`](AGENTS.md).
 
 ## Tech
