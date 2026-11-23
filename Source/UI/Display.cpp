@@ -322,6 +322,8 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
         mapUuidToTrack[newEntry->getUniqueID()] = newEntry;
     };
 
+    trackListComp->setSlotNumber(currentStyleComponent ? currentStyleComponent->getRequestingSlot() : int {});
+    trackListComp->setScale(scale);
     addAndMakeVisible(trackListComp.get());
     showView(StyleView::tracks);
 }

@@ -32,6 +32,7 @@ namespace StylePageText
     inline const char* const  styleSettingsUtf8 = "Style settings\xe2\x80\xa6";
     inline const juce::String settingsTitle = "Style settings";
     inline const juce::String tracksTitle   = "Choose track";
+    inline const char* const  slotSeparatorUtf8 = " \xc2\xb7 slot ";   // "Choose track · slot 3"
     inline const juce::String tracks        = "Tracks";
     inline const juce::String openAStyle    = "Open a style on the left";
 }

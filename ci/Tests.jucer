@@ -17,6 +17,8 @@
               file="../tests/unit/test_track_strip.cpp"/>
         <FILE id="stlPgT" name="test_style_page.cpp" compile="1" resource="0"
               file="../tests/unit/test_style_page.cpp"/>
+        <FILE id="trkPkT" name="test_track_picker.cpp" compile="1" resource="0"
+              file="../tests/unit/test_track_picker.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"
@@ -542,6 +544,8 @@
               file="../Source/Playback/TrackListComponentFolders.cpp"/>
         <FILE id="tlCmp4" name="TrackListComponentNames.h" compile="0" resource="0"
               file="../Source/Playback/TrackListComponentNames.h"/>
+        <FILE id="tlPgC" name="TrackListComponentPage.cpp" compile="1" resource="0"
+              file="../Source/Playback/TrackListComponentPage.cpp"/>
         <FILE id="k5GJ5O" name="TrackEntry.h" compile="0" resource="0" file="../Source/Playback/TrackEntry.h"/>
         <FILE id="zfMrzS" name="TrackListener.h" compile="0" resource="0" file="../Source/Playback/TrackListener.h"/>
         <FILE id="dxeclC" name="TrackPlayer.cpp" compile="1" resource="0" file="../Source/Playback/TrackPlayer.cpp"/>

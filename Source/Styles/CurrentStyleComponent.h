@@ -107,6 +107,8 @@ public:
     void openSectionConfigurations();
     void setScale(float newScale);
     void paint(juce::Graphics& g) override;
+    /** The slot (1-8) whose name was clicked last: the track picker fills it. */
+    int getRequestingSlot() const { return requestingSlot; }
 
     //==============================================================================
     /**
@@ -402,6 +404,7 @@ private:
 
     std::unique_ptr<Track> copiedTrack = nullptr;           ///< Track object used for copy/paste operations.
     float scale = StageMetrics::referenceScale;
+    int requestingSlot {};
     BeatBar customBeatBar;                                  ///< Visual component displaying beat progression.
 
     std::weak_ptr<std::unordered_map<juce::String, std::unordered_map<juce::String,StyleSection>>> styleSectionsMap;

@@ -32,6 +32,8 @@ void Display::setScale (float newScale)
     stylesListComponent->setScale (scale);
     if (currentStyleComponent)
         currentStyleComponent->setScale (scale);
+    if (trackListComp)
+        trackListComp->setScale (scale);
     layoutViews();
     repaint();
 }
@@ -110,7 +112,9 @@ juce::String Display::getViewTitle() const
 {
     switch (views.current())
     {
-        case StyleView::tracks:   return StylePageText::tracksTitle;
+        case StyleView::tracks:
+            return StylePageText::tracksTitle + juce::String::fromUTF8 (StylePageText::slotSeparatorUtf8)
+                 + juce::String (currentStyleComponent ? currentStyleComponent->getRequestingSlot() : int {});
         case StyleView::settings: return StylePageText::settingsTitle;
         case StyleView::notes:
         case StyleView::style:    break;
@@ -127,6 +131,8 @@ std::vector<juce::Component*> Display::getTitleActions()
 {
     if (views.current() == StyleView::style)
         return { &playLabel, &allTracksButton, &soloButton, &playDivider, &sectionsButton, &styleSettingsButton };
+    if (views.current() == StyleView::tracks && trackListComp)
+        return trackListComp->getTitleActions();
     return {};
 }
 
