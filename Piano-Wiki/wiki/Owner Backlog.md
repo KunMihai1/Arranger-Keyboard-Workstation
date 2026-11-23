@@ -48,7 +48,10 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   (labels ran into each other, buttons too tight): Rec/File/Sync Start/Stop/Start moved to the right third,
   Quick FX down to Volume + Reverb, Auto Fill stays with the sections. Task 1 (embedded fonts, `c38fb13`)
   Task 2 (palette, metrics, scaling, `6291080`) and Task 3 (models, `017837b`) , Task 4 (rubber
-  buttons + knobs, `6cb3f71`), Task 5 (screen, `3e2d85d`) and Task 6 (panel, `11d1b82`) done; next Task 7 (wire the panel into the app).
+  buttons + knobs, `6cb3f71`), Task 5 (screen, `3e2d85d`) and Task 6 (panel, `11d1b82`) done; Task 7 (wire the
+  panel into the app, `d425e08`) live-checked 2026-11-23; next Task 8 (reference PNGs) and
+  Task 9 (1:1 check write-up, review, PR). Owner reports fixed: knobs turn like real knobs, knob lag (save on
+  release), hand cursor on every button, LED glow cut on the left; key tests failing on the Romanian layout.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
   centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.

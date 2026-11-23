@@ -13,6 +13,26 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-23 — Stage panel wired into the app (plan Task 7); live check; layout-proof key tests
+- `MainComponentStage.cpp` + `DisplayStage.cpp` (`d425e08`): the panel replaces the header. Sections call the old buttons'
+  handlers (LEDs mirror them), Start/Stop/tempo go to the open style (`CurrentStyleComponent::commitTempo`),
+  `CustomBeatBar::onBeatsElapsed` feeds lamps and bar, every `temporaryPopup` is a screen message. Styles,
+  Recorder, Settings and Chords are `StagePageFrame` pages hosting today's controls; Effects / Voices / Home open
+  what they opened before. Esc closes a page first.
+- Live check by the agent (screenshots + clicks on the running app, board rendered headless at the same scale):
+  sections, Auto Fill, Sync Start, Rec (+ messages), tempo +/hold/wheel/right-click/type/−, every page, Esc,
+  knob turning, Part toggles; window sizes 1920 × 991, 1280 × 720, 1024 × 768, 800 × 600, 1900 × 500.
+- Fixed from it, each with a test: knob turned against the hand (relative circular turning); LED glow cut on the
+  left (glow room) and ~3× the board's CSS blur (Gaussian fall-off, ring energy within 3 %); labels one
+  letter-spacing too wide (JUCE's width already includes it, up to 5 px off the board); tempo editor showed an
+  inverted block; chord helper call-out covered the panel and swallowed Esc (now the Chords page;
+  `ChordBrowserComponent::onEscape`). Also save-on-release quick knobs, opaque panel, hand cursor.
+- `test_key_listener.cpp` (`733408c`) presses keys by position (scan code → active layout), so it passes on the owner's
+  Romanian layout (2 failures before; two "too high" tests had been passing vacuously).
+- Not tested live: real playback (the owner's styles have no tracks). Lesson: the Sound Effects window is a
+  separate desktop window titled like the app — drive the largest window of the process, not the title.
+- Tests: unit 1488 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 8 / 0.
+
 ## 2026-11-23 — Stage panel assembled (plan Task 6); label fix
 - `Source/UI/Stage/StagePanel` (`11d1b82`): all controls inside the scaled, centred board; section buttons report
   `SectionGroupNames` names ("Ending 1" printed "End 1"); the panel runs the Tempo −/+ hold itself through

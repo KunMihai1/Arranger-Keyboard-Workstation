@@ -1,7 +1,7 @@
 ---
 type: meta
 title: "Hot Cache"
-updated: 2026-11-23T19:00:00
+updated: 2026-11-23T21:30:00
 tags:
   - meta
   - hot
@@ -11,9 +11,9 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-23. PRs #19–#58: bug fixes, arranger stress tests, faster builds; names cleanup finished.
-**UI redesign phase 1 (Stage panel) in progress on `feat/ui-stage-panel`:** Tasks 1-6 done; panel
-re-laid out by the owner (transport on the right, 2 quick knobs). Then the TODO file. Detail in [[log]].
+2026-11-23. **UI redesign phase 1 (Stage panel) on `feat/ui-stage-panel`:** Tasks 1-7 committed (Task 7
+`d425e08`: panel wired into the app, live-checked against the board). Next Tasks 8-9
+(reference PNGs, 1:1 write-up, Sonnet review, PR). Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -24,13 +24,13 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - JUCE 8.0.13 **sample-based** arranger keyboard (SFZ, no oscillators). [[Keyboard & Main UI]]
   (`MainComponent`) wires everything; [[Arranger Engine]] and [[Track Playback]] run on
   `HighResolutionTimer` threads, not the message thread.
-- **No file over 800 lines** — CI's first step enforces it. Big classes span several `.cpp`s
-  (`MainComponentInit/Actions/Effects/Overlays/Playback.cpp`, `DisplayStyleStore.cpp`,
-  `MidiDevice.cpp`, …). [[ADR-003 800-Line File Cap Split By Responsibility]].
+- **No file over 800 lines** (CI). Big classes span several `.cpp`s (`MainComponentStage.cpp`, …).
+  [[ADR-003 800-Line File Cap Split By Responsibility]].
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 1419, arranger 770, integration 130 (+7 skipped)**; integration runs in CI too.
+  Current: **unit 1488, arranger 770, integration 130 (+7 skipped), display 8**.
+- Visual checks: screenshot/click the app's largest window; render boards headless at the same scale.
 
 ## Build / Test
 - App `Builds\VisualStudio2022\Arranger Workstation.sln`, Debug x64; close the app first (PDB lock).
@@ -48,8 +48,8 @@ Full task list with states: [[Owner Backlog]].
   token) awaits owner sign-off: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
 - 🟡 **UI redesign** ("Stage" panel, pages, real keys/knobs, new Dust, six finishes, Remember me):
   spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2, plan
-  `docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md` (Tasks 1-6 done, next Task 7 wire into MainComponent). Owner: same look on every resolution (uniform scale, board centred). Owner's conditions:
-  behaviour integrated first; agent checks the running app **1:1** against the boards before finishing.
+  `docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md` (Tasks 1-7 done). Owner: same look on
+  every resolution; agent checks the running app **1:1** against the boards before finishing.
 - ✅ **Arranger hard testing** done. Owner: style switch while playing applies on the next Start; any
   section may start; restore-down stays work-area sized.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
