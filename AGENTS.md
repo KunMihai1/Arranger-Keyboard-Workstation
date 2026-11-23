@@ -20,7 +20,7 @@ until proven otherwise.**
 3. `Piano-Wiki/wiki/index.md` → the relevant `_index.md` → individual pages.
 4. `Piano-Wiki/wiki/decisions/` — ADRs. Don't relitigate a recorded decision without new evidence.
 5. `docs/superpowers/specs/`, `plans/`, `test-plans/` — design specs, implementation plans and
-   manual test plans per feature.
+   manual test plans per feature. **Local only:** git-ignored, never committed or pushed.
 
 The wiki is the architecture documentation. Keep it in sync (see *Finishing work*).
 
@@ -91,6 +91,10 @@ allowlist). **Full rule and idioms: `docs/names-not-values.md`.**
   commit messages, PR titles or PR bodies. Commits are authored by the user alone.
 - Conventional-commit style subjects (`fix(audio): …`, `perf(ui): …`, `docs(wiki): …`); the body
   explains *why* and quotes the evidence (test counts, measurements).
+- **No secrets, nothing local.** Never commit, push or paste (in commits, PRs, logs, comments) keys, tokens,
+  passwords, `.env` files or credentials. Local-only files (`docs/superpowers/`, `.env*`, machine settings)
+  stay out of git through `.gitignore`; never `git add -f` them. **Don't look in the owner's environment**:
+  no reading `.env` files, environment variables or credential stores.
 
 ## Finishing work
 
