@@ -13,6 +13,8 @@
               file="../tests/unit/test_callback_lifetime.cpp"/>
         <FILE id="stgPwT" name="test_stage_page_widgets.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_page_widgets.cpp"/>
+        <FILE id="trkStT" name="test_track_strip.cpp" compile="1" resource="0"
+              file="../tests/unit/test_track_strip.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"

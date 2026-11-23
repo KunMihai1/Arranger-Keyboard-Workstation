@@ -38,6 +38,7 @@ public:
         "Use in slot" 30 high with 12 px text). */
     void setBoardHeight (int newBoardHeight);
     void setTextSize (float newCssPixelSize);
+    void setPaddingSide (int newBoardPadding);   ///< .seg padding 0 10 by default; the strips' Notes use 0 8
 
     Style getStyle() const;
     int getPreferredWidth() const;    ///< text + padding + border (+ LED and gap)
@@ -58,6 +59,7 @@ private:
     bool ledOn {};
     int boardHeight;
     float textSize { StageMetrics::segLabelSize };
+    int paddingSide { StageMetrics::segPaddingSide };
     float scale { StageMetrics::referenceScale };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SegButton)

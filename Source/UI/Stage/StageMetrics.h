@@ -193,4 +193,16 @@ namespace StageMetrics
     inline constexpr float lcdListTextSize    = 14.0f;
     inline constexpr int   headingGap         = 10;    // section heading: title, rule, dim text
     inline constexpr int   headingHeight      = 12;
+
+    // --- Track strip (StageRevised .strip, Style page): top to bottom, gaps 6 ---
+    inline constexpr int   stripPadding       = 6;
+    inline constexpr int   stripGap           = 6;
+    inline constexpr int   stripNumberHeight  = 12;
+    inline constexpr int   stripNameWidth     = 84;
+    inline constexpr int   stripNameHeight    = 20;
+    inline constexpr float stripNameTextSize  = 12.0f;
+    inline constexpr int   stripValueHeight   = 11;
+    inline constexpr int   stripNotesHeight   = 18;
+    inline constexpr int   stripNotesPadding  = 8;
+    inline constexpr int   stripBorder        = 1;   // border-left
 }

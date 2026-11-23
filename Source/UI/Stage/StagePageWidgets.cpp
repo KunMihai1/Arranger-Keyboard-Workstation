@@ -63,6 +63,12 @@ void SegButton::setTextSize (float newCssPixelSize)
     repaint();
 }
 
+void SegButton::setPaddingSide (int newBoardPadding)
+{
+    paddingSide = newBoardPadding;
+    repaint();
+}
+
 float SegButton::scaled (float referenceLength) const { return referenceLength * scale; }
 float SegButton::scaled (int referenceLength) const   { return static_cast<float> (referenceLength) * scale; }
 
@@ -84,7 +90,7 @@ int SegButton::getPreferredWidth() const
     if (style == Style::instrument)
         return juce::roundToInt (scaled (instrumentWidth));
 
-    auto width = juce::GlyphArrangement::getStringWidth (labelFont(), shownText()) + scaled (segPaddingSide + segBorder) * halves;
+    auto width = juce::GlyphArrangement::getStringWidth (labelFont(), shownText()) + scaled (paddingSide + segBorder) * halves;
     if (hasLed)
         width += scaled (ledDiameter + segLedGap);
     return juce::roundToInt (width);
@@ -100,7 +106,7 @@ juce::Rectangle<float> SegButton::getLedBounds() const
     using namespace StageMetrics;
     const auto diameter = scaled (ledDiameter);
     const auto face     = getLocalBounds().toFloat().withHeight (scaled (boardHeight));
-    return { face.getX() + scaled (segBorder + segPaddingSide), face.getCentreY() - diameter / halves, diameter, diameter };
+    return { face.getX() + scaled (segBorder + paddingSide), face.getCentreY() - diameter / halves, diameter, diameter };
 }
 
 void SegButton::paintButton (juce::Graphics& g, bool isHighlighted, bool isDown)
@@ -141,7 +147,7 @@ void SegButton::paintButton (juce::Graphics& g, bool isHighlighted, bool isDown)
         g.drawRect (face, border);
     }
 
-    auto textArea = face.reduced (style == Style::instrument ? scaled (instrumentPadding) : scaled (segBorder + segPaddingSide), float {});
+    auto textArea = face.reduced (style == Style::instrument ? scaled (instrumentPadding) : scaled (segBorder + paddingSide), float {});
     if (hasLed)
     {
         StageDrawing::drawLed (g, getLedBounds(), ledOn, StagePalette::ledRed, scale);
