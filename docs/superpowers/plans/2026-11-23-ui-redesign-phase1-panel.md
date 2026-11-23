@@ -19,7 +19,7 @@
 - Colours as named constants in `Source/Common/AppColours.h` (new `namespace StagePalette`), values exactly spec §3.1.
 - Tests never write `%APPDATA%`; live checks back up/restore it (0 differences).
 - Reference size 1200 × 645; scale `s = min(w / 1200, h / 645)`; panel 124, felt 4, keys 140, slip 12, note area = rest.
-- Tempo range 60–200; hold: first step at once, repeat after 400 ms, then 130 ms − 10 ms per step, floor 30 ms; wheel ±1 (Shift ±5); right-click = style tempo; locked only in arranger mode while playing.
+- Tempo range 60–200; hold: first step at once, repeat after 400 ms, then 130 ms − 10 ms × step (120, 110, …), floor 30 ms; wheel ±1 (Shift ±5); right-click = style tempo; locked only in arranger mode while playing.
 - Messages show 2.5 s, upper case, top-left of the screen.
 
 ## Review Focus
@@ -42,10 +42,10 @@
 
 **Interfaces — Produces:** `namespace StageFonts { juce::Font silkscreen (float height, bool semiBold); juce::Font lcd (float height); }` (typefaces created once, function-local statics).
 
-- [ ] Test `StageFonts loads embedded faces`: `silkscreen(10.0f, true).getTypefaceName() == "Barlow Semi Condensed"`, `lcd(14.0f).getTypefaceName() == "Share Tech Mono"`.
-- [ ] Run unit tests → fails (no symbol).
-- [ ] Download fonts + licences, add to jucers, re-save both projects, implement via `juce::Typeface::createSystemTypefaceFor (BinaryData::…, size)`.
-- [ ] Run → passes; full unit run green. Commit `feat(ui): embed the Stage fonts`.
+- [x] Test `StageFonts loads embedded faces`: `silkscreen(10.0f, true).getTypefaceName() == "Barlow Semi Condensed"`, `lcd(14.0f).getTypefaceName() == "Share Tech Mono"`.
+- [x] Run unit tests → fails (no symbol).
+- [x] Download fonts + licences, add to jucers, re-save both projects, implement via `juce::Typeface::createSystemTypefaceFor (BinaryData::…, size)`.
+- [x] Run → passes; full unit run green. Commit `feat(ui): embed the Stage fonts`.
 
 ### Task 2: Palette, metrics and `StageScale`
 
@@ -53,21 +53,21 @@
 
 **Produces:** `struct StageRegions { juce::Rectangle<int> panel, felt, noteArea, keys, slip; float scale; }; StageRegions StageScale::regionsFor (juce::Rectangle<int> bounds);`
 
-- [ ] Tests: 1920 × 1032 → scale 1.6, panel height 198 (124 × 1.6 rounded), keys 224, slip 19, felt 6, note area = rest, regions stacked without gaps; 1200 × 645 → exact reference; 1000 × 900 → scale = 1000/1200 (width-limited); 1920 × 500 → scale = 500/645 and note area ≥ 0 (Review Focus 1).
-- [ ] Fail → implement → pass → commit `feat(ui): Stage palette, metrics and scaling`.
+- [x] Tests: 1920 × 1032 → scale 1.6, panel height 198 (124 × 1.6 rounded), keys 224, slip 19, felt 6, note area = rest, regions stacked without gaps; 1200 × 645 → exact reference; 1000 × 900 → scale = 1000/1200 (width-limited); 1920 × 500 → scale = 500/645 and note area ≥ 0 (Review Focus 1).
+- [x] Fail → implement → pass → commit `feat(ui): Stage palette, metrics and scaling`.
 
 ### Task 3: Pure models — `TempoModel`, `BeatLampModel`, `ScreenMessages`, `PageRouter`
 
 **Files:** Create `Source/UI/Stage/StageModels.h/.cpp`; Test `tests/unit/test_stage_models.cpp`.
 
 **Produces:**
-- `class TempoModel { public: explicit TempoModel (double styleTempo); double value() const; bool setLocked (bool); bool step (int direction); bool applyTyped (const juce::String&); bool wheel (int notches, bool coarse); void resetToStyle(); static int holdDelayMs (int stepIndex); }` — every mutator returns false (and changes nothing) while locked; values clamp to 60–200.
+- `class TempoModel { public: explicit TempoModel (double styleTempo); double value() const; void setLocked (bool); bool isLocked() const; void setStyleTempo (double); bool step (int direction); bool applyTyped (const juce::String&); bool wheel (int notches, bool coarse); bool resetToStyle(); static int holdDelayMs (int stepIndex); }` — mutators return true only when the value changed and refuse while locked; values round and clamp to 60–200.
 - `struct BeatLampModel { static std::vector<LampState> lamps (int beatsPerBar, double elapsedBeats, bool playing, bool asleep); }` with `enum class LampState { off, downbeat, beat };`
 - `class ScreenMessages { public: void post (const juce::String&, double nowMs); juce::String current (double nowMs) const; }` — upper-cases, shows 2500 ms, newer replaces older.
 - `enum class StagePage { none, effects, settings, styles, voices, chords, file, home }; class PageRouter { public: StagePage toggle (StagePage); StagePage close(); StagePage open() const; };`
 
-- [ ] Tests (exact values): `step(+1)` from 120 → 121; 200 + step → 200; `applyTyped("140")` → 140; `applyTyped("999")` → 200; `applyTyped("40")` → 60; `applyTyped("")`/`("abc")` → false, value unchanged; `wheel(1,false)` → +1, `wheel(1,true)` → +5, `wheel(-2,false)` → −2; locked: all return false; `resetToStyle()` → style tempo; `holdDelayMs(0)` = 400, `(1)` = 130, `(5)` = 80, `(20)` = 30. Lamps: 4/4 elapsed 0.0 playing → `{downbeat, off, off, off}`; elapsed 2.3 → index 2 `beat`; 3/4 → 3 lamps; not playing → all off; asleep → all off. Messages: post "Recording started!" at 0 → current at 100 = "RECORDING STARTED!", at 2600 = ""; post A at 0, B at 2000 → at 4000 = "B". Router: toggle(effects) → effects; toggle(effects) again → none; toggle(settings) while effects → settings; close() → none.
-- [ ] Fail → implement → pass → commit `feat(ui): Stage panel models (tempo, lamps, messages, pages)`.
+- [x] Tests (exact values): `step(+1)` from 120 → 121; 200 + step → 200; `applyTyped("140")` → 140; `applyTyped("999")` → 200; `applyTyped("40")` → 60; `applyTyped("")`/`("abc")` → false, value unchanged; `wheel(1,false)` → +1, `wheel(1,true)` → +5, `wheel(-2,false)` → −2; locked: all return false; `resetToStyle()` → style tempo; `holdDelayMs(0)` = 400, `(1)` = 120, `(5)` = 80, `(20)` = 30 (board: `max(30, 130 − 10 × step)`; the earlier "(1) = 130" contradicted "(5) = 80"). Lamps: 4/4 elapsed 0.0 playing → `{downbeat, off, off, off}`; elapsed 2.3 → index 2 `beat`; 3/4 → 3 lamps; not playing → all off; asleep → all off. Messages: post "Recording started!" at 0 → current at 100 = "RECORDING STARTED!", at 2600 = ""; post A at 0, B at 2000 → at 4000 = "B". Router: toggle(effects) → effects; toggle(effects) again → none; toggle(settings) while effects → settings; close() → none.
+- [x] Fail → implement → pass → commit `feat(ui): Stage panel models (tempo, lamps, messages, pages)`.
 
 ### Task 4: `StageLookAndFeel` and widgets
 

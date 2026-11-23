@@ -280,6 +280,10 @@
                 file="Source/UI/Stage/StageScale.h"/>
           <FILE id="stgMtH" name="StageMetrics.h" compile="0" resource="0"
                 file="Source/UI/Stage/StageMetrics.h"/>
+          <FILE id="stgMdC" name="StageModels.cpp" compile="1" resource="0"
+                file="Source/UI/Stage/StageModels.cpp"/>
+          <FILE id="stgMdH" name="StageModels.h" compile="0" resource="0"
+                file="Source/UI/Stage/StageModels.h"/>
         </GROUP>
         <FILE id="OQf8Oe" name="SettingsWindow.h" compile="0" resource="0"
               file="Source/UI/SettingsWindow.h"/>
