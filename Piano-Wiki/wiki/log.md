@@ -13,6 +13,15 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-23 — Stage rubber buttons and knobs (plan Task 4); keybind idea noted
+- `Source/UI/Stage/StageWidgets` (`6cb3f71`): `RubberButton` (key / screen / ledToggle; each draws its LED,
+  cap and label; only the cap takes clicks) and `StageKnob` (0–127, ±135°, vertical drag). `StageFonts` now
+  takes CSS values: size = JUCE point height; JUCE kerning is relative to ascent + descent, so CSS em is
+  converted with the font's height-to-points factor. No `StageLookAndFeel` (not needed in phase 1).
+- Owner idea recorded in [[Owner Backlog]]: every panel action assignable to a piano key or PC key via a
+  keybind menu (needs its own spec; the PC keyboard already plays notes).
+- Tests: unit 1204 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped). App builds, no new warnings.
+
 ## 2026-11-23 — Same look on every window shape
 - Owner: the UI must look the same on any resolution, everything visible on all screens. `StageRegions`
   gains `panelContent` (the 1200 × 124 board × `s`, centred; wider windows only add plain panel at the

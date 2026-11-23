@@ -47,12 +47,19 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   (`docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md`). Owner changed the panel layout
   (labels ran into each other, buttons too tight): Rec/File/Sync Start/Stop/Start moved to the right third,
   Quick FX down to Volume + Reverb, Auto Fill stays with the sections. Task 1 (embedded fonts, `c38fb13`)
-  Task 2 (palette, metrics, scaling, `6291080`) and Task 3 (models, `017837b`) done; next Task 4
-  (look-and-feel, rubber buttons, knobs).
+  Task 2 (palette, metrics, scaling, `6291080`) and Task 3 (models, `017837b`) and Task 4 (rubber
+  buttons + knobs, `6cb3f71`) done; next Task 5 (the screen).
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
   centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.
   Every later phase (keys, pages) must keep this rule.
+- ⬜ **Idea — assignable triggers for every panel action** (owner, 2026-11-23): Fill, Var, Intro, Ending,
+  Break, Start/Stop and "everything" can also be fired by a **piano key** (MIDI note from the keyboard)
+  or a **PC-keyboard key**, chosen in a **keybind menu**; both inputs possible. Not designed yet: needs its
+  own spec after phase 1. Open points to settle then: the PC keyboard already plays notes
+  (`Source/Midi/keyListener.h`, `KeyboardListener`), so bound keys must not also sound; a piano key used as
+  a trigger likewise (e.g. a learn mode, or keys outside the playing range); where the menu lives
+  (Settings page); how bindings persist (settings keys).
 - Design (2026-11-23): owner picked direction A "Stage" (matte charcoal
   hardware panel), revised: slim panel, bigger centred screen, beat lamps in the app's colours, every
   feature on the panel or a page, realistic keys, real knobs/faders, new smooth Dust, six instrument
