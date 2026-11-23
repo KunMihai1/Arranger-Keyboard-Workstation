@@ -5,6 +5,8 @@
   <MAINGROUP id="vwDzJM" name="Project Tests">
     <GROUP id="{0080393B-1406-4B96-0572-E3585FB0DAEC}" name="Tests">
       <GROUP id="{A1B2C3D4-1111-2222-3333-444455556666}" name="Unit">
+        <FILE id="stgScT" name="test_stage_scale.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_scale.cpp"/>
         <FILE id="ng2Cnq" name="test_stage_fonts.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_fonts.cpp"/>
         <FILE id="fAdttJ" name="test_add_device_window.cpp" compile="1" resource="0"
@@ -374,6 +376,12 @@
                 file="../Source/UI/Stage/StageFonts.cpp"/>
           <FILE id="stgFnH" name="StageFonts.h" compile="0" resource="0"
                 file="../Source/UI/Stage/StageFonts.h"/>
+          <FILE id="stgScC" name="StageScale.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StageScale.cpp"/>
+          <FILE id="stgScH" name="StageScale.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StageScale.h"/>
+          <FILE id="stgMtH" name="StageMetrics.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StageMetrics.h"/>
         </GROUP>
         <FILE id="OQf8Oe" name="SettingsWindow.h" compile="0" resource="0"
               file="../Source/UI/SettingsWindow.h"/>

@@ -274,6 +274,12 @@
                 file="Source/UI/Stage/StageFonts.cpp"/>
           <FILE id="stgFnH" name="StageFonts.h" compile="0" resource="0"
                 file="Source/UI/Stage/StageFonts.h"/>
+          <FILE id="stgScC" name="StageScale.cpp" compile="1" resource="0"
+                file="Source/UI/Stage/StageScale.cpp"/>
+          <FILE id="stgScH" name="StageScale.h" compile="0" resource="0"
+                file="Source/UI/Stage/StageScale.h"/>
+          <FILE id="stgMtH" name="StageMetrics.h" compile="0" resource="0"
+                file="Source/UI/Stage/StageMetrics.h"/>
         </GROUP>
         <FILE id="OQf8Oe" name="SettingsWindow.h" compile="0" resource="0"
               file="Source/UI/SettingsWindow.h"/>
