@@ -48,6 +48,27 @@ mode, Esc closing pages (also from the chord search box), knob turning both ways
 - Text looks a touch heavier on the board: Chrome draws ClearType colour fringes, JUCE greyscale. Same
   colour peak (200, 202, 205) and stem width.
 
+## Repeatable manual check (Stage wiring, `MainComponentStage.cpp`)
+
+The wiring needs the whole app (login, audio, MIDI), so it has no unit test; repeat this after changing it.
+Back up `%APPDATA%\Arranger Workstation` first and restore it after.
+
+1. Log in, Play. Screen: `No style`, `PLAY`, `4/4 · TEMPO`, `120`, `BAR 01`; all LEDs whole (glow not cut).
+2. Start with no style open → "OPEN A STYLE FIRST (STYLES)" on the screen.
+3. Styles → page opens, Styles LED on, screen `STYLE EDIT`, notes hidden; open a style → its name on the screen.
+   Esc → page closes, notes back, the PC keyboard plays at once.
+4. Var 2, Auto Fill, Sync Start → their LEDs; Var 2 also on the screen's bottom row.
+5. Rec on / off → red LED; "RECORDING STARTED!" / "STOPPED!" beside `PLAY` (not over it).
+6. Tempo +: one press = +1; hold 1.5 s → the screen climbs (~+30) and stays after release; the Styles page
+   shows the same BPM. Wheel over the tempo ±1 per notch; right-click → style tempo + message; click,
+   type 95, Enter → 95.
+7. Part Right → LED, knobs jump to the right hand's values; turn a knob around its centre both ways.
+   Part off → turning a knob says "CHOOSE A PART" and the knob springs back.
+8. Effects / Settings / Chords / File → each opens, LED on, pressing again closes; in Chords type in the
+   search box then Esc → the page closes. Voices → instrument list. Home → home screen.
+9. Restore down and resize (e.g. 800 × 600, 1900 × 500) → everything visible, nothing overlapping.
+10. With a hardware keyboard: play chords while a style runs → the chord shows on the screen, no assert.
+
 ## Not checked
 
 - Real playback (lamps / bar moving with the engine): the owner's library has no tracks. Lamps were checked
