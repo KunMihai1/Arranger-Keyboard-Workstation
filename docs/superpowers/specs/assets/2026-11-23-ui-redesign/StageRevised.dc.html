@@ -43,6 +43,9 @@ a{color:#c8cacd}a:hover{color:#ffffff}
 .lamp-down{background:linear-gradient(#ff7a66,#e3361f);box-shadow:0 0 7px rgba(255,80,50,.55),inset 0 1px 0 rgba(255,255,255,.35)}
 .lamp-beat{background:linear-gradient(#ffe77a,#f0b70c);box-shadow:0 0 7px rgba(255,205,40,.5),inset 0 1px 0 rgba(255,255,255,.45)}
 .cell .silk,.cell .silk-dim{font-size:9px;letter-spacing:.08em}
+.key{display:grid;grid-template-columns:5px 26px;column-gap:3px;row-gap:3px;align-items:center;justify-content:start}
+.key-label{grid-column:2;display:flex;justify-content:center}
+.key-label .silk,.key-label .silk-dim{font-size:9px;letter-spacing:.08em;line-height:10px;white-space:pre;text-align:center}
 .lcd-input{height:24px;box-sizing:border-box;padding:0 8px;border-radius:2px;background:#a7b394;color:#3b4630;font-family:'Share Tech Mono',monospace;font-size:13px;display:flex;align-items:center;box-shadow:inset 0 1px 2px rgba(0,0,0,.45)}
 .lcd-list{background:#a7b394;border-radius:2px;padding:4px 0;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);font-family:'Share Tech Mono',monospace;font-size:14px;color:#1b2216}
 .lcd-row{display:flex;justify-content:space-between;padding:3px 10px}
@@ -66,18 +69,14 @@ a{color:#c8cacd}a:hover{color:#ffffff}
 </helmet>
 <div style="width:1200px;height:645px;position:relative;overflow:hidden;background:#050506">
   <div style="height:124px;box-sizing:border-box;padding:7px 20px;display:grid;grid-template-columns:minmax(0,1fr) 600px minmax(0,1fr);align-items:center;background:linear-gradient(#2a2b2e,#242528);border-bottom:1px solid #0b0b0c">
-    <div style="display:flex;gap:6px;align-items:center">
-      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));row-gap:5px;column-gap:2px">
-        <sc-for list="{{transport}}" as="tb" hint-placeholder-count="4">
-          <div class="cell"><span class="{{tb.led}}" aria-hidden="true"></span><button class="btn" aria-label="{{tb.label}}" onClick="{{tb.press}}"></button><span class="silk">{{tb.label}}</span></div>
-        </sc-for>
-      </div>
-      <div style="width:1px;height:104px;background:#4a4c51;margin:0 4px"></div>
-      <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));row-gap:3px;column-gap:2px">
-        <sc-for list="{{styleButtons}}" as="sb" hint-placeholder-count="17">
-          <div class="cell"><span class="{{sb.led}}" aria-hidden="true"></span><button class="btn" aria-label="{{sb.label}}"></button><span class="silk-dim">{{sb.label}}</span></div>
-        </sc-for>
-      </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{sectionRows}}" as="row" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr))">
+          <sc-for list="{{row.buttons}}" as="sb" hint-placeholder-count="6">
+            <div class="key"><span class="{{sb.led}}" aria-hidden="true"></span><button class="btn" aria-label="{{sb.label}}"></button><span class="key-label"><span class="silk-dim">{{sb.label}}</span></span></div>
+          </sc-for>
+        </div>
+      </sc-for>
     </div>
     <div style="display:flex;align-items:center;justify-content:center;gap:10px">
       <div style="display:flex;flex-direction:column;gap:7px;align-items:flex-end">
@@ -103,15 +102,19 @@ a{color:#c8cacd}a:hover{color:#ffffff}
         </sc-for>
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-      <div style="display:flex;align-items:center;gap:8px;width:270px">
-        <span class="silk">Quick FX</span><div class="rule" style="flex-grow:1"></div>
-        <span class="silk-dim">Part</span>
-        <button class="seg" aria-label="Left part"><span class="led" aria-hidden="true"></span>Left</button>
-        <button class="seg" aria-label="Right part"><span class="led led-on" aria-hidden="true"></span>Right</button>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
+      <div style="display:grid;grid-template-columns:repeat(3,44px);row-gap:12px">
+        <sc-for list="{{transport}}" as="tb" hint-placeholder-count="6">
+          <div class="key" style="align-self:start;{{tb.place}}"><span class="{{tb.led}}" aria-hidden="true"></span><button class="btn" aria-label="{{tb.name}}" onClick="{{tb.press}}"></button><span class="key-label"><span class="silk">{{tb.label}}</span></span></div>
+        </sc-for>
       </div>
-      <div style="display:flex;justify-content:space-between;width:270px">
-        <sc-for list="{{quickKnobs}}" as="k" hint-placeholder-count="4">
+      <div style="width:1px;height:96px;background:#4a4c51"></div>
+    <div style="display:flex;flex-direction:column;gap:6px;width:130px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="silk">Quick FX</span><div class="rule" style="flex-grow:1"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <sc-for list="{{quickKnobs}}" as="k" hint-placeholder-count="2">
           <div style="display:flex;flex-direction:column;align-items:center;gap:1px;width:62px">
             <div class="qring" aria-hidden="true">
               <sc-for list="{{quickTicks}}" as="t" hint-placeholder-count="11"><span class="qtick" style="transform:rotate({{t.angle}}deg)"></span></sc-for>
@@ -121,6 +124,12 @@ a{color:#c8cacd}a:hover{color:#ffffff}
           </div>
         </sc-for>
       </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="silk-dim">Part</span>
+        <button class="row-toggle" style="height:14px;gap:6px" aria-label="Left part"><span class="led" aria-hidden="true"></span><span class="silk">Left</span></button>
+        <button class="row-toggle" style="height:14px;gap:6px" aria-label="Right part"><span class="led led-on" aria-hidden="true"></span><span class="silk">Right</span></button>
+      </div>
+    </div>
     </div>
   </div>
   <div style="height:4px;background:linear-gradient(#5e1a1d,#43121a)"></div>
@@ -368,7 +377,7 @@ class Component extends DCLogic {
     ];
     const ticks = (count) => { const list = []; for (let tick = 0; tick < count; tick++) list.push({ angle: -135 + tick * 270 / (count - 1) }); return list; };
     const knob = (label, value) => ({ label, value, angle: Math.round(-135 + 270 * value / 127) });
-    const cell = (label, on, led) => ({ label, led: on ? 'led ' + led : 'led' });
+    const cell = (label, on, led) => ({ label, name: label.replace('\n', ' '), place: '', led: on ? 'led ' + led : 'led' });
     const soft = (label, target) => ({ label, press: target ? go(target) : () => {}, led: page === target ? 'led led-on' : 'led', down: () => {}, up: () => {} });
     const tempoSoft = (label, direction) => ({ label, press: () => {}, led: 'led', down: () => this.holdTempo(direction), up: () => this.releaseTempo() });
     const toggles = [['Arranger mode', true], ['Bass inversion', false], ['Chord memory', true], ['Synchro start', false], ['Count-in', false], ['Mute chord keys', false], ['Chord transposition', true]];
@@ -407,15 +416,17 @@ class Component extends DCLogic {
       transport: [
         { ...cell('Rec', recording, 'led-on'), press: () => { const now = !recording; this.setState({ recording: now }); this.flash(now ? '● RECORDING STARTED' : 'RECORDING STOPPED'); } },
         { ...cell('File', page === 'file', 'led-on'), press: go('file') },
+        { ...cell('Sync\nStart', false, 'led-grn'), press: () => {}, place: 'grid-column:1' },
         { ...cell('Stop', false, 'led-on'), press: () => {} },
         { ...cell('Start', true, 'led-grn'), press: () => {} }
       ],
-      styleButtons: ['Intro 1', 'Intro 2', 'Intro 3', 'End 1', 'End 2', 'End 3', 'Var 1', 'Var 2', 'Var 3', 'Var 4', 'Break', 'Auto Fill', 'Fill 1', 'Fill 2', 'Fill 3', 'Fill 4', 'Sync St.'].map((label) => cell(label, label === 'Var 1' || label === 'Auto Fill', label === 'Auto Fill' ? 'led-grn' : 'led-on')),
+      sectionRows: [['Intro 1', 'Intro 2', 'Intro 3', 'End 1', 'End 2', 'End 3'], ['Var 1', 'Var 2', 'Var 3', 'Var 4', 'Break'], ['Fill 1', 'Fill 2', 'Fill 3', 'Fill 4', 'Auto Fill']]
+        .map((labels) => ({ buttons: labels.map((label) => cell(label, label === 'Var 1' || label === 'Auto Fill', label === 'Auto Fill' ? 'led-grn' : 'led-on')) })),
       softLeft: [soft('Home', 'home'), soft('Styles', 'styles'), soft('Voices', 'voices'), tempoSoft('Tempo −', -1)],
       softRight: [soft('Effects', 'effects'), soft('Settings', 'settings'), soft('Chords', 'chords'), tempoSoft('Tempo +', 1)],
       quickTicks: ticks(11),
       effectTicks: ticks(11),
-      quickKnobs: [knob('Volume', 110), knob('Reverb', 72), knob('Chorus', 30), knob('Bright', 64)],
+      quickKnobs: [knob('Volume', 110), knob('Reverb', 72)],
       effectGroups: [
         { name: 'Tone', knobs: [knob('Brightness', 64), knob('Expression', 100), knob('Chorus', 30), knob('Resonance', 40)] },
         { name: 'Envelope', knobs: [knob('Attack', 20), knob('Decay', 64), knob('Release', 50), knob('Vibrato', 0)] },

@@ -179,12 +179,12 @@ Re-check every row against the code before building its phase (part 1 §0.1) and
 | Toggle particles | `particleToggle` | P.2 Display › Particles |
 | Note annotation | `noteNumbersAnnotation` | P.2 Display › Note names on keys |
 | Instruments | `instrumentSelectorButton` → `showInstrumentSelector` | Panel **Voices** → P.7 instrument list |
-| Left hand / Right hand toggles | `left/rightHandInstrumentToggle` | Panel Quick FX **Left / Right** part buttons |
+| Left hand / Right hand toggles | `left/rightHandInstrumentToggle` | Panel Quick FX **Part · Left / Right** LED toggles |
 | Play file recording | `playRecordingFileButton` | P.9 Play a MIDI file… |
 | Save recording | `saveRecordingButton` | P.9 Save as MIDI… |
 | Record ● / Stop ■ / Play ▶ (recording) | `startRecording`, `stopRecording`, `startPlayback` | Panel **Rec**; P.9 Play recording / Stop |
-| Intro 1-3, Var 1-4, Break, Fill 1-4, Ending 1-3, auto-fill checkbox | header section buttons | Panel section buttons (6 × 3), **Auto Fill** |
-| Synchro start (setting) | `SynchroStart` key | Panel **Sync St.** + P.2 Arranger |
+| Intro 1-3, Var 1-4, Break, Fill 1-4, Ending 1-3, auto-fill checkbox | header section buttons | Panel section buttons (3 rows, 6-column grid), **Auto Fill** after Fill 4 (part 1 §4.2) |
+| Synchro start (setting) | `SynchroStart` key | Panel **Sync Start** (transport grid) + P.2 Arranger |
 | Chord helper | `chordHelperButton` | Panel **Chords** → P.8 |
 | Style tab Start / Stop | `CurrentStyleComponent` | Panel **Start / Stop** |
 | Beat bar | `CustomBeatBar` | Screen beat lamps (part 1 §5.3) |
@@ -195,7 +195,7 @@ Re-check every row against the code before building its phase (part 1 §0.1) and
 | Vertical tabs, right-click Close Tab | `MyTabbedComponent` | Gone: pages replace tabs |
 | Playback settings tab | `PlayBackSettingsComponent` | P.7 Range, split & transpose |
 | Section Configurations browser + editor | `ArrangerStyleListComponent`, `ArrangerStyleEditor`, `ArrangerTimelineComponent` | P.6 |
-| Sound Effects window | `SoundEffectWindowComponent` | Panel **Effects** → P.1; Quick FX knobs |
+| Sound Effects window | `SoundEffectWindowComponent` | Panel **Effects** → P.1; Quick FX knobs (Volume, Reverb) |
 | MIDI Settings window | `SettingsWindow` | Panel **Settings** → P.2 |
 | SFZ Library window | `SFZLibraryUI` (from Settings) | P.7 SFZ library |
 | Update number of keys + device list | `updateNumberOfKeysDevice`, `devicesCBUpdate` | P.2 MIDI › Keyboard |
