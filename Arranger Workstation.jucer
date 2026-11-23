@@ -288,6 +288,10 @@
                 file="Source/UI/Stage/StageWidgets.cpp"/>
           <FILE id="stgWdH" name="StageWidgets.h" compile="0" resource="0"
                 file="Source/UI/Stage/StageWidgets.h"/>
+          <FILE id="stgSrC" name="StageScreen.cpp" compile="1" resource="0"
+                file="Source/UI/Stage/StageScreen.cpp"/>
+          <FILE id="stgSrH" name="StageScreen.h" compile="0" resource="0"
+                file="Source/UI/Stage/StageScreen.h"/>
         </GROUP>
         <FILE id="OQf8Oe" name="SettingsWindow.h" compile="0" resource="0"
               file="Source/UI/SettingsWindow.h"/>

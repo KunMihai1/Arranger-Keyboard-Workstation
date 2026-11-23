@@ -86,8 +86,9 @@
 
 **Consumes:** Task 3 models, Task 4 fonts/palette.
 **Produces:** `class StageScreen : public juce::Component, private juce::Timer { public: struct Content { juce::String styleName, mode, variation, chord, timeSignature; int bar; int beatsPerBar; double elapsedBeats; bool playing; bool asleep; }; void setContent (const Content&); void postMessage (const juce::String&); TempoModel& tempo(); std::function<void (double)> onTempoChanged; };` Mouse: click tempo → inline `juce::TextEditor` (digits only, Enter applies, Esc cancels, focus lost applies); wheel / vertical drag on tempo; right-click → `resetToStyle` + message "TEMPO BACK TO STYLE: nnn"; locked → message "TEMPO LOCKED WHILE PLAYING".
-- [ ] Tests (component, no window): `postMessage` then the top-left text = upper case; simulated `mouseWheelMove` over the tempo bounds raises `onTempoChanged(121)`; right-click calls `onTempoChanged(style tempo)`; locked tempo → callback not called and message shown.
-- [ ] Fail → implement paint per board (bezel 368 × 106, LCD rows 11/28/13 px, lamp row 8 px, 4 px gaps) → pass → commit `feat(ui): Stage screen`.
+- [x] Tests (component, no window): `postMessage` then the top-left text = upper case; simulated `mouseWheelMove` over the tempo bounds raises `onTempoChanged(121)`; right-click calls `onTempoChanged(style tempo)`; locked tempo → callback not called and message shown.
+- [x] Fail → implement paint per board (bezel 368 × 106, LCD rows 11/28/13 px, lamp row 8 px, 4 px gaps) → pass → commit `feat(ui): Stage screen`.
+- As built: `stepTempo (direction)` for the Tempo −/+ buttons, `setTempoLocked`, `getTopLineText`, `getTempoBounds`, `isEditingTempo` / `getTempoEditor`, `setClock` (tests); the editor stays a hidden child (never deleted inside its own callback); vertical drag = 1 step per 6 px. Stub run: 19 failures; implementation: 27 / 0.
 
 ### Task 6: `StagePanel` assembly
 

@@ -31,9 +31,36 @@ namespace StageMetrics
     inline constexpr int panelPaddingVertical   = 7;
     inline constexpr int panelPaddingHorizontal = 20;
 
-    // --- Screen (centre) ---
+    // --- Screen (centre): bezel, LCD with three text rows, beat lamps under it ---
     inline constexpr int screenWidth  = 368;
     inline constexpr int screenHeight = 106;
+    inline constexpr int bezelPaddingTop     = 6;
+    inline constexpr int bezelPaddingSide    = 6;
+    inline constexpr int bezelPaddingBottom  = 5;
+    inline constexpr int bezelGap            = 5;   // LCD to lamp row
+    inline constexpr int bezelCornerRadius   = 3;
+    inline constexpr int lcdCornerRadius     = 2;
+    inline constexpr int lcdPaddingVertical  = 5;
+    inline constexpr int lcdPaddingSide      = 12;
+    inline constexpr float lcdTopRowSize     = 11.0f;
+    inline constexpr float lcdTitleSize      = 28.0f;
+    inline constexpr float lcdTempoSize      = 24.0f;
+    inline constexpr float lcdBottomRowSize  = 13.0f;
+    inline constexpr int lcdBottomRowGap     = 14;
+    inline constexpr int tempoPaddingSide    = 2;
+    inline constexpr int tempoEditorWidth    = 52;
+    inline constexpr int tempoEditorHeight   = 26;
+    inline constexpr float tempoEditorSize   = 22.0f;
+    inline constexpr int tempoEditorPadding  = 4;
+    inline constexpr int tempoDragStep       = 6;   // px of vertical drag per tempo step
+    inline constexpr int lampHeight          = 8;
+    inline constexpr int lampGap             = 4;
+    inline constexpr int lampRowInset        = 1;
+    inline constexpr int lampCornerRadius    = 2;
+    inline constexpr int lampGlowRadius      = 7;
+    inline constexpr int defaultBeatsPerBar  = 4;   // lamps shown before a style reports its time signature
+    inline constexpr int tempoStepUp         = 1;
+    inline constexpr int tempoStepDown       = -1;
 
     // --- Buttons ---
     inline constexpr int buttonWidth        = 26;   // section and transport buttons
