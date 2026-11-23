@@ -27,9 +27,10 @@ namespace
 
     /** Width a silkscreen text needs, as CSS lays it out: letter spacing follows the last letter too, and
         rounding up keeps drawText from dropping the last glyph. */
-    float silkWidth (const juce::Font& font, const juce::String& text, float cssPixelSize, float letterSpacingEm)
+    // The measured width already holds the letter-spacing after every letter, as CSS counts it.
+    float silkWidth (const juce::Font& font, const juce::String& text)
     {
-        return std::ceil (juce::GlyphArrangement::getStringWidth (font, text) + cssPixelSize * letterSpacingEm);
+        return std::ceil (juce::GlyphArrangement::getStringWidth (font, text));
     }
 
     juce::String numbered (const juce::String& prefix, int number)
@@ -41,6 +42,10 @@ namespace
 StagePanel::StagePanel (double styleTempo)
     : stageScreen (styleTempo)
 {
+    // The panel fills its whole area, so it is opaque: a knob or LED repaint then never makes JUCE
+    // redraw the window's background image behind it.
+    setOpaque (true);
+
     using Tone = RubberButton::LabelTone;
     using Led  = RubberButton::LedColour;
 
@@ -122,6 +127,8 @@ StagePanel::StagePanel (double styleTempo)
         addAndMakeVisible (*knob);
     volumeKnob.onValueChange = [this] { if (onQuickKnob != nullptr) onQuickKnob (QuickKnob::volume, juce::roundToInt (volumeKnob.getValue())); };
     reverbKnob.onValueChange = [this] { if (onQuickKnob != nullptr) onQuickKnob (QuickKnob::reverb, juce::roundToInt (reverbKnob.getValue())); };
+    volumeKnob.onDragEnd = [this] { if (onQuickKnobReleased != nullptr) onQuickKnobReleased (QuickKnob::volume, juce::roundToInt (volumeKnob.getValue())); };
+    reverbKnob.onDragEnd = [this] { if (onQuickKnobReleased != nullptr) onQuickKnobReleased (QuickKnob::reverb, juce::roundToInt (reverbKnob.getValue())); };
 
     auto addPartToggle = [this] (const juce::String& partName, bool left)
     {
@@ -139,20 +146,20 @@ StagePanel::~StagePanel()
     stopTimer();
 }
 
-RubberButton& StagePanel::addKey (const juce::String& componentName, const juce::String& label,
+RubberButton& StagePanel::addKey (const juce::String& buttonName, const juce::String& label,
                                   RubberButton::LedColour colour, RubberButton::LabelTone tone)
 {
     auto* button = buttons.add (std::make_unique<RubberButton> (label, RubberButton::Style::key, colour));
-    button->setName (componentName);
+    button->setName (buttonName);
     button->setLabelTone (tone);
     addAndMakeVisible (*button);
     return *button;
 }
 
-RubberButton& StagePanel::addScreenButton (const juce::String& componentName, const juce::String& label, RubberButton::LabelSide side)
+RubberButton& StagePanel::addScreenButton (const juce::String& buttonName, const juce::String& label, RubberButton::LabelSide side)
 {
     auto* button = buttons.add (std::make_unique<RubberButton> (label, RubberButton::Style::screen, RubberButton::LedColour::red));
-    button->setName (componentName);
+    button->setName (buttonName);
     button->setLabelSide (side);
     addAndMakeVisible (*button);
     return *button;
@@ -259,8 +266,8 @@ void StagePanel::resized()
     auto placeKey = [capCentreInCell] (RubberButton& button, float cellLeft, float top)
     {
         const auto width = button.getPreferredWidth();
-        button.setBounds (juce::roundToInt (cellLeft + capCentreInCell - static_cast<float> (width) / halves),
-                          juce::roundToInt (top), width, button.getPreferredHeight());
+        button.setBounds (button.boundsForBoardBox ({ juce::roundToInt (cellLeft + capCentreInCell - static_cast<float> (width) / halves),
+                                                      juce::roundToInt (top), width, button.getPreferredHeight() }));
     };
 
     // --- Left third: section rows on a 6-column grid ---
@@ -309,7 +316,7 @@ void StagePanel::resized()
         const auto partHeight  = static_cast<float> (partLeftButton->getPreferredHeight());
         auto top = centredTop (titleHeight + scaled (quickFxRowGap) + knobHeight + scaled (quickFxRowGap) + partHeight);
 
-        const auto titleWidth = silkWidth (titleFont, quickFxTitle, scaled (silkLabelSize), silkLabelSpacing);
+        const auto titleWidth = silkWidth (titleFont, quickFxTitle);
         quickFxTitleArea = { quickLeft, top, titleWidth, titleHeight };
         const auto ruleStart = quickLeft + titleWidth + scaled (quickFxTitleGap);
         quickFxRule = { ruleStart, top + (titleHeight - scaled (ruleWidth)) / halves, rightEdge - ruleStart, scaled (ruleWidth) };
@@ -321,12 +328,12 @@ void StagePanel::resized()
         top += knobHeight + scaled (quickFxRowGap);
 
         const auto partFont = StageFonts::silkscreen (scaled (silkLabelSize), medium, partLabelSpacing);
-        const auto partWidth = silkWidth (partFont, partTitle, scaled (silkLabelSize), partLabelSpacing);
+        const auto partWidth = silkWidth (partFont, partTitle);
         partLabelArea = { quickLeft, top, partWidth, partHeight };
         auto toggleLeft = quickLeft + partWidth + scaled (partGap);
         for (auto* toggle : { partLeftButton, partRightButton })
         {
-            toggle->setBounds (juce::roundToInt (toggleLeft), juce::roundToInt (top), toggle->getPreferredWidth(), toggle->getPreferredHeight());
+            toggle->setBounds (toggle->boundsForBoardBox ({ juce::roundToInt (toggleLeft), juce::roundToInt (top), toggle->getPreferredWidth(), toggle->getPreferredHeight() }));
             toggleLeft += static_cast<float> (toggle->getPreferredWidth()) + scaled (partGap);
         }
     }
@@ -354,11 +361,11 @@ void StagePanel::resized()
         {
             const auto top = juce::roundToInt (columnTop + (rowHeight + scaled (screenButtonRowGap)) * static_cast<float> (rowIndex));
             auto* leftButton = leftScreenButtons[rowIndex];
-            leftButton->setBounds (juce::roundToInt (startX + leftWidth) - leftButton->getPreferredWidth(), top,
-                                   leftButton->getPreferredWidth(), leftButton->getPreferredHeight());
+            leftButton->setBounds (leftButton->boundsForBoardBox ({ juce::roundToInt (startX + leftWidth) - leftButton->getPreferredWidth(), top,
+                                                                    leftButton->getPreferredWidth(), leftButton->getPreferredHeight() }));
             auto* rightButton = rightScreenButtons[rowIndex];
-            rightButton->setBounds (juce::roundToInt (startX + leftWidth + scaled (centreColumnGap) + screenWidthPx + scaled (centreColumnGap)), top,
-                                    rightButton->getPreferredWidth(), rightButton->getPreferredHeight());
+            rightButton->setBounds (rightButton->boundsForBoardBox ({ juce::roundToInt (startX + leftWidth + scaled (centreColumnGap) + screenWidthPx + scaled (centreColumnGap)), top,
+                                                                      rightButton->getPreferredWidth(), rightButton->getPreferredHeight() }));
         }
 
         stageScreen.setBounds (juce::roundToInt (startX + leftWidth + scaled (centreColumnGap)),
@@ -380,11 +387,19 @@ void StagePanel::paint (juce::Graphics& g)
     g.fillRect (rightRule);
     g.fillRect (quickFxRule);
 
-    g.setColour (StagePalette::silkscreenText);
-    g.setFont (StageFonts::silkscreen (scaled (silkLabelSize), semiBold, silkLabelSpacing));
-    g.drawText (quickFxTitle, quickFxTitleArea, juce::Justification::centredLeft, false);
+    // Text is laid out even where it is clipped away, so only draw it when it is being repainted
+    // (a knob turn repaints just the knob's area).
+    if (g.clipRegionIntersects (quickFxTitleArea.getSmallestIntegerContainer()))
+    {
+        g.setColour (StagePalette::silkscreenText);
+        g.setFont (StageFonts::silkscreen (scaled (silkLabelSize), semiBold, silkLabelSpacing));
+        g.drawText (quickFxTitle, quickFxTitleArea, juce::Justification::centredLeft, false);
+    }
 
-    g.setColour (StagePalette::silkscreenDimText);
-    g.setFont (StageFonts::silkscreen (scaled (silkLabelSize), medium, partLabelSpacing));
-    g.drawText (partTitle, partLabelArea, juce::Justification::centredLeft, false);
+    if (g.clipRegionIntersects (partLabelArea.getSmallestIntegerContainer()))
+    {
+        g.setColour (StagePalette::silkscreenDimText);
+        g.setFont (StageFonts::silkscreen (scaled (silkLabelSize), medium, partLabelSpacing));
+        g.drawText (partTitle, partLabelArea, juce::Justification::centredLeft, false);
+    }
 }

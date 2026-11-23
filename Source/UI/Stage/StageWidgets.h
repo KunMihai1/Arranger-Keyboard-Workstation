@@ -11,7 +11,9 @@
                      the component is centred on the cap, only the cap takes clicks
         - screen:    label, 40 x 17 cap, LED in a row (mirrored with LabelSide::right)
         - ledToggle: LED + label, no cap; the whole row takes clicks
-      StageKnob     knurled rotary knob (quick 52 / effects 72) with its label under it
+      StageKnob     knurled rotary knob (quick 52 / effects 72) with its label under it;
+                    it turns like a real knob: grabbed anywhere, it follows the hand around
+                    its centre (relative, so it never jumps to where it was grabbed)
 
   ==============================================================================
 */
@@ -43,9 +45,16 @@ public:
     juce::String getLabel() const;
     int          getLabelLineCount() const;
 
-    /** Size the component needs at the current scale. */
+    /** Size of the drawn button (the board's CSS box) at the current scale. */
     int getPreferredWidth() const;
     int getPreferredHeight() const;
+
+    /** The component bounds for a drawn box placed where the board puts it: the box plus room for the
+        LED glow on every side, so the glow is never cut off. */
+    juce::Rectangle<int> boundsForBoardBox (juce::Rectangle<int> boardBox) const;
+
+    /** The drawn box inside the component (the bounds less the glow room). */
+    juce::Rectangle<float> getBoardBox() const;
 
     juce::Rectangle<float> getCapBounds() const;
     juce::Rectangle<float> getLedBounds() const;
@@ -61,6 +70,7 @@ private:
     float labelWidth() const;
     float scaled (float referenceLength) const;
     float scaled (int referenceLength) const;
+    int   glowRoom() const;   ///< whole px kept around the drawn box for the LED glow
 
     juce::String label;
     juce::StringArray labelLines;
@@ -92,13 +102,21 @@ public:
     juce::Rectangle<float> getRingBounds() const;
 
     void paint (juce::Graphics& g) override;
+    void mouseDown (const juce::MouseEvent& event) override;
+    void mouseDrag (const juce::MouseEvent& event) override;
+    void mouseUp (const juce::MouseEvent& event) override;
 
 private:
     float scaled (float referenceLength) const;
     float scaled (int referenceLength) const;
+    bool  angleAround (juce::Point<float> position, double& angle) const;   ///< false inside the dead zone
 
     juce::String label;
     Size size;
+    bool   turning {};
+    bool   haveTurnAngle {};
+    double lastTurnAngle {};
+    double turnProportion {};   ///< unsnapped, so small moves add up
     float scale { StageMetrics::referenceScale };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StageKnob)

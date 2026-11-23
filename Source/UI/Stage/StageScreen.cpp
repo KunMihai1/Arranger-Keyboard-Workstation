@@ -28,7 +28,9 @@ namespace
     constexpr float beatShineAlpha       = 0.45f;
     constexpr float hairline             = 1.0f;
     constexpr float tempoHoverAlpha      = 0.12f;   // .tempo:hover rgba(27,34,22,.12)
+    constexpr float tempoSelectionAlpha  = 0.25f;   // the selected digits: a faint LCD tint, text stays light
     constexpr int   messageRefreshMs     = 100;
+    constexpr int   scrollRefreshMs      = 30;      // smooth scrolling of a long message
     constexpr float halves               = 2.0f;
 }
 
@@ -40,10 +42,13 @@ StageScreen::StageScreen (double styleTempo)
     tempoEditor.setInputRestrictions (maxTempoDigits, digits);
     tempoEditor.setJustification (juce::Justification::centredRight);
     tempoEditor.setSelectAllWhenFocused (true);
-    tempoEditor.setColour (juce::TextEditor::backgroundColourId, StagePalette::lcdInk);
+    // .tempo-input: light digits on a dark field with 2px corners. The field is painted by the
+    // screen (a TextEditor background is square); the selection is only a tint, so the digits
+    // stay light while select-all makes typing replace the tempo.
+    tempoEditor.setColour (juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
     tempoEditor.setColour (juce::TextEditor::textColourId, StagePalette::lcd);
-    tempoEditor.setColour (juce::TextEditor::highlightColourId, StagePalette::lcd);
-    tempoEditor.setColour (juce::TextEditor::highlightedTextColourId, StagePalette::lcdInk);
+    tempoEditor.setColour (juce::TextEditor::highlightColourId, StagePalette::lcd.withAlpha (tempoSelectionAlpha));
+    tempoEditor.setColour (juce::TextEditor::highlightedTextColourId, StagePalette::lcd);
     tempoEditor.setColour (juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
     tempoEditor.setColour (juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
     tempoEditor.setColour (juce::CaretComponent::caretColourId, StagePalette::lcd);
@@ -92,8 +97,12 @@ void StageScreen::setContent (const Content& newContent)
 
 void StageScreen::postMessage (const juce::String& message)
 {
-    messages.post (message, now());
-    startTimer (messageRefreshMs);
+    // A message gets the whole top row; one still too wide scrolls through and stays long enough to be read.
+    const auto font  = StageFonts::lcd (scaled (StageMetrics::lcdTopRowSize));
+    const auto width = juce::GlyphArrangement::getStringWidth (font, message.toUpperCase());
+    messageOverflow  = juce::jmax (float {}, width - layout().lcdContent.getWidth());
+    messages.post (message, now(), StageText::marqueeDurationMs (messageOverflow, scaled (StageMetrics::messageScrollSpeed)));
+    startTimer (messageOverflow > float {} ? scrollRefreshMs : messageRefreshMs);
     repaint();
 }
 
@@ -109,6 +118,14 @@ void StageScreen::setTempoLocked (bool shouldBeLocked)
     tempoModel.setLocked (shouldBeLocked);
     if (shouldBeLocked && editingTempo)
         closeTempoEditor (false);
+}
+
+void StageScreen::showTempo (double currentTempo, double styleTempo)
+{
+    tempoModel.setStyleTempo (styleTempo);
+    if (! editingTempo)
+        tempoModel.showValue (currentTempo);
+    repaint();
 }
 
 juce::String StageScreen::getTopLineText() const
@@ -173,13 +190,13 @@ StageScreen::Layout StageScreen::layout() const
     const auto topFont    = StageFonts::lcd (scaled (lcdTopRowSize));
     const auto titleFont  = StageFonts::lcd (scaled (lcdTitleSize));
     const auto bottomFont = StageFonts::lcd (scaled (lcdBottomRowSize));
-    const auto content    = result.lcdContent;
-    const auto spare      = content.getHeight() - topFont.getHeight() - titleFont.getHeight() - bottomFont.getHeight();
+    const auto rowArea    = result.lcdContent;
+    const auto spare      = rowArea.getHeight() - topFont.getHeight() - titleFont.getHeight() - bottomFont.getHeight();
     const auto rowGap     = spare / halves;
 
-    result.topBaseline    = content.getY() + topFont.getAscent();
-    result.titleBaseline  = content.getY() + topFont.getHeight() + rowGap + titleFont.getAscent();
-    result.bottomBaseline = content.getBottom() - bottomFont.getHeight() + bottomFont.getAscent();
+    result.topBaseline    = rowArea.getY() + topFont.getAscent();
+    result.titleBaseline  = rowArea.getY() + topFont.getHeight() + rowGap + titleFont.getAscent();
+    result.bottomBaseline = rowArea.getBottom() - bottomFont.getHeight() + bottomFont.getAscent();
     return result;
 }
 
@@ -236,24 +253,39 @@ void StageScreen::paint (juce::Graphics& g)
     g.setColour (StagePalette::lcdInk);
     const auto area = screenLayout.lcdContent;
 
-    // Top row: three items spread like space-between.
+    // Top row: a message alone (scrolling if too wide), else three items spread like space-between.
     const auto topFont = StageFonts::lcd (scaled (lcdTopRowSize));
     g.setFont (topFont);
-    const auto topLeft  = getTopLineText();
-    const auto topRight = content.timeSignature.isEmpty() ? tempoWord : content.timeSignature + juce::String::fromUTF8 (middleDotUtf8) + tempoWord;
-    const auto leftWidth   = juce::GlyphArrangement::getStringWidth (topFont, topLeft);
-    const auto middleWidth = juce::GlyphArrangement::getStringWidth (topFont, content.mode);
-    const auto rightWidth  = juce::GlyphArrangement::getStringWidth (topFont, topRight);
-    const auto topGap = (area.getWidth() - leftWidth - middleWidth - rightWidth) / halves;
     const auto topBaseline = juce::roundToInt (screenLayout.topBaseline);
-    g.drawSingleLineText (topLeft, juce::roundToInt (area.getX()), topBaseline);
-    g.drawSingleLineText (content.mode, juce::roundToInt (area.getX() + leftWidth + topGap), topBaseline);
-    g.drawSingleLineText (topRight, juce::roundToInt (area.getRight()), topBaseline, juce::Justification::right);
+    if (const auto message = messages.current (now()); message.isNotEmpty())
+    {
+        juce::Graphics::ScopedSaveState saved (g);
+        g.reduceClipRegion (area.withHeight (screenLayout.topBaseline - area.getY() + topFont.getDescent()).toNearestInt());
+        const auto offset = StageText::marqueeOffset (messageOverflow, scaled (messageScrollSpeed), messages.elapsedMs (now()));
+        g.drawSingleLineText (message, juce::roundToInt (area.getX() - offset), topBaseline);
+    }
+    else
+    {
+        const auto topLeft  = getTopLineText();
+        const auto topRight = content.timeSignature.isEmpty() ? tempoWord : content.timeSignature + juce::String::fromUTF8 (middleDotUtf8) + tempoWord;
+        const auto leftWidth   = juce::GlyphArrangement::getStringWidth (topFont, topLeft);
+        const auto middleWidth = juce::GlyphArrangement::getStringWidth (topFont, content.mode);
+        const auto rightWidth  = juce::GlyphArrangement::getStringWidth (topFont, topRight);
+        const auto topGap = (area.getWidth() - leftWidth - middleWidth - rightWidth) / halves;
+        g.drawSingleLineText (topLeft, juce::roundToInt (area.getX()), topBaseline);
+        g.drawSingleLineText (content.mode, juce::roundToInt (area.getX() + leftWidth + topGap), topBaseline);
+        g.drawSingleLineText (topRight, juce::roundToInt (area.getRight()), topBaseline, juce::Justification::right);
+    }
 
     // Title row: style name left, tempo right, on one baseline.
     g.setFont (StageFonts::lcd (scaled (lcdTitleSize)));
     g.drawSingleLineText (content.styleName, juce::roundToInt (area.getX()), juce::roundToInt (screenLayout.titleBaseline));
-    if (tempoVisible() && ! editingTempo)
+    if (editingTempo)
+    {
+        g.setColour (StagePalette::lcdInk);
+        g.fillRoundedRectangle (tempoEditor.getBounds().toFloat(), scaled (lcdCornerRadius));   // ink is also the text colour below
+    }
+    else if (tempoVisible())
     {
         const auto tempoArea = getTempoBounds();
         if (mouseOverTempo)

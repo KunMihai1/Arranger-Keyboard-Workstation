@@ -78,6 +78,36 @@ namespace StageModelsTestValues
     constexpr double afterSecondEnds = 4600.0;
 
     constexpr double tolerance = 0.0001;
+
+    const juce::String tempoShown   = "a tempo set elsewhere is shown even while locked, clamped, without counting as a change";
+    const juce::String chordNames   = "chords read like the board: root, quality in lower case, bass after a slash";
+    const juce::String barNumbers   = "bars count from 1 and follow the elapsed beats";
+    constexpr double shownTempo     = 133.0;
+    constexpr double tooFastShown   = 250.0;
+    constexpr int    rootC          = 0;
+    constexpr int    rootFSharp     = 6;
+    constexpr int    bassE          = 4;
+    const juce::String cMajor       = "C maj";
+    const juce::String fSharpMinor7 = "F# min7";
+    const juce::String cMajorOverE  = "C maj/E";
+    constexpr double firstBarBeat   = 0.5;
+    constexpr double thirdBarBeat   = 9.0;
+    constexpr double beforeStart    = -1.0;
+    constexpr int    firstBar       = 1;
+    constexpr int    thirdBar       = 3;
+
+    const juce::String longMessages  = "a message longer than the screen holds, scrolls to its end, holds, and stays long enough";
+    const juce::String customTime    = "a message can be given a longer time than 2.5 s";
+    constexpr float  noOverflow      = 0.0f;
+    constexpr float  overflowPx      = 300.0f;
+    constexpr float  pixelsPerMs     = 0.06f;
+    constexpr double startOfMessage  = 0.0;
+    constexpr double justAfterHold   = 1000.0;
+    constexpr double longAfter       = 60000.0;
+    constexpr double longShowTime    = 9000.0;
+    constexpr double beforeLongEnds  = 8000.0;
+    constexpr double afterLongEnds   = 9100.0;
+    constexpr float  pixelTolerance  = 0.001f;
 }
 
 class StageModelsTest : public juce::UnitTest
@@ -224,6 +254,66 @@ public:
             messages.post (secondMessage, secondPostedAt);
             expectEquals (messages.current (afterFirstWouldEnd), secondMessageUpper);
             expect (messages.current (afterSecondEnds).isEmpty());
+        }
+
+        beginTest (tempoShown);
+        {
+            TempoModel tempo { styleTempo };
+            tempo.setLocked (true);
+            tempo.showValue (shownTempo);
+            expectWithinAbsoluteError (tempo.value(), shownTempo, tolerance);
+            tempo.showValue (tooFastShown);
+            expectWithinAbsoluteError (tempo.value(), fastestTempo, tolerance);
+        }
+
+        beginTest (chordNames);
+        {
+            ArrangerChord chord;
+            expect (StageText::chordName (chord).isEmpty());
+
+            chord.root = rootC;
+            chord.quality = ChordQuality::Maj;
+            expectEquals (StageText::chordName (chord), cMajor);
+
+            chord.bassNote = bassE;
+            expectEquals (StageText::chordName (chord), cMajorOverE);
+
+            ArrangerChord minorSeventh;
+            minorSeventh.root = rootFSharp;
+            minorSeventh.quality = ChordQuality::Min7;
+            minorSeventh.bassNote = rootFSharp;   // bass = root: no slash
+            expectEquals (StageText::chordName (minorSeventh), fSharpMinor7);
+        }
+
+        beginTest (barNumbers);
+        {
+            expectEquals (StageText::barNumber (firstBarBeat, fourBeats), firstBar);
+            expectEquals (StageText::barNumber (thirdBarBeat, fourBeats), thirdBar);
+            expectEquals (StageText::barNumber (beforeStart, fourBeats), firstBar);
+            expectEquals (StageText::barNumber (thirdBarBeat, int {}), firstBar);
+        }
+
+        beginTest (longMessages);
+        {
+            expectWithinAbsoluteError (StageText::marqueeDurationMs (noOverflow, pixelsPerMs), ScreenMessages::showTimeMs, tolerance);
+            const auto duration = StageText::marqueeDurationMs (overflowPx, pixelsPerMs);
+            expectWithinAbsoluteError (duration, StageText::marqueeHoldMs + overflowPx / pixelsPerMs + StageText::marqueeHoldMs, tolerance);
+            expectGreaterThan (duration, ScreenMessages::showTimeMs);
+            expectWithinAbsoluteError (StageText::marqueeOffset (overflowPx, pixelsPerMs, startOfMessage), noOverflow, pixelTolerance);
+            expectWithinAbsoluteError (StageText::marqueeOffset (overflowPx, pixelsPerMs, StageText::marqueeHoldMs), noOverflow, pixelTolerance);
+            expectWithinAbsoluteError (StageText::marqueeOffset (overflowPx, pixelsPerMs, justAfterHold),
+                                       static_cast<float> ((justAfterHold - StageText::marqueeHoldMs) * pixelsPerMs), pixelTolerance);
+            expectWithinAbsoluteError (StageText::marqueeOffset (overflowPx, pixelsPerMs, longAfter), overflowPx, pixelTolerance);
+            expectWithinAbsoluteError (StageText::marqueeOffset (noOverflow, pixelsPerMs, longAfter), noOverflow, pixelTolerance);
+        }
+
+        beginTest (customTime);
+        {
+            ScreenMessages messages;
+            messages.post (recordingMessage, postedAt, longShowTime);
+            expectEquals (messages.current (beforeLongEnds), recordingMessageUpper);
+            expect (messages.current (afterLongEnds).isEmpty());
+            expectWithinAbsoluteError (messages.elapsedMs (beforeLongEnds), beforeLongEnds, tolerance);
         }
 
         beginTest (pagesToggle);

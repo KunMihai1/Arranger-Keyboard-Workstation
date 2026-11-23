@@ -17,6 +17,12 @@ namespace
     const juce::String digits = "0123456789";
     const juce::String zero   = "0";
 
+    // Chord names on the screen (board: "C maj").
+    const juce::StringArray pitchClassNames { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+    const juce::String chordSeparator = " ";
+    const juce::String bassSeparator  = "/";
+    constexpr int firstBarNumber      = 1;
+
     double clampTempo (double tempo)
     {
         return juce::jlimit (TempoModel::slowest, TempoModel::fastest, static_cast<double> (juce::roundToInt (tempo)));
@@ -45,6 +51,11 @@ bool TempoModel::setValue (double newValue)
 
     currentValue = clamped;
     return true;
+}
+
+void TempoModel::showValue (double tempoFromElsewhere)
+{
+    currentValue = clampTempo (tempoFromElsewhere);
 }
 
 bool TempoModel::step (int direction)
@@ -96,15 +107,56 @@ std::vector<LampState> BeatLampModel::lamps (int beatsPerBar, double elapsedBeat
     return lampStates;
 }
 
-void ScreenMessages::post (const juce::String& message, double nowMs)
+juce::String StageText::chordName (const ArrangerChord& chord)
+{
+    if (! chord.isValid() || ! juce::isPositiveAndBelow (chord.root, pitchClassNames.size()))
+        return {};
+
+    auto name = pitchClassNames[chord.root] + chordSeparator + toString (chord.quality).toLowerCase();
+    if (juce::isPositiveAndBelow (chord.bassNote, pitchClassNames.size()) && chord.bassNote != chord.root)
+        name += bassSeparator + pitchClassNames[chord.bassNote];
+    return name;
+}
+
+int StageText::barNumber (double elapsedBeats, int beatsPerBar)
+{
+    if (beatsPerBar <= int {} || elapsedBeats <= double {})
+        return firstBarNumber;
+
+    return static_cast<int> (std::floor (elapsedBeats / beatsPerBar)) + firstBarNumber;
+}
+
+void ScreenMessages::post (const juce::String& message, double nowMs, double showForMs)
 {
     text = message.toUpperCase();
     postedAtMs = nowMs;
+    durationMs = juce::jmax (showTimeMs, showForMs);
+}
+
+double ScreenMessages::elapsedMs (double nowMs) const
+{
+    return nowMs - postedAtMs;
+}
+
+double StageText::marqueeDurationMs (float overflowPx, float pixelsPerMs)
+{
+    if (overflowPx <= float {} || pixelsPerMs <= float {})
+        return ScreenMessages::showTimeMs;
+
+    return juce::jmax (ScreenMessages::showTimeMs, marqueeHoldMs + static_cast<double> (overflowPx / pixelsPerMs) + marqueeHoldMs);
+}
+
+float StageText::marqueeOffset (float overflowPx, float pixelsPerMs, double elapsedMs)
+{
+    if (overflowPx <= float {} || elapsedMs <= marqueeHoldMs)
+        return {};
+
+    return juce::jmin (overflowPx, static_cast<float> ((elapsedMs - marqueeHoldMs) * pixelsPerMs));
 }
 
 juce::String ScreenMessages::current (double nowMs) const
 {
-    return nowMs - postedAtMs < showTimeMs ? text : juce::String();
+    return nowMs - postedAtMs < durationMs ? text : juce::String();
 }
 
 StagePage PageRouter::toggle (StagePage page)

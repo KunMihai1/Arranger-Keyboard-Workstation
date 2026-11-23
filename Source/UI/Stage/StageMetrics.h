@@ -36,6 +36,15 @@ namespace StageMetrics
     inline constexpr int screenButtonRowGap     = 7;
     inline constexpr int screenButtonsPerSide   = 4;
 
+    // --- Pages over the note area (board .page) ---
+    inline constexpr int   pagePaddingTop    = 16;
+    inline constexpr int   pagePaddingSide   = 28;
+    inline constexpr int   pageRowGap        = 14;    // title row to content
+    inline constexpr float pageTitleSize     = 14.0f;
+    inline constexpr float pageTitleSpacing  = 0.2f;
+    inline constexpr int   pageTitleRuleGap  = 14;
+    inline constexpr int   pageBottomEdge    = 1;
+
     // --- Screen (centre): bezel, LCD with three text rows, beat lamps under it ---
     inline constexpr int screenWidth  = 368;
     inline constexpr int screenHeight = 106;
@@ -58,6 +67,7 @@ namespace StageMetrics
     inline constexpr float tempoEditorSize   = 22.0f;
     inline constexpr int tempoEditorPadding  = 4;
     inline constexpr int tempoDragStep       = 6;   // px of vertical drag per tempo step
+    inline constexpr float messageScrollSpeed = 0.06f;   // px per ms (60 px/s) for a message wider than the screen
     inline constexpr int lampHeight          = 8;
     inline constexpr int lampGap             = 4;
     inline constexpr int lampRowInset        = 1;
@@ -73,6 +83,7 @@ namespace StageMetrics
     inline constexpr int screenButtonWidth  = 40;   // page buttons beside the screen
     inline constexpr int screenButtonHeight = 17;
     inline constexpr int ledDiameter        = 5;
+    inline constexpr int ledGlowRadius      = 3;    // a lit LED's glow reaches this far past it
     inline constexpr int ledToButtonGap     = 3;    // LED sits left of the button
     inline constexpr int buttonToLabelGap   = 3;    // label centred under the button
     inline constexpr int buttonDropEdge     = 2;    // the dark edge under a cap (1 while pressed)
@@ -138,4 +149,5 @@ namespace StageMetrics
     inline constexpr int knobTickWidth      = 2;
     inline constexpr int knobPointerWidth   = 2;
     inline constexpr float knobSweepDegrees = 135.0f;   // each side of 12 o'clock
+    inline constexpr int   knobDeadZone     = 5;        // px around the centre where a turn has no direction
 }

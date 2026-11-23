@@ -24,6 +24,10 @@ class BeatBar: public juce::Component
 public:
     std::function<bool()> isPlayingCheck;
 
+    /** Told every beat position this bar shows, with its beats per bar (message thread), so the Stage
+        screen's lamps and bar counter follow exactly what the beat bar follows. */
+    std::function<void(double elapsedBeats, int beatsPerBar)> onBeatsElapsed;
+
     /**
      * @brief Constructs a BeatBar with default time signature 4/4.
      */

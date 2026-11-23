@@ -47,6 +47,10 @@ public:
     TempoModel& tempo();
     void setTempoLocked (bool shouldBeLocked);
 
+    /** Shows the open style's tempo (set elsewhere) and its own tempo for right-click; never reported
+        back, and left alone while the user is typing a tempo. */
+    void showTempo (double currentTempo, double styleTempo);
+
     /** One step from the Tempo -/+ buttons; reports a change, or says the tempo is locked. */
     bool stepTempo (int direction);
 
@@ -100,6 +104,7 @@ private:
     bool mouseOverTempo {};
     bool draggingTempo {};
     bool pressedOnTempo {};
+    float messageOverflow {};   ///< px the current message is wider than the top row (it scrolls)
     int  dragStepsTaken {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StageScreen)

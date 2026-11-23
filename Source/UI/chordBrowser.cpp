@@ -253,6 +253,7 @@ void ChordBrowserComponent::textEditorReturnKeyPressed(juce::TextEditor& editor)
 
 void ChordBrowserComponent::textEditorEscapeKeyPressed(juce::TextEditor& editor)
 {
+    if (onEscape) onEscape();
 }
 
 void ChordBrowserComponent::textEditorFocusLost(juce::TextEditor& editor)

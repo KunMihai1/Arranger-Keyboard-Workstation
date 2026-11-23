@@ -18,7 +18,6 @@
 #include "KeyboardUI.h"
 #include "NoteLayer.h"
 #include "keyListener.h"
-#include "temporaryNotificationUI.h"
 #include "InstrumentTreeItem.h"
 #include "MidiRecordPlayer.h"
 #include "displayGUI.h"
@@ -28,6 +27,9 @@
 #include "chordBrowser.h"
 #include "LoginComponent.h"
 #include "PlaytimeTracker.h"
+#include "Stage/StagePanel.h"
+#include "Stage/StagePageFrame.h"
+#include "Stage/StageScale.h"
 
 namespace MainComponentText
 {
@@ -356,6 +358,30 @@ private:
     void setSectionButtonsEngineDriven(bool engineDriven);
 
     //==========================================================================
+    // Stage panel: replaces the old header (MainComponentStage.cpp, plan 2026-11-23 task 7)
+    void stagePanelInit();
+    void stagePagesInit();
+    void layoutStage();                                  ///< regions from StageScale; called from resized()
+    void paintStageStrips(juce::Graphics& g);            ///< felt under the panel, key slip under the keys
+    void refreshStage();                                 ///< LEDs, tempo, lock and screen from today's state
+    void updateStageScreen();                            ///< screen text and lamps only (runs on every beat)
+    void showStageMessage(const juce::String& text);     ///< replaces the old temporary popup
+    void syncSectionLedsFromGroups();
+    void pressSectionFromPanel(const juce::String& sectionName);
+    void toggleAutoFillFromPanel();
+    void toggleSyncStartFromPanel();
+    void toggleRecordingFromPanel();
+    void startOrStopStyleFromPanel(bool start);
+    void openStagePage(StagePage page);
+    void showStagePage(StagePage page);
+    void closeStagePage();
+    void togglePartFromPanel(bool left);
+    int  selectedPartChannel() const;                    ///< right hand if selected, else left, else none
+    void applyQuickKnob(StagePanel::QuickKnob knob, int value, bool save);
+    /** The Effects window's path: sound + remembered setting; save = also write the settings file (on release). */
+    void applyAndSaveEffect(int ccNumber, int value, int channel, bool save = true);
+
+    //==========================================================================
     // Member variables
     juce::ApplicationProperties appProperties; ///< Application properties manager
     juce::PropertiesFile* propertiesFile = nullptr; ///< Pointer to properties file
@@ -441,7 +467,6 @@ private:
     std::unique_ptr<NoteLayer> noteLayer;
     bool keyboardInitialized = false; ///< True if keyboard is initialized
     bool usingKeyboardInput = false;  ///< True if using keyboard input
-    std::unique_ptr<TemporaryMessage> temporaryPopup;
     std::unique_ptr<juce::FileChooser> fileChooser;
     std::unique_ptr<Display> display = nullptr;
     std::unique_ptr<AddDeviceWindow> addDeviceWindow=nullptr;
@@ -472,7 +497,21 @@ private:
         /** @brief Paints header gradient */
         void paint(juce::Graphics& g) override;
     };
-    headerPanel headerPanel;
+    headerPanel headerPanel;   ///< no longer shown: its controls moved to the Stage panel and pages
+
+    std::unique_ptr<StagePanel> stagePanel;
+    std::unique_ptr<StagePageFrame> stylesPage, filePage, settingsPage, chordsPage;
+    std::unique_ptr<ChordBrowserComponent> chordsBrowser;   ///< today's chord helper, hosted by the Chords page
+    static constexpr int stagePageCount = 4;   ///< Styles, Recorder, Settings, Chords
+    std::array<StagePageFrame*, stagePageCount> stagePageFrames() const;
+    juce::TextButton midiSettingsPageButton;   ///< the Settings page's way into today's MIDI Settings window
+    PageRouter pageRouter;
+    StageRegions stageRegions;
+    ArrangerChord stageChord;
+    juce::String stageLitSection;
+    double stageBeats {};
+    int stageBeatsPerBar { StageMetrics::defaultBeatsPerBar };
+    bool noteLayerVisibleBeforePage = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

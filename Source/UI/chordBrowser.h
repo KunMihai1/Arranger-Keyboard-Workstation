@@ -69,6 +69,7 @@ class ChordBrowserComponent : public juce::Component,
 {
 public:
     std::function<void(const Chord& chord)> onChordChosen;
+    std::function<void()> onEscape;   ///< Esc in the search box (which keeps the key to itself): the host closes the browser
 
     ChordBrowserComponent(const std::vector<Chord>& allChords);
     ~ChordBrowserComponent() override;

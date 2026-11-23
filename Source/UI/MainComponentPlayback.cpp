@@ -58,11 +58,6 @@ namespace
     constexpr int slotsListedByName  = 2;    // more than this and the popup says "and N more"
     constexpr int firstSlot          = 0;
     constexpr int secondSlot         = 1;
-    constexpr int popupSideMargin    = 20;
-    constexpr int popupMaxWidth      = 460;
-    constexpr int centringDivisor    = 2;
-    constexpr int popupTop           = 10;
-    constexpr int popupHeight        = 48;
     constexpr int defaultProgram     = 0;
     constexpr int pickerWidth        = 500;
     constexpr int pickerHeight       = 300;
@@ -288,16 +283,7 @@ void MainComponent::ensureAudioHandlerReady()
             if (styleName.isNotEmpty())
                 msg += Text::inStyleStart + styleName + Text::inStyleEnd;
 
-            if (temporaryPopup) { temporaryPopup->updateText(msg); temporaryPopup->restartTimer(); }
-            else {
-                temporaryPopup = std::make_unique<TemporaryMessage>(msg);
-                headerPanel.addChildComponent(temporaryPopup.get());
-                temporaryPopup->setFinishedCallBack([this] { temporaryPopup.reset(); });
-                temporaryPopup->setVisible(true);
-            }
-            // Set on both paths: a popup left over from a shorter message is too narrow for this one.
-            const int popupWidth = juce::jmin(getWidth() - popupSideMargin, popupMaxWidth);
-            temporaryPopup->setBounds(getWidth() / centringDivisor - popupWidth / centringDivisor, popupTop, popupWidth, popupHeight);
+            showStageMessage(msg);
         };
     }
     if (display != nullptr)

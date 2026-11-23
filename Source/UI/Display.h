@@ -133,6 +133,19 @@ public:
         so the host can highlight the matching live section button. */
     std::function<void(int sectionIndex, ArrangerSectionType type, juce::String name)> onArrangerSectionChanged;
 
+    // --- The open style, for the Stage panel (DisplayStage.cpp) ---
+    bool   hasOpenStyle() const;
+    void   startOpenStyle();                       ///< the style tab's Start; nothing without an open style
+    void   stopOpenStyle();                        ///< the style tab's Stop
+    bool   isOpenStylePlaying();
+    bool   isOpenStyleInArrangerMode() const;
+    double getOpenStyleTempo();
+    double getOpenStyleBaseTempo();                ///< the style's own tempo (right-click on the screen tempo)
+    void   commitOpenStyleTempo(double tempo);     ///< as if the BPM slider were released at this tempo
+
+    /** Every beat position of the open style's beat bar, with its beats per bar (message thread). */
+    std::function<void(double elapsedBeats, int beatsPerBar)> onBeatPosition;
+
     MultipleTrackPlayer* getTrackPlayer();
     std::vector<CurrentStyleComponent::TrackChannelInstrument> getTrackChannelInstruments() const;
 

@@ -75,6 +75,7 @@ public:
     std::function<void (StagePage)> onPage;
     std::function<void (bool left)> onPart;
     std::function<void (QuickKnob, int value)> onQuickKnob;
+    std::function<void (QuickKnob, int value)> onQuickKnobReleased;   ///< once per turn (and per wheel step): save then
 
     /** True while a Tempo -/+ button is held and repeating. */
     bool isHoldingTempo() const;

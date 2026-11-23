@@ -185,7 +185,7 @@ Re-check every row against the code before building its phase (part 1 §0.1) and
 | Record ● / Stop ■ / Play ▶ (recording) | `startRecording`, `stopRecording`, `startPlayback` | Panel **Rec**; P.9 Play recording / Stop |
 | Intro 1-3, Var 1-4, Break, Fill 1-4, Ending 1-3, auto-fill checkbox | header section buttons | Panel section buttons (3 rows, 6-column grid), **Auto Fill** after Fill 4 (part 1 §4.2) |
 | Synchro start (setting) | `SynchroStart` key | Panel **Sync Start** (transport grid) + P.2 Arranger |
-| Chord helper | `chordHelperButton` | Panel **Chords** → P.8 |
+| Chord helper | `chordHelperButton` | Panel **Chords** → P.8 (phase 1: today's chord browser on a page frame, not a call-out box) |
 | Style tab Start / Stop | `CurrentStyleComponent` | Panel **Start / Stop** |
 | Beat bar | `CustomBeatBar` | Screen beat lamps (part 1 §5.3) |
 | Tempo slider + BPM label | `tempoSlider` | Screen tempo + Tempo −/+ (part 1 §5.5) |

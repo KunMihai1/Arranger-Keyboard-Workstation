@@ -16,6 +16,7 @@
 
 #include <JuceHeader.h>
 #include <vector>
+#include "../../Arranger/Chord.h"
 
 /** Tempo shown on the screen. Every mutator returns true only when the value
     changed; while locked (arranger playing) every mutator refuses. */
@@ -31,6 +32,10 @@ public:
     void   setLocked (bool shouldBeLocked);
     bool   isLocked() const;
     void   setStyleTempo (double newStyleTempo);
+
+    /** Shows a tempo set elsewhere (the style's own slider, a style being opened): clamped, applied even
+        while locked, and not a user change. */
+    void   showValue (double tempoFromElsewhere);
 
     bool step (int direction);
     bool applyTyped (const juce::String& typedText);
@@ -64,13 +69,35 @@ class ScreenMessages
 public:
     static constexpr double showTimeMs = 2500.0;
 
-    void post (const juce::String& message, double nowMs);
+    void post (const juce::String& message, double nowMs, double showForMs = showTimeMs);
     juce::String current (double nowMs) const;
+    double elapsedMs (double nowMs) const;   ///< since the current message was posted
 
 private:
     juce::String text;
     double postedAtMs {};
+    double durationMs { showTimeMs };
 };
+
+/** Text shown on the screen. */
+namespace StageText
+{
+    /** "C maj", "F# min7", "C maj/E"; empty for no chord. */
+    juce::String chordName (const ArrangerChord& chord);
+
+    /** Bar number from 1 for the elapsed beats (1 before the start or without a time signature). */
+    int barNumber (double elapsedBeats, int beatsPerBar);
+
+    /** A message wider than the screen row scrolls like an LCD: it holds, scrolls left until its end is
+        visible, then holds again. */
+    inline constexpr double marqueeHoldMs = 800.0;
+
+    /** How long a message with this many px of overflow stays: never less than ScreenMessages::showTimeMs. */
+    double marqueeDurationMs (float overflowPx, float pixelsPerMs);
+
+    /** How far (px) the message has scrolled left after elapsedMs. */
+    float marqueeOffset (float overflowPx, float pixelsPerMs, double elapsedMs);
+}
 
 enum class StagePage { none, effects, settings, styles, voices, chords, file, home };
 

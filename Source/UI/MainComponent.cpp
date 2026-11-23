@@ -57,12 +57,6 @@ namespace
         constexpr int   playRecordingX         = 305;
         constexpr int   sfzLibraryWidth        = 500;
         constexpr int   sfzLibraryHeight       = 400;
-        constexpr int   displayWidth           = 400;
-        constexpr int   sectionsExtraHeight    = 20;
-        constexpr int   sectionsOverlap        = 7;
-        constexpr int   popupWidth             = 300;
-        constexpr int   popupHalfWidth         = 150;
-        constexpr int   popupHeight            = 30;
         constexpr int   loginPanelSize         = 400;
     }
 }
@@ -82,6 +76,7 @@ MainComponent::MainComponent()
     buildChordLibrary();
 
     displayInit();
+    stagePanelInit();
 
     setBounds(Layout::origin, Layout::origin, juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->totalArea.getWidth(),
         juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->totalArea.getHeight() - Layout::taskbarAllowance);
@@ -134,6 +129,8 @@ MainComponent::MainComponent()
     {
         if (display)
             display->setArrangerLiveChord(chord);
+        stageChord = chord;   // shown on the Stage screen
+        updateStageScreen();
     };
 
     juce::Desktop::getInstance().addFocusChangeListener(this);
@@ -228,6 +225,8 @@ void MainComponent::paint(juce::Graphics& g)
         g.setFont(juce::FontOptions(Layout::defaultFontHeight));
         g.setColour(juce::Colours::white);
     }
+
+    paintStageStrips(g);
 }
 
 void MainComponent::paintOverChildren(juce::Graphics& g)
@@ -395,15 +394,8 @@ void MainComponent::resized()
 
     //volumeKnob.setBounds(getWidth() / 2, 0, 70, 50);
 
-    // Sections (intros/endings) start right after playRecordingFileButton and need ~240px minimum.
-    // Push display rightward on narrow screens rather than collapsing the sections.
-    {
-        const int minSectionWidth = 240;
-        int sectionStart = playRecordingFileButton.getRight() + headerMargin;
-        int displayX = juce::jmax(sectionStart + minSectionWidth + smallGap,
-                                   (headerPanel.getWidth() - displayWidth) / centringDivisor);
-        display->setBounds(displayX, origin, displayWidth, headerHeight);
-    }
+    // The display (style tabs) now lives on the Styles page and the old section groups stay hidden as
+    // the section-state holders, so neither is laid out in the old header any more (layoutStage below).
 
     if (noteLayer)
     {
@@ -415,21 +407,7 @@ void MainComponent::resized()
         keyboard.setOpaque(true);
     }   
 
-    if (introsEndings)
-    {
-        int width = display->getX() - playRecordingFileButton.getX() - playRecordingFileButton.getWidth() - headerMargin;
-        int height = playRecordingFileButton.getHeight() + sectionsExtraHeight;
-        introsEndings->setBounds(playRecordingFileButton.getX() + playRecordingFileButton.getWidth() + headerMargin, playRecordingFileButton.getY(), width, height);
-    }
-
-    if (variationsFills)
-    {
-        int varFillsX = playRecordingFileButton.getX();
-        int varFillsY = introsEndings->getY() + introsEndings->getHeight()-sectionsOverlap;
-        int width = display->getX() - rightHandInstrumentToggle.getX() - rightHandInstrumentToggle.getWidth() - headerMargin;
-        int height = display->getHeight() - (introsEndings->getY() + introsEndings->getHeight());
-        variationsFills->setBounds(varFillsX, varFillsY, width, height+headerMargin);
-    }
+    layoutStage();
 }
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
@@ -447,6 +425,13 @@ bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component*)
 
     if (key == juce::KeyPress::escapeKey)
     {
+        // Esc first closes an open page (spec part 2 P.12), then opens the Esc menu.
+        if (pageRouter.open() != StagePage::none && ! overlayWindow->isVisible())
+        {
+            closeStagePage();
+            refreshStage();
+            return true;
+        }
 
         if (!overlayWindow->isVisible())
         {
@@ -514,6 +499,9 @@ void MainComponent::timerCallback()
 
     if (settingsPanel.isVisible())
         populateUpdateComboBoxDevices();
+
+    if (stagePanel != nullptr && stagePanel->isVisible())
+        refreshStage();   // backstop for state changed outside the panel (style tab, windows)
 }
 
 void MainComponent::checkMidiDevicesValid()
@@ -568,17 +556,10 @@ void MainComponent::handleMidiOutputDisconnected()
     if (display != nullptr)
         display->stoppingPlayer();
 
-    // Tell the user why playback stopped (mirrors the existing transient-message pattern).
+    // Tell the user why playback stopped, on the Stage screen.
     const juce::String msg = "MIDI output disconnected - playback stopped";
-    if (temporaryPopup) { temporaryPopup->updateText(msg); temporaryPopup->restartTimer(); }
-    else
-    {
-        temporaryPopup = std::make_unique<TemporaryMessage>(msg);
-        headerPanel.addChildComponent(temporaryPopup.get());
-        temporaryPopup->setBounds(getWidth() / Layout::centringDivisor - Layout::popupHalfWidth, Layout::headerMargin, Layout::popupWidth, Layout::popupHeight);
-        temporaryPopup->setFinishedCallBack([this] { temporaryPopup.reset(); });
-        temporaryPopup->setVisible(true);
-    }
+    showStageMessage(msg);
+    refreshStage();
 }
 
 void MainComponent::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged)

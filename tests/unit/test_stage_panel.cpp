@@ -16,6 +16,8 @@ namespace StagePanelTestValues
     const juce::String quickFx        = "quick knobs and part toggles report changes";
     const juce::String roomyLayout    = "buttons sit >= 20 px apart and everything is inside the panel";
     const juce::String centredContent = "on a wide window the controls stay the board's width, centred";
+    const juce::String opaquePanel    = "the panel is opaque, so a knob repaint never redraws the window behind it";
+    const juce::String knobRelease    = "a quick knob reports each value while turning and once more on release";
 
     const juce::String varTwo = "Var 2";
     const juce::String listSeparator = ", ";
@@ -210,6 +212,31 @@ public:
             const auto valueBefore = knobs.size();
             panel.setQuickKnobValues (knobValue, knobValue);   // showing state must not report a change
             expectEquals (static_cast<int> (knobs.size()), static_cast<int> (valueBefore));
+        }
+
+        beginTest (opaquePanel);
+        {
+            StagePanel panel { styleTempo };
+            expect (panel.isOpaque());
+        }
+
+        beginTest (knobRelease);
+        {
+            StagePanel panel { styleTempo };
+            std::vector<int> live, released;
+            panel.onQuickKnob = [&live] (StagePanel::QuickKnob, int value) { live.push_back (value); };
+            panel.onQuickKnobReleased = [&released] (StagePanel::QuickKnob, int value) { released.push_back (value); };
+            auto* volume = knobNamed (panel, StagePanelNames::volume);
+            expect (volume != nullptr);
+            if (volume != nullptr)
+            {
+                volume->setValue (knobValue, juce::sendNotificationSync);
+                expect (released.empty());
+                if (volume->onDragEnd != nullptr)
+                    volume->onDragEnd();
+                expect (released == std::vector<int> { knobValue });
+                expect (live == std::vector<int> { knobValue });
+            }
         }
 
         beginTest (roomyLayout);

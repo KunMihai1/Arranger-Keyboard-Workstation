@@ -295,6 +295,12 @@ void Display::showCurrentStyleTab(const juce::String& name)
             onArrangerSectionChanged(idx, type, name);
     };
 
+    currentStyleComponent->onBeatPosition = [this](double elapsedBeats, int beatsPerBar)
+    {
+        if (onBeatPosition)
+            onBeatPosition(elapsedBeats, beatsPerBar);
+    };
+
     currentStyleComponent->tabExsitsCallback = [this](const juce::String& name)
     {
         return this->existsTab(name);

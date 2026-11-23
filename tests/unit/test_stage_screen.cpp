@@ -14,6 +14,16 @@ namespace StageScreenTestValues
     const juce::String lockedTempo     = "a locked tempo does not change and says why";
     const juce::String typedTempo      = "clicking the tempo opens an editor; Enter applies, Esc cancels";
     const juce::String tempoButtons    = "the Tempo -/+ buttons step the tempo through the screen";
+    const juce::String tempoFromStyle  = "a tempo from the open style is shown, and becomes the right-click tempo";
+    const juce::String longMessageStays = "a message too long for the screen stays until it has scrolled through";
+    const juce::String editorLooksLikeBoard = "the tempo editor is light text on a rounded dark field, as on the board (was: an inverted light block)";
+    constexpr float darkLuminance    = 0.35f;   // below this a pixel counts as the dark field
+    constexpr float mostlyDark       = 0.6f;    // share of the field that must stay dark around the digits
+    const juce::String longMessage = "No SFZ loaded for Grand Piano (right hand), Warm Strings (left hand) and 3 more in style Style 1";
+    constexpr double messageStart   = 0.0;
+    constexpr double afterShortTime = 3000.0;
+    constexpr double styleSliderTempo  = 133.0;
+    constexpr double otherStyleTempo   = 110.0;
 
     const juce::String styleTopLine    = "STYLE";
     const juce::String recordingMessage = "Recording started!";
@@ -161,6 +171,60 @@ public:
             expect (! under.screen.isEditingTempo());
             expectEquals (static_cast<int> (under.reported.size()), singleClick);
             expectWithinAbsoluteError (under.screen.tempo().value(), typedValue, tolerance);
+        }
+
+        beginTest (editorLooksLikeBoard);
+        {
+            ScreenUnderTest under;
+            const auto click = eventAt (under.screen, under.tempoCentre(), juce::ModifierKeys::leftButtonModifier);
+            under.screen.mouseDown (click);
+            under.screen.mouseUp (click);
+            auto& editor = under.screen.getTempoEditor();
+            editor.selectAll();   // as when it opens: typing replaces the tempo
+
+            juce::Image canvas (juce::Image::ARGB, under.screen.getWidth(), under.screen.getHeight(), true, juce::SoftwareImageType());
+            {
+                juce::Graphics g (canvas);
+                under.screen.paintEntireComponent (g, false);
+            }
+            const auto field = editor.getBounds();
+            int darkPixels {};
+            for (int row = field.getY(); row < field.getBottom(); ++row)
+                for (int column = field.getX(); column < field.getRight(); ++column)
+                    if (canvas.getPixelAt (column, row).getPerceivedBrightness() < darkLuminance)
+                        ++darkPixels;
+            const auto darkShare = static_cast<float> (darkPixels) / static_cast<float> (field.getWidth() * field.getHeight());
+            expect (darkShare > mostlyDark, juce::String (darkShare));
+
+            const auto corner = canvas.getPixelAt (field.getX(), field.getY());   // rounded: the LCD shows in the corner
+            expect (corner.getPerceivedBrightness() > darkLuminance, corner.toDisplayString (true));
+        }
+
+        beginTest (longMessageStays);
+        {
+            ScreenUnderTest under;
+            double clockMs = messageStart;
+            under.screen.setClock ([&clockMs] { return clockMs; });
+            under.screen.postMessage (longMessage);
+            clockMs = afterShortTime;
+            expectEquals (under.screen.getTopLineText(), longMessage.toUpperCase());
+
+            clockMs = messageStart;
+            under.screen.postMessage (recordingMessage);
+            clockMs = afterShortTime;
+            expectEquals (under.screen.getTopLineText(), styleTopLine);
+        }
+
+        beginTest (tempoFromStyle);
+        {
+            ScreenUnderTest under;
+            under.screen.setTempoLocked (true);
+            under.screen.showTempo (styleSliderTempo, otherStyleTempo);
+            expectWithinAbsoluteError (under.screen.tempo().value(), styleSliderTempo, tolerance);
+            expect (under.reported.empty());   // shown, not a user change
+            under.screen.setTempoLocked (false);
+            under.screen.mouseDown (eventAt (under.screen, under.tempoCentre(), juce::ModifierKeys::rightButtonModifier));
+            expectWithinAbsoluteError (under.lastReported(), otherStyleTempo, tolerance);
         }
 
         beginTest (tempoButtons);

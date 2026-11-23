@@ -80,9 +80,9 @@ void MainComponent::toggleMIDIsettingsIcon()
 
 void MainComponent::toggleHPanel()
 {
-    if (headerPanel.isVisible())
-        headerPanel.setVisible(false);
-    else headerPanel.setVisible(true);
+    // The Stage panel replaces the old header, which stays hidden (its controls live on the panel and pages).
+    if (stagePanel != nullptr)
+        stagePanel->setVisible(! stagePanel->isVisible());
 
     toggleHomeButton();
     toggleColourSelectorButton();
@@ -96,6 +96,9 @@ void MainComponent::toggleHPanel()
     toggleAnnotation();
     toggleSections();
     toggleChordHelperButton();
+
+    layoutStage();
+    refreshStage();
 }
 
 void MainComponent::toggleHomeButton()

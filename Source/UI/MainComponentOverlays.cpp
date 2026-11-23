@@ -326,6 +326,8 @@ void MainComponent::setArrangerOverlaySceneHidden(bool hidden)
 
 void MainComponent::highlightArrangerSection(int sectionIndex, ArrangerSectionType type, const juce::String& name)
 {
+    const juce::ScopeGuard mirrorOnPanel { [this] { syncSectionLedsFromGroups(); } };   // panel LEDs follow, on every path
+
     if (!variationsFills || !introsEndings)
         return;
 
@@ -367,6 +369,8 @@ void MainComponent::highlightArrangerSection(int sectionIndex, ArrangerSectionTy
 
 void MainComponent::setSectionButtonsEngineDriven(bool engineDriven)
 {
+    const juce::ScopeGuard mirrorOnPanel { [this] { syncSectionLedsFromGroups(); } };
+
     if (variationsFills)
     {
         variationsFills->setEngineDrivenHighlight(engineDriven);

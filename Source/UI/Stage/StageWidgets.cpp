@@ -1,4 +1,5 @@
 #include "StageWidgets.h"
+#include <cmath>
 #include "StageFonts.h"
 #include "../../Common/AppColours.h"
 
@@ -9,9 +10,11 @@ namespace
     constexpr float capBorderWidth    = 1.0f;
     constexpr float capHighlightWidth = 1.0f;
     constexpr float pressedTravel     = 1.0f;   // the cap moves down 1 px and its drop edge shrinks by 1
-    constexpr float ledGlowRadius     = 3.0f;
     constexpr float ledShadeAlpha     = 0.6f;   // inset shadow at the top of an unlit LED
     constexpr float ledShadeEnd       = 0.6f;   // ... fading out by 60 % of its height
+    constexpr float cssBlurSigmaPerRadius = 0.5f;   // CSS: a blur radius B is a Gaussian with sigma B / 2
+    constexpr float blurredEdgeCoverage   = 0.5f;   // a blurred shape is half covered where it ends
+    constexpr int   glowStops             = 8;      // gradient stops tracing the blur's fall-off
     constexpr float knobShadowAlpha   = 0.55f;
     constexpr float knobOutlineWidth  = 1.0f;
     constexpr float capGradientCentreX = 0.38f;
@@ -29,6 +32,7 @@ namespace
     constexpr double knobLowest        = 0.0;
     constexpr double knobHighest       = 127.0;   // MIDI controller range
     constexpr double knobStep          = 1.0;
+    constexpr double fullTurnProportion = 1.0;   // the whole 270-degree sweep
     const juce::Colour outlineColour   { 0xff050505 };
 
     struct KnobGeometry
@@ -59,11 +63,23 @@ namespace
     {
         if (lit)
         {
-            const auto glowRadius = ledGlowRadius * scale;
-            const auto glowArea   = led.expanded (glowRadius);
-            juce::ColourGradient glow (litColour.withAlpha (StagePalette::ledGlowAlpha), led.getCentre(),
-                                       litColour.withAlpha (float {}), { led.getCentreX(), glowArea.getY() }, true);
-            glow.addColour (led.getWidth() / glowArea.getWidth(), litColour.withAlpha (StagePalette::ledGlowAlpha));
+            // .led-on box-shadow 0 0 3px: the LED blurred by a Gaussian, so the glow starts at half
+            // strength at the LED's edge and has all but gone by the blur radius.
+            const auto blur     = StageMetrics::ledGlowRadius * scale;
+            const auto sigma    = blur * cssBlurSigmaPerRadius;
+            const auto radius   = led.getWidth() / halves;
+            const auto glowArea = led.expanded (blur);
+            auto glowAt = [&] (float gap)
+            {
+                const auto coverage = blurredEdgeCoverage * static_cast<float> (std::erfc (gap / (sigma * juce::MathConstants<float>::sqrt2)));
+                return litColour.withAlpha (StagePalette::ledGlowAlpha * coverage);
+            };
+            juce::ColourGradient glow (glowAt (float {}), led.getCentre(), glowAt (blur), { led.getCentreX(), glowArea.getY() }, true);
+            for (int stop {}; stop <= glowStops; ++stop)
+            {
+                const auto gap = blur * static_cast<float> (stop) / static_cast<float> (glowStops);
+                glow.addColour ((radius + gap) / (radius + blur), glowAt (gap));
+            }
             g.setGradientFill (glow);
             g.fillEllipse (glowArea);
             g.setColour (litColour);
@@ -118,6 +134,7 @@ RubberButton::RubberButton (const juce::String& labelText, Style buttonStyle, Le
 {
     labelLines.addTokens (label, lineBreak, {});
     setTitle (label.replace (lineBreak, space));
+    setMouseCursor (juce::MouseCursor::PointingHandCursor);   // owner: every button shows the hand
 }
 
 void RubberButton::setLedOn (bool shouldBeOn)
@@ -155,12 +172,24 @@ float RubberButton::labelWidth() const
     for (const auto& line : labelLines)
         widest = juce::jmax (widest, juce::GlyphArrangement::getStringWidth (font, line.toUpperCase()));
 
-    // CSS letter-spacing also follows the last letter; and a label cut by rounding loses its last glyph,
-    // so round up (seen: "LEFT" drawn as "LEF").
-    const auto isKey = style == Style::key;
-    const auto trailingSpacing = scaled (isKey ? StageMetrics::keyLabelSize : StageMetrics::silkLabelSize)
-                               * (isKey ? StageMetrics::keyLabelSpacing : StageMetrics::silkLabelSpacing);
-    return std::ceil (widest + trailingSpacing);
+    // The measured width already holds the letter-spacing after every letter, the last one too (as in
+    // CSS). A label cut by rounding loses its last glyph, so round up (seen: "LEFT" drawn as "LEF").
+    return std::ceil (widest);
+}
+
+int RubberButton::glowRoom() const
+{
+    return static_cast<int> (std::ceil (scaled (StageMetrics::ledGlowRadius)));
+}
+
+juce::Rectangle<int> RubberButton::boundsForBoardBox (juce::Rectangle<int> boardBox) const
+{
+    return boardBox.expanded (glowRoom());
+}
+
+juce::Rectangle<float> RubberButton::getBoardBox() const
+{
+    return getLocalBounds().reduced (glowRoom()).toFloat();
 }
 
 int RubberButton::getPreferredWidth() const
@@ -190,7 +219,7 @@ int RubberButton::getPreferredHeight() const
 juce::Rectangle<float> RubberButton::getCapBounds() const
 {
     using namespace StageMetrics;
-    const auto bounds = getLocalBounds().toFloat();
+    const auto bounds = getBoardBox();
     switch (style)
     {
         case Style::key:
@@ -214,7 +243,7 @@ juce::Rectangle<float> RubberButton::getLedBounds() const
 {
     using namespace StageMetrics;
     const auto diameter = scaled (ledDiameter);
-    const auto bounds = getLocalBounds().toFloat();
+    const auto bounds = getBoardBox();
     const auto cap = getCapBounds();
 
     switch (style)
@@ -237,7 +266,7 @@ juce::Rectangle<float> RubberButton::getLedBounds() const
 juce::Rectangle<float> RubberButton::getLabelBounds() const
 {
     using namespace StageMetrics;
-    const auto bounds = getLocalBounds().toFloat();
+    const auto bounds = getBoardBox();
     switch (style)
     {
         case Style::key:
@@ -262,7 +291,7 @@ juce::Rectangle<float> RubberButton::getLabelBounds() const
 bool RubberButton::hitTest (int xPosition, int yPosition)
 {
     if (style == Style::ledToggle)
-        return getLocalBounds().contains (xPosition, yPosition);
+        return getBoardBox().contains (static_cast<float> (xPosition), static_cast<float> (yPosition));
 
     // The cap and its drop edge take clicks; the label and the LED are print on the panel.
     const auto cap = getCapBounds().withHeight (getCapBounds().getHeight() + scaled (StageMetrics::buttonDropEdge));
@@ -310,6 +339,63 @@ StageKnob::Size StageKnob::getSize() const      { return size; }
 juce::String StageKnob::getLabel() const        { return label; }
 float StageKnob::scaled (float referenceLength) const { return referenceLength * scale; }
 float StageKnob::scaled (int referenceLength) const   { return scaled (static_cast<float> (referenceLength)); }
+
+bool StageKnob::angleAround (juce::Point<float> position, double& angle) const
+{
+    const auto centre = getRingBounds().getCentre();
+    if (position.getDistanceFrom (centre) < scaled (StageMetrics::knobDeadZone))
+        return false;
+
+    angle = std::atan2 (static_cast<double> (position.x - centre.x), static_cast<double> (centre.y - position.y));   // clockwise from 12 o'clock
+    return true;
+}
+
+void StageKnob::mouseDown (const juce::MouseEvent& event)
+{
+    if (! isEnabled())
+        return;
+
+    turning = true;
+    turnProportion = valueToProportionOfLength (getValue());
+    haveTurnAngle = angleAround (event.position, lastTurnAngle);
+    if (onDragStart != nullptr)
+        onDragStart();
+}
+
+void StageKnob::mouseDrag (const juce::MouseEvent& event)
+{
+    double angle {};
+    if (! turning || ! angleAround (event.position, angle))
+        return;
+
+    if (! haveTurnAngle)   // pressed in the dead zone: start measuring from here
+    {
+        lastTurnAngle = angle;
+        haveTurnAngle = true;
+        return;
+    }
+
+    // The turn since the last move, the short way round (crossing 6 o'clock is not a full turn).
+    auto delta = angle - lastTurnAngle;
+    if (delta > juce::MathConstants<double>::pi)   delta -= juce::MathConstants<double>::twoPi;
+    if (delta < -juce::MathConstants<double>::pi)  delta += juce::MathConstants<double>::twoPi;
+    lastTurnAngle = angle;
+
+    const auto rotary = getRotaryParameters();
+    const auto sweep = static_cast<double> (rotary.endAngleRadians - rotary.startAngleRadians);
+    turnProportion = juce::jlimit (double {}, fullTurnProportion, turnProportion + delta / sweep);
+    setValue (proportionOfLengthToValue (turnProportion), juce::sendNotificationSync);
+}
+
+void StageKnob::mouseUp (const juce::MouseEvent&)
+{
+    if (! turning)
+        return;
+
+    turning = false;
+    if (onDragEnd != nullptr)
+        onDragEnd();
+}
 
 int StageKnob::getPreferredWidth() const
 {

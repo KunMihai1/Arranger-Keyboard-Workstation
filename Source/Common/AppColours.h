@@ -129,6 +129,9 @@ namespace StagePalette
     static const juce::Colour noteAreaBackground { 0xff050506 };
     static const juce::Colour octaveGuideLine    { 0xff15161a };
     static const juce::Colour fallingNote        { 0xff4f8f86 };
+    static const juce::Colour slipTop            { 0xff1b1c1e };   // key slip under the keys
+    static const juce::Colour slipBottom         { 0xff111213 };
+    static const juce::Colour slipEdge           { 0xff000000 };
 
     // --- Sections timeline ---
     static const juce::Colour timelineLanes         { 0xff121315 };
