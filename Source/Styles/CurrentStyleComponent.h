@@ -92,6 +92,9 @@ public:
         highlight the matching live section button. sectionIndex < 0 means nothing is active. */
     std::function<void(int sectionIndex, ArrangerSectionType type, juce::String name)> onArrangerSectionChanged;
 
+    /** Every beat position the beat bar shows, with its beats per bar (message thread). */
+    std::function<void(double elapsedBeats, int beatsPerBar)> onBeatPosition;
+
     //==============================================================================
     /**
      * @brief Constructs the CurrentStyleComponent.
@@ -167,6 +170,10 @@ public:
      * @param newTempo The new tempo in beats per minute.
      */
     void setTempo(double newTempo);
+
+    /** Applies a tempo the way releasing the BPM slider does (player BPM, rescaled tracks, style
+        marked changed). Used by the Stage panel's screen. */
+    void commitTempo(double newTempo);
 
     /**
      * @brief Sets a unique style identifier for this component.

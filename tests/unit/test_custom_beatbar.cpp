@@ -17,6 +17,7 @@ namespace BeatBarTestValues
     const juce::String subdivisionIn78        = "Subdivision calculation in 7/8";
     const juce::String paintWhileStopped      = "Paint executes without crash - playing off";
     const juce::String paintFirstBeatPlaying  = "Paint executes red branch - first beat playing";
+    const juce::String reportsBeatPosition    = "Each beat position is reported with the beats per bar";
 
     constexpr int threeBeatsPerBar    = 3;   // numerators: beats per bar
     constexpr int fourBeatsPerBar     = 4;
@@ -50,6 +51,8 @@ namespace BeatBarTestValues
     constexpr double oneBeat         = 1.0;
     constexpr double threeBeats      = 3.0;
 
+    constexpr double beatTolerance = 0.0001;
+
     constexpr int imageWidth  = 200;
     constexpr int imageHeight = 50;
 }
@@ -63,6 +66,18 @@ public:
 
     void runTest() override
     {
+        beginTest(reportsBeatPosition);
+        {
+            BeatBar bar;
+            bar.setNumerator(threeBeatsPerBar);
+            double reportedBeats {};
+            int reportedBeatsPerBar {};
+            bar.onBeatsElapsed = [&](double beats, int beatsPerBar) { reportedBeats = beats; reportedBeatsPerBar = beatsPerBar; };
+            bar.setCurrentBeatsElapsed(insideBeatThree);
+            expectWithinAbsoluteError(reportedBeats, insideBeatThree, beatTolerance);
+            expectEquals(reportedBeatsPerBar, threeBeatsPerBar);
+        }
+
         beginTest(defaultValues);
         {
             BeatBar bar;

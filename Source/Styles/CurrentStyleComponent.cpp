@@ -142,6 +142,11 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
     addAndMakeVisible(startPlayingTracks);
     addAndMakeVisible(stopPlayingTracks);
     addAndMakeVisible(customBeatBar);
+    customBeatBar.onBeatsElapsed = [this](double elapsedBeats, int beatsPerBar)
+    {
+        if (onBeatPosition)
+            onBeatPosition(elapsedBeats, beatsPerBar);
+    };
 
     // Performance buttons must not steal keyboard focus when clicked, so the PC-keyboard keeps
     // playing notes after you press Start / Stop or open the play settings.
@@ -322,16 +327,7 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
 
     tempoSlider.onDragEnd = [this]()
     {
-        oldTempo = currentTempo;
-        currentTempo = tempoSlider.getValue();
-
-        if (trackPlayer)
-            trackPlayer->setCurrentBPM(currentTempo);
-
-        applyBPMchangeBeforePlayback(currentTempo,true);
-
-        if (anyTrackChanged)
-            anyTrackChanged();
+        commitTempo(tempoSlider.getValue());
     };
 
     addAndMakeVisible(tempoSlider);
@@ -703,6 +699,21 @@ void CurrentStyleComponent::setTempo(double newTempo)
     oldTempo = currentTempo;
     this->currentTempo = newTempo;
     this->tempoSlider.setValue(newTempo);
+}
+
+void CurrentStyleComponent::commitTempo(double newTempo)
+{
+    tempoSlider.setValue(newTempo, juce::dontSendNotification);
+    oldTempo = currentTempo;
+    currentTempo = tempoSlider.getValue();   // the slider keeps it inside its range and step
+
+    if (trackPlayer)
+        trackPlayer->setCurrentBPM(currentTempo);
+
+    applyBPMchangeBeforePlayback(currentTempo,true);
+
+    if (anyTrackChanged)
+        anyTrackChanged();
 }
 
 void CurrentStyleComponent::setStyleID(const juce::String& newID)

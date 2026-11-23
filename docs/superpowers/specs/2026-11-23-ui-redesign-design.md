@@ -83,6 +83,10 @@ The boards render only inside the canvas. **Phase 0 of the plan exports each acc
 2×** into `docs/superpowers/specs/assets/2026-11-23-ui-redesign/png/`: either the owner uses the canvas's
 Share › Export, or the agent opens the canvas in the owner's browser (with the owner's permission) and
 captures each board in its focused view. Those PNGs are what §0.2 compares against.
+*As done (2026-11-23, owner's choice):* rendered locally by `assets/2026-11-23-ui-redesign/render/render.sh`
+(headless Edge + a stand-in canvas runtime, `render/support.js`: first frame, no events, `<dc-import>` supported).
+It reproduces the PNGs pixel for pixel and renders any board at the app's own scale for the 1:1 check.
+`Dust.png` is the first frame of an animation (no particles yet).
 
 App screenshots for §0.2 are screen captures of the app window's client area (GDI copy of the screen
 rectangle, the method already used for live checks), which includes the GL note area.
@@ -131,7 +135,8 @@ first sections editor, beat numbers "1 2 3 4" in the screen.
 | Topic | Options shown | Chosen (owner) | Why |
 |---|---|---|---|
 | Overall look | A stage workstation (matte charcoal) · B vintage console (cream + walnut) · C studio metal | **A, revised** | Owner: "I want A but a bit different, better": slimmer panel, centred bigger screen |
-| Where effects live | All on the panel · quick knobs on the panel + full page | **4 quick knobs + Effects page** | How real arrangers do it; panel stays slim |
+| Where effects live | All on the panel · quick knobs on the panel + full page | **2 quick knobs (Volume, Reverb) + Effects page** | How real arrangers do it; panel stays slim. Was 4 knobs; cut to 2 on 2026-11-23 (owner) to make room for the transport, see next row |
+| Crowded left panel third | Transport moves right (2 knobs) · Quick FX only on the Effects page · much taller panel | **Transport moves right** | Owner: labels must not run into each other, buttons were too tight. Measured: section buttons 32 px apart, "INTRO 2/3" 32.8 px wide, "AUTO FILL" 42.9 px; 21 buttons cannot fit 280 × 110 px with real gaps |
 | Beat counter | Squares in the screen · digits 1-2-3-4 · coloured lamps | **Lamps in the screen bezel, app's colours** | Owner rejected digits and the dull squares; wants the look of today's beat bar |
 | Skins | v1 contour/walnut/woven · v2 riso/terrazzo/signal/livery · v3 instrument finishes | **v3** (owner: "decent") | Korg-like quality: real finishes, not printed art; not futuristic |
 | Sections editor | Blocks in sequence · windows over the recording | **Windows over the recording (v2)** | v1 did not match how the editor works (`SectionWindow` = start bar + length over the recording) |
@@ -185,7 +190,8 @@ All values at the **reference size 1200 × 645**; the app multiplies every lengt
 Each is one small JUCE class or LookAndFeel method, reused everywhere:
 
 - **Rubber button + LED** (`.btn`, `.led`): sizes 26 × 14 (section buttons), 40 × 17 (screen buttons);
-  pressed = moves down 1 px, drop edge 1 px. LED above (section buttons) or beside (screen buttons).
+  pressed = moves down 1 px, drop edge 1 px. Section and transport buttons: LED 5 px left of the button
+  (3 px gap), label 9 px / 0.08 em centred under the button (3 px gap). Screen buttons: label + button + LED.
 - **Segment button** (`.seg`): 22 px high (30 px on Login), text inside, optional LED; lit variant.
 - **Knob, quick size:** ring 52, knurled skirt 36, cap 24, 11 ticks from −135° to +135°.
 - **Knob, effects size:** ring 72, skirt 50, cap 34, 11 ticks. Value text under it (Share Tech Mono).
@@ -206,6 +212,15 @@ Reference 1200 × 645 (top to bottom): **panel 124 · felt 4 · note area 365 ·
 - Scale factor `s = min(width / 1200, height / 645)`. The panel, felt, keys and slip are their reference
   height × `s`; the note area takes the rest. Horizontal positions inside the panel scale by `s` and the
   three panel columns stay centred (§4.2).
+- **Same look on every window shape (owner, 2026-11-23: "the UI should look the same on any resolution
+  … everything must be visible on all screens").** One uniform `s` for every length, never separate x and
+  y factors. The panel's controls are the 1200 × 124 board scaled by `s` and centred in the panel
+  (`StageRegions::panelContent`); a window wider than 1200 : 645 only adds plain panel surface at both
+  sides, never stretches the columns. Because `s` is the smaller ratio, the scaled board always fits the
+  width and the fixed regions always fit the height, so nothing is cut off. Tested at 21:9 (2560 × 1080),
+  4:3 (1024 × 768), portrait (1080 × 1920), 1920 × 1080 at 150 % Windows scaling (1280 × 720 logical),
+  320 × 200 and 1920 × 1032. Below about 800 px wide the 9 px labels get small (6 px at `s` ≈ 0.67); no
+  minimum window size is set (today's app has none).
 - At 1920 × 1032 (`s` = 1.6) the result matches the boards exactly; this is the size of the visual check.
 - The restored-down window keeps today's rule (work-area sized; owner decision, see the wiki).
 
@@ -213,13 +228,15 @@ Reference 1200 × 645 (top to bottom): **panel 124 · felt 4 · note area 365 ·
 
 Three columns: `1fr | 600 | 1fr`, padding 7 × 20.
 
-- **Left:** transport 2 × 2 (Rec, File, Stop, Start), a 1 px rule, then the section buttons 6 × 3:
-  `Intro 1-3, End 1-3 / Var 1-4, Break, Auto Fill / Fill 1-4, Sync Start`. LED red = active section,
-  green = an on/off function (Auto Fill, Start). Section-button behaviour = today's buttons exactly.
-- **What the left-column buttons do:** **Rec** toggles recording (today's separate record ● / stop ■
+- **Left:** only the section buttons, three rows on a 6-column grid (column = 1/6 of the 280 px third,
+  46.7 px; rows 10 px apart): `Intro 1-3, End 1-3 / Var 1-4, Break / Fill 1-4, Auto Fill` (owner: Auto Fill
+  stays with the sections). Measured with the embedded font: "INTRO 2" (32.8 px) leaves ≥ 13 px to its
+  neighbour, "AUTO FILL" (42.9 px, after Fill 4) 12.2 px; buttons are ≥ 20 px apart. LED red = active
+  section, green = Auto Fill on. Section-button behaviour = today's buttons exactly.
+- **What the panel buttons do:** **Rec** toggles recording (today's separate record ● / stop ■
   buttons become one toggle; LED red while recording). **File** opens the Recorder page, and pressed again
   closes it (every page button toggles its page). **Stop / Start** = today's style Start / Stop (Start LED
-  green while playing). **Sync St.** toggles the existing Synchro start setting (same key as Settings ›
+  green while playing). **Sync Start** toggles the existing Synchro start setting (same key as Settings ›
   Arranger; both show the same state). Section-button LEDs follow today's highlighting exactly: only the
   playing section's LED is lit, never two (`MainComponent::highlightArrangerSection`,
   `MainComponentOverlays.cpp:327`); none during a Count-in; the chosen start section is lit while stopped
@@ -227,9 +244,13 @@ Three columns: `1fr | 600 | 1fr`, padding 7 × 20.
 - **Centre:** four screen buttons on each side of the screen, label + button + LED.
   Left: **Home, Styles, Voices, Tempo −**. Right: **Effects, Settings, Chords, Tempo +**. The LED of the
   page that is open is lit.
-- **Right:** "Quick FX" with Part buttons **Left / Right** (= today's left-hand / right-hand instrument
-  toggles) and four quick knobs **Volume, Reverb, Chorus, Bright(ness)** acting on the selected part, the
-  same controllers as the Effects page.
+- **Right (right-aligned, 8 px gaps):** the transport grid, 3 columns of 44 px, rows 12 px apart:
+  `Rec, File / Sync Start, Stop, Start` ("Sync Start" on two lines, 10 px line height). LED red =
+  Rec / File, green = an on/off function (Sync Start, Start).
+  Then a 1 px × 96 rule, then "Quick FX" (130 px wide): title + rule, two quick knobs **Volume, Reverb**
+  (62 px cells) acting on the selected part with the same controllers as the Effects page (Chorus and
+  Brightness stay on the Effects page), and under them **Part · Left / Right** as LED toggles
+  (= today's left-hand / right-hand instrument toggles).
 
 ### 4.3 Note area and keys
 
@@ -444,7 +465,7 @@ Each phase: integration rows checked (§0.1) → tests → build → live behavi
 - Scale factor and the reference size 1920 × 1032 (§4.1).
 - Finishes apply to the panel and key slip; side strips only at the panel ends (§9).
 - Tempo keeps today's lock rule (arranger mode + playing only) and adds the "locked" screen message (§5.5).
-- Rec becomes one toggle; every page button toggles its page; Sync St. on the panel mirrors the setting (§4.2).
+- Rec becomes one toggle; every page button toggles its page; Sync Start on the panel mirrors the setting (§4.2).
 - Fonts committed under `Resources/Fonts/` with their OFL licence (§3.2).
 - Without refresh-token support in the proxy, Remember me stays hidden and the rest of §10 ships (§10).
 - Esc closes the open page; the Esc menu itself stays (part 2 §P.12).

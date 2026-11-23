@@ -1,7 +1,7 @@
 ---
 type: meta
 title: "Hot Cache"
-updated: 2026-11-23T00:00:00
+updated: 2026-11-23T21:30:00
 tags:
   - meta
   - hot
@@ -11,8 +11,8 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-23. PRs #19–#58: bug fixes, arranger stress tests, faster builds; names cleanup finished.
-**UI redesign designed with the owner; spec awaiting approval.** Then the TODO file. Detail in [[log]].
+2026-11-23. **UI redesign phase 1 (Stage panel) on `feat/ui-stage-panel`:** Tasks 1-9 done (1:1 check `37d0ce9`,
+review fixes `92a5803`). Next: the PR, after the owner's go. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -23,13 +23,13 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - JUCE 8.0.13 **sample-based** arranger keyboard (SFZ, no oscillators). [[Keyboard & Main UI]]
   (`MainComponent`) wires everything; [[Arranger Engine]] and [[Track Playback]] run on
   `HighResolutionTimer` threads, not the message thread.
-- **No file over 800 lines** — CI's first step enforces it. Big classes span several `.cpp`s
-  (`MainComponentInit/Actions/Effects/Overlays/Playback.cpp`, `DisplayStyleStore.cpp`,
-  `MidiDevice.cpp`, …). [[ADR-003 800-Line File Cap Split By Responsibility]].
+- **No file over 800 lines** (CI). Big classes span several `.cpp`s (`MainComponentStage.cpp`, …).
+  [[ADR-003 800-Line File Cap Split By Responsibility]].
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 870, arranger 770, integration 130 (+7 skipped)**; integration runs in CI too.
+  Current: **unit 1501, arranger 770, integration 130 (+7 skipped), display 8**.
+- Visual checks: screenshot/click the app's largest window; boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
 - App `Builds\VisualStudio2022\Arranger Workstation.sln`, Debug x64; close the app first (PDB lock).
@@ -46,15 +46,13 @@ Full task list with states: [[Owner Backlog]].
   engine/player. Reproduced live 2026-11-23 (Debug crash) and in the no-flag test run. Fix (liveness
   token) awaits owner sign-off: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
 - 🟡 **UI redesign** ("Stage" panel, pages, real keys/knobs, new Dust, six finishes, Remember me):
-  spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2. Owner's conditions:
-  behaviour integrated first; agent checks the running app **1:1** against the boards before finishing.
+  spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2, plan
+  `docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md` (Tasks 1-7 done). Owner: same look on
+  every resolution; agent checks the running app **1:1** against the boards before finishing.
 - ✅ **Arranger hard testing** done. Owner: style switch while playing applies on the next Start; any
   section may start; restore-down stays work-area sized.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.
 - 🟡 **Swap `juce::dsp::Chorus` (CC93) for the BBD model** from `va-effects`; budget = 16 `ChannelDSP`s.
 - 🟡 **Missing-SFZ popup (`b5765e9`) never smoke-tested**; **Phase 7a manual sign-off 0/9**.
-- 🟡 **Prune merged branches**: `fix/sfz-integration`, `fix/dsp-quality`, `docs/wiki-sync-main`,
-  `arhitecture/add-arhitecture-optimize-big-files` (all contained in `main`).
 - 🟢 OpenGL crash parked (unreproducible); tripwire logs to `Desktop/piano_gl_errors.log`.
-- 📝 `log.md` has a permanent gap 2026-06-25 → 2026-08-15 (lost to a truncating write).

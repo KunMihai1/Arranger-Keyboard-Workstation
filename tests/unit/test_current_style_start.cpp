@@ -160,3 +160,50 @@ private:
 };
 
 static CurrentStyleStartTest currentStyleStartTest;
+
+namespace CurrentStyleTempoTestValues
+{
+    const juce::String testName      = "CurrentStyleComponent (tempo from the panel)";
+    const juce::String testCategory  = "Unit";
+    const juce::String commitsLikeDrag = "commitTempo applies a tempo the way a BPM slider drag does";
+    const juce::String styleName     = "Style 1";
+    constexpr double minTempo        = 60.0;    // the BPM slider's range identifies it
+    constexpr double maxTempo        = 200.0;
+    constexpr double panelTempo      = 132.0;
+    constexpr double tolerance       = 0.0001;
+}
+
+/*
+    The Stage panel's screen sets the tempo; it must take the same path as releasing the BPM slider
+    (player BPM, rescaled tracks, the style marked as changed) - not just move the slider.
+*/
+class CurrentStyleTempoTest : public juce::UnitTest
+{
+public:
+    CurrentStyleTempoTest() : juce::UnitTest (CurrentStyleTempoTestValues::testName, CurrentStyleTempoTestValues::testCategory) {}
+
+    void runTest() override
+    {
+        using namespace CurrentStyleTempoTestValues;
+        beginTest (commitsLikeDrag);
+
+        std::unordered_map<juce::Uuid, TrackEntry*> noTrackEntries;
+        CurrentStyleComponent panel (styleName, noTrackEntries, {}, {});
+        bool changed {};
+        panel.anyTrackChanged = [&changed] { changed = true; };
+
+        panel.commitTempo (panelTempo);
+
+        expectWithinAbsoluteError (panel.getTempo(), panelTempo, tolerance);
+        expect (changed);
+
+        juce::Slider* tempoSlider = nullptr;
+        for (auto* child : panel.getChildren())
+            if (auto* slider = dynamic_cast<juce::Slider*> (child); slider != nullptr && slider->getMinimum() == minTempo && slider->getMaximum() == maxTempo)
+                tempoSlider = slider;
+        expect (tempoSlider != nullptr);
+        if (tempoSlider != nullptr)
+            expectWithinAbsoluteError (tempoSlider->getValue(), panelTempo, tolerance);
+    }
+};
+static CurrentStyleTempoTest currentStyleTempoTest;

@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "1884c5f",
-  "last_synced_branch": "fix/track-map-stale-pointers",
-  "last_synced_at": "2026-11-22",
-  "note": "Synced through 1884c5f: PR #19 (Solo/None crash) merged; track-map stale-pointer fix (picker browse, track/folder removal)."
+  "last_synced_commit": "d4fb477",
+  "last_synced_branch": "feat/ui-stage-panel",
+  "last_synced_at": "2026-11-23",
+  "note": "Synced through d4fb477: Stage panel Tasks 1-9 (review fixes)."
 }

@@ -104,6 +104,9 @@ void BeatBar::setCurrentBeatsElapsed(double beatsElapsed)
 {
     this->currentBeatsElapsed = beatsElapsed;
     repaint();
+
+    if (onBeatsElapsed)
+        onBeatsElapsed(beatsElapsed, numerator);
 }
 
 int BeatBar::getTotalSubdivisions()

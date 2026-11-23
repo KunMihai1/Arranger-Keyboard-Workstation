@@ -13,6 +13,103 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-23 — Stage panel branch review (plan Task 9)
+- Sonnet review of `main..feat/ui-stage-panel`, every claim checked against the code. Fixed (`92a5803`): chords from a
+  hardware keyboard updated the Stage screen on the MIDI input thread (now `callAsync` + `SafePointer`); every tempo
+  step committed to the style and re-scaled all tracks (up to 33×/s while holding Tempo +) — holds and drags now
+  commit once on release, like the old BPM slider, and the refresh no longer pulls the screen back mid-gesture; a
+  quick knob turned with no part chosen stayed moved (springs back now). All three checked live.
+- Rejected with reasons: section LED sync on other paths (no failing path), note-layer restore order with the
+  arranger overlay (the overlay closes first), "/4" label (nothing sets a denominator today), per-tick screen refresh
+  (same rate as the old beat bar; repaints coalesce).
+- Repeatable manual check for the wiring added to the visual test plan (`d4fb477`).
+- Tests: unit 1501 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 8 / 0. Next: PR (owner's go).
+
+## 2026-11-23 — Reference PNGs (plan Task 8); 1:1 visual check write-up; message fix
+- Boards rendered without the design canvas (`7a9d799`): `specs/assets/2026-11-23-ui-redesign/render/render.sh`
+  (headless Edge + stand-in runtime `support.js`, `<dc-import>` supported) → 16 PNGs at 2× in `png/`; a second run
+  is pixel-identical; it also renders a board at the app's own scale for comparisons. `.gitattributes` keeps
+  `*.sh` LF (`c6b040b`).
+- 1:1 check (`37d0ce9`, `docs/superpowers/test-plans/2026-11-23-ui-redesign-phase1-visual.md` + images): live app
+  at 1920 × 991 (scale 1.536) vs the board at the same scale. New difference found and fixed (`7dce83b`): a message
+  took the whole top row; on the board it replaces STYLE only, PLAY and 4/4 · TEMPO stay. Now it takes the row
+  only when it would not fit beside them (14 px gap). Text looks heavier on the board only because of ClearType.
+- Tests: unit 1490 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 8 / 0. Sonnet review next.
+
+## 2026-11-23 — Stage panel wired into the app (plan Task 7); live check; layout-proof key tests
+- `MainComponentStage.cpp` + `DisplayStage.cpp` (`d425e08`): the panel replaces the header. Sections call the old buttons'
+  handlers (LEDs mirror them), Start/Stop/tempo go to the open style (`CurrentStyleComponent::commitTempo`),
+  `CustomBeatBar::onBeatsElapsed` feeds lamps and bar, every `temporaryPopup` is a screen message. Styles,
+  Recorder, Settings and Chords are `StagePageFrame` pages hosting today's controls; Effects / Voices / Home open
+  what they opened before. Esc closes a page first.
+- Live check by the agent (screenshots + clicks on the running app, board rendered headless at the same scale):
+  sections, Auto Fill, Sync Start, Rec (+ messages), tempo +/hold/wheel/right-click/type/−, every page, Esc,
+  knob turning, Part toggles; window sizes 1920 × 991, 1280 × 720, 1024 × 768, 800 × 600, 1900 × 500.
+- Fixed from it, each with a test: knob turned against the hand (relative circular turning); LED glow cut on the
+  left (glow room) and ~3× the board's CSS blur (Gaussian fall-off, ring energy within 3 %); labels one
+  letter-spacing too wide (JUCE's width already includes it, up to 5 px off the board); tempo editor showed an
+  inverted block; chord helper call-out covered the panel and swallowed Esc (now the Chords page;
+  `ChordBrowserComponent::onEscape`). Also save-on-release quick knobs, opaque panel, hand cursor.
+- `test_key_listener.cpp` (`733408c`) presses keys by position (scan code → active layout), so it passes on the owner's
+  Romanian layout (2 failures before; two "too high" tests had been passing vacuously).
+- Not tested live: real playback (the owner's styles have no tracks). Lesson: the Sound Effects window is a
+  separate desktop window titled like the app — drive the largest window of the process, not the title.
+- Tests: unit 1488 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 8 / 0.
+
+## 2026-11-23 — Stage panel assembled (plan Task 6); label fix
+- `Source/UI/Stage/StagePanel` (`11d1b82`): all controls inside the scaled, centred board; section buttons report
+  `SectionGroupNames` names ("Ending 1" printed "End 1"); the panel runs the Tempo −/+ hold itself through
+  `StageScreen::stepTempo`; quick knobs report `QuickKnob::volume / reverb`. Tests check ≥ 20 board px between caps.
+- A throwaway render (1920 × 198, 2560 × 208) showed "LEF"/"RIGH": label width lacked CSS trailing letter spacing and
+  rounding cut the last glyph. Fixed with a test that lays labels out like `drawText` (`7b0a7ac`).
+- Lesson: `Copy-Item` keeps the old timestamp, so MSBuild skipped the restored file once (touch after restoring).
+- Tests: unit 1419 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped).
+
+## 2026-11-23 — Stage screen (plan Task 5)
+- `Source/UI/Stage/StageScreen` (`3e2d85d`): bezel, LCD rows (space-between like the board), beat lamps; top
+  line = message for 2.5 s / STYLE / app name asleep; tempo wheel (Shift 5), drag (6 px/step), type (Enter /
+  Esc / leave), right-click = style tempo; locked → "TEMPO LOCKED WHILE PLAYING". Editor is a hidden child,
+  never deleted inside its own callback. UTF-8 text follows the `const char*` + `fromUTF8` convention.
+- Tests: unit 1227 / 0 (StageScreen 23 / 0), arranger 770 / 0, integration 130 / 0 (+7 skipped).
+
+## 2026-11-23 — Stage rubber buttons and knobs (plan Task 4); keybind idea noted
+- `Source/UI/Stage/StageWidgets` (`6cb3f71`): `RubberButton` (key / screen / ledToggle; each draws its LED,
+  cap and label; only the cap takes clicks) and `StageKnob` (0–127, ±135°, vertical drag). `StageFonts` now
+  takes CSS values: size = JUCE point height; JUCE kerning is relative to ascent + descent, so CSS em is
+  converted with the font's height-to-points factor. No `StageLookAndFeel` (not needed in phase 1).
+- Owner idea recorded in [[Owner Backlog]]: every panel action assignable to a piano key or PC key via a
+  keybind menu (needs its own spec; the PC keyboard already plays notes).
+- Tests: unit 1204 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped). App builds, no new warnings.
+
+## 2026-11-23 — Same look on every window shape
+- Owner: the UI must look the same on any resolution, everything visible on all screens. `StageRegions`
+  gains `panelContent` (the 1200 × 124 board × `s`, centred; wider windows only add plain panel at the
+  sides) — `33a370c`. Checks at 21:9, 4:3, portrait, 150 % scaling, 320 × 200, 1920 × 1032. Spec §4.1.
+- Tests: unit 1171 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped).
+
+## 2026-11-23 — Stage panel models (plan Task 3)
+- `Source/UI/Stage/StageModels` (`017837b`): `TempoModel` (60–200, typed/wheel/step/reset, refuses while
+  locked, hold delays 400 then max (30, 130 − 10 × step)), `BeatLampModel`, `ScreenMessages` (upper case,
+  2.5 s), `PageRouter`. Plan's hold-delay example "(1) = 130" contradicted "(5) = 80"; board wins, plan fixed.
+- Tests: unit 1034 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped). App builds.
+
+## 2026-11-23 — Stage panel re-laid out; Stage fonts embedded
+- Owner: panel labels must not run into each other and the buttons were too tight. Measured with the
+  real font: section buttons 32 px apart, "INTRO 2/3" 32.8 px, "AUTO FILL" 42.9 px, "SYNC ST." 38.1 px;
+  21 buttons cannot fit the 280 × 110 px left third with real gaps. Owner chose: transport (Rec, File /
+  Sync Start, Stop, Start) moves to the right third, Quick FX keeps Volume + Reverb (Chorus and
+  Brightness stay on the Effects page), Auto Fill stays on the left after Fill 4. LEDs now sit beside
+  the buttons; labels ≥ 12.2 px apart, buttons ≥ 20 px. Board, spec §2/§3.3/§4.2, part 2 map and plan
+  updated (`f946646`).
+- Plan Task 1: Barlow Semi Condensed (Medium, SemiBold) + Share Tech Mono (SIL OFL 1.1) in
+  `Resources/Fonts/`, in BinaryData of both `.jucer`s; `Source/UI/Stage/StageFonts` (`c38fb13`).
+  Found: DirectWrite names Barlow as family "Barlow" + style "Semi Condensed SemiBold".
+- Plan Task 2 (`6291080`): `StagePalette` (spec §3.1) in `AppColours.h`, `StageMetrics.h` (board sizes,
+  new layout), `StageScale::regionsFor` (scale = min (w / 1200, h / 645); 1920 × 1032 → panel 198,
+  felt 6, notes 585, keys 224, slip 19; note area never negative).
+- Tests: unit 957 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped). App builds.
+- Owner: plan tasks (and their wiki sync) are committed without asking once green; push/PR still asked.
+
 ## 2026-11-23 — UI redesign designed with the owner; spec written
 - Mock-ups on a private canvas, iterated with the owner: three real-gear directions → A "Stage" chosen and
   revised (slim panel, centred bigger screen); beat lamps in the app's red/yellow; every feature mapped to

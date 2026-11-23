@@ -10,7 +10,6 @@ namespace
         const juce::String recordingStarted  = "Recording started!";
         const juce::String recordingStopped  = "Recording stopped!";
         const juce::String playbackStopped   = "Playback stopped!";
-        const juce::String playbackStoppedTitleCase = "Playback Stopped!";   // first popup of a session
         const juce::String playRecordingTitle = "Play recording";
         const juce::String nothingToPlay     = "No recorded events to play.";
         const juce::String playbackStarted   = "Playback started!";
@@ -28,11 +27,6 @@ namespace
         const juce::String noteAnnotation    = "Note annotation";
     }
 
-    constexpr int    centringDivisor       = 2;
-    constexpr int    popupHalfWidth        = 50;
-    constexpr int    popupTop              = 10;
-    constexpr int    popupWidth            = 100;
-    constexpr int    popupHeight           = 30;
     constexpr int    recordingHasEvents    = 1;    // MidiRecordPlayer::stopRecording
     constexpr int    nothingToPlay         = 0;    // MidiRecordPlayer::startPlayBack
     constexpr int    playbackStarted       = 1;
@@ -41,8 +35,6 @@ namespace
     constexpr int    noTextBox             = 0;
     constexpr int    styleListWidth        = 400;
     constexpr int    styleOverlayMinimumMs = 300;  // "Preparing style..." stays at least this long
-    constexpr double keyboardHeightRatio   = 0.21;
-    constexpr int    sceneLeft             = 0;
     constexpr float  helpIconFontHeight    = 30.0f;
     constexpr float  helpIconAlpha         = 0.9f;
 }
@@ -147,21 +139,7 @@ void MainComponent::recordButtonsInit()
 
         saveRecordingButton.setVisible(false);
 
-        if (temporaryPopup)
-        {
-            temporaryPopup->updateText(Text::recordingStarted);
-            temporaryPopup->restartTimer();
-        }
-        else {
-            temporaryPopup = std::make_unique<TemporaryMessage>(Text::recordingStarted);
-            headerPanel.addChildComponent(temporaryPopup.get());
-            temporaryPopup->setBounds(getWidth() / centringDivisor - popupHalfWidth, popupTop, popupWidth, popupHeight);
-            temporaryPopup->setFinishedCallBack([this] {
-                //saveRecording.setVisible(true);
-                temporaryPopup.reset();
-                });
-            temporaryPopup->setVisible(true);
-        }
+        showStageMessage(Text::recordingStarted);
     };
 
     stopRecording.onClick = [this] {
@@ -170,21 +148,7 @@ void MainComponent::recordButtonsInit()
         if (result == recordingHasEvents)
             saveRecordingButton.setVisible(true);
 
-        if (temporaryPopup)
-        {
-            temporaryPopup->updateText(Text::recordingStopped);
-            temporaryPopup->restartTimer();
-        }
-        else {
-            temporaryPopup = std::make_unique<TemporaryMessage>(Text::recordingStopped);
-            headerPanel.addChildComponent(temporaryPopup.get());
-            temporaryPopup->setBounds(getWidth() / centringDivisor - popupHalfWidth, popupTop, popupWidth, popupHeight);
-            temporaryPopup->setFinishedCallBack([this] {
-                temporaryPopup.reset();
-
-                });
-            temporaryPopup->setVisible(true);
-        }
+        showStageMessage(Text::recordingStopped);
     };
 
     recordPlayer.applyPresetFunction= [&]()
@@ -211,21 +175,7 @@ void MainComponent::recordButtonsInit()
 
     recordPlayer.notifyFunction = [&]()
     {
-        if (temporaryPopup)
-        {
-            temporaryPopup->updateText(Text::playbackStopped);
-            temporaryPopup->restartTimer();
-        }
-        else
-        {
-            temporaryPopup = std::make_unique<TemporaryMessage>(Text::playbackStoppedTitleCase);
-            headerPanel.addChildComponent(temporaryPopup.get());
-            temporaryPopup->setBounds(getWidth() / centringDivisor - popupHalfWidth, popupTop, popupWidth, popupHeight);
-            temporaryPopup->setFinishedCallBack([this] {
-                temporaryPopup.reset();
-                });
-            temporaryPopup->setVisible(true);
-        }
+        showStageMessage(Text::playbackStopped);
     };
 
     startPlayback.onClick = [this] {
@@ -238,20 +188,8 @@ void MainComponent::recordButtonsInit()
         if(result==nothingToPlay)
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::playRecordingTitle, Text::nothingToPlay);
 
-        if (temporaryPopup && result==playbackStarted)
-        {
-            temporaryPopup->updateText(Text::playbackStarted);
-            temporaryPopup->restartTimer();
-        }
-        else if(temporaryPopup==nullptr) {
-            temporaryPopup = std::make_unique<TemporaryMessage>(Text::playbackStarted);
-            headerPanel.addChildComponent(temporaryPopup.get());
-            temporaryPopup->setBounds(getWidth() / centringDivisor-popupHalfWidth, popupTop, popupWidth, popupHeight);
-            temporaryPopup->setFinishedCallBack([this] {
-                temporaryPopup.reset();
-                });
-            temporaryPopup->setVisible(true);
-        }
+        if (result == playbackStarted)
+            showStageMessage(Text::playbackStarted);
     };
 
     startRecording.setColour(juce::TextButton::buttonColourId, juce::Colours::red);
@@ -423,15 +361,11 @@ void MainComponent::keyBoardUIinit(int min, int max)
 {
     keyboardInitialized = true;
     addAndMakeVisible(keyboard);
-    int keyboardHeight = (int)getHeight() * keyboardHeightRatio;
-
-    keyboard.setBounds(sceneLeft, getHeight() - keyboardHeight, getWidth(), keyboardHeight);
-
     this->keyboard.set_min_and_max(min, max);
     noteLayer = std::make_unique<NoteLayer>(this->keyboard);
     midiHandler.addListener(noteLayer.get());
-    noteLayer->setBounds(sceneLeft, headerPanel.getHeight(), getWidth(), getHeight() - keyboardHeight - headerPanel.getHeight());
     addAndMakeVisible(noteLayer.get());
+    layoutStage();   // keys and note area take their Stage regions
 
     this->keyboard.repaint();
 }

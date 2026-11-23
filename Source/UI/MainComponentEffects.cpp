@@ -182,33 +182,38 @@ void MainComponent::buildChordLibrary()
 
 }
 
+void MainComponent::applyAndSaveEffect(int ccNumber, int value, int currentChannel, bool save)
+{
+    juce::String styleID = display->getStyleID();
+    juce::String VID, PID;
+    getCurrentEffectDeviceIds(VID, PID);
+    const juce::String settingsKey = styleID + DeviceSettingsKeys::prefixSeparator + makeDeviceSettingsKey(VID, PID);
+
+    const juce::String key = applyEffectCC(ccNumber, value, currentChannel);
+    if (key.isEmpty())
+        return;
+
+    StyleSettings& styleSettings = styleSettingsMap[settingsKey];
+    if (currentChannel == HandChannels::leftHand) styleSettings.firstHand.setValue(key, value);
+    else if (currentChannel == HandChannels::rightHand) styleSettings.secondHand.setValue(key, value);
+
+    if (save)   // a file write per knob step made turning a knob lag (measured 11.6 ms each)
+        EffectSettingsIOHelper::saveSingleEffect(propertiesFile, styleID, VID, PID, currentChannel, key, value);
+
+    if (!playButton.isVisible())
+    {
+        if (MIDIDevice.isOpenOUT())
+            MIDIDevice.sendMidiCC(currentChannel, ccNumber, value);
+        if (MIDIDevice.isOpenAudioOUT())
+            midiHandler.injectCC(currentChannel, ccNumber, value);
+    }
+}
+
 void MainComponent::setCallBacksForEffectWindow()
 {
     std::function<void(int, int)> saveCallback = [this](int ccNumber, int value)
     {
-        int currentChannel = this->soundEffectWindow->getContent().getSelectedChannel();
-        juce::String styleID = display->getStyleID();
-        juce::String VID, PID;
-        getCurrentEffectDeviceIds(VID, PID);
-        const juce::String settingsKey = styleID + DeviceSettingsKeys::prefixSeparator + makeDeviceSettingsKey(VID, PID);
-
-        const juce::String key = applyEffectCC(ccNumber, value, currentChannel);
-        if (key.isEmpty())
-            return;
-
-        StyleSettings& styleSettings = styleSettingsMap[settingsKey];
-        if (currentChannel == HandChannels::leftHand) styleSettings.firstHand.setValue(key, value);
-        else if (currentChannel == HandChannels::rightHand) styleSettings.secondHand.setValue(key, value);
-
-        EffectSettingsIOHelper::saveSingleEffect(propertiesFile, styleID, VID, PID, currentChannel, key, value);
-
-        if (!playButton.isVisible())
-        {
-            if (MIDIDevice.isOpenOUT())
-                MIDIDevice.sendMidiCC(currentChannel, ccNumber, value);
-            if (MIDIDevice.isOpenAudioOUT())
-                midiHandler.injectCC(currentChannel, ccNumber, value);
-        }
+        applyAndSaveEffect(ccNumber, value, this->soundEffectWindow->getContent().getSelectedChannel());
     };
 
 

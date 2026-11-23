@@ -5,6 +5,22 @@
   <MAINGROUP id="vwDzJM" name="Project Tests">
     <GROUP id="{0080393B-1406-4B96-0572-E3585FB0DAEC}" name="Tests">
       <GROUP id="{A1B2C3D4-1111-2222-3333-444455556666}" name="Unit">
+        <FILE id="stgPfT" name="test_stage_page_frame.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_page_frame.cpp"/>
+        <FILE id="chBrwT" name="test_chord_browser.cpp" compile="1" resource="0"
+              file="../tests/unit/test_chord_browser.cpp"/>
+        <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_panel.cpp"/>
+        <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_screen.cpp"/>
+        <FILE id="stgWdT" name="test_stage_widgets.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_widgets.cpp"/>
+        <FILE id="stgMdT" name="test_stage_models.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_models.cpp"/>
+        <FILE id="stgScT" name="test_stage_scale.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_scale.cpp"/>
+        <FILE id="ng2Cnq" name="test_stage_fonts.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_fonts.cpp"/>
         <FILE id="fAdttJ" name="test_add_device_window.cpp" compile="1" resource="0"
               file="../tests/unit/test_add_device_window.cpp"/>
         <FILE id="chDsp1" name="test_channel_dsp.cpp" compile="1" resource="0"
@@ -102,6 +118,12 @@
       </GROUP>
     </GROUP>
     <GROUP id="{7DA60EC7-6A29-1AFF-72FE-496A802E06A4}" name="Resources">
+      <FILE id="qAOgyA" name="ShareTechMono-Regular.ttf" compile="0" resource="1"
+            file="../Resources/Fonts/ShareTechMono-Regular.ttf"/>
+      <FILE id="ARPQiR" name="BarlowSemiCondensed-SemiBold.ttf" compile="0" resource="1"
+            file="../Resources/Fonts/BarlowSemiCondensed-SemiBold.ttf"/>
+      <FILE id="KDss6y" name="BarlowSemiCondensed-Medium.ttf" compile="0" resource="1"
+            file="../Resources/Fonts/BarlowSemiCondensed-Medium.ttf"/>
       <FILE id="WUBbJr" name="PasswordInvisible.png" compile="0" resource="1"
             file="../Photos/PasswordInvisible.png"/>
       <FILE id="JDRBfJ" name="PasswordVisible.png" compile="0" resource="1"
@@ -361,6 +383,38 @@
     </GROUP>
     <GROUP id="{77180095-A5AE-9575-2B89-DCC21B51B797}" name="Source">
       <GROUP id="{8049D2A6-E1D0-07F8-2FCC-1E03FA9B8200}" name="UI">
+        <GROUP id="{5A7E1C2B-3D4F-4E6A-9B8C-0D1E2F3A4B5C}" name="Stage">
+          <FILE id="stgFnC" name="StageFonts.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StageFonts.cpp"/>
+          <FILE id="stgFnH" name="StageFonts.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StageFonts.h"/>
+          <FILE id="stgScC" name="StageScale.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StageScale.cpp"/>
+          <FILE id="stgScH" name="StageScale.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StageScale.h"/>
+          <FILE id="stgMtH" name="StageMetrics.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StageMetrics.h"/>
+          <FILE id="stgMdC" name="StageModels.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StageModels.cpp"/>
+          <FILE id="stgMdH" name="StageModels.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StageModels.h"/>
+          <FILE id="stgWdC" name="StageWidgets.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StageWidgets.cpp"/>
+          <FILE id="stgWdH" name="StageWidgets.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StageWidgets.h"/>
+          <FILE id="stgSrC" name="StageScreen.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StageScreen.cpp"/>
+          <FILE id="stgSrH" name="StageScreen.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StageScreen.h"/>
+          <FILE id="stgPnC" name="StagePanel.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StagePanel.cpp"/>
+          <FILE id="stgPnH" name="StagePanel.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StagePanel.h"/>
+          <FILE id="stgPfC" name="StagePageFrame.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StagePageFrame.cpp"/>
+          <FILE id="stgPfH" name="StagePageFrame.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StagePageFrame.h"/>
+        </GROUP>
         <FILE id="OQf8Oe" name="SettingsWindow.h" compile="0" resource="0"
               file="../Source/UI/SettingsWindow.h"/>
         <FILE id="J92BVY" name="MainComponent.h" compile="0" resource="0" file="../Source/UI/MainComponent.h"/>
@@ -370,6 +424,7 @@
         <FILE id="splbfn" name="MainComponentEffects.cpp" compile="1" resource="0" file="../Source/UI/MainComponentEffects.cpp"/>
         <FILE id="sploGM" name="MainComponentInit.cpp" compile="1" resource="0" file="../Source/UI/MainComponentInit.cpp"/>
         <FILE id="splbJm" name="MainComponentOverlays.cpp" compile="1" resource="0" file="../Source/UI/MainComponentOverlays.cpp"/>
+        <FILE id="mcStge" name="MainComponentStage.cpp" compile="1" resource="0" file="../Source/UI/MainComponentStage.cpp"/>
         <FILE id="splWdg" name="MainComponentWidgets.cpp" compile="1" resource="0" file="../Source/UI/MainComponentWidgets.cpp"/>
         <FILE id="splTPS" name="MainComponentPlayback.cpp" compile="1" resource="0" file="../Source/UI/MainComponentPlayback.cpp"/>
         <FILE id="DXD47A" name="SoundEffectWindowComponent.cpp" compile="1"
@@ -415,6 +470,7 @@
         <FILE id="myTab2" name="MyTabbedComponent.h" compile="0" resource="0"
               file="../Source/UI/MyTabbedComponent.h"/>
         <FILE id="diCmp1" name="Display.cpp" compile="1" resource="0" file="../Source/UI/Display.cpp"/>
+        <FILE id="dspStg" name="DisplayStage.cpp" compile="1" resource="0" file="../Source/UI/DisplayStage.cpp"/>
         <FILE id="spl5If" name="DisplayStyleStore.cpp" compile="1" resource="0" file="../Source/UI/DisplayStyleStore.cpp"/>
         <FILE id="diCmp2" name="Display.h" compile="0" resource="0" file="../Source/UI/Display.h"/>
         <FILE id="dExTT9" name="temporaryNotificationUI.cpp" compile="1" resource="0"

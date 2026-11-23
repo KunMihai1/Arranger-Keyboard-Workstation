@@ -1,0 +1,123 @@
+/*
+  ==============================================================================
+
+    StageWidgets.h
+
+    The Stage panel's hardware materials (spec 2026-11-23 §3.3), each drawing
+    itself at the Stage scale set with setScale():
+
+      RubberButton  rubber cap + LED + silkscreen label
+        - key:       LED left of a 26 x 14 cap, label (1-2 lines) centred under it;
+                     the component is centred on the cap, only the cap takes clicks
+        - screen:    label, 40 x 17 cap, LED in a row (mirrored with LabelSide::right)
+        - ledToggle: LED + label, no cap; the whole row takes clicks
+      StageKnob     knurled rotary knob (quick 52 / effects 72) with its label under it;
+                    it turns like a real knob: grabbed anywhere, it follows the hand around
+                    its centre (relative, so it never jumps to where it was grabbed)
+
+  ==============================================================================
+*/
+
+#pragma once
+
+#include <JuceHeader.h>
+#include "StageMetrics.h"
+
+class RubberButton : public juce::Button
+{
+public:
+    enum class Style     { key, screen, ledToggle };
+    enum class LedColour { red, green };
+    enum class LabelTone { bright, dim };     // silkscreen (SemiBold) or dim silkscreen (Medium)
+    enum class LabelSide { left, right };     // screen style: which side of the cap the label is on
+
+    RubberButton (const juce::String& label, Style style, LedColour ledColour);
+
+    void setLedOn (bool shouldBeOn);
+    bool isLedOn() const;
+
+    void setScale (float newScale);
+    void setLabelTone (LabelTone newTone);
+    void setLabelSide (LabelSide newSide);
+
+    Style        getStyle() const;
+    LedColour    getLedColour() const;
+    juce::String getLabel() const;
+    int          getLabelLineCount() const;
+
+    /** Size of the drawn button (the board's CSS box) at the current scale. */
+    int getPreferredWidth() const;
+    int getPreferredHeight() const;
+
+    /** The component bounds for a drawn box placed where the board puts it: the box plus room for the
+        LED glow on every side, so the glow is never cut off. */
+    juce::Rectangle<int> boundsForBoardBox (juce::Rectangle<int> boardBox) const;
+
+    /** The drawn box inside the component (the bounds less the glow room). */
+    juce::Rectangle<float> getBoardBox() const;
+
+    juce::Rectangle<float> getCapBounds() const;
+    juce::Rectangle<float> getLedBounds() const;
+    juce::Rectangle<float> getLabelBounds() const;
+    juce::Font getLabelFont() const;
+
+    bool hitTest (int xPosition, int yPosition) override;
+
+protected:
+    void paintButton (juce::Graphics& g, bool isHighlighted, bool isDown) override;
+
+private:
+    float labelWidth() const;
+    float scaled (float referenceLength) const;
+    float scaled (int referenceLength) const;
+    int   glowRoom() const;   ///< whole px kept around the drawn box for the LED glow
+
+    juce::String label;
+    juce::StringArray labelLines;
+    Style style;
+    LedColour ledColour;
+    LabelTone labelTone { LabelTone::bright };
+    LabelSide labelSide { LabelSide::left };
+    bool ledOn {};
+    float scale { StageMetrics::referenceScale };
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RubberButton)
+};
+
+class StageKnob : public juce::Slider
+{
+public:
+    enum class Size { quick, effects };
+
+    StageKnob (const juce::String& label, Size size);
+
+    void setScale (float newScale);
+    Size getSize() const;
+    juce::String getLabel() const;
+
+    int getPreferredWidth() const;
+    int getPreferredHeight() const;
+
+    /** The ring (ticks + knob) inside the component. */
+    juce::Rectangle<float> getRingBounds() const;
+
+    void paint (juce::Graphics& g) override;
+    void mouseDown (const juce::MouseEvent& event) override;
+    void mouseDrag (const juce::MouseEvent& event) override;
+    void mouseUp (const juce::MouseEvent& event) override;
+
+private:
+    float scaled (float referenceLength) const;
+    float scaled (int referenceLength) const;
+    bool  angleAround (juce::Point<float> position, double& angle) const;   ///< false inside the dead zone
+
+    juce::String label;
+    Size size;
+    bool   turning {};
+    bool   haveTurnAngle {};
+    double lastTurnAngle {};
+    double turnProportion {};   ///< unsnapped, so small moves add up
+    float scale { StageMetrics::referenceScale };
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StageKnob)
+};
