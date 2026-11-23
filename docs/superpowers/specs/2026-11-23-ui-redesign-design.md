@@ -208,6 +208,15 @@ Reference 1200 × 645 (top to bottom): **panel 124 · felt 4 · note area 365 ·
 - Scale factor `s = min(width / 1200, height / 645)`. The panel, felt, keys and slip are their reference
   height × `s`; the note area takes the rest. Horizontal positions inside the panel scale by `s` and the
   three panel columns stay centred (§4.2).
+- **Same look on every window shape (owner, 2026-11-23: "the UI should look the same on any resolution
+  … everything must be visible on all screens").** One uniform `s` for every length, never separate x and
+  y factors. The panel's controls are the 1200 × 124 board scaled by `s` and centred in the panel
+  (`StageRegions::panelContent`); a window wider than 1200 : 645 only adds plain panel surface at both
+  sides, never stretches the columns. Because `s` is the smaller ratio, the scaled board always fits the
+  width and the fixed regions always fit the height, so nothing is cut off. Tested at 21:9 (2560 × 1080),
+  4:3 (1024 × 768), portrait (1080 × 1920), 1920 × 1080 at 150 % Windows scaling (1280 × 720 logical),
+  320 × 200 and 1920 × 1032. Below about 800 px wide the 9 px labels get small (6 px at `s` ≈ 0.67); no
+  minimum window size is set (today's app has none).
 - At 1920 × 1032 (`s` = 1.6) the result matches the boards exactly; this is the size of the visual check.
 - The restored-down window keeps today's rule (work-area sized; owner decision, see the wiki).
 

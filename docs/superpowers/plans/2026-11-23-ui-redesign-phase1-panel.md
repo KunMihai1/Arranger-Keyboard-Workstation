@@ -51,7 +51,7 @@
 
 **Files:** Modify `Source/Common/AppColours.h` (namespace `StagePalette`, every colour of spec §3.1); Create `Source/UI/Stage/StageMetrics.h` (reference sizes from the board: panel 124, felt 4, keys 140, slip 12, screen 368 × 106, panel columns `1fr | 600 | 1fr`, paddings 7 × 20, button sizes 26 × 14 / 40 × 17, section grid 6 columns × 3 rows (row gap 10), transport grid 3 × 44 (row gap 12), LED 5 + gap 3 left of the button, label gap 3, Quick FX block 130 with 2 knob cells of 62, knob ring 52 / skirt 36 / cap 24), `Source/UI/Stage/StageScale.h/.cpp`; Test `tests/unit/test_stage_scale.cpp`.
 
-**Produces:** `struct StageRegions { juce::Rectangle<int> panel, felt, noteArea, keys, slip; float scale; }; StageRegions StageScale::regionsFor (juce::Rectangle<int> bounds);`
+**Produces:** `struct StageRegions { juce::Rectangle<int> panel, felt, noteArea, keys, slip, panelContent; float scale; };` (`panelContent` = the 1200 × 124 board scaled by `s`, centred in the panel: same look on any window shape, spec §4.1); `StageRegions StageScale::regionsFor (juce::Rectangle<int> bounds);`
 
 - [x] Tests: 1920 × 1032 → scale 1.6, panel height 198 (124 × 1.6 rounded), keys 224, slip 19, felt 6, note area = rest, regions stacked without gaps; 1200 × 645 → exact reference; 1000 × 900 → scale = 1000/1200 (width-limited); 1920 × 500 → scale = 500/645 and note area ≥ 0 (Review Focus 1).
 - [x] Fail → implement → pass → commit `feat(ui): Stage palette, metrics and scaling`.
@@ -93,6 +93,7 @@
 
 **Files:** Create `Source/UI/Stage/StagePanel.h/.cpp`; Test `tests/unit/test_stage_panel.cpp`.
 
+**Layout:** every control is placed inside `StageRegions::panelContent` with `StageMetrics` × `s`, never against the panel edges (spec §4.1, same look on every window shape).
 **Produces:** `class StagePanel : public juce::Component { public: StageScreen& screen(); void setSectionLit (const juce::String& buttonName); void setAutoFill (bool); void setSyncStart (bool); void setRecording (bool); void setPlaying (bool); void setPageLed (StagePage); void setPartLeds (bool left, bool right); std::function<void (const juce::String& sectionButton)> onSection; std::function<void()> onRec, onFile, onStop, onStart, onAutoFill, onSyncStart; std::function<void (StagePage)> onPage; std::function<void (int direction, bool pressed)> onTempoHold; std::function<void (bool left)> onPart; std::function<void (int controller, int value)> onQuickKnob; };`
 Section button names = today's `SectionGroupNames` labels (Intro 1-3, Ending 1-3, Variation 1-4, Break, Fill 1-4) so `MainComponent::handleIntro/handleEnding/handleVar/handleFill/handleBreak` and `highlightArrangerSection` keep working unchanged. Grid order per spec §4.2. Auto Fill sits after Fill 4 in the left section grid; Rec, File, Sync Start, Stop, Start sit in the right-hand transport grid (spec §4.2, changed 2026-11-23). Two quick knobs send `EffectControllers::volume / reverb`.
 - [ ] Tests: clicking each section button raises `onSection` with the exact existing label; `setSectionLit("Variation 2")` lights only that LED (all others off); page button for the open page lit; tempo button press/release raise `onTempoHold(dir, true/false)`.

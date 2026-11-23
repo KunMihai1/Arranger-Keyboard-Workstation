@@ -20,6 +20,10 @@ namespace StageScale
         regions.slip     = bounds.removeFromBottom (scaled (StageMetrics::slipHeight));
         regions.keys     = bounds.removeFromBottom (scaled (StageMetrics::keysHeight));
         regions.noteArea = bounds;
+
+        // The board scaled uniformly and centred: never wider than the panel, so nothing is cut off.
+        const auto contentWidth = juce::jmin (regions.panel.getWidth(), scaled (StageMetrics::referenceWidth));
+        regions.panelContent = regions.panel.withSizeKeepingCentre (contentWidth, regions.panel.getHeight());
         return regions;
     }
 }

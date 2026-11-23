@@ -27,6 +27,23 @@ namespace StageScaleTestValues
     constexpr int shortWidth   = 1920;
     constexpr int shortHeight  = 500;
 
+    const juce::String sameLookEverywhere = "panel contents keep the board's proportions, centred, on any window";
+    const juce::String everythingVisible  = "every region stays inside the window on any screen shape";
+
+    constexpr int ultraWideWidth  = 2560;   // 21:9
+    constexpr int ultraWideHeight = 1080;
+    constexpr int ultraWideContentWidth = 2009;   // 1200 x 1080 / 645 = 2009.3
+    constexpr int ultraWideContentX     = 275;    // (2560 - 2009) / 2, rounded down
+    constexpr int squareishWidth  = 1024;   // 4:3
+    constexpr int squareishHeight = 768;
+    constexpr int portraitWidth   = 1080;
+    constexpr int portraitHeight  = 1920;
+    constexpr int scaledLaptopWidth  = 1280; // 1920 x 1080 at 150 % Windows scaling
+    constexpr int scaledLaptopHeight = 720;
+    constexpr int tinyWidth  = 320;
+    constexpr int tinyHeight = 200;
+    constexpr int roundingSlack = 1;   // px lost or gained by rounding each length
+
     constexpr float scaleTolerance = 0.0001f;
 }
 
@@ -103,6 +120,44 @@ public:
                                                        juce::Rectangle<int> { narrowWidth, narrowHeight },
                                                        juce::Rectangle<int> { shortWidth, shortHeight } })
                 expectStacked (StageScale::regionsFor (bounds), bounds);
+        }
+
+        beginTest (sameLookEverywhere);
+        {
+            const juce::Rectangle<int> ultraWide { ultraWideWidth, ultraWideHeight };
+            const auto wideRegions = StageScale::regionsFor (ultraWide);
+            expectEquals (wideRegions.panelContent.getWidth(), ultraWideContentWidth);
+            expectEquals (wideRegions.panelContent.getX(), ultraWideContentX);
+            expectEquals (wideRegions.panelContent.getY(), wideRegions.panel.getY());
+            expectEquals (wideRegions.panelContent.getHeight(), wideRegions.panel.getHeight());
+
+            const juce::Rectangle<int> owner { ownerWidth, ownerHeight };
+            expect (StageScale::regionsFor (owner).panelContent == StageScale::regionsFor (owner).panel);
+        }
+
+        beginTest (everythingVisible);
+        {
+            for (const juce::Rectangle<int> bounds : { juce::Rectangle<int> { ultraWideWidth, ultraWideHeight },
+                                                       juce::Rectangle<int> { squareishWidth, squareishHeight },
+                                                       juce::Rectangle<int> { portraitWidth, portraitHeight },
+                                                       juce::Rectangle<int> { scaledLaptopWidth, scaledLaptopHeight },
+                                                       juce::Rectangle<int> { tinyWidth, tinyHeight },
+                                                       juce::Rectangle<int> { ownerWidth, ownerHeight } })
+            {
+                const auto regions = StageScale::regionsFor (bounds);
+                expectStacked (regions, bounds);
+                expectGreaterOrEqual (regions.noteArea.getHeight(), int {});
+                expect (regions.panel.contains (regions.panelContent), bounds.toString());
+                expectEquals (regions.panelContent.getHeight(), regions.panel.getHeight());
+                expectGreaterThan (regions.panelContent.getWidth(), int {});
+                expectLessOrEqual (std::abs (regions.panelContent.getCentreX() - regions.panel.getCentreX()), roundingSlack);
+
+                // The panel contents are the board scaled uniformly: width / height = 1200 / 124 up to rounding.
+                const auto expectedWidth = static_cast<float> (regions.panelContent.getHeight())
+                                         * static_cast<float> (StageMetrics::referenceWidth) / static_cast<float> (StageMetrics::panelHeight);
+                expectWithinAbsoluteError (static_cast<float> (regions.panelContent.getWidth()), expectedWidth,
+                                           static_cast<float> (StageMetrics::referenceWidth) / static_cast<float> (StageMetrics::panelHeight) * roundingSlack);
+            }
         }
     }
 };
