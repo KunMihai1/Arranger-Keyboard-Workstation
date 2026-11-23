@@ -5,6 +5,8 @@
   <MAINGROUP id="vwDzJM" name="Project Tests">
     <GROUP id="{0080393B-1406-4B96-0572-E3585FB0DAEC}" name="Tests">
       <GROUP id="{A1B2C3D4-1111-2222-3333-444455556666}" name="Unit">
+        <FILE id="ng2Cnq" name="test_stage_fonts.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_fonts.cpp"/>
         <FILE id="fAdttJ" name="test_add_device_window.cpp" compile="1" resource="0"
               file="../tests/unit/test_add_device_window.cpp"/>
         <FILE id="chDsp1" name="test_channel_dsp.cpp" compile="1" resource="0"
@@ -102,6 +104,12 @@
       </GROUP>
     </GROUP>
     <GROUP id="{7DA60EC7-6A29-1AFF-72FE-496A802E06A4}" name="Resources">
+      <FILE id="qAOgyA" name="ShareTechMono-Regular.ttf" compile="0" resource="1"
+            file="../Resources/Fonts/ShareTechMono-Regular.ttf"/>
+      <FILE id="ARPQiR" name="BarlowSemiCondensed-SemiBold.ttf" compile="0" resource="1"
+            file="../Resources/Fonts/BarlowSemiCondensed-SemiBold.ttf"/>
+      <FILE id="KDss6y" name="BarlowSemiCondensed-Medium.ttf" compile="0" resource="1"
+            file="../Resources/Fonts/BarlowSemiCondensed-Medium.ttf"/>
       <FILE id="WUBbJr" name="PasswordInvisible.png" compile="0" resource="1"
             file="../Photos/PasswordInvisible.png"/>
       <FILE id="JDRBfJ" name="PasswordVisible.png" compile="0" resource="1"
@@ -361,6 +369,12 @@
     </GROUP>
     <GROUP id="{77180095-A5AE-9575-2B89-DCC21B51B797}" name="Source">
       <GROUP id="{8049D2A6-E1D0-07F8-2FCC-1E03FA9B8200}" name="UI">
+        <GROUP id="{5A7E1C2B-3D4F-4E6A-9B8C-0D1E2F3A4B5C}" name="Stage">
+          <FILE id="stgFnC" name="StageFonts.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StageFonts.cpp"/>
+          <FILE id="stgFnH" name="StageFonts.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StageFonts.h"/>
+        </GROUP>
         <FILE id="OQf8Oe" name="SettingsWindow.h" compile="0" resource="0"
               file="../Source/UI/SettingsWindow.h"/>
         <FILE id="J92BVY" name="MainComponent.h" compile="0" resource="0" file="../Source/UI/MainComponent.h"/>
