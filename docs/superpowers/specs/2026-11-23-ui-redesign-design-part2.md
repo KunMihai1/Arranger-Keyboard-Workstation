@@ -146,8 +146,8 @@ Opened by **File** on the panel.
 - The panel is visible with the screen showing "Ready" and dark lamps; the page area shows three big keys:
   **Settings · Play (lit) · Exit**, and top-right "Signed in as <email>" + **Log out** (part 1 §10).
 - Play = today's Play button (enters the play view). Settings = P.2. Exit = today's Exit.
-- Open question (part 1 §14): the current forest-and-piano picture (`BinaryData::MainWindow_png`) behind
-  Home, or the instrument look.
+- Owner decision (part 1 §14): the instrument look, as on the boards; the forest-and-piano picture
+  (`BinaryData::MainWindow_png`) is no longer shown behind Home or Login.
 
 ## P.11 Log in / Sign up (boards `StageLogin`, `PageLogin`)
 
