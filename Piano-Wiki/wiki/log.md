@@ -2,7 +2,7 @@
 type: meta
 title: "Operations Log"
 created: 2026-06-06
-updated: 2026-11-22
+updated: 2026-11-23
 tags:
   - meta
   - log
@@ -12,6 +12,13 @@ status: evergreen
 # Operations Log
 
 Append-only. Newest entries at the TOP. Never edit past entries.
+
+## 2026-11-23 — Use-after-free reproduced live
+- Debug app: Play → open "Style 1" → Delete it from the Styles list → Remove. The process died within
+  3 s; Windows log `0xc0000005` at offset `0x2bb6fa` = `std::_Func_class<void,double>::operator()` (PDB),
+  the same frame as the no-flag test-run crash. App data backed up and restored (0 differences).
+- Spec corrected: the style panel is created once and reused, so deleting the open style is the only
+  in-app trigger (closing the tab, Home, switching styles do not destroy it). Fix still awaits sign-off.
 
 ## 2026-11-22 — Names cleanup: all test files done, allowlist empty
 - PRs #52–#56 converted the 41 remaining test files (41 → 23 → 14 → 6 → 3 → 0). Each file has a
