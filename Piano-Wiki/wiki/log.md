@@ -13,6 +13,12 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-23 — Same look on every window shape
+- Owner: the UI must look the same on any resolution, everything visible on all screens. `StageRegions`
+  gains `panelContent` (the 1200 × 124 board × `s`, centred; wider windows only add plain panel at the
+  sides) — `33a370c`. Checks at 21:9, 4:3, portrait, 150 % scaling, 320 × 200, 1920 × 1032. Spec §4.1.
+- Tests: unit 1171 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped).
+
 ## 2026-11-23 — Stage panel models (plan Task 3)
 - `Source/UI/Stage/StageModels` (`017837b`): `TempoModel` (60–200, typed/wheel/step/reset, refuses while
   locked, hold delays 400 then max (30, 130 − 10 × step)), `BeatLampModel`, `ScreenMessages` (upper case,

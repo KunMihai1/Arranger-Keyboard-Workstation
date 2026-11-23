@@ -49,6 +49,10 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   Quick FX down to Volume + Reverb, Auto Fill stays with the sections. Task 1 (embedded fonts, `c38fb13`)
   Task 2 (palette, metrics, scaling, `6291080`) and Task 3 (models, `017837b`) done; next Task 4
   (look-and-feel, rubber buttons, knobs).
+- ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
+  … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
+  centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.
+  Every later phase (keys, pages) must keep this rule.
 - Design (2026-11-23): owner picked direction A "Stage" (matte charcoal
   hardware panel), revised: slim panel, bigger centred screen, beat lamps in the app's colours, every
   feature on the panel or a page, realistic keys, real knobs/faders, new smooth Dust, six instrument
