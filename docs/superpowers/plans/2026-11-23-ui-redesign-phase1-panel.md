@@ -128,8 +128,9 @@ Wiring (each = today's handler, integration map rows):
 
 ### Task 9: 1:1 visual check, review, wiki
 
-- [ ] Run the app at 1920 × 1032, screenshot the play view (and lamps on beats 1 and 2, a screen message, the tempo editor), compare side by side with `StageRevised` per spec §0.2; fix every difference; save screenshots + notes to `docs/superpowers/test-plans/2026-11-23-ui-redesign-phase1-visual.md`.
-- [ ] Sonnet review of the branch; verify each claim; fix confirmed ones.
+- [x] Run the app at 1920 × 1032, screenshot the play view (and lamps on beats 1 and 2, a screen message, the tempo editor), compare side by side with `StageRevised` per spec §0.2; fix every difference; save screenshots + notes to `docs/superpowers/test-plans/2026-11-23-ui-redesign-phase1-visual.md`.
+- [x] Sonnet review of the branch; verify each claim; fix confirmed ones.
+- As built: 1:1 check at the owner's 1920 × 991 (`37d0ce9`, message fix `7dce83b`). Review: 8 claims; confirmed and fixed (`92a5803`) chord update from the MIDI thread, a tempo commit (all tracks re-scaled) on every step of a hold / drag, knob staying moved with no part; written manual check added (`d4fb477`); rejected with reasons: section LED sync on other paths, note-layer restore order, "/4" label, per-tick refresh.
 - [ ] Wiki sync (log, hot, backlog, Keyboard & Main UI page); PR; CI green; merge.
 
 Later phases (keys, each page, Dust, finishes, sign-in) get their own plans, written against the code this plan leaves.
