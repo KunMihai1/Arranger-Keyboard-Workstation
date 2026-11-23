@@ -13,6 +13,17 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-23 — Reference PNGs (plan Task 8); 1:1 visual check write-up; message fix
+- Boards rendered without the design canvas (`7a9d799`): `specs/assets/2026-11-23-ui-redesign/render/render.sh`
+  (headless Edge + stand-in runtime `support.js`, `<dc-import>` supported) → 16 PNGs at 2× in `png/`; a second run
+  is pixel-identical; it also renders a board at the app's own scale for comparisons. `.gitattributes` keeps
+  `*.sh` LF (`c6b040b`).
+- 1:1 check (`37d0ce9`, `docs/superpowers/test-plans/2026-11-23-ui-redesign-phase1-visual.md` + images): live app
+  at 1920 × 991 (scale 1.536) vs the board at the same scale. New difference found and fixed (`7dce83b`): a message
+  took the whole top row; on the board it replaces STYLE only, PLAY and 4/4 · TEMPO stay. Now it takes the row
+  only when it would not fit beside them (14 px gap). Text looks heavier on the board only because of ClearType.
+- Tests: unit 1490 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 8 / 0. Sonnet review next.
+
 ## 2026-11-23 — Stage panel wired into the app (plan Task 7); live check; layout-proof key tests
 - `MainComponentStage.cpp` + `DisplayStage.cpp` (`d425e08`): the panel replaces the header. Sections call the old buttons'
   handlers (LEDs mirror them), Start/Stop/tempo go to the open style (`CurrentStyleComponent::commitTempo`),
