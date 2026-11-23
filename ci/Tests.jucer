@@ -9,6 +9,8 @@
               file="../tests/unit/test_stage_page_frame.cpp"/>
         <FILE id="chBrwT" name="test_chord_browser.cpp" compile="1" resource="0"
               file="../tests/unit/test_chord_browser.cpp"/>
+        <FILE id="cbLifT" name="test_callback_lifetime.cpp" compile="1" resource="0"
+              file="../tests/unit/test_callback_lifetime.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"

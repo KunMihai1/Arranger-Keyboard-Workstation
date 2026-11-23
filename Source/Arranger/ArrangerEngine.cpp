@@ -414,7 +414,7 @@ void ArrangerEngine::haltAudio()
     playheadBeats = noBeats;
     lastReportedSectionIndex = ArrangerStyleDefaults::noIndex;
     if (onElapsedBeats)   // reset the beat bar to the downbeat, like the classic player does
-        juce::MessageManager::callAsync ([this] { if (onElapsedBeats) onElapsedBeats (noBeats); });
+        juce::MessageManager::callAsync ([this, alive = std::weak_ptr<bool> (liveness)] { if (alive.expired()) return; if (onElapsedBeats) onElapsedBeats (noBeats); });
 
     // Only when we were actually playing: re-arm the first variation (sequencer.reset() landed on it)
     // and tell the UI we stopped, so the buttons clear the Ending and the beat bar leaves its play state.
@@ -422,7 +422,7 @@ void ArrangerEngine::haltAudio()
     {
         notifyActiveSection (true);
         if (onStoppedItself)
-            juce::MessageManager::callAsync ([this] { notifyStoppedUnlessRestarted(); });
+            juce::MessageManager::callAsync ([this, alive = std::weak_ptr<bool> (liveness)] { if (alive.expired()) return; notifyStoppedUnlessRestarted(); });
     }
 }
 
@@ -452,8 +452,8 @@ void ArrangerEngine::notifyActiveSection (bool force)
         name = style.sections[(size_t) activeIndex].name;
     }
     if (onActiveSectionChanged)
-        juce::MessageManager::callAsync ([this, activeIndex, type, name]
-            { if (onActiveSectionChanged) onActiveSectionChanged (activeIndex, type, name); });
+        juce::MessageManager::callAsync ([this, alive = std::weak_ptr<bool> (liveness), activeIndex, type, name]
+            { if (alive.expired()) return; if (onActiveSectionChanged) onActiveSectionChanged (activeIndex, type, name); });
 }
 
 void ArrangerEngine::hiResTimerCallback()
@@ -498,13 +498,13 @@ void ArrangerEngine::hiResTimerCallback()
     if (timerShouldStop)
     {
         timerShouldStop = false;
-        juce::MessageManager::callAsync ([this] { stop(); }); // stopTimer() safely off the timer thread
+        juce::MessageManager::callAsync ([this, alive = std::weak_ptr<bool> (liveness)] { if (alive.expired()) return; stop(); }); // stopTimer() safely off the timer thread
         return;
     }
 
     if (onElapsedBeats)
     {
         const double beats = playheadBeats;
-        juce::MessageManager::callAsync ([this, beats] { if (onElapsedBeats) onElapsedBeats (beats); });
+        juce::MessageManager::callAsync ([this, alive = std::weak_ptr<bool> (liveness), beats] { if (alive.expired()) return; if (onElapsedBeats) onElapsedBeats (beats); });
     }
 }

@@ -165,4 +165,7 @@ private:
 
     std::optional<StyleSection> lastStyleSectionUsed;
     bool sectionApplied=false;
+
+    /** Posted messages capture a weak copy and do nothing once this player is gone. */
+    std::shared_ptr<bool> liveness = std::make_shared<bool> (true);
 };

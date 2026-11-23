@@ -97,7 +97,8 @@ void MultipleTrackPlayer::stop(bool shouldModify)
     this->lastKnownSequenceTime = noTime;
     if (onElapsedUpdate)
     {
-        juce::MessageManager::callAsync([this]() {
+        juce::MessageManager::callAsync([this, alive = std::weak_ptr<bool> (liveness)]() {
+            if (alive.expired()) return;
             onElapsedUpdate(noTime);
             });
     }
@@ -308,8 +309,9 @@ void MultipleTrackPlayer::hiResTimerCallback()
 
     double beatsElapsed = elapsed * (currentBPM / secondsPerMinute);
 
-    juce::MessageManager::callAsync([this, beatsElapsed, elapsed]
+    juce::MessageManager::callAsync([this, alive = std::weak_ptr<bool> (liveness), beatsElapsed, elapsed]
         {
+            if (alive.expired()) return;
             onElapsedUpdate(beatsElapsed);
             trackPlayerSubjects.notifyMidPlay(elapsed);
         });

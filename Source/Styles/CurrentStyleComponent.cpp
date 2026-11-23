@@ -237,10 +237,12 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
 
     trackPlayer->onStopTriggerClickFromPlayer = [this]()
     {
-        juce::MessageManager::callAsync([this]()
+        const juce::Component::SafePointer<CurrentStyleComponent> safeThis (this);
+        juce::MessageManager::callAsync([safeThis]()
             {
-                isPlaying = false;
-                customBeatBar.repaint();
+                if (safeThis == nullptr) return;
+                safeThis->isPlaying = false;
+                safeThis->customBeatBar.repaint();
             });
     };
 
