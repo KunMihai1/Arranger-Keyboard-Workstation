@@ -13,6 +13,13 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-23 — Stage screen (plan Task 5)
+- `Source/UI/Stage/StageScreen` (`3e2d85d`): bezel, LCD rows (space-between like the board), beat lamps; top
+  line = message for 2.5 s / STYLE / app name asleep; tempo wheel (Shift 5), drag (6 px/step), type (Enter /
+  Esc / leave), right-click = style tempo; locked → "TEMPO LOCKED WHILE PLAYING". Editor is a hidden child,
+  never deleted inside its own callback. UTF-8 text follows the `const char*` + `fromUTF8` convention.
+- Tests: unit 1227 / 0 (StageScreen 23 / 0), arranger 770 / 0, integration 130 / 0 (+7 skipped).
+
 ## 2026-11-23 — Stage rubber buttons and knobs (plan Task 4); keybind idea noted
 - `Source/UI/Stage/StageWidgets` (`6cb3f71`): `RubberButton` (key / screen / ledToggle; each draws its LED,
   cap and label; only the cap takes clicks) and `StageKnob` (0–127, ±135°, vertical drag). `StageFonts` now
