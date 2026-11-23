@@ -16,6 +16,9 @@ namespace StageScreenTestValues
     const juce::String tempoButtons    = "the Tempo -/+ buttons step the tempo through the screen";
     const juce::String tempoFromStyle  = "a tempo from the open style is shown, and becomes the right-click tempo";
     const juce::String longMessageStays = "a message too long for the screen stays until it has scrolled through";
+    const juce::String dragReportsOnce = "a tempo drag shows every step but reports once, on release (review: every step re-scaled all tracks)";
+    constexpr int    dragSteps        = 5;
+    constexpr double draggedTempo     = 125.0;
     const juce::String messageBesideMode = "a message that fits replaces only STYLE; PLAY and the time signature stay (board); a long one takes the row";
     const juce::String playMode         = "PLAY";
     const juce::String fourFour         = "4/4";
@@ -49,6 +52,7 @@ namespace StageScreenTestValues
     constexpr int    stepDown    = -1;
     constexpr double tolerance   = 0.0001;
     constexpr double noReport    = -1.0;
+    constexpr float  halfStep    = 1.0f;   // px past the last step, clear of rounding
 }
 
 class StageScreenTest : public juce::UnitTest
@@ -59,6 +63,14 @@ class StageScreenTest : public juce::UnitTest
         const auto now = juce::Time::getCurrentTime();
         return { juce::Desktop::getInstance().getMainMouseSource(), position, modifiers, noPressure, noAngle, noAngle,
                  noAngle, noAngle, &screen, &screen, now, position, now, singleClick, false };
+    }
+
+    static juce::MouseEvent dragEvent (StageScreen& screen, juce::Point<float> from, juce::Point<float> to)
+    {
+        using namespace StageScreenTestValues;
+        const auto now = juce::Time::getCurrentTime();
+        return { juce::Desktop::getInstance().getMainMouseSource(), to, juce::ModifierKeys::leftButtonModifier, noPressure, noAngle, noAngle,
+                 noAngle, noAngle, &screen, &screen, now, from, now, singleClick, true };
     }
 
     static juce::MouseWheelDetails wheelDetails (float deltaY)
@@ -201,6 +213,23 @@ public:
 
             const auto corner = canvas.getPixelAt (field.getX(), field.getY());   // rounded: the LCD shows in the corner
             expect (corner.getPerceivedBrightness() > darkLuminance, corner.toDisplayString (true));
+        }
+
+        beginTest (dragReportsOnce);
+        {
+            ScreenUnderTest under;
+            const auto start = under.tempoCentre();
+            const auto up    = start.translated (float {}, -StageMetrics::tempoDragStep * ownerScale * dragSteps - halfStep);
+            under.screen.mouseDown (eventAt (under.screen, start, juce::ModifierKeys::leftButtonModifier));
+            under.screen.mouseDrag (dragEvent (under.screen, start, up));
+            expectWithinAbsoluteError (under.screen.tempo().value(), draggedTempo, tolerance);
+            expect (under.reported.empty());
+            under.screen.showTempo (styleTempo, styleTempo);   // the app's refresh, before the style has heard
+            expectWithinAbsoluteError (under.screen.tempo().value(), draggedTempo, tolerance);
+            under.screen.mouseUp (dragEvent (under.screen, start, up));
+            expectEquals (static_cast<int> (under.reported.size()), singleClick);
+            expectWithinAbsoluteError (under.lastReported(), draggedTempo, tolerance);
+            expect (! under.screen.isEditingTempo());
         }
 
         beginTest (messageBesideMode);

@@ -208,19 +208,28 @@ void StagePanel::setPartLeds (bool leftOn, bool rightOn)
 
 void StagePanel::setQuickKnobValues (int volumeValue, int reverbValue)
 {
-    volumeKnob.setValue (volumeValue, juce::dontSendNotification);
-    reverbKnob.setValue (reverbValue, juce::dontSendNotification);
+    shownVolume = volumeValue;
+    shownReverb = reverbValue;
+    revertQuickKnobs();
+}
+
+void StagePanel::revertQuickKnobs()
+{
+    volumeKnob.setValue (shownVolume, juce::dontSendNotification);
+    reverbKnob.setValue (shownReverb, juce::dontSendNotification);
 }
 
 //==============================================================================
 void StagePanel::startTempoHold (int direction)
 {
+    stopTempoHold();
     holdDirection = direction;
     holdStepIndex = {};
+    stageScreen.beginTempoGesture();   // the style hears the tempo once, on release
     stageScreen.stepTempo (direction);
     if (stageScreen.tempo().isLocked())
     {
-        holdDirection = {};
+        stopTempoHold();
         return;
     }
     startTimer (TempoModel::holdDelayMs (holdStepIndex));
@@ -228,6 +237,8 @@ void StagePanel::startTempoHold (int direction)
 
 void StagePanel::stopTempoHold()
 {
+    if (holdDirection != int {})
+        stageScreen.endTempoGesture();
     holdDirection = {};
     stopTimer();
 }

@@ -124,7 +124,7 @@ void StageScreen::setTempoLocked (bool shouldBeLocked)
 void StageScreen::showTempo (double currentTempo, double styleTempo)
 {
     tempoModel.setStyleTempo (styleTempo);
-    if (! editingTempo)
+    if (! editingTempo && tempoGestures == int {})   // not while typing, or holding / dragging (not reported yet)
         tempoModel.showValue (currentTempo);
     repaint();
 }
@@ -178,9 +178,28 @@ void StageScreen::reportTempoChange (bool changed)
     if (changed)
     {
         repaint();
-        if (onTempoChanged != nullptr)
+        if (tempoGestures > int {})
+            tempoReportPending = true;
+        else if (onTempoChanged != nullptr)
             onTempoChanged (tempoModel.value());
     }
+}
+
+void StageScreen::beginTempoGesture()
+{
+    ++tempoGestures;
+}
+
+void StageScreen::endTempoGesture()
+{
+    if (tempoGestures == int {})
+        return;
+    if (--tempoGestures > int {} || ! tempoReportPending)
+        return;
+
+    tempoReportPending = false;
+    if (onTempoChanged != nullptr)
+        onTempoChanged (tempoModel.value());
 }
 
 bool StageScreen::stepTempo (int direction)
@@ -462,6 +481,8 @@ void StageScreen::mouseDrag (const juce::MouseEvent& event)
     if (stepsSoFar == dragStepsTaken)
         return;
 
+    if (! draggingTempo)
+        beginTempoGesture();
     draggingTempo = true;
     const auto direction = stepsSoFar > dragStepsTaken ? StageMetrics::tempoStepUp : StageMetrics::tempoStepDown;
     while (dragStepsTaken != stepsSoFar)
@@ -476,6 +497,8 @@ void StageScreen::mouseDrag (const juce::MouseEvent& event)
 void StageScreen::mouseUp (const juce::MouseEvent&)
 {
     const auto wasClick = pressedOnTempo && ! draggingTempo;
+    if (draggingTempo)
+        endTempoGesture();
     pressedOnTempo = false;
     draggingTempo  = false;
     if (wasClick)

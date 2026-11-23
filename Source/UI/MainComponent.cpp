@@ -129,8 +129,17 @@ MainComponent::MainComponent()
     {
         if (display)
             display->setArrangerLiveChord(chord);
-        stageChord = chord;   // shown on the Stage screen
-        updateStageScreen();
+
+        // A hardware keyboard calls this on the MIDI input thread: the screen is updated on the
+        // message thread (it is UI, and its text is read while painting).
+        const juce::Component::SafePointer<MainComponent> safeThis(this);
+        juce::MessageManager::callAsync([safeThis, chord]
+        {
+            if (safeThis == nullptr)
+                return;
+            safeThis->stageChord = chord;   // shown on the Stage screen
+            safeThis->updateStageScreen();
+        });
     };
 
     juce::Desktop::getInstance().addFocusChangeListener(this);

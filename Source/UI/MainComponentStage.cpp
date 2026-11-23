@@ -465,6 +465,7 @@ void MainComponent::applyQuickKnob (StagePanel::QuickKnob knob, int value, bool 
     if (selectedPartChannel() == int {})
     {
         showStageMessage (StageWiringText::choosePart);
+        stagePanel->revertQuickKnobs();   // nothing changed, so the knob must not show a change
         return;
     }
 

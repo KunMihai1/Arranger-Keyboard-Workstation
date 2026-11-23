@@ -48,11 +48,16 @@ public:
     void setTempoLocked (bool shouldBeLocked);
 
     /** Shows the open style's tempo (set elsewhere) and its own tempo for right-click; never reported
-        back, and left alone while the user is typing a tempo. */
+        back, and left alone while the user is typing a tempo or holding / dragging it. */
     void showTempo (double currentTempo, double styleTempo);
 
     /** One step from the Tempo -/+ buttons; reports a change, or says the tempo is locked. */
     bool stepTempo (int direction);
+
+    /** Between these, tempo steps show at once but reach onTempoChanged only once, at the end: a hold
+        or drag re-scales every track of the style only once, as today's BPM slider did on release. */
+    void beginTempoGesture();
+    void endTempoGesture();
 
     /** Called with the new tempo whenever the user changes it on the screen. */
     std::function<void (double)> onTempoChanged;
@@ -107,6 +112,8 @@ private:
     bool mouseOverTempo {};
     bool draggingTempo {};
     bool pressedOnTempo {};
+    int  tempoGestures {};          ///< nested holds / drags in progress
+    bool tempoReportPending {};     ///< a step happened during them
     float messageOverflow {};   ///< px the current message is wider than the top row (it scrolls)
     int  dragStepsTaken {};
 

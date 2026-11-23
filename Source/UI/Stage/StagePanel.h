@@ -68,6 +68,8 @@ public:
     void setPageLed (StagePage openPage);
     void setPartLeds (bool leftOn, bool rightOn);
     void setQuickKnobValues (int volumeValue, int reverbValue);
+    /** Puts the quick knobs back to the values last shown (a turn that changed nothing, e.g. no part chosen). */
+    void revertQuickKnobs();
 
     // --- Presses ---
     std::function<void (const juce::String& sectionName)> onSection;
@@ -116,6 +118,8 @@ private:
 
     float scale { StageMetrics::referenceScale };
     int holdDirection {};
+    int shownVolume {};
+    int shownReverb {};
     int holdStepIndex {};
 
     // Painted parts, kept from the last layout.

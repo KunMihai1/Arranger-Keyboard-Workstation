@@ -12,12 +12,17 @@ namespace StagePanelTestValues
     const juce::String oneSectionLit  = "only the playing section's LED is lit";
     const juce::String transport      = "transport buttons report presses and show state";
     const juce::String pages          = "page buttons report their page; the open page's LED is lit";
-    const juce::String tempoHold      = "holding Tempo + steps at once and keeps repeating until release";
+    const juce::String tempoHold      = "holding Tempo + steps at once and repeats until release; the style hears once, on release (review: every step re-scaled all tracks)";
     const juce::String quickFx        = "quick knobs and part toggles report changes";
     const juce::String roomyLayout    = "buttons sit >= 20 px apart and everything is inside the panel";
     const juce::String centredContent = "on a wide window the controls stay the board's width, centred";
     const juce::String opaquePanel    = "the panel is opaque, so a knob repaint never redraws the window behind it";
     const juce::String knobRelease    = "a quick knob reports each value while turning and once more on release";
+    const juce::String knobsRevert    = "a quick knob turned with no part chosen goes back to what it showed (review: it stayed moved, sound unchanged)";
+    constexpr int    shownVolume  = 110;
+    constexpr int    shownReverb  = 72;
+    constexpr int    turnedValue  = 20;
+    constexpr size_t oneReport    = 1;
 
     const juce::String varTwo = "Var 2";
     const juce::String listSeparator = ", ";
@@ -180,9 +185,28 @@ public:
             {
                 tempoUp->setState (juce::Button::buttonDown);
                 expect (panel.isHoldingTempo());
-                expect (! tempos.empty() && std::abs (tempos.back() - fasterTempo) < tolerance);
+                expect (std::abs (panel.screen().tempo().value() - fasterTempo) < tolerance);
+                expect (tempos.empty());
                 tempoUp->setState (juce::Button::buttonNormal);
                 expect (! panel.isHoldingTempo());
+                expect (tempos.size() == oneReport && std::abs (tempos.back() - fasterTempo) < tolerance);
+            }
+        }
+
+        beginTest (knobsRevert);
+        {
+            StagePanel panel { styleTempo };
+            panel.setQuickKnobValues (shownVolume, shownReverb);
+            auto* volume = knobNamed (panel, StagePanelNames::volume);
+            auto* reverb = knobNamed (panel, StagePanelNames::reverb);
+            expect (volume != nullptr && reverb != nullptr);
+            if (volume != nullptr && reverb != nullptr)
+            {
+                volume->setValue (turnedValue, juce::sendNotificationSync);
+                reverb->setValue (turnedValue, juce::sendNotificationSync);
+                panel.revertQuickKnobs();
+                expectEquals (juce::roundToInt (volume->getValue()), shownVolume);
+                expectEquals (juce::roundToInt (reverb->getValue()), shownReverb);
             }
         }
 
