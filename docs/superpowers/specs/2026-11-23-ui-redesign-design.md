@@ -1,6 +1,6 @@
 # Arranger UI redesign: "Stage" panel, pages, keys, dust, finishes, sign-in — design
 
-**Status:** draft for owner approval · **Date:** 2026-11-23 · **Owner:** KunMihai
+**Status:** owner's open questions answered (§14); awaiting approval of the whole spec · **Date:** 2026-11-23 · **Owner:** KunMihai
 **Part 2** (every page in detail, the integration map): `2026-11-23-ui-redesign-design-part2.md`
 
 **Accepted design (the visual source of truth):**
@@ -119,7 +119,7 @@ editions, and smooth particles.
 | `PageTracks`, `PageNotes`, `PageSections`, `PageChords`, `PageFile` | Track picker, Notes information, Sections editor v2, Chord helper, Recorder |
 | `StageLogin`, `PageLogin`, `StageHome`, `PageHome` | Log in / sign up (with Remember me) and Home, on the instrument |
 | `Dust` | The new dust motion (with the current dust for comparison) |
-| `SkinsFinish` | The six finishes |
+| `SkinsFinish` | The finishes: rows 1-4 and 6 (row 5, Pearl accordion, is not built) |
 
 Rejected and **not** to be built: directions B (vintage) and C (studio metal), skins v1 and v2, the
 first sections editor, beat numbers "1 2 3 4" in the screen.
@@ -339,15 +339,15 @@ New Dust (Sparks and Smoke stay as they are):
 
 ## 9. Finishes (skins, board `SkinsFinish`, B4)
 
-- **Default:** the matte charcoal panel of §3 ("Stage"). Six optional finishes, all original:
-  **Rosso burst** (red lacquer, maple sides), **Champagne** (brushed gold, walnut sides), **Tobacco burst**
-  (flamed-maple sunburst, dark sides), **Midnight flake** (navy metal flake, chrome trim, rosewood sides),
-  **Pearl accordion** (red pearl celluloid, chrome-framed black plates under the controls), **Concert
-  black** (piano gloss, gold pinstripe).
+- **Default:** the matte charcoal panel of §3 ("Stage"). **Five** optional finishes (owner, 2026-11-23),
+  all original: **Rosso burst** (red lacquer, maple sides), **Champagne** (brushed gold, walnut sides),
+  **Tobacco burst** (flamed-maple sunburst, dark sides), **Midnight flake** (navy metal flake, chrome trim,
+  rosewood sides), **Concert black** (piano gloss, gold pinstripe).
+- **Not built:** Pearl accordion (5th row of the `SkinsFinish` board): the owner left it out.
 - **Where it applies:** the panel surface and the key slip. Controls, screen and keys keep their own
   materials (as on the board). The board's side strips ("sides") are drawn as 26 px strips at the left and
   right ends of the **panel** only; the keys keep the full width.
-- **How:** the textures (wood grain, flame, brushed lines, flake, pearl) are generated procedurally with
+- **How:** the textures (wood grain, flame, brushed lines, flake) are generated procedurally with
   fractal noise, using the board's parameters (`feTurbulence` base frequencies, octaves, seeds and colour
   matrices), **once per finish and size** into a cached `juce::Image`, never per frame.
 - **Choice:** Settings › Display › **Finish**, saved under a new settings key `PanelFinish` (text id, e.g.
@@ -409,7 +409,8 @@ Agreed with the owner (2026-11-23), "like it works in a browser":
    Esc menu, then Sections v2 (part 2).
 5. Dust (§8).
 
-Sections v2 and Dust come late on purpose: they wait for the owner's explicit approval (§14.3).
+Sections v2 and Dust are approved by the owner (2026-11-23, §14); they stay late only because they build on
+the earlier phases.
 6. Finishes (§9).
 7. Sign-in fixes, then Remember me / Log out (§10).
 
@@ -430,13 +431,13 @@ Each phase: integration rows checked (§0.1) → tests → build → live behavi
 
 ---
 
-## 14. Open questions for the owner
+## 14. Owner decisions (2026-11-23)
 
-1. **Home and Login background:** keep the current forest-and-piano picture behind them, or the instrument
-   look of the boards? (Asked, not answered yet.)
-2. **Which finishes ship:** all six, or a subset?
-3. **Sections editor v2 and the new Dust:** shown on the boards; not yet explicitly approved.
-4. **Remember me default:** off (like most browsers) is assumed.
+1. **Home and Login:** the **instrument look** of the boards. The forest-and-piano picture
+   (`BinaryData::MainWindow_png`) is no longer shown behind Home or Login.
+2. **Finishes:** five ship (all but Pearl accordion), §9.
+3. **Sections editor v2 and the new Dust:** approved as shown on the boards.
+4. Still assumed, not asked: Remember me is **off** by default (like most browsers).
 
 ## 15. Calls made in this document (owner, please check)
 
@@ -446,7 +447,6 @@ Each phase: integration rows checked (§0.1) → tests → build → live behavi
 - Rec becomes one toggle; every page button toggles its page; Sync St. on the panel mirrors the setting (§4.2).
 - Fonts committed under `Resources/Fonts/` with their OFL licence (§3.2).
 - Without refresh-token support in the proxy, Remember me stays hidden and the rest of §10 ships (§10).
-- Planning assumes all six finishes ship until the owner says otherwise (§14.2).
 - Esc closes the open page; the Esc menu itself stays (part 2 §P.12).
 - Error dialogs that need an answer stay dialogs (§5.4).
 - The saved session token is encrypted with Windows DPAPI; new settings keys `PanelFinish`,

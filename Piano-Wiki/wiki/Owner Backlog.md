@@ -53,7 +53,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   accepted boards.
 - ⬜ **Remember me** (owner, 2026-11-23): stay signed in until Log out; the last email is always
   remembered ("like a browser"). Needs the login bugs below fixed first (spec part 1 §10).
-- Open for the owner: Home/Login background (forest picture or instrument look), which finishes ship.
+- Owner decisions 2026-11-23: Home/Login use the instrument look (no forest picture); five finishes
+  (not Pearl accordion); Sections editor v2 and the new Dust approved.
 
 ## 2. Open engineering threads (from the wiki)
 - 🔴 **Use-after-free: stop callbacks outlive their player** (root-caused 2026-11-22, fix awaiting sign-off).
