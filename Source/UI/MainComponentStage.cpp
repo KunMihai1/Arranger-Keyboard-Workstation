@@ -100,6 +100,7 @@ void MainComponent::stagePagesInit()
     auto makePage = [this] (const juce::String& title)
     {
         auto page = std::make_unique<StagePageFrame> (title);
+        page->onExit = [this] { closeStagePage(); refreshStage(); };   // spec §6: Exit returns to the play view
         addChildComponent (*page);
         return page;
     };
