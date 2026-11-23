@@ -344,7 +344,10 @@ void StageScreen::paint (juce::Graphics& g)
     g.setFont (bottomFont);
     const auto bottomBaseline = juce::roundToInt (screenLayout.bottomBaseline);
     g.drawSingleLineText (content.variation, juce::roundToInt (area.getX()), bottomBaseline);
-    const auto chordX = area.getX() + juce::GlyphArrangement::getStringWidth (bottomFont, content.variation) + scaled (lcdBottomRowGap);
+    // With no variation shown the chord starts at the row's edge (owner: it was indented by the gap).
+    const auto chordX = content.variation.isEmpty()
+                          ? area.getX()
+                          : area.getX() + juce::GlyphArrangement::getStringWidth (bottomFont, content.variation) + scaled (lcdBottomRowGap);
     g.drawSingleLineText (content.chord, juce::roundToInt (chordX), bottomBaseline);
     const auto barText = barPrefix + juce::String (content.bar).paddedLeft (zeroDigit.getLastCharacter(), barDigits);
     g.drawSingleLineText (barText, juce::roundToInt (area.getRight()), bottomBaseline, juce::Justification::right);
