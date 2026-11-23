@@ -123,7 +123,8 @@ Wiring (each = today's handler, integration map rows):
 
 ### Task 8: Reference PNGs (spec §0.4)
 
-- [ ] With the owner's permission, open the canvas in the owner's browser and capture `StageRevised` and the page boards at 2× into `docs/superpowers/specs/assets/2026-11-23-ui-redesign/png/`; otherwise ask the owner to export them. Commit `docs: reference PNGs of the accepted boards`.
+- [x] With the owner's permission, open the canvas in the owner's browser and capture `StageRevised` and the page boards at 2× into `docs/superpowers/specs/assets/2026-11-23-ui-redesign/png/`; otherwise ask the owner to export them. Commit `docs: reference PNGs of the accepted boards`.
+- As built (owner's choice): all 16 boards rendered locally at 2× by `render/render.sh` (headless Edge + stand-in runtime `render/support.js`); a second run is pixel-identical.
 
 ### Task 9: 1:1 visual check, review, wiki
 

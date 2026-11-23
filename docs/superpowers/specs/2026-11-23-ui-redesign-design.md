@@ -83,6 +83,10 @@ The boards render only inside the canvas. **Phase 0 of the plan exports each acc
 2×** into `docs/superpowers/specs/assets/2026-11-23-ui-redesign/png/`: either the owner uses the canvas's
 Share › Export, or the agent opens the canvas in the owner's browser (with the owner's permission) and
 captures each board in its focused view. Those PNGs are what §0.2 compares against.
+*As done (2026-11-23, owner's choice):* rendered locally by `assets/2026-11-23-ui-redesign/render/render.sh`
+(headless Edge + a stand-in canvas runtime, `render/support.js`: first frame, no events, `<dc-import>` supported).
+It reproduces the PNGs pixel for pixel and renders any board at the app's own scale for the 1:1 check.
+`Dust.png` is the first frame of an animation (no particles yet).
 
 App screenshots for §0.2 are screen captures of the app window's client area (GDI copy of the screen
 rectangle, the method already used for live checks), which includes the GL note area.
