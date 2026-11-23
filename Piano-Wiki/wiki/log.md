@@ -13,6 +13,12 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-23 — Stage panel models (plan Task 3)
+- `Source/UI/Stage/StageModels` (`017837b`): `TempoModel` (60–200, typed/wheel/step/reset, refuses while
+  locked, hold delays 400 then max (30, 130 − 10 × step)), `BeatLampModel`, `ScreenMessages` (upper case,
+  2.5 s), `PageRouter`. Plan's hold-delay example "(1) = 130" contradicted "(5) = 80"; board wins, plan fixed.
+- Tests: unit 1034 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped). App builds.
+
 ## 2026-11-23 — Stage panel re-laid out; Stage fonts embedded
 - Owner: panel labels must not run into each other and the buttons were too tight. Measured with the
   real font: section buttons 32 px apart, "INTRO 2/3" 32.8 px, "AUTO FILL" 42.9 px, "SYNC ST." 38.1 px;

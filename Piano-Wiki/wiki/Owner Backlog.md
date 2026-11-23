@@ -47,7 +47,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   (`docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md`). Owner changed the panel layout
   (labels ran into each other, buttons too tight): Rec/File/Sync Start/Stop/Start moved to the right third,
   Quick FX down to Volume + Reverb, Auto Fill stays with the sections. Task 1 (embedded fonts, `c38fb13`)
-  and Task 2 (palette, metrics, scaling, `6291080`) done; next Task 3 (tempo/lamp/message/page models).
+  Task 2 (palette, metrics, scaling, `6291080`) and Task 3 (models, `017837b`) done; next Task 4
+  (look-and-feel, rubber buttons, knobs).
 - Design (2026-11-23): owner picked direction A "Stage" (matte charcoal
   hardware panel), revised: slim panel, bigger centred screen, beat lamps in the app's colours, every
   feature on the panel or a page, realistic keys, real knobs/faders, new smooth Dust, six instrument

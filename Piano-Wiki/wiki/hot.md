@@ -12,7 +12,7 @@ status: evergreen
 
 ## Last Updated
 2026-11-23. PRs #19–#58: bug fixes, arranger stress tests, faster builds; names cleanup finished.
-**UI redesign phase 1 (Stage panel) in progress on `feat/ui-stage-panel`:** Tasks 1-2 (fonts, palette/scaling) done; panel
+**UI redesign phase 1 (Stage panel) in progress on `feat/ui-stage-panel`:** Tasks 1-3 (fonts, palette/scaling, models) done; panel
 re-laid out by the owner (transport on the right, 2 quick knobs). Then the TODO file. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
@@ -30,7 +30,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 957, arranger 770, integration 130 (+7 skipped)**; integration runs in CI too.
+  Current: **unit 1034, arranger 770, integration 130 (+7 skipped)**; integration runs in CI too.
 ## Build / Test
 - App `Builds\VisualStudio2022\Arranger Workstation.sln`, Debug x64; close the app first (PDB lock).
 - Projucer detaches: `Start-Process -Wait`; quote `"Arranger Workstation.jucer"` (space in name).
@@ -47,7 +47,7 @@ Full task list with states: [[Owner Backlog]].
   token) awaits owner sign-off: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
 - 🟡 **UI redesign** ("Stage" panel, pages, real keys/knobs, new Dust, six finishes, Remember me):
   spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2, plan
-  `docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md` (Tasks 1-2 done, next Task 3 models). Owner's conditions:
+  `docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md` (Tasks 1-3 done, next Task 4 look-and-feel + widgets). Owner's conditions:
   behaviour integrated first; agent checks the running app **1:1** against the boards before finishing.
 - ✅ **Arranger hard testing** done. Owner: style switch while playing applies on the next Start; any
   section may start; restore-down stays work-area sized.
