@@ -43,12 +43,17 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 ## 1b. UI refinement (owner, 2026-11-22) — after section 1, before the TODO file; owner reviews it first
 - **Most important (owner): it must NOT look AI-generated** — a real-music-gear, human-designed look (think
   hardware keyboards, studio gear), not generic gradients/glows/rounded cards.
-- ⬜ A refined, quality feel everywhere: the piano keys as realistic as possible,
-  real-looking knobs on the Effects page, buttons and the rest of the UI to match; anything that adds
-  realism is welcome.
-- ⬜ **Piano skins**: decorative designs on the keyboard body (the owner's example was an art-wrapped
-  workstation). Original artwork only, no brand names or copied designs.
-- Show the owner the direction (mock-ups / screenshots) before building it.
+- 🟡 **Design done, spec awaiting approval (2026-11-23):** owner picked direction A "Stage" (matte charcoal
+  hardware panel), revised: slim panel, bigger centred screen, beat lamps in the app's colours, every
+  feature on the panel or a page, realistic keys, real knobs/faders, new smooth Dust, six instrument
+  finishes (Korg-edition quality, original), Sections editor v2, tempo hold/type/wheel/reset, Remember me.
+  Spec: `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` (+ `-part2.md`); boards in
+  `specs/assets/2026-11-23-ui-redesign/`. **Owner's conditions:** behaviour fully integrated before
+  building each part; before finishing, the agent checks the running app visually **1:1** against the
+  accepted boards.
+- ⬜ **Remember me** (owner, 2026-11-23): stay signed in until Log out; the last email is always
+  remembered ("like a browser"). Needs the login bugs below fixed first (spec part 1 §10).
+- Open for the owner: Home/Login background (forest picture or instrument look), which finishes ship.
 
 ## 2. Open engineering threads (from the wiki)
 - 🔴 **Use-after-free: stop callbacks outlive their player** (root-caused 2026-11-22, fix awaiting sign-off).
@@ -72,6 +77,9 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - ⬜ Notes table (right-click a track → notes): with **no rows selected**, the reset/modify dialog shows
   "Change All" / "Cancel", but Cancel gets button id 2 = "selected", so Cancel runs the *selected* action on
   an empty selection and calls `onConfirmed()` (`TableContainer::showModifyChangeDialog`).
+- ⬜ Names check gaps: `MidiNotesTableModel.cpp:209` / `:231` compare `columnId` with bare `2` / `3`, and
+  `SoundEffectWindowComponent.cpp:498` has inline row names (`"TONE"`…); `check_named_values.py` misses
+  both shapes (found 2026-11-23 while designing the UI).
 - ⬜ Renaming a track from the track list doesn't focus the name box: `TrackListComponent::renameFromTrackList`
   looks up the editor "folderName" although its editor is "trackName" (seen in the Playback names cleanup).
 

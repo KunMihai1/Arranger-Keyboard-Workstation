@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sections editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&amp;family=Share+Tech+Mono&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#c8cacd}a:hover{color:#ffffff}
+.silk{font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#c8cacd;white-space:nowrap}
+.silk-dim{font-family:'Barlow Semi Condensed',sans-serif;font-weight:500;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#a3a5aa;white-space:nowrap}
+.rule{height:1px;background:#4a4c51}
+.seg{height:22px;padding:0 9px;border:1px solid #111214;background:linear-gradient(#3d3e42,#2c2d30);color:#c8cacd;font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.seg-lit{background:linear-gradient(#56463a,#3f3127);color:#ffe2cf;border-color:#2a1d14}
+.led{width:5px;height:5px;border-radius:50%;background:#4a2a24}
+.led-on{background:#ff5a36;box-shadow:0 0 3px rgba(255,90,54,.7)}
+.led-grn{background:#5fd35a;box-shadow:0 0 3px rgba(95,211,90,.7)}
+.lcd{background:#a7b394;border-radius:2px;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);font-family:'Share Tech Mono',monospace;color:#1b2216}
+.lrow{display:flex;justify-content:space-between;padding:3px 10px;font-size:13px}
+.lsel{background:#1b2216;color:#a7b394}
+.lane-head{height:22px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;box-sizing:border-box;border-bottom:1px solid #34363a;font-family:'Share Tech Mono',monospace;font-size:12px;color:#c8cacd}
+.ntt{font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#a3a5aa;background:none;border:1px solid #3a3c41;border-radius:2px;padding:1px 5px;cursor:pointer}
+.lanes{position:relative;background:#121315;box-shadow:inset 0 1px 3px rgba(0,0,0,.7);user-select:none}
+.barline{position:absolute;top:0;bottom:0;width:1px;background:#1e2024}
+.barline-4{background:#2c2f34}
+.barnum{position:absolute;top:2px;font-family:'Share Tech Mono',monospace;font-size:10px;color:#7d8086}
+.note{position:absolute;height:12px;border-radius:1px;background:#6f8f86}
+.win{position:absolute;top:18px;bottom:0;box-sizing:border-box;border:1px solid;border-radius:2px;cursor:grab}
+.win-label{position:absolute;left:6px;top:3px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#f3efe6;white-space:nowrap;pointer-events:none;text-shadow:0 1px 1px rgba(0,0,0,.8)}
+.edge{position:absolute;top:0;bottom:0;width:7px;cursor:ew-resize}
+.edge-grip{position:absolute;top:50%;width:3px;height:22px;margin-top:-11px;border-radius:1px;background:#f3efe6}
+.play{position:absolute;top:0;bottom:0;width:2px;background:#ffa63a;box-shadow:0 0 4px rgba(255,166,58,.7);pointer-events:none}
+.pad{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;padding:0;cursor:pointer}
+.pad-key{width:46px;height:20px;border-radius:3px;border:1px solid #111214;background:linear-gradient(#3d3e42,#2c2d30);box-shadow:0 2px 0 #0d0e0f}
+.field{height:22px;box-sizing:border-box;padding:0 8px;display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.arrow{background:none;border:none;padding:0 3px;font-family:'Share Tech Mono',monospace;font-size:13px;color:#1b2216;cursor:pointer}
+</style>
+</helmet>
+<div style="width:1200px;height:365px;box-sizing:border-box;padding:12px 24px;display:flex;flex-direction:column;gap:8px;background:linear-gradient(#26272a,#212225)">
+  <div style="display:flex;align-items:center;gap:10px">
+    <span class="silk" style="font-size:14px;letter-spacing:.2em">Sections</span>
+    <span class="silk-dim">Style 1 · cut sections out of your recording</span>
+    <div class="rule" style="flex-grow:1"></div>
+    <span class="silk-dim">Recorded key</span>
+    <div class="lcd field" style="width:88px"><span>C major</span><span>◂▸</span></div>
+    <span class="silk-dim">Zoom</span>
+    <button class="seg" onClick="{{zoomOut}}" aria-label="Zoom out">−</button><button class="seg" onClick="{{zoomIn}}" aria-label="Zoom in">+</button>
+    <button class="seg" onClick="{{togglePreview}}"><span class="{{previewLed}}" aria-hidden="true"></span>{{previewLabel}}</button>
+    <button class="seg">Update tracks</button><button class="seg seg-lit">Save</button>
+    <button class="seg" aria-label="Close sections" onClick="{{close}}">Exit</button>
+  </div>
+  <div style="display:flex;gap:14px;flex-grow:1;min-height:0">
+    <div style="width:170px;display:flex;flex-direction:column;gap:6px">
+      <span class="silk">Configurations</span>
+      <div class="lcd" style="padding:3px 0">
+        <div class="lrow lsel"><span>Full song</span><span>●</span></div>
+        <div class="lrow"><span>Short intro</span><span></span></div>
+        <div class="lrow"><span>Practice</span><span></span></div>
+      </div>
+      <div style="display:flex;gap:4px"><button class="seg">New</button><button class="seg">Edit</button><button class="seg">Del</button></div>
+      <span class="silk" style="margin-top:8px">Add section</span>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px">
+        <button class="seg" onClick="{{addIntro}}">+ Intro</button><button class="seg" onClick="{{addVar}}">+ Var</button>
+        <button class="seg" onClick="{{addFill}}">+ Fill</button><button class="seg" onClick="{{addBreak}}">+ Break</button>
+        <button class="seg" onClick="{{addEnding}}">+ Ending</button><button class="seg" onClick="{{addCount}}">+ Count-in</button>
+      </div>
+    </div>
+    <div style="flex-grow:1;display:flex;flex-direction:column;gap:6px;min-width:0">
+      <div style="display:flex">
+        <div style="width:132px;flex-shrink:0">
+          <div style="height:18px"></div>
+          <sc-for list="{{lanes}}" as="ln" hint-placeholder-count="8">
+            <div class="lane-head"><span>{{ln.label}}</span><button class="ntt" aria-label="Transpose mode for {{ln.label}}" onClick="{{ln.cycle}}">{{ln.mode}}</button></div>
+          </sc-for>
+        </div>
+        <div class="lanes" style="flex-grow:1;height:206px;overflow-x:auto;overflow-y:hidden" ref="{{setLanes}}" onMouseMove="{{dragMove}}" onMouseUp="{{dragEnd}}" onMouseLeave="{{dragEnd}}">
+          <div style="position:relative;height:194px;width:{{innerWidth}}px">
+          <sc-for list="{{bars}}" as="b" hint-placeholder-count="32"><span class="{{b.cls}}" style="left:{{b.left}}px"></span><span class="barnum" style="left:{{b.numLeft}}px">{{b.text}}</span></sc-for>
+          <sc-for list="{{notes}}" as="n" hint-placeholder-count="120"><span class="note" style="left:{{n.left}}px;top:{{n.top}}px;width:{{n.width}}px;opacity:{{n.alpha}}"></span></sc-for>
+          <sc-for list="{{windows}}" as="w" hint-placeholder-count="6">
+            <div class="win" style="left:{{w.left}}px;width:{{w.width}}px;background:{{w.fill}};border-color:{{w.stroke}};box-shadow:{{w.glow}}" onMouseDown="{{w.grab}}">
+              <span class="win-label">{{w.name}} · {{w.length}}</span>
+              <span class="edge" style="left:-3px" onMouseDown="{{w.grabLeft}}"><span class="edge-grip" style="left:2px;opacity:{{w.gripAlpha}}"></span></span>
+              <span class="edge" style="right:-3px" onMouseDown="{{w.grabRight}}"><span class="edge-grip" style="left:2px;opacity:{{w.gripAlpha}}"></span></span>
+            </div>
+          </sc-for>
+          <sc-if value="{{previewing}}" hint-placeholder-val="{{false}}"><span class="play" style="left:{{playLeft}}px"></span></sc-if>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding-left:132px">
+        <span class="silk-dim">Jump</span>
+        <sc-for list="{{pads}}" as="p" hint-placeholder-count="6">
+          <button class="pad" onClick="{{p.pick}}" aria-label="Jump to {{p.name}}"><span class="{{p.led}}" aria-hidden="true"></span><span class="pad-key"></span><span class="silk-dim" style="font-size:9px">{{p.name}}</span></button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="width:206px;display:flex;flex-direction:column;gap:6px">
+      <span class="silk">Selected section</span>
+      <div class="lcd" style="padding:6px 10px;display:flex;flex-direction:column;gap:4px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span>NAME</span><span>{{sel.name}}</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span>TYPE</span><span><button class="arrow" onClick="{{sel.typePrev}}" aria-label="Previous type">◂</button>{{sel.type}}<button class="arrow" onClick="{{sel.typeNext}}" aria-label="Next type">▸</button></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span>START BAR</span><span><button class="arrow" onClick="{{sel.startDown}}" aria-label="Start one bar earlier">◂</button>{{sel.start}}<button class="arrow" onClick="{{sel.startUp}}" aria-label="Start one bar later">▸</button></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span>LENGTH</span><span><button class="arrow" onClick="{{sel.lengthDown}}" aria-label="One bar shorter">◂</button>{{sel.length}}<button class="arrow" onClick="{{sel.lengthUp}}" aria-label="One bar longer">▸</button></span></div>
+      </div>
+      <span class="silk-dim">When it ends</span>
+      <div style="display:flex"><sc-for list="{{afterOptions}}" as="a" hint-placeholder-count="3"><button class="seg" onClick="{{a.pick}}"><span class="{{a.led}}" aria-hidden="true"></span>{{a.label}}</button></sc-for></div>
+      <div style="display:flex;gap:4px;margin-top:4px"><button class="seg" onClick="{{previewSelected}}">Play this</button><button class="seg" onClick="{{removeSelected}}">Remove</button></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"onClose":{"editor":null},"$preview":{"width":1200,"height":365}}'>
+class Component extends DCLogic {
+  static types() { return ['Intro', 'Var', 'Fill', 'Break', 'Ending', 'Count-in']; }
+  static colours() { return { Intro: '#c99a3e', Var: '#5f8f84', Fill: '#c8743f', Break: '#8a8f99', Ending: '#b0534a', 'Count-in': '#7a7aa8' }; }
+
+  initial() {
+    return [
+      { name: 'Intro 1', type: 'Intro', start: 1, length: 2, after: 'Next' },
+      { name: 'Var 1', type: 'Var', start: 3, length: 8, after: 'Loop' },
+      { name: 'Fill 1', type: 'Fill', start: 11, length: 1, after: 'Next' },
+      { name: 'Var 2', type: 'Var', start: 12, length: 8, after: 'Loop' },
+      { name: 'Break', type: 'Break', start: 20, length: 1, after: 'Next' },
+      { name: 'Ending 1', type: 'Ending', start: 21, length: 4, after: 'Stop' }
+    ];
+  }
+
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      const state = this.state || {};
+      if (!state.previewing) return;
+      const windows = state.windows || this.initial();
+      const current = windows[state.playing ?? 0];
+      if (!current) return;
+      let position = (state.position ?? current.start) + 0.05;
+      let playing = state.playing ?? 0;
+      if (position >= current.start + current.length) {
+        if (current.after === 'Loop') position = current.start;
+        else if (current.after === 'Next' && windows[playing + 1]) { playing += 1; position = windows[playing].start; }
+        else { this.setState({ previewing: false }); return; }
+      }
+      this.setState({ position, playing });
+    }, 50);
+  }
+
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  renderVals() {
+    const state = this.state || {};
+    const windows = state.windows || this.initial();
+    const selected = Math.min(state.selected ?? 1, windows.length - 1);
+    const totalBars = 28;
+    const zoom = state.zoom ?? 1;
+    const laneWidth = 612;
+    const barWidth = (laneWidth / totalBars) * zoom;
+    const colours = Component.colours();
+    const types = Component.types();
+    const update = (index, change) => {
+      const next = windows.map((window, position) => position === index ? { ...window, ...change(window) } : window);
+      this.setState({ windows: next });
+    };
+    const barAt = (clientX) => {
+      const rect = this.lanes ? this.lanes.getBoundingClientRect() : { left: 0 };
+      const scrolled = this.lanes ? this.lanes.scrollLeft : 0;
+      return Math.max(1, Math.min(totalBars, Math.floor((clientX - rect.left + scrolled) / barWidth) + 1));
+    };
+    if (!this.setLanes) this.setLanes = (element) => { this.lanes = element; };
+
+    const bars = [];
+    for (let bar = 1; bar <= totalBars; bar++) {
+      const left = Math.round((bar - 1) * barWidth);
+      bars.push({ left, numLeft: left + 3, text: (bar - 1) % 2 === 0 ? String(bar) : '', cls: (bar - 1) % 4 === 0 ? 'barline barline-4' : 'barline' });
+    }
+    const laneNames = [['1 Drums', 'Fixed'], ['2 Bass', 'Chord'], ['3 Piano', 'Chord'], ['4 Strings', 'Parallel'], ['5 —', 'None'], ['6 —', 'None'], ['7 —', 'None'], ['8 —', 'None']];
+    const modes = ['None', 'Parallel', 'Chord', 'Fixed'];
+    const laneModes = state.laneModes || laneNames.map((lane) => lane[1]);
+    const lanes = laneNames.map(([label], index) => ({
+      label, mode: laneModes[index],
+      cycle: () => { const next = laneModes.slice(); next[index] = modes[(modes.indexOf(next[index]) + 1) % modes.length]; this.setState({ laneModes: next }); }
+    }));
+    const notes = [];
+    const laneTop = (lane) => 18 + lane * 22 + 5;
+    for (let bar = 0; bar < 24; bar++) {
+      for (let step = 0; step < 4; step++) notes.push({ left: Math.round((bar + step / 4) * barWidth + 1), width: Math.max(2, Math.round(barWidth / 8)), top: laneTop(0), alpha: step % 2 === 0 ? 0.9 : 0.55 });
+      notes.push({ left: Math.round(bar * barWidth + 1), width: Math.round(barWidth * 0.45), top: laneTop(1), alpha: 0.85 });
+      notes.push({ left: Math.round((bar + 0.5) * barWidth + 1), width: Math.round(barWidth * 0.4), top: laneTop(1), alpha: 0.6 });
+      notes.push({ left: Math.round(bar * barWidth + 1), width: Math.round(barWidth * 0.9), top: laneTop(2), alpha: 0.75 });
+      if (bar % 2 === 0) notes.push({ left: Math.round(bar * barWidth + 1), width: Math.round(barWidth * 1.9), top: laneTop(3), alpha: 0.5 });
+    }
+
+    const drag = (index, mode) => (event) => {
+      event.stopPropagation();
+      const window = windows[index];
+      this.drag = { index, mode, offset: barAt(event.clientX) - window.start, start: window.start, length: window.length };
+      this.setState({ selected: index });
+    };
+    const windowViews = windows.map((window, index) => {
+      const isSelected = index === selected;
+      const colour = colours[window.type];
+      return {
+        name: window.name, length: window.length + (window.length === 1 ? ' bar' : ' bars'),
+        left: Math.round((window.start - 1) * barWidth), width: Math.round(window.length * barWidth),
+        fill: colour + (isSelected ? '66' : '38'), stroke: isSelected ? '#f3efe6' : colour,
+        glow: isSelected ? '0 0 0 1px rgba(243,239,230,.35)' : 'none', gripAlpha: isSelected ? 0.9 : 0,
+        grab: drag(index, 'body'), grabLeft: drag(index, 'left'), grabRight: drag(index, 'right')
+      };
+    });
+    const current = windows[selected];
+    const typeIndex = types.indexOf(current.type);
+    const previewing = !!state.previewing;
+    return {
+      bars, lanes, notes, windows: windowViews, setLanes: this.setLanes, innerWidth: Math.round(totalBars * barWidth),
+      previewing, playLeft: Math.round(((state.position ?? 1) - 1) * barWidth),
+      previewLed: previewing ? 'led led-grn' : 'led', previewLabel: previewing ? 'Stop' : 'Preview',
+      togglePreview: () => this.setState(previewing ? { previewing: false } : { previewing: true, playing: 0, position: windows[0].start }),
+      previewSelected: () => this.setState({ previewing: true, playing: selected, position: current.start }),
+      zoomIn: () => this.setState({ zoom: Math.min(2, zoom + 0.25) }),
+      zoomOut: () => this.setState({ zoom: Math.max(1, zoom - 0.25) }),
+      dragMove: (event) => {
+        if (!this.drag) return;
+        const bar = barAt(event.clientX);
+        const { index, mode, offset, start, length } = this.drag;
+        if (mode === 'body') update(index, () => ({ start: Math.max(1, Math.min(totalBars - length + 1, bar - offset)) }));
+        if (mode === 'left') { const newStart = Math.min(bar, start + length - 1); update(index, () => ({ start: newStart, length: start + length - newStart })); }
+        if (mode === 'right') update(index, () => ({ length: Math.max(1, Math.min(totalBars - start + 1, bar - start + 1)) }));
+      },
+      dragEnd: () => { this.drag = null; },
+      pads: windows.map((window, index) => ({ name: window.name, led: previewing && (state.playing ?? 0) === index ? 'led led-grn' : 'led', pick: () => this.setState({ selected: index, playing: index, position: window.start }) })),
+      sel: {
+        name: current.name, type: current.type, start: String(current.start), length: current.length + (current.length === 1 ? ' bar' : ' bars'),
+        typePrev: () => update(selected, () => ({ type: types[(typeIndex + types.length - 1) % types.length] })),
+        typeNext: () => update(selected, () => ({ type: types[(typeIndex + 1) % types.length] })),
+        startDown: () => update(selected, (window) => ({ start: Math.max(1, window.start - 1) })),
+        startUp: () => update(selected, (window) => ({ start: Math.min(totalBars - window.length + 1, window.start + 1) })),
+        lengthDown: () => update(selected, (window) => ({ length: Math.max(1, window.length - 1) })),
+        lengthUp: () => update(selected, (window) => ({ length: Math.min(totalBars - window.start + 1, window.length + 1) }))
+      },
+      afterOptions: [['Loop', 'Loop'], ['Next', 'Go on'], ['Stop', 'Stop']].map(([value, label]) => ({ label, led: current.after === value ? 'led led-on' : 'led', pick: () => update(selected, () => ({ after: value })) })),
+      removeSelected: () => { if (windows.length > 1) this.setState({ windows: windows.filter((window, index) => index !== selected), selected: 0 }); },
+      addIntro: () => this.add('Intro'), addVar: () => this.add('Var'), addFill: () => this.add('Fill'),
+      addBreak: () => this.add('Break'), addEnding: () => this.add('Ending'), addCount: () => this.add('Count-in'),
+      close: () => { if (this.props.onClose) this.props.onClose(); }
+    };
+  }
+
+  add(type) {
+    const state = this.state || {};
+    const windows = state.windows || this.initial();
+    const count = windows.filter((window) => window.type === type).length + 1;
+    const name = type === 'Count-in' ? 'Count-in' : (type === 'Break' ? 'Break ' + count : type + ' ' + count);
+    const windowsNext = windows.concat({ name, type, start: 25, length: type === 'Var' ? 4 : 1, after: type === 'Var' ? 'Loop' : 'Next' });
+    this.setState({ windows: windowsNext, selected: windowsNext.length - 1 });
+  }
+}
+</script>
+</body>
+</html>
