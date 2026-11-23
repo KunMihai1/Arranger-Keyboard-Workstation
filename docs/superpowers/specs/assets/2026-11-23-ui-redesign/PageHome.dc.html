@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&amp;family=Share+Tech+Mono&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#c8cacd}a:hover{color:#ffffff}
+.silk{font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#c8cacd;white-space:nowrap}
+.key{display:flex;flex-direction:column;align-items:center;gap:10px}
+.big{width:150px;height:84px;border-radius:5px;border:1px solid #111214;background:linear-gradient(#45464b,#2c2d30);box-shadow:0 4px 0 #0d0e0f,0 6px 10px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:#d9dbde}
+.big:active{transform:translateY(2px);box-shadow:0 2px 0 #0d0e0f}
+.big-lit{background:linear-gradient(#5a4638,#3f3127);color:#ffe2cf;border-color:#2a1d14;width:220px;height:110px;font-size:22px}
+.small{height:24px;padding:0 12px;border:1px solid #111214;background:linear-gradient(#3d3e42,#2c2d30);color:#c8cacd;font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:10px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.led{width:7px;height:7px;border-radius:50%;background:#4a2a24}
+.led-grn{background:#5fd35a;box-shadow:0 0 5px rgba(95,211,90,.75)}
+</style>
+</helmet>
+<div style="width:1200px;height:365px;box-sizing:border-box;padding:24px 28px;position:relative;display:flex;align-items:center;justify-content:center;gap:56px;background:linear-gradient(#26272a,#212225)">
+  <div style="position:absolute;right:28px;top:20px;display:flex;align-items:center;gap:12px"><span class="silk" style="color:#a3a5aa;letter-spacing:.06em;text-transform:none">Signed in as player@example.com</span><button class="small" aria-label="Log out">Log out</button></div>
+  <div class="key"><span class="led" aria-hidden="true"></span><button class="big" aria-label="Settings">Settings</button></div>
+  <div class="key"><span class="led led-grn" aria-hidden="true"></span><button class="big big-lit" aria-label="Play">Play</button><span class="silk">Start playing</span></div>
+  <div class="key"><span class="led" aria-hidden="true"></span><button class="big" aria-label="Exit the app">Exit</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":365}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

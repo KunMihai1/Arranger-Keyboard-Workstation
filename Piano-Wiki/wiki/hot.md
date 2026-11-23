@@ -11,8 +11,8 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-23. PRs #19–#57: bug fixes, arranger stress tests, faster builds; **names cleanup finished**
-(allowlist empty). Next: UI refinement (owner sees mock-ups first), then the TODO file. Detail in [[log]].
+2026-11-23. PRs #19–#58: bug fixes, arranger stress tests, faster builds; names cleanup finished.
+**UI redesign designed with the owner; spec awaiting approval.** Then the TODO file. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -45,11 +45,11 @@ Full task list with states: [[Owner Backlog]].
 - 🔴 **Use-after-free on deleting the open style** — `callAsync([this]…)` stop callbacks outlive the
   engine/player. Reproduced live 2026-11-23 (Debug crash) and in the no-flag test run. Fix (liveness
   token) awaits owner sign-off: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
-- ✅ **Arranger hard testing**: headless + live (sound measured by loopback), results in the test plan.
-  Owner decided: a style switch while playing takes effect on the next Start, and any section (Ending
-  too) may be the start section — both intended. Restore-down stays work-area sized: no scaled
-  smaller window (owner: over-engineering).
-  Watch: "Notes information" table holds refs into a library entry while open (unreachable today).
+- 🟡 **UI redesign** ("Stage" panel, pages, real keys/knobs, new Dust, six finishes, Remember me):
+  spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2. Owner's conditions:
+  behaviour integrated first; agent checks the running app **1:1** against the boards before finishing.
+- ✅ **Arranger hard testing** done. Owner: style switch while playing applies on the next Start; any
+  section may start; restore-down stays work-area sized.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.
 - 🟡 **Swap `juce::dsp::Chorus` (CC93) for the BBD model** from `va-effects`; budget = 16 `ChannelDSP`s.

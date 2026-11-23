@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Notes information</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&amp;family=Share+Tech+Mono&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#c8cacd}a:hover{color:#ffffff}
+.silk{font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#c8cacd;white-space:nowrap}
+.silk-dim{font-family:'Barlow Semi Condensed',sans-serif;font-weight:500;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#a3a5aa;white-space:nowrap}
+.rule{height:1px;background:#4a4c51}
+.seg{height:22px;padding:0 10px;border:1px solid #111214;background:linear-gradient(#3d3e42,#2c2d30);color:#c8cacd;font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.lcd{background:#a7b394;border-radius:2px;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);font-family:'Share Tech Mono',monospace;color:#1b2216}
+.grid{display:grid;grid-template-columns:44px 90px 110px 1fr 80px;align-items:center;column-gap:10px;height:21px;padding:0 12px;font-size:13px}
+.head{font-size:11px;border-bottom:1px solid rgba(27,34,22,.45)}
+.sel{background:#1b2216;color:#a7b394}
+.vbar{height:7px;background:currentColor;opacity:.75}
+</style>
+</helmet>
+<div style="width:1200px;height:365px;box-sizing:border-box;padding:16px 28px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(#26272a,#212225)">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="silk" style="font-size:14px;letter-spacing:.2em">Notes · Bass</span>
+    <span class="silk-dim">Track 2 · Finger Bass · 48 notes</span>
+    <div class="rule" style="flex-grow:1"></div>
+    <button class="seg">Undo</button>
+    <button class="seg" aria-label="Close notes" onClick="{{close}}">Exit</button>
+  </div>
+  <div style="display:flex;gap:22px;flex-grow:1;min-height:0">
+    <div class="lcd" style="width:700px;padding:4px 0;overflow:hidden">
+      <div class="grid head"><span>#</span><span>NOTE</span><span>TIME</span><span>VELOCITY</span><span>CHANNEL</span></div>
+      <sc-for list="{{notes}}" as="n" hint-placeholder-count="11">
+        <div class="{{n.cls}}"><span>{{n.number}}</span><span>{{n.note}}</span><span>{{n.time}}</span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:28px">{{n.velocity}}</span><span class="vbar" style="width:{{n.barWidth}}px"></span></span>
+          <span>{{n.channel}}</span></div>
+      </sc-for>
+    </div>
+    <div style="flex-grow:1;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px"><span class="silk">Edit selected note</span><div class="rule" style="flex-grow:1"></div></div>
+      <div style="display:flex;gap:6px"><button class="seg">Change</button><button class="seg">Apply</button></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px"><span class="silk">Whole track</span><div class="rule" style="flex-grow:1"></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="seg">Shift time stamps…</button><button class="seg">Set velocities…</button></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px"><span class="silk">Back to recorded</span><div class="rule" style="flex-grow:1"></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="seg">Notes</button><button class="seg">Time stamps</button><button class="seg">Velocities</button><button class="seg">Everything</button></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"onClose":{"editor":null},"$preview":{"width":1200,"height":365}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const line = [36, 36, 43, 40, 41, 41, 43, 45, 36, 36, 31, 33];
+    const notes = line.map((midi, index) => {
+      const velocity = 70 + ((index * 37) % 45);
+      const beat = index * 0.5;
+      return {
+        number: String(index + 1), note: names[midi % 12] + (Math.floor(midi / 12) - 1),
+        time: (beat * 500).toFixed(0) + ' ms', velocity: String(velocity), barWidth: Math.round(velocity * 0.9), channel: '2',
+        cls: index === 4 ? 'grid sel' : 'grid'
+      };
+    });
+    return { notes, close: () => { if (this.props.onClose) this.props.onClose(); } };
+  }
+}
+</script>
+</body>
+</html>

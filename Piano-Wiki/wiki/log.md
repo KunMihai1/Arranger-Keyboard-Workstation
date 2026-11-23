@@ -13,6 +13,18 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-23 — UI redesign designed with the owner; spec written
+- Mock-ups on a private canvas, iterated with the owner: three real-gear directions → A "Stage" chosen and
+  revised (slim panel, centred bigger screen); beat lamps in the app's red/yellow; every feature mapped to
+  the panel or a page (Effects, Settings, Style, track picker, Notes, Sections v2, Voices, Chords,
+  Recorder, Home, Login); tempo hold/type/wheel/right-click reset; dust prototype; skins v3 = instrument
+  finishes after Korg's Kronos editions (owner: "decent"); Remember me = stay signed in, email always kept.
+- Found while mapping: the Sections editor edits windows over the recording (not a sequence — the first
+  mock-up was wrong and was redone); `setParticleStyle` is never called (always Dust); the playback
+  settings hold one range + split points + one transpose (Voices board corrected).
+- Spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2, with the owner's two conditions
+  (behaviour integrated first; visual 1:1 check by the agent before finishing). Awaiting approval.
+
 ## 2026-11-23 — Use-after-free reproduced live
 - Debug app: Play → open "Style 1" → Delete it from the Styles list → Remove. The process died within
   3 s; Windows log `0xc0000005` at offset `0x2bb6fa` = `std::_Func_class<void,double>::operator()` (PDB),
