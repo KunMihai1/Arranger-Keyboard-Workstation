@@ -1,7 +1,7 @@
 ---
 type: meta
 title: "Hot Cache"
-updated: 2026-11-22T00:00:00
+updated: 2026-11-23T00:00:00
 tags:
   - meta
   - hot
@@ -11,9 +11,8 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-22. PRs #19–#56: live bug fixes, arranger stress tests, style tab, faster builds,
-and the **names cleanup is finished** — every file, tests included; the allowlist is empty. Next: UI refinement
-(owner sees mock-ups first), then the TODO file. Detail in [[log]].
+2026-11-23. PRs #19–#57: bug fixes, arranger stress tests, faster builds; **names cleanup finished**
+(allowlist empty). Next: UI refinement (owner sees mock-ups first), then the TODO file. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -43,8 +42,9 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 
 ## Active Threads / Next
 Full task list with states: [[Owner Backlog]].
-- 🟡 **Names-not-values cleanup** (`docs/names-not-values.md`, CI ratchet): one subsystem per PR;
-  all of `Source/` done; only the 41 test files left.
+- 🔴 **Use-after-free on deleting the open style** — `callAsync([this]…)` stop callbacks outlive the
+  engine/player. Reproduced live 2026-11-23 (Debug crash) and in the no-flag test run. Fix (liveness
+  token) awaits owner sign-off: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
 - ✅ **Arranger hard testing**: headless + live (sound measured by loopback), results in the test plan.
   Owner decided: a style switch while playing takes effect on the next Start, and any section (Ending
   too) may be the start section — both intended. Restore-down stays work-area sized: no scaled

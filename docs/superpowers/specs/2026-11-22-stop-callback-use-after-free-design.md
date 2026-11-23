@@ -17,8 +17,12 @@ captures a raw `this`:
 
 If the object is destroyed before the queued message runs, the lambda reads freed memory.
 `CurrentStyleComponent::~CurrentStyleComponent()` calls `arrangerEngine->stop()` and then destroys the
-engine, so **every destruction of a style panel queues a callback into a dead engine**. The app destroys
-the panel when the open style is removed (`Display.cpp:114`) and when it is rebuilt (`Display.cpp:189`).
+engine, so **every destruction of a style panel queues a callback into a dead engine**.
+
+There is one style panel, created once (`Display.cpp:189`, only while none exists) and reused for every
+style. Closing its tab, going Home, switching styles and Start/Stop do **not** destroy it. The only in-app
+trigger is **deleting the style whose tab is open** (`Display.cpp:113-114` resets the panel). Quitting
+also destroys it, but the queued message most likely never runs then (not verified).
 
 ## Evidence
 
@@ -30,6 +34,10 @@ the panel when the open style is removed (`Display.cpp:114`) and when it is rebu
   the lambda → `std::_Func_class<void,double>::operator()`. That is a `void(double)` callback, which can
   only be `onElapsedBeats` or `onElapsedUpdate`, called on a freed object.
 - The per-category CI runs never pump the queue after this test, which is why CI stays green.
+- **Reproduced live (2026-11-23)** in the Debug app: Play → open "Style 1" → right-click it in the
+  Styles list → Delete → Remove. The process died within 3 s. Windows log: `0xc0000005` at offset
+  `0x2bb6fa`, which the PDB resolves to `std::_Func_class<void,double>::operator()`, the same frame as
+  the test-run crash.
 
 ## Options
 

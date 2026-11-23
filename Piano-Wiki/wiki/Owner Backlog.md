@@ -53,8 +53,9 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 ## 2. Open engineering threads (from the wiki)
 - 🔴 **Use-after-free: stop callbacks outlive their player** (root-caused 2026-11-22, fix awaiting sign-off).
   `ArrangerEngine`/`TrackPlayer` post beat-bar updates with `callAsync([this]…)`; destroying a style panel
-  calls `stop()` then frees the engine, so the queued callback runs on freed memory. Hits the app when the
-  open style is removed or rebuilt. Found because `Project Tests.exe` with no flag crashed (0xC0000005);
+  calls `stop()` then frees the engine, so the queued callback runs on freed memory. Only in-app trigger:
+  deleting the style whose tab is open. **Reproduced live 2026-11-23**: the Debug app crashed (0xC0000005,
+  same `std::function<void(double)>` frame). Found because `Project Tests.exe` with no flag crashed;
   bisected to the CurrentStyleComponent start test + any message pump; crash stack confirms.
   Spec: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
 - ⬜ Delay read offset still jumps on CC94 changes (needs a fractional read; `DelayLine` in `va-effects`).
