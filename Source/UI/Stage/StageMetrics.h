@@ -30,6 +30,11 @@ namespace StageMetrics
     inline constexpr int panelCentreColumnWidth = 600;
     inline constexpr int panelPaddingVertical   = 7;
     inline constexpr int panelPaddingHorizontal = 20;
+    inline constexpr int panelSideColumnWidth   = 280;   // (1200 - 2 x 20 - 600) / 2
+    inline constexpr int panelBottomEdge        = 1;
+    inline constexpr int centreColumnGap        = 10;    // screen buttons to screen
+    inline constexpr int screenButtonRowGap     = 7;
+    inline constexpr int screenButtonsPerSide   = 4;
 
     // --- Screen (centre): bezel, LCD with three text rows, beat lamps under it ---
     inline constexpr int screenWidth  = 368;
@@ -99,6 +104,11 @@ namespace StageMetrics
     inline constexpr int rightRuleHeight      = 96;
     inline constexpr int quickFxWidth         = 130;
     inline constexpr int quickKnobCellWidth   = 62;
+    inline constexpr int quickFxTitleGap      = 8;     // "QUICK FX" to its rule
+    inline constexpr int quickFxRowGap        = 6;
+    inline constexpr int partGap              = 10;    // "PART", Left, Right
+    inline constexpr float partLabelSpacing   = 0.1f;  // .silk-dim letter-spacing
+    inline constexpr int ruleWidth            = 1;
 
     // --- Knobs: ring with ticks, knurled skirt, cap, pointer; label under the ring ---
     inline constexpr int quickKnobRing          = 52;

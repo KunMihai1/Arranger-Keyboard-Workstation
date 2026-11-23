@@ -292,6 +292,10 @@
                 file="Source/UI/Stage/StageScreen.cpp"/>
           <FILE id="stgSrH" name="StageScreen.h" compile="0" resource="0"
                 file="Source/UI/Stage/StageScreen.h"/>
+          <FILE id="stgPnC" name="StagePanel.cpp" compile="1" resource="0"
+                file="Source/UI/Stage/StagePanel.cpp"/>
+          <FILE id="stgPnH" name="StagePanel.h" compile="0" resource="0"
+                file="Source/UI/Stage/StagePanel.h"/>
         </GROUP>
         <FILE id="OQf8Oe" name="SettingsWindow.h" compile="0" resource="0"
               file="Source/UI/SettingsWindow.h"/>
