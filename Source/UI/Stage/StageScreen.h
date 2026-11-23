@@ -61,6 +61,8 @@ public:
     void setClock (std::function<double()> newClock);
 
     juce::String getTopLineText() const;
+    /** True while the current message takes the whole top row (too long to sit beside the page name). */
+    bool isMessageShownAlone() const;
     juce::Rectangle<float> getTempoBounds() const;
     bool isEditingTempo() const;
     juce::TextEditor& getTempoEditor();
@@ -93,6 +95,7 @@ private:
     void  openTempoEditor();
     void  closeTempoEditor (bool apply);
     void  paintLamps (juce::Graphics& g, juce::Rectangle<float> lampRow) const;
+    juce::String topRightText() const;
 
     TempoModel tempoModel;
     ScreenMessages messages;

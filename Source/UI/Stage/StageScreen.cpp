@@ -97,7 +97,8 @@ void StageScreen::setContent (const Content& newContent)
 
 void StageScreen::postMessage (const juce::String& message)
 {
-    // A message gets the whole top row; one still too wide scrolls through and stays long enough to be read.
+    // A message sits where STYLE was (board); one too long for that takes the whole top row, and one still
+    // too wide scrolls through and stays long enough to be read.
     const auto font  = StageFonts::lcd (scaled (StageMetrics::lcdTopRowSize));
     const auto width = juce::GlyphArrangement::getStringWidth (font, message.toUpperCase());
     messageOverflow  = juce::jmax (float {}, width - layout().lcdContent.getWidth());
@@ -126,6 +127,25 @@ void StageScreen::showTempo (double currentTempo, double styleTempo)
     if (! editingTempo)
         tempoModel.showValue (currentTempo);
     repaint();
+}
+
+juce::String StageScreen::topRightText() const
+{
+    return content.timeSignature.isEmpty() ? tempoWord : content.timeSignature + juce::String::fromUTF8 (middleDotUtf8) + tempoWord;
+}
+
+bool StageScreen::isMessageShownAlone() const
+{
+    const auto message = messages.current (now());
+    if (message.isEmpty())
+        return false;
+
+    const auto font = StageFonts::lcd (scaled (StageMetrics::lcdTopRowSize));
+    const auto besideOthers = juce::GlyphArrangement::getStringWidth (font, message)
+                            + juce::GlyphArrangement::getStringWidth (font, content.mode)
+                            + juce::GlyphArrangement::getStringWidth (font, topRightText())
+                            + scaled (StageMetrics::lcdTopRowMinGap) * halves;
+    return besideOthers > layout().lcdContent.getWidth();
 }
 
 juce::String StageScreen::getTopLineText() const
@@ -257,8 +277,9 @@ void StageScreen::paint (juce::Graphics& g)
     const auto topFont = StageFonts::lcd (scaled (lcdTopRowSize));
     g.setFont (topFont);
     const auto topBaseline = juce::roundToInt (screenLayout.topBaseline);
-    if (const auto message = messages.current (now()); message.isNotEmpty())
+    if (isMessageShownAlone())
     {
+        const auto message = messages.current (now());
         juce::Graphics::ScopedSaveState saved (g);
         g.reduceClipRegion (area.withHeight (screenLayout.topBaseline - area.getY() + topFont.getDescent()).toNearestInt());
         const auto offset = StageText::marqueeOffset (messageOverflow, scaled (messageScrollSpeed), messages.elapsedMs (now()));
@@ -267,7 +288,7 @@ void StageScreen::paint (juce::Graphics& g)
     else
     {
         const auto topLeft  = getTopLineText();
-        const auto topRight = content.timeSignature.isEmpty() ? tempoWord : content.timeSignature + juce::String::fromUTF8 (middleDotUtf8) + tempoWord;
+        const auto topRight = topRightText();
         const auto leftWidth   = juce::GlyphArrangement::getStringWidth (topFont, topLeft);
         const auto middleWidth = juce::GlyphArrangement::getStringWidth (topFont, content.mode);
         const auto rightWidth  = juce::GlyphArrangement::getStringWidth (topFont, topRight);

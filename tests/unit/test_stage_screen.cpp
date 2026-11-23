@@ -16,6 +16,9 @@ namespace StageScreenTestValues
     const juce::String tempoButtons    = "the Tempo -/+ buttons step the tempo through the screen";
     const juce::String tempoFromStyle  = "a tempo from the open style is shown, and becomes the right-click tempo";
     const juce::String longMessageStays = "a message too long for the screen stays until it has scrolled through";
+    const juce::String messageBesideMode = "a message that fits replaces only STYLE; PLAY and the time signature stay (board); a long one takes the row";
+    const juce::String playMode         = "PLAY";
+    const juce::String fourFour         = "4/4";
     const juce::String editorLooksLikeBoard = "the tempo editor is light text on a rounded dark field, as on the board (was: an inverted light block)";
     constexpr float darkLuminance    = 0.35f;   // below this a pixel counts as the dark field
     constexpr float mostlyDark       = 0.6f;    // share of the field that must stay dark around the digits
@@ -198,6 +201,21 @@ public:
 
             const auto corner = canvas.getPixelAt (field.getX(), field.getY());   // rounded: the LCD shows in the corner
             expect (corner.getPerceivedBrightness() > darkLuminance, corner.toDisplayString (true));
+        }
+
+        beginTest (messageBesideMode);
+        {
+            ScreenUnderTest under;
+            auto content = awakeContent();
+            content.mode = playMode;
+            content.timeSignature = fourFour;
+            under.screen.setContent (content);
+
+            under.screen.postMessage (recordingMessage);
+            expect (! under.screen.isMessageShownAlone());
+
+            under.screen.postMessage (longMessage);
+            expect (under.screen.isMessageShownAlone());
         }
 
         beginTest (longMessageStays);

@@ -61,6 +61,7 @@ namespace StageMetrics
     inline constexpr float lcdTempoSize      = 24.0f;
     inline constexpr float lcdBottomRowSize  = 13.0f;
     inline constexpr int lcdBottomRowGap     = 14;
+    inline constexpr int lcdTopRowMinGap     = 14;   // a message beside the page name keeps at least this (as the bottom row)
     inline constexpr int tempoPaddingSide    = 2;
     inline constexpr int tempoEditorWidth    = 52;
     inline constexpr int tempoEditorHeight   = 26;
