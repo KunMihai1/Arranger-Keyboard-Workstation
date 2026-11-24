@@ -59,8 +59,11 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   open-style delete crash fixed first; notes page without "Edit selected note" / Undo (a hint line). Agent calls:
   instrument caption Drums / As recorded / —, percussion message on the screen, "Open a style on the left", Exit on
   every page, the files-are-safe note kept. Chord indent fixed in the same batch (owner).
-- ⬜ Next pages (spec order): Effects, Settings, Voices, Chords, Recorder, Esc menu, Sections v2; then keys, Dust,
-  finishes, sign-in.
+- ✅ **Phase 4b, the Effects page** (2026-11-24, `feat/ui-effects-page`): board `StageEffects`; replaces the Sound
+  Effects window (agent calls: the window goes; Esc menu "Effects" opens the page; Effects and MIDI Settings replace
+  each other as before).
+- ⬜ Next pages (spec order): Settings, Voices, Chords, Recorder, Esc menu, Sections v2; then keys, Dust, finishes,
+  sign-in.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
   centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.

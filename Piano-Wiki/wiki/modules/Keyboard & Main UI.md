@@ -25,7 +25,7 @@ sources: []
 # Keyboard & Main UI
 
 > [!key-insight] The wiring hub
-> `MainComponent` is where everything is owned and connected. Its includes are effectively the system diagram: `MidiHandler`, `KeyboardUI`, `NoteLayer`, `keyListener`, `MidiRecordPlayer`, `displayGUI`, `SectionsComponent`, `LoginComponent`, `PlaytimeTracker`, `SoundEffectWindowComponent`, `SFZLibraryUI`, `AudioHandler`.
+> `MainComponent` is where everything is owned and connected. Its includes are effectively the system diagram: `MidiHandler`, `KeyboardUI`, `NoteLayer`, `keyListener`, `MidiRecordPlayer`, `displayGUI`, `SectionsComponent`, `LoginComponent`, `PlaytimeTracker`, `SoundEffectWindowComponent` (the Effects page's knobs since 2026-11-24, hosted on a `StagePageFrame`; no separate window), `SFZLibraryUI`, `AudioHandler`.
 
 ## Purpose
 The main application screen: hosts the on-screen keyboard, the display/transport, effect knobs, and owns + connects every subsystem.
