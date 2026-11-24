@@ -417,7 +417,6 @@ private:
 
     int last=noDeviceCountYet, lastOfLast=noDeviceCountYet;
 
-    bool midiWindowShouldBeVisible = false;
     bool overlayShouldBeVisible = false;
 
     // Saved scene-layer visibility so overlays can hide the GL note layer (+ keyboard) and restore it.
@@ -432,13 +431,13 @@ private:
     juce::TextButton midiButton{ MainComponentText::midiSettings };
     juce::TextButton playButton{ MainComponentText::play };
     juce::TextButton homeButton{ MainComponentText::home };
-    juce::ToggleButton particleToggle;
-    juce::TextButton colourSelectorButton{ MainComponentText::selectColour };
+    RowToggle particleToggle { {} };                                  ///< Settings page, Display: Particles
+    RowToggle colourSelectorButton { {}, RowToggle::Kind::action };    ///< Settings page, Display: Particle colours...
     juce::TextButton instrumentSelectorButton{ MainComponentText::selectInstrument };
     juce::TextButton saveRecordingButton{ MainComponentText::saveRecording };
     juce::TextButton playRecordingFileButton{ MainComponentText::playRecordingFile };
     juce::ToggleButton leftHandInstrumentToggle, rightHandInstrumentToggle;
-    juce::ToggleButton noteNumbersAnnotation;
+    RowToggle noteNumbersAnnotation { {} };                           ///< Settings page, Display: Note names on keys
     juce::TextButton chordHelperButton{ MainComponentText::chordHelper };
     std::unique_ptr<StyleSectionComponent> introsEndings, variationsFills;
 
@@ -503,7 +502,15 @@ private:
     static constexpr int stagePageCount = 5;   ///< Styles, Recorder, Settings, Chords, Effects
     std::array<StagePageFrame*, stagePageCount> stagePageFrames() const;
     void syncStylesPage();
-    juce::TextButton midiSettingsPageButton;   ///< the Settings page's way into today's MIDI Settings window
+    // Settings page (board StageSettings): the MIDI / Arranger / Chords content is midiWindow (a component now);
+    // the Display column is the three toggles above and the particle style (spec B9, key ParticleStyle).
+    SilkLabel particleStyleLabel { {}, SilkLabel::Tone::dim };
+    SegButton particleSparks { {}, SegButton::Style::seg, true };
+    SegButton particleDust   { {}, SegButton::Style::seg, true };
+    SegButton particleSmoke  { {}, SegButton::Style::seg, true };
+    void createSettingsContent();
+    void setParticleStyle (int styleId, bool save);
+    int particleStyleId = ParticleStyles::dust;   ///< applied again when Play creates the note layer
     PageRouter pageRouter;
     StageRegions stageRegions;
     ArrangerChord stageChord;

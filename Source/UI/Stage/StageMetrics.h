@@ -206,6 +206,8 @@ namespace StageMetrics
     inline constexpr int   rowToggleHeight    = 22;
     inline constexpr int   rowToggleGap       = 8;     // LED to text
     inline constexpr float rowToggleSpacing   = 0.06f;
+    inline constexpr float enabledAlpha       = 1.0f;
+    inline constexpr float disabledLabelAlpha = 0.4f;  // a field's label when the field does not apply
 
     // --- Track strip (StageRevised .strip, Style page): top to bottom, gaps 6 ---
     inline constexpr int   stripPadding       = 6;

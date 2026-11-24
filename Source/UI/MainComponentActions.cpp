@@ -246,27 +246,8 @@ void MainComponent::settingsButtonOnClick()
 
 void MainComponent::midiButtonOnClick()
 {
-    if (!midiWindow)
-    {
-        midiWindow = std::make_unique<MIDIWindow>(this->MIDIDevice, devicesIN, devicesOUT, devicesAudioOUT, propertiesFile, &sfzManager);
-        midiWindow->getCurrentStyleId = [this]() -> juce::String
-        {
-            if (display)
-                return display->getStyleID();
-            return {};
-        };
-        midiWindow->getCurrentStyleName = [this]() -> juce::String
-        {
-            if (display)
-                return display->getStyleName();
-            return {};
-        };
-        loadSettings();
-    }
-    else {
-        midiWindow->setVisible(true);
-        midiWindow->toFront(true);
-    }
+    // The MIDI settings are the Settings page now (this home-screen button has been hidden since phase 1).
+    openStagePage(StagePage::settings);
 }
 
 void MainComponent::homeButtonOnClick()
@@ -325,8 +306,6 @@ void MainComponent::playButtonOnClick()
 
 
         this->recordPlayer.setOutputDevice(MIDIDevice.getDeviceOUT());
-        if(midiWindow)
-            this->midiWindow->setVisible(false);
 
 
         

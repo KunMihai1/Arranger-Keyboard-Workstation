@@ -238,7 +238,8 @@ void SilkLabel::paint (juce::Graphics& g)
 //==============================================================================
 namespace
 {
-    const char* const fieldArrowsUtf8 = "\xe2\x97\x82 \xe2\x96\xb8";   // U+25C2 U+25B8
+    constexpr float   arrowWidthRatio  = 0.45f;   // a field arrow: a small triangle in its half of the arrow area
+    constexpr float   arrowHeightRatio = 0.25f;
     constexpr int     oneStep         = 1;
 }
 
@@ -298,7 +299,22 @@ void StageField::paint (juce::Graphics& g)
     const auto padding = static_cast<float> (fieldPadding) * scale;
     const auto arrows  = getLeftArrowBounds().getUnion (getRightArrowBounds());
     g.drawText (getText(), bounds.withTrimmedLeft (padding).withRight (arrows.getX()), juce::Justification::centredLeft, true);
-    g.drawText (juce::String::fromUTF8 (fieldArrowsUtf8), arrows, juce::Justification::centred, false);
+    // The board's two small arrows, drawn (the LCD font has no right-pointing small triangle).
+    for (const bool right : { false, true })
+    {
+        const auto box = right ? getRightArrowBounds() : getLeftArrowBounds();
+        const auto width = box.getWidth() * arrowWidthRatio;
+        const auto height = bounds.getHeight() * arrowHeightRatio;
+        const auto centre = box.getCentre();
+        juce::Path arrow;
+        if (right)
+            arrow.addTriangle (centre.x - width / halves, centre.y - height / halves, centre.x - width / halves, centre.y + height / halves,
+                               centre.x + width / halves, centre.y);
+        else
+            arrow.addTriangle (centre.x + width / halves, centre.y - height / halves, centre.x + width / halves, centre.y + height / halves,
+                               centre.x - width / halves, centre.y);
+        g.fillPath (arrow);
+    }
 }
 
 void StageField::mouseDown (const juce::MouseEvent& event)

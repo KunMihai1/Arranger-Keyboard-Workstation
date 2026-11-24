@@ -34,6 +34,13 @@ namespace
         const juce::String chordsMode       = "CHORDS";
         const juce::String effectsMode      = "EFFECTS";
         const juce::String effectsTitle     = "Effects";
+        const juce::String particles        = "Particles";
+        const juce::String noteNames        = "Note names on keys";
+        const char* const  particleColoursUtf8 = "Particle colours\xe2\x80\xa6";
+        const juce::String particleStyle    = "Particle style";
+        const juce::String sparks           = "Sparks";
+        const juce::String dust             = "Dust";
+        const juce::String smoke            = "Smoke";
         const juce::String tracksMode       = "TRACKS";
         const juce::String notesMode        = "NOTES";
         const juce::String noStyleTitle     = "No style";
@@ -44,7 +51,6 @@ namespace
         const juce::String recorderTitle    = "Recorder";
         const juce::String settingsTitle    = "Settings";
         const juce::String chordsTitle      = "Chords";
-        const juce::String midiSettings     = "MIDI settings...";
     }
 
     constexpr int beatUnit = 4;   // styles carry no other time-signature denominator today (BeatBar's default)
@@ -54,8 +60,9 @@ namespace
     constexpr int pageButtonHeight = 30;
     constexpr int pageButtonGap    = 12;
     constexpr int pageIconSize     = 30;
-    constexpr int pageToggleWidth  = 200;
-    constexpr int pageToggleHeight = 26;
+    constexpr size_t displayParticlesRow = 0;   // Settings page, Display column rows
+    constexpr size_t displayNoteNamesRow = 1;
+    constexpr size_t displayColoursRow   = 2;
 }
 
 //==============================================================================
@@ -147,27 +154,52 @@ void MainComponent::stagePagesInit()
         playRecordingFileButton.setBounds (row.removeFromLeft (juce::roundToInt (pageButtonWidth * scale)));
     };
 
-    // Settings: today's MIDI Settings window, plus the display toggles that lived in the header.
+    // Settings (board StageSettings): MIDI / Arranger / Chords = midiWindow (it was the MIDI Settings window), Display =
+    // today's display toggles and the particle style (spec B9).
     settingsPage = makePage (StageWiringText::settingsTitle);
-    midiSettingsPageButton.setButtonText (StageWiringText::midiSettings);
-    midiSettingsPageButton.setLookAndFeel (&playScreenLAF);
-    midiSettingsPageButton.setMouseCursor (juce::MouseCursor::PointingHandCursor);
-    midiSettingsPageButton.setColour (juce::TextButton::buttonColourId, AppColours::accent2);
-    midiSettingsPageButton.onClick = [this] { if (overlayWindow && overlayWindow->onSettingsClick) overlayWindow->onSettingsClick(); };
-    settingsPage->addAndMakeVisible (midiSettingsPageButton);
+    createSettingsContent();
+    settingsPage->addAndMakeVisible (*midiWindow);
+    particleToggle.setButtonText (StageWiringText::particles);
+    noteNumbersAnnotation.setButtonText (StageWiringText::noteNames);
+    colourSelectorButton.setButtonText (juce::String::fromUTF8 (StageWiringText::particleColoursUtf8));
+    particleStyleLabel.setText (StageWiringText::particleStyle);
+    particleSparks.setButtonText (StageWiringText::sparks);
+    particleDust.setButtonText (StageWiringText::dust);
+    particleSmoke.setButtonText (StageWiringText::smoke);
+    particleSparks.onClick = [this] { setParticleStyle (ParticleStyles::sparks, true); };
+    particleDust.onClick   = [this] { setParticleStyle (ParticleStyles::dust, true); };
+    particleSmoke.onClick  = [this] { setParticleStyle (ParticleStyles::smoke, true); };
+    setParticleStyle (ParticleStyles::fromStored (propertiesFile != nullptr ? propertiesFile->getIntValue (SettingsFileKeys::particleStyle, ParticleStyles::dust)
+                                                                            : ParticleStyles::dust), false);
+    // These three are shown and hidden with the play view (toggleHPanel), as in phase 1: add them hidden.
     for (juce::Component* control : { static_cast<juce::Component*> (&particleToggle), static_cast<juce::Component*> (&noteNumbersAnnotation),
                                        static_cast<juce::Component*> (&colourSelectorButton) })
         settingsPage->addChildComponent (control);
+    for (juce::Component* control : { static_cast<juce::Component*> (&particleStyleLabel), static_cast<juce::Component*> (&particleSparks),
+                                       static_cast<juce::Component*> (&particleDust), static_cast<juce::Component*> (&particleSmoke) })
+        settingsPage->addAndMakeVisible (control);
+    midiWindow->setInterceptsMouseClicks (false, true);   // its empty area (the Display column) clicks through
+    midiWindow->toFront (false);                          // the SFZ library panel (its child) covers the Display column
     settingsPage->onLayoutContent = [this] (juce::Rectangle<int> area, float scale)
     {
-        const auto gap = juce::roundToInt (pageButtonGap * scale);
-        auto column = area.withWidth (juce::roundToInt (pageToggleWidth * scale));
-        midiSettingsPageButton.setBounds (column.removeFromTop (juce::roundToInt (pageButtonHeight * scale)));
-        column.removeFromTop (gap);
-        particleToggle.setBounds (column.removeFromTop (juce::roundToInt (pageToggleHeight * scale)));
-        noteNumbersAnnotation.setBounds (column.removeFromTop (juce::roundToInt (pageToggleHeight * scale)));
-        column.removeFromTop (gap);
-        colourSelectorButton.setBounds (column.removeFromTop (juce::roundToInt (pageButtonHeight * scale)));
+        midiWindow->setScale (scale);
+        midiWindow->setBounds (area);
+        const auto rects = settingsPageLayout (area, scale);
+        particleToggle.setBounds (rects.displayToggles[displayParticlesRow]);
+        noteNumbersAnnotation.setBounds (rects.displayToggles[displayNoteNamesRow]);
+        colourSelectorButton.setBounds (rects.displayToggles[displayColoursRow]);
+        particleStyleLabel.setBounds (rects.particleStyleLabel);
+        auto left = static_cast<float> (rects.particleStyleRow.getX());   // adjacent seg buttons, as the board
+        for (auto* button : { &particleSparks, &particleDust, &particleSmoke })
+        {
+            button->setScale (scale);
+            button->setBounds (juce::Rectangle<float> (left, static_cast<float> (rects.particleStyleRow.getY()), button->getExactWidth(),
+                                                       static_cast<float> (rects.particleStyleRow.getHeight())).toNearestInt());
+            left += button->getExactWidth();
+        }
+        for (auto* toggle : { &particleToggle, &noteNumbersAnnotation, &colourSelectorButton })
+            toggle->setScale (scale);
+        particleStyleLabel.setScale (scale);
     };
 
     // Chords: today's chord helper (search, list, preview; a click plays the chord). It used to open in
@@ -434,8 +466,6 @@ void MainComponent::openStagePage (StagePage page)
                 closeStagePage();
             else
             {
-                if (midiWindow)
-                    midiWindow->closeButtonPressed();   // as before: Effects and the MIDI Settings window replace each other
                 showStagePage (page);
                 // As a newly opened window did: the knobs show the selected instrument's stored values.
                 if (effectsContent && effectsContent->onChannelChanged)
@@ -450,7 +480,11 @@ void MainComponent::openStagePage (StagePage page)
             if (pageRouter.toggle (page) == StagePage::none)
                 closeStagePage();
             else
+            {
                 showStagePage (page);
+                if (page == StagePage::settings && midiWindow)
+                    midiWindow->pageShown();   // fresh device lists, polled while the page is open (as the window did)
+            }
             break;
 
         case StagePage::none:
@@ -468,6 +502,8 @@ void MainComponent::showStagePage (StagePage page)
                           : page == StagePage::effects ? effectsPage.get()
                                                       : settingsPage.get();
     const auto frames = stagePageFrames();
+    if (midiWindow && settingsPage && settingsPage->isVisible() && shown != settingsPage.get())
+        midiWindow->pageHidden();   // another page replaces Settings: stop polling, close the SFZ library panel
     const bool anyPageWasOpen = std::any_of (frames.begin(), frames.end(),
                                              [] (const StagePageFrame* frame) { return frame != nullptr && frame->isVisible(); });
 
@@ -486,6 +522,8 @@ void MainComponent::showStagePage (StagePage page)
 
 void MainComponent::closeStagePage()
 {
+    if (pageRouter.open() == StagePage::settings && midiWindow)
+        midiWindow->pageHidden();
     pageRouter.close();
     if (display != nullptr)
         display->resetView();   // a track picker / notes page does not outlive its page
@@ -546,4 +584,20 @@ void MainComponent::applyQuickKnob (StagePanel::QuickKnob knob, int value, bool 
     // The Effects page shows the same stored values: keep it current while it is open.
     if (pageRouter.open() == StagePage::effects && effectsContent && effectsContent->onChannelChanged)
         effectsContent->onChannelChanged (effectsContent->getSelectedChannel());
+}
+
+void MainComponent::setParticleStyle (int styleId, bool save)
+{
+    // Spec B9: NoteLayer::setParticleStyle existed but nothing called it (always Dust). Saved as ParticleStyle.
+    particleSparks.setLedOn (styleId == ParticleStyles::sparks);
+    particleDust.setLedOn (styleId == ParticleStyles::dust);
+    particleSmoke.setLedOn (styleId == ParticleStyles::smoke);
+    particleStyleId = styleId;
+    if (noteLayer)
+        noteLayer->setParticleStyle (styleId);
+    if (save && propertiesFile != nullptr)
+    {
+        propertiesFile->setValue (SettingsFileKeys::particleStyle, styleId);
+        propertiesFile->saveIfNeeded();
+    }
 }

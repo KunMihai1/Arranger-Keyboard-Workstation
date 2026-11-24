@@ -23,6 +23,8 @@
               file="../tests/unit/test_notes_page.cpp"/>
         <FILE id="effPgT" name="test_effects_page.cpp" compile="1" resource="0"
               file="../tests/unit/test_effects_page.cpp"/>
+        <FILE id="setPgT" name="test_settings_page.cpp" compile="1" resource="0"
+              file="../tests/unit/test_settings_page.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"

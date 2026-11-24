@@ -1,5 +1,8 @@
 #include "MainComponent.h"
 #include "AppInfo.h"
+#include "addDeviceWindow.h"
+#include "UI/Stage/StageMetrics.h"
+#include "Common/AppColours.h"
 
 namespace
 {
@@ -35,176 +38,14 @@ void MainComponent::setCallBacksForOverlayWindow()
         // overlay's mouseDown causes a focus fight: after the handler
         // returns the OS restores activation to the overlay (the
         // clicked native window), leaving both DocumentWindows grey.
-        if (midiWindow)
-            midiWindow->toFront(false);
 
     };
 
     overlayWindow->onSettingsClick = [this]()
     {
-        if (!midiWindow)
-        {
-            midiWindowShouldBeVisible = true;
-            if (pageRouter.open() == StagePage::effects)
-            {
-                closeStagePage();   // as before: the MIDI Settings window and Effects replace each other
-                refreshStage();
-            }
-
-            midiWindow = std::make_unique<MIDIWindow>(
-                this->MIDIDevice, devicesIN, devicesOUT, devicesAudioOUT, propertiesFile, &sfzManager);
-
-
-            midiWindow->setAlwaysOnTop(true);
-
-            midiWindow->setVisible(true);
-
-            midiWindow->onWindowClosed = [this]()
-            {
-                midiWindowShouldBeVisible = false;
-                midiWindow.reset();
-            };
-
-            midiWindow->isMidiDeviceOpen = [this]()
-            {
-                return !playButton.isVisible();
-            };
-
-            midiWindow->getCurrentStyleId = [this]() -> juce::String
-            {
-                if (display)
-                    return display->getStyleID();
-                return {};
-            };
-
-            midiWindow->getCurrentStyleName = [this]() -> juce::String
-            {
-                if (display)
-                    return display->getStyleName();
-                return {};
-            };
-
-            midiWindow->onSfzLibraryChanged = [this]()
-            {
-                if (audioHandler == nullptr || !MIDIDevice.isOpenAudioOUT())
-                    return;
-                loadSfzForCurrentStyle();
-            };
-
-            midiWindow->onArrangerModeChanged = [this](bool enabled)
-            {
-                if (display != nullptr)
-                    display->setArrangerModeEnabled(enabled);
-                setSectionButtonsEngineDriven(enabled);
-                midiHandler.setArrangerEngaged(enabled);   // gates chord-zone muting (off => normal playing)
-            };
-
-            // Phase 4 chord-mode toggles.
-            midiWindow->onChordBassInversionChanged = [this](bool on)
-            {
-                if (display != nullptr)
-                    display->setArrangerBassInversion(on);
-            };
-            midiWindow->onChordModeChanged = [this](ChordMode mode)
-            {
-                midiHandler.setChordMode(mode);
-            };
-            midiWindow->onChordMemoryChanged = [this](bool on)
-            {
-                midiHandler.setChordMemory(on);
-            };
-            midiWindow->onSynchroStartChanged = [this](bool on)
-            {
-                if (display != nullptr)
-                    display->setArrangerSynchroStart(on);
-            };
-            midiWindow->onCountInChanged = [this](bool on)
-            {
-                if (display != nullptr)
-                    display->setArrangerCountIn(on);
-            };
-            midiWindow->onChordZoneMuteChanged = [this](bool on)
-            {
-                midiHandler.setChordZoneMute(on);   // Korg-style: silence the chord keys when the arranger is engaged
-            };
-
-            // Phase 7a NTT controls.
-            midiWindow->onNttEnabledChanged = [this](bool on)
-            {
-                if (display != nullptr)
-                    display->setArrangerNttEnabled(on);
-            };
-            midiWindow->onNttMinorScaleChanged = [this](int idx)
-            {
-                const auto scale = idx == MinorScaleButtons::aeolian ? MinorScaleChoice::Aeolian
-                                 : idx == MinorScaleButtons::harmonic ? MinorScaleChoice::HarmonicMinor
-                                                                      : MinorScaleChoice::Dorian;
-                if (display != nullptr)
-                    display->setArrangerMinorScale(scale);
-            };
-
-            midiWindow->onOutputEngineChanged = [this](int engineOption)
-            {
-                disconnectCurrentOutput();
-
-                if (engineOption == OutputEngineIds::externalMidi)
-                {
-                    if (!MIDIDevice.deviceOpenOUT(MIDIDevice.getDeviceIndexOUT()))
-                    {
-                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::midiOutputFailed, Text::okButton);
-                        return;
-                    }
-                    deviceOpenedOUT = MIDIDevice.getDeviceOUT();
-
-                    if (display != nullptr)
-                    {
-                        // Route style/arranger playback to the MIDI device and stop sending to the
-                        // (now closed) SFZ sampler. Mirrors the Play-button wiring path; without this,
-                        // switching engine mid-session leaves the players with a stale output -> silence.
-                        display->setMidiInjectCallback(nullptr);
-                        display->setDeviceOutput(MIDIDevice.getDeviceOUT());
-                    }
-                }
-                else if (engineOption == OutputEngineIds::internalSfz)
-                {
-                    if (!MIDIDevice.deviceOpenAudioOUT(MIDIDevice.getDeviceIndexAudioOUT()))
-                    {
-                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::audioOutputFailed, Text::okButton);
-                        return;
-                    }
-                    ensureAudioHandlerReady();   // re-wires the SFZ inject callback into the players
-                    loadSfzForCurrentStyle();
-
-                    if (display != nullptr)
-                        display->setDeviceOutput({});   // stop sending to the (now closed) MIDI device
-                }
-
-                applyCurrentStyleToOutput();
-            };
-
-        }
-        else
-        {
-            if (!midiWindow->isVisible())
-            {
-                midiWindowShouldBeVisible = true;
-                midiWindow->setVisible(true);
-                midiWindow->toFront(true);
-                juce::MessageManager::callAsync([this]()
-                    {
-                        if (midiWindow)
-                        {
-                            midiWindow->grabKeyboardFocus();
-                        }
-
-                    });
-            }
-            else
-            {
-                midiWindowShouldBeVisible = false;
-                midiWindow->setVisible(false);
-            }
-        }
+        // The Esc menu's Settings opens the Settings page (it used to be the MIDI Settings window).
+        setOverlayMenuVisible(false);
+        openStagePage(StagePage::settings);
     };
 
     overlayWindow->onEffectsClick = [this]()
@@ -371,4 +212,165 @@ void MainComponent::setOverlayMenuVisible(bool show)
         keyboard.setVisible(keyboardVisibleBeforeMenu);
         grabKeyboardFocus();   // so ESC/keys keep working after the menu closes
     }
+}
+
+void MainComponent::createSettingsContent()
+{
+    // The Settings page's content (it was the MIDI Settings window): created once, with every callback the window got.
+    midiWindow = std::make_unique<MIDIWindow>(this->MIDIDevice, devicesIN, devicesOUT, devicesAudioOUT, propertiesFile, &sfzManager);
+
+        midiWindow->isMidiDeviceOpen = [this]()
+        {
+            return !playButton.isVisible();
+        };
+
+        midiWindow->getCurrentStyleId = [this]() -> juce::String
+        {
+            if (display)
+                return display->getStyleID();
+            return {};
+        };
+
+        midiWindow->getCurrentStyleName = [this]() -> juce::String
+        {
+            if (display)
+                return display->getStyleName();
+            return {};
+        };
+
+        midiWindow->onSfzLibraryChanged = [this]()
+        {
+            if (audioHandler == nullptr || !MIDIDevice.isOpenAudioOUT())
+                return;
+            loadSfzForCurrentStyle();
+        };
+
+        midiWindow->onArrangerModeChanged = [this](bool enabled)
+        {
+            if (display != nullptr)
+                display->setArrangerModeEnabled(enabled);
+            setSectionButtonsEngineDriven(enabled);
+            midiHandler.setArrangerEngaged(enabled);   // gates chord-zone muting (off => normal playing)
+        };
+
+        // Phase 4 chord-mode toggles.
+        midiWindow->onChordBassInversionChanged = [this](bool on)
+        {
+            if (display != nullptr)
+                display->setArrangerBassInversion(on);
+        };
+        midiWindow->onChordModeChanged = [this](ChordMode mode)
+        {
+            midiHandler.setChordMode(mode);
+        };
+        midiWindow->onChordMemoryChanged = [this](bool on)
+        {
+            midiHandler.setChordMemory(on);
+        };
+        midiWindow->onSynchroStartChanged = [this](bool on)
+        {
+            if (display != nullptr)
+                display->setArrangerSynchroStart(on);
+        };
+        midiWindow->onCountInChanged = [this](bool on)
+        {
+            if (display != nullptr)
+                display->setArrangerCountIn(on);
+        };
+        midiWindow->onChordZoneMuteChanged = [this](bool on)
+        {
+            midiHandler.setChordZoneMute(on);   // Korg-style: silence the chord keys when the arranger is engaged
+        };
+
+        // Phase 7a NTT controls.
+        midiWindow->onNttEnabledChanged = [this](bool on)
+        {
+            if (display != nullptr)
+                display->setArrangerNttEnabled(on);
+        };
+        midiWindow->onNttMinorScaleChanged = [this](int idx)
+        {
+            const auto scale = idx == MinorScaleButtons::aeolian ? MinorScaleChoice::Aeolian
+                             : idx == MinorScaleButtons::harmonic ? MinorScaleChoice::HarmonicMinor
+                                                                  : MinorScaleChoice::Dorian;
+            if (display != nullptr)
+                display->setArrangerMinorScale(scale);
+        };
+
+        midiWindow->onOutputEngineChanged = [this](int engineOption)
+        {
+            disconnectCurrentOutput();
+
+            if (engineOption == OutputEngineIds::externalMidi)
+            {
+                if (!MIDIDevice.deviceOpenOUT(MIDIDevice.getDeviceIndexOUT()))
+                {
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::midiOutputFailed, Text::okButton);
+                    return;
+                }
+                deviceOpenedOUT = MIDIDevice.getDeviceOUT();
+
+                if (display != nullptr)
+                {
+                    // Route style/arranger playback to the MIDI device and stop sending to the
+                    // (now closed) SFZ sampler. Mirrors the Play-button wiring path; without this,
+                    // switching engine mid-session leaves the players with a stale output -> silence.
+                    display->setMidiInjectCallback(nullptr);
+                    display->setDeviceOutput(MIDIDevice.getDeviceOUT());
+                }
+            }
+            else if (engineOption == OutputEngineIds::internalSfz)
+            {
+                if (!MIDIDevice.deviceOpenAudioOUT(MIDIDevice.getDeviceIndexAudioOUT()))
+                {
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::audioOutputFailed, Text::okButton);
+                    return;
+                }
+                ensureAudioHandlerReady();   // re-wires the SFZ inject callback into the players
+                loadSfzForCurrentStyle();
+
+                if (display != nullptr)
+                    display->setDeviceOutput({});   // stop sending to the (now closed) MIDI device
+            }
+
+            applyCurrentStyleToOutput();
+        };
+
+    // Keyboard: the key count stored for the MIDI-in device (0 = PC keyboard / unknown), as "Update key count" did.
+    auto identifierOf = [this](const juce::String& deviceName) -> juce::String
+    {
+        for (const auto& [name, identifier] : MIDIDevice.getAvailableInputDevicesNameIdentifier())
+            if (name == deviceName)
+                return identifier;
+        return {};
+    };
+    midiWindow->getKeyCount = [this, identifierOf](const juce::String& deviceName)
+    {
+        const auto identifier = identifierOf(deviceName);
+        const auto vid = MIDIDevice.extractVID(identifier);
+        const auto pid = MIDIDevice.extractPID(identifier);
+        return identifier.isNotEmpty() && dataBase.deviceExists(vid, pid) ? dataBase.getNrKeysPidVid(vid, pid) : int {};
+    };
+    midiWindow->setKeyCount = [this, identifierOf](const juce::String& deviceName, int keys)
+    {
+        const auto identifier = identifierOf(deviceName);
+        if (identifier.isNotEmpty())
+            dataBase.updateDeviceJson(MIDIDevice.extractVID(identifier), MIDIDevice.extractPID(identifier), {}, keys);
+    };
+    midiWindow->onAddDevice = [this, identifierOf](const juce::String& deviceName)
+    {
+        const auto identifier = identifierOf(deviceName);
+        if (identifier.isEmpty())
+            return;   // the PC keyboard: nothing to add
+        const auto vid = MIDIDevice.extractVID(identifier);
+        const auto pid = MIDIDevice.extractPID(identifier);
+        addDeviceWindow = std::make_unique<AddDeviceWindow>(vid, pid);   // today's Add MIDI Device window
+        addDeviceWindow->onAddDevice = [this, vid, pid](const juce::String& name, int keys)
+        {
+            dataBase.addDeviceJson(vid, pid, name, keys);
+            if (midiWindow)
+                midiWindow->refreshKeyboardField();
+        };
+        addDeviceWindow->setVisible(true);
+    };
 }

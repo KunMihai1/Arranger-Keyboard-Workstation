@@ -2,116 +2,179 @@
 #include "MidiHandler.h"
 #include "AppColours.h"
 #include "IOHelper.h"
-
-
-using namespace AppColours;
+#include "UI/Stage/StageMetrics.h"
 
 namespace
 {
     namespace Text
     {
-        const juce::String windowTitle  = "MIDI Settings";
-        const juce::String midiIn       = "MIDI IN";
-        const juce::String midiOut      = "MIDI OUT";
-        const juce::String outputEngine = "Output Engine";
-        const juce::String audioOut     = "Audio OUT";
-        const juce::String chordMode    = "Chord Mode";
+        const juce::String outputEngine = "Output engine";
+        const juce::String midiIn       = "MIDI in";
+        const juce::String midiOut      = "MIDI out";
+        const juce::String audioOut     = "Audio out (internal SFZ synth)";
+        const juce::String keyboard     = "Keyboard";
+        const juce::String chordMode    = "Chord mode";
         const juce::String minorScale   = "Minor scale";
         const juce::String externalMidi = "External MIDI";        // OutputEngineIds::externalMidi
-        const juce::String internalSfz  = "Internal SFZ Synth";   // OutputEngineIds::internalSfz
+        const juce::String internalSfz  = "Internal SFZ synth";   // OutputEngineIds::internalSfz
+        const juce::String keysSuffix   = " keys";
+        const juce::String midiHeading     = "MIDI";
+        const juce::String arrangerHeading = "Arranger";
+        const juce::String chordsHeading   = "Chords";
+        const juce::String displayHeading  = "Display";
+        const juce::String noValue      = "-";                    // no key count for this device (the LCD font has no dash glyph)
     }
 
-    constexpr int   windowX             = 200;
-    constexpr int   windowY             = 150;
-    constexpr int   windowHeight        = 250;
-    constexpr int   panelWidth          = 480;
-    constexpr int   panelHeight         = 630;   // tall enough for every arranger row
     constexpr int   deviceRefreshMs     = 750;
     constexpr int   firstListIndex      = 0;
-    constexpr int   labelTextOffset     = 8;
-    constexpr int   labelHeight         = 20;
-    constexpr int   engineComboWidth    = 180;
-    constexpr int   sectionGap          = 55;
-    constexpr int   deviceRowGap        = 46;
-    constexpr int   centringDivisor     = 2;
-    constexpr int   buttonGap           = 14;
-    constexpr int   toggleWidth         = 320;
-    constexpr int   toggleGap           = 6;
-    constexpr int   choiceLabelWidth    = 92;
-    constexpr int   choiceButtonsOffset = 96;
-    constexpr int   choiceButtonWidth   = 104;
-    constexpr int   choiceGap           = 6;
-    constexpr int   thirdChoice         = 2;     // index of the third button in a row
     constexpr int   sfzLibraryInset     = 20;
     constexpr int   firstChordMode      = 0;     // ChordMode values as stored
     constexpr int   lastChordMode       = 2;
-    constexpr float labelFontHeight     = 13.0f;
+    constexpr int   unknownKeyCount     = 0;
+    constexpr size_t keyboardSizeCount  = 4;
+    constexpr int    keys49 = 49;   // the supported keyboard sizes (today's "Update key count" accepted these)
+    constexpr int    keys61 = 61;
+    constexpr int    keys76 = 76;
+    constexpr int    keys88 = 88;
+    const std::array<int, keyboardSizeCount> keyboardSizes { keys49, keys61, keys76, keys88 };
+
+    // Board StageRevised openPage=settings, scale 1, relative to the page content (28, 180).
+    namespace Board
+    {
+        constexpr int columnGap      = 32;
+        constexpr int columnGaps     = 3;    // between four columns
+        constexpr size_t midiColumn     = 0;
+        constexpr size_t arrangerColumn = 1;
+        constexpr size_t chordsColumn   = 2;
+        constexpr size_t displayColumn  = 3;
+        constexpr int labelHeight    = 12;
+        constexpr int fieldGap       = 8;    // MIDI and Chords columns: label, gap, field, gap, label ...
+        constexpr int rowGap         = 6;    // Arranger and Display columns: rows 22 high, 6 apart
+        constexpr int keyboardGap    = 6;    // Keyboard label to its field, field to Add device
+        constexpr int displayExtra   = 6;    // "Particle style" sits 6 lower (margin-top)
+        constexpr int addDeviceWidth = 88;   // 87.84: "Add device..." at the seg size
+    }
 }
 
+//==============================================================================
+SettingsPageRects settingsPageLayout (juce::Rectangle<int> content, float scale)
+{
+    using namespace StageMetrics;
+    auto scaled = [scale] (int boardLength) { return static_cast<float> (boardLength) * scale; };
+    const auto area = content.toFloat();
+    const auto columnWidth = (area.getWidth() - scaled (Board::columnGap) * static_cast<float> (Board::columnGaps))
+                             / static_cast<float> (SettingsPageRects::columnCount);
+
+    SettingsPageRects rects;
+    std::array<juce::Rectangle<float>, SettingsPageRects::columnCount> columns;
+    for (int column {}; column < SettingsPageRects::columnCount; ++column)
+    {
+        columns[static_cast<size_t> (column)] = { area.getX() + static_cast<float> (column) * (columnWidth + scaled (Board::columnGap)),
+                                                  area.getY(), columnWidth, area.getHeight() };
+        rects.columns[static_cast<size_t> (column)] = columns[static_cast<size_t> (column)].toNearestInt();
+        rects.headings[static_cast<size_t> (column)] = columns[static_cast<size_t> (column)].withHeight (scaled (headingHeight)).toNearestInt();
+    }
+
+    // MIDI: label, field, label, field ... then Keyboard [field][Add device...], then SFZ library...
+    auto midi = columns[Board::midiColumn];
+    auto top = midi.getY() + scaled (headingHeight + Board::fieldGap);
+    for (size_t field {}; field < rects.fields.size(); ++field)
+    {
+        rects.fieldLabels[field] = juce::Rectangle<float> (midi.getX(), top, columnWidth, scaled (Board::labelHeight)).toNearestInt();
+        top += scaled (Board::labelHeight + Board::fieldGap);
+        rects.fields[field] = juce::Rectangle<float> (midi.getX(), top, columnWidth, scaled (fieldHeight)).toNearestInt();
+        top += scaled (fieldHeight + Board::fieldGap);
+    }
+    rects.keyboardLabel = juce::Rectangle<float> (midi.getX(), top, columnWidth, scaled (Board::labelHeight)).toNearestInt();
+    top += scaled (Board::labelHeight + Board::keyboardGap);
+    rects.keyboardRow = juce::Rectangle<float> (midi.getX(), top, columnWidth, scaled (fieldHeight)).toNearestInt();
+    top += scaled (fieldHeight + Board::fieldGap);
+    rects.sfzRow = juce::Rectangle<float> (midi.getX(), top, columnWidth, scaled (segHeight)).toNearestInt();
+
+    // Arranger: seven LED rows.
+    const auto arranger = columns[Board::arrangerColumn];
+    for (size_t row {}; row < rects.arrangerToggles.size(); ++row)
+        rects.arrangerToggles[row] = juce::Rectangle<float> (arranger.getX(),
+                                                             arranger.getY() + scaled (headingHeight + Board::rowGap)
+                                                                 + static_cast<float> (row) * scaled (rowToggleHeight + Board::rowGap),
+                                                             columnWidth, scaled (rowToggleHeight)).toNearestInt();
+
+    // Chords: label, seg row, label, seg row.
+    const auto chords = columns[Board::chordsColumn];
+    top = chords.getY() + scaled (headingHeight + Board::fieldGap);
+    rects.chordModeLabel = juce::Rectangle<float> (chords.getX(), top, columnWidth, scaled (Board::labelHeight)).toNearestInt();
+    top += scaled (Board::labelHeight + Board::fieldGap);
+    rects.chordModeRow = juce::Rectangle<float> (chords.getX(), top, columnWidth, scaled (segHeight)).toNearestInt();
+    top += scaled (segHeight + Board::fieldGap);
+    rects.minorScaleLabel = juce::Rectangle<float> (chords.getX(), top, columnWidth, scaled (Board::labelHeight)).toNearestInt();
+    top += scaled (Board::labelHeight + Board::fieldGap);
+    rects.minorScaleRow = juce::Rectangle<float> (chords.getX(), top, columnWidth, scaled (segHeight)).toNearestInt();
+
+    // Display: three LED rows, then "Particle style" and its seg row.
+    const auto display = columns[Board::displayColumn];
+    top = display.getY() + scaled (headingHeight + Board::rowGap);
+    for (size_t row {}; row < rects.displayToggles.size(); ++row)
+    {
+        rects.displayToggles[row] = juce::Rectangle<float> (display.getX(), top, columnWidth, scaled (rowToggleHeight)).toNearestInt();
+        top += scaled (rowToggleHeight + Board::rowGap);
+    }
+    top += scaled (Board::displayExtra);
+    rects.particleStyleLabel = juce::Rectangle<float> (display.getX(), top, columnWidth, scaled (Board::labelHeight)).toNearestInt();
+    top += scaled (Board::labelHeight + Board::rowGap);
+    rects.particleStyleRow = juce::Rectangle<float> (display.getX(), top, columnWidth, scaled (segHeight)).toNearestInt();
+    return rects;
+}
+
+std::vector<int> keyboardFieldSizes (int storedKeys)
+{
+    std::vector<int> sizes (keyboardSizes.begin(), keyboardSizes.end());
+    if (storedKeys > unknownKeyCount && std::find (sizes.begin(), sizes.end(), storedKeys) == sizes.end())
+    {
+        sizes.push_back (storedKeys);
+        std::sort (sizes.begin(), sizes.end());
+    }
+    return sizes;
+}
+
+//==============================================================================
 MIDIWindow::MIDIWindow(MidiDevice& mdevice, std::vector<std::string>& devicesListIN, std::vector<std::string>& devicesListOUT
     , std::vector<std::string>& devicesListAudioOUT, juce::PropertiesFile* prop, SFZLibraryManager* sfzManagerPtr)
-    : juce::DocumentWindow{ Text::windowTitle, background, DocumentWindow::closeButton },
-    MIDIDevice{ mdevice }, devicesListIN{ devicesListIN }, devicesListOUT{ devicesListOUT }, devicesListAudioOUT{ devicesListAudioOUT }, propertyFile{ prop }, sfzManager{ sfzManagerPtr }
+    : MIDIDevice{ mdevice }, devicesListIN{ devicesListIN }, devicesListOUT{ devicesListOUT }, devicesListAudioOUT{ devicesListAudioOUT }, propertyFile{ prop }, sfzManager{ sfzManagerPtr },
+      outputEngineTypeLabel (Text::outputEngine, SilkLabel::Tone::dim),
+      midiDevicesLabelIN (Text::midiIn, SilkLabel::Tone::dim),
+      midiDevicesLabelOUT (Text::midiOut, SilkLabel::Tone::dim),
+      audioDevicesLabelOUT (Text::audioOut, SilkLabel::Tone::dim),
+      keyboardLabel (Text::keyboard, SilkLabel::Tone::dim),
+      chordModeLabel (Text::chordMode, SilkLabel::Tone::dim),
+      nttMinorScaleLabel (Text::minorScale, SilkLabel::Tone::dim)
 {
-    setUsingNativeTitleBar(false);
-    setResizable(false, false);
-    setTitleBarTextCentred(true);
-    setColour(juce::DocumentWindow::backgroundColourId, background);
-    setColour(juce::DocumentWindow::textColourId, titleText);
-    setBounds(windowX, windowY, panelWidth, windowHeight);
-    setVisible(true);
-    setContentOwned(&settingsPanel, false);
-
-    addKeyListener(this);
-    setBounds_components();
     allInit();
-    toggleSettingsAll();
     populateCBIN();
     populateCBOUT();
     populateCBaudioOUT();
-	populateCBengine();
-
+    populateCBengine();
     restoreCBoxes(); // Apply saved settings
 }
 
 MIDIWindow::~MIDIWindow()
 {
     stopTimer();
-    removeKeyListener(this);
 }
 
-
-bool MIDIWindow::keyPressed(const juce::KeyPress& key, juce::Component* comp)
+void MIDIWindow::pageShown()
 {
-    if (key == juce::KeyPress::escapeKey)
-    {
-        closeButtonPressed();
-        return true;          
-    }
-    return false;
+    populateCBIN();  //selected id is set to 1 implicitly
+    populateCBOUT(); //selected id is set to 1 implicitly
+    restoreCBoxes();
+    refreshKeyboardField();
+    startTimer(deviceRefreshMs);
 }
 
-void MIDIWindow::visibilityChanged()
+void MIDIWindow::pageHidden()
 {
-    if (isVisible())
-    {
-        populateCBIN();  //selected id is set to 1 implicitly
-        populateCBOUT(); //selected id is set to 1 implicitly
-        restoreCBoxes();
-        startTimer(deviceRefreshMs);
-        //grabKeyboardFocus();
-    }
-    else stopTimer();
-
-}
-
-void MIDIWindow::closeButtonPressed()
-{
-
-    setVisible(false);
-
-    if (onWindowClosed)
-        onWindowClosed();
+    stopTimer();
+    if (sfzLibraryUI)
+        sfzLibraryUI->setVisible(false);
 }
 
 void MIDIWindow::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged)
@@ -125,6 +188,7 @@ void MIDIWindow::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged)
             lastIndexIN = index + firstItemId;
             if (propertyFile) { propertyFile->setValue(SettingsFileKeys::midiInIndex, lastIndexIN); propertyFile->saveIfNeeded(); }
         }
+        refreshKeyboardField();
     }
     else if (comboBoxThatHasChanged == &this->comboBoxDevicesOUT)
     {
@@ -138,9 +202,9 @@ void MIDIWindow::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged)
     }
     else if (comboBoxThatHasChanged == &this->comboBoxOutputEngineType)
     {
-		lastIndexEngineOption = comboBoxOutputEngineType.getSelectedId();
+        lastIndexEngineOption = comboBoxOutputEngineType.getSelectedId();
         if (propertyFile) { propertyFile->setValue(SettingsFileKeys::engineOptionIndex, lastIndexEngineOption); propertyFile->saveIfNeeded(); }
-		switchBetweenEngineOptions(lastIndexEngineOption);
+        switchBetweenEngineOptions(lastIndexEngineOption);
         if (onOutputEngineChanged && isMidiDeviceOpen && isMidiDeviceOpen())
             onOutputEngineChanged(lastIndexEngineOption);
     }
@@ -150,14 +214,23 @@ void MIDIWindow::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged)
         if (index >= firstListIndex && index < this->devicesListAudioOUT.size())
         {
             this->MIDIDevice.setDeviceAudioOUT(index);
-			lastIndexAudioOut = index + firstItemId;
+            lastIndexAudioOut = index + firstItemId;
             if (propertyFile) { propertyFile->setValue(SettingsFileKeys::audioOutIndex, lastIndexAudioOut); propertyFile->saveIfNeeded(); }
         }
-	}
+    }
+    else if (comboBoxThatHasChanged == &keyboardField)
+    {
+        // Today's "Update key count": the chosen size is stored for the MIDI-in device.
+        if (setKeyCount && keyboardField.getSelectedId() != unknownKeyCount)
+            setKeyCount(comboBoxDevicesIN.getText(), keyboardField.getSelectedId());
+    }
 }
 
 void MIDIWindow::timerCallback()
 {
+    if (! isShowing())
+        return;   // another page replaced Settings: nothing to refresh until it shows again
+
     std::vector<std::string> devicesNewIN;
     this->MIDIDevice.getAvailableDevicesMidiIN(devicesNewIN);
     if (devicesNewIN != this->devicesListIN)
@@ -166,6 +239,7 @@ void MIDIWindow::timerCallback()
             this->comboBoxDevicesIN.hidePopup();
         devicesListIN = devicesNewIN;
         populateCBIN();
+        refreshKeyboardField();
     }
     std::vector<std::string> devicesNewOUT;
     this->MIDIDevice.getAvailableDevicesMidiOUT(devicesNewOUT);
@@ -189,239 +263,103 @@ void MIDIWindow::timerCallback()
     }
 }
 
-void MIDIWindow::toggleSettingsPanel()
+void MIDIWindow::refreshKeyboardField()
 {
-    if (this->settingsPanel.isVisible())
-        this->settingsPanel.setVisible(false);
-    else this->settingsPanel.setVisible(true);
-}
-
-void MIDIWindow::toggleSettingsCB()
-{
-	toggleSettingsInMIDICB();
-	toggleSettingsOutMIDICB();
-    toggleSettingsOutputEngineCB();
-}
-
-void MIDIWindow::toggleSettingsInMIDICB()
-{
-    if (this->comboBoxDevicesIN.isVisible()) {
-        this->comboBoxDevicesIN.setVisible(false);
-        this->midiDevicesLabelIN.setVisible(false);
-    }
-    else {
-        this->midiDevicesLabelIN.setVisible(true);
-        this->comboBoxDevicesIN.setVisible(true);
-    }
-}
-
-void MIDIWindow::toggleSettingsOutMIDICB()
-{
-    if (this->comboBoxDevicesOUT.isVisible()) {
-        this->comboBoxDevicesOUT.setVisible(false);
-        this->midiDevicesLabelOUT.setVisible(false);
-    }
-    else {
-        this->comboBoxDevicesOUT.setVisible(true);
-        this->midiDevicesLabelOUT.setVisible(true);
-    }
-}
-
-void MIDIWindow::toggleSettingsOutputEngineCB()
-{
-    if (this->comboBoxOutputEngineType.isVisible())
+    const int keys = getKeyCount ? getKeyCount(comboBoxDevicesIN.getText()) : unknownKeyCount;
+    keyboardField.clear(juce::dontSendNotification);
+    if (keys == unknownKeyCount)
     {
-        this->comboBoxOutputEngineType.setVisible(false);
-        this->outputEngineTypeLabel.setVisible(false);
+        keyboardField.addItem(Text::noValue, firstItemId);
+        keyboardField.setSelectedId(firstItemId, juce::dontSendNotification);
+        keyboardField.setEnabled(false);
     }
     else
     {
-        this->comboBoxOutputEngineType.setVisible(true);
-        this->outputEngineTypeLabel.setVisible(true);
+        for (const auto size : keyboardFieldSizes(keys))
+            keyboardField.addItem(juce::String(size) + Text::keysSuffix, size);   // item id = key count
+        keyboardField.setSelectedId(keys, juce::dontSendNotification);
+        keyboardField.setEnabled(true);
     }
+    keyboardField.repaint();
 }
 
-void MIDIWindow::toggleSettingsAudioOutCB()
+void MIDIWindow::setScale(float newScale)
 {
-    if (this->comboBoxAudioDevicesOUT.isVisible())
+    scale = newScale;
+    for (auto* field : { &comboBoxOutputEngineType, &comboBoxDevicesIN, &comboBoxDevicesOUT, &comboBoxAudioDevicesOUT, &keyboardField })
+        field->setScale(scale);
+    for (auto* button : { &sfzLibraryButton, &addDeviceButton, &chordModeFingered, &chordModeSingle, &chordModeFull,
+                          &nttMinorDorian, &nttMinorAeolian, &nttMinorHarmonic })
+        button->setScale(scale);
+    for (auto* toggle : { &arrangerModeToggle, &chordBassInversionToggle, &chordMemoryToggle, &synchroStartToggle,
+                          &countInToggle, &chordZoneMuteToggle, &nttEnabledToggle })
+        toggle->setScale(scale);
+    for (auto* label : { &outputEngineTypeLabel, &midiDevicesLabelIN, &midiDevicesLabelOUT, &audioDevicesLabelOUT,
+                         &keyboardLabel, &chordModeLabel, &nttMinorScaleLabel })
+        label->setScale(scale);
+    resized();
+    repaint();
+}
+
+void MIDIWindow::paint(juce::Graphics& g)
+{
+    const auto rects = settingsPageLayout(getLocalBounds(), scale);
+    const std::array<juce::String, SettingsPageRects::columnCount> headings { Text::midiHeading, Text::arrangerHeading,
+                                                                             Text::chordsHeading, Text::displayHeading };
+    for (size_t column {}; column < headings.size(); ++column)
+        StageLcd::paintHeading(g, rects.headings[column].toFloat(), scale, headings[column], {});
+}
+
+void MIDIWindow::resized()
+{
+    const auto rects = settingsPageLayout(getLocalBounds(), scale);
+    const std::array<SilkLabel*, SettingsPageRects::fieldCount> labels { &outputEngineTypeLabel, &midiDevicesLabelIN, &midiDevicesLabelOUT, &audioDevicesLabelOUT };
+    const std::array<StageField*, SettingsPageRects::fieldCount> fields { &comboBoxOutputEngineType, &comboBoxDevicesIN, &comboBoxDevicesOUT, &comboBoxAudioDevicesOUT };
+    for (size_t field {}; field < fields.size(); ++field)
     {
-        this->comboBoxAudioDevicesOUT.setVisible(false);
-        this->audioDevicesLabelOUT.setVisible(false);
+        labels[field]->setBounds(rects.fieldLabels[field]);
+        fields[field]->setBounds(rects.fields[field]);
     }
-    else
+
+    keyboardLabel.setBounds(rects.keyboardLabel);
+    auto keyboardRow = rects.keyboardRow.toFloat();
+    const auto addWidth = static_cast<float>(Board::addDeviceWidth) * scale;
+    addDeviceButton.setBounds(keyboardRow.removeFromRight(addWidth).withTrimmedTop(keyboardRow.getHeight() - static_cast<float>(addDeviceButton.getPreferredHeight())).toNearestInt());
+    keyboardField.setBounds(keyboardRow.withTrimmedRight(static_cast<float>(Board::keyboardGap) * scale).toNearestInt());
+    sfzLibraryButton.setBounds(rects.sfzRow.withWidth(sfzLibraryButton.getPreferredWidth()));
+
+    const std::array<RowToggle*, SettingsPageRects::arrangerRows> toggles { &arrangerModeToggle, &chordBassInversionToggle, &chordMemoryToggle,
+                                                                           &synchroStartToggle, &countInToggle, &chordZoneMuteToggle, &nttEnabledToggle };
+    for (size_t row {}; row < toggles.size(); ++row)
+        toggles[row]->setBounds(rects.arrangerToggles[row]);
+
+    chordModeLabel.setBounds(rects.chordModeLabel);
+    nttMinorScaleLabel.setBounds(rects.minorScaleLabel);
+    auto placeRow = [] (juce::Rectangle<int> row, std::initializer_list<SegButton*> buttons)
     {
-        this->comboBoxAudioDevicesOUT.setVisible(true);
-        this->audioDevicesLabelOUT.setVisible(true);
-    }
-}
+        auto left = static_cast<float>(row.getX());   // adjacent, as the board
+        for (auto* button : buttons)
+        {
+            button->setBounds(juce::Rectangle<float>(left, static_cast<float>(row.getY()), button->getExactWidth(),
+                                                     static_cast<float>(row.getHeight())).toNearestInt());
+            left += button->getExactWidth();
+        }
+    };
+    placeRow(rects.chordModeRow, { &chordModeFingered, &chordModeSingle, &chordModeFull });
+    placeRow(rects.minorScaleRow, { &nttMinorDorian, &nttMinorAeolian, &nttMinorHarmonic });
 
-void MIDIWindow::toggleSFZbutton()
-{
-    if(this->sfzLibraryButton.isVisible())
-    {
-        this->sfzLibraryButton.setVisible(false);
-    }
-    else
-    {
-        this->sfzLibraryButton.setVisible(true);
-	}
-}
-
-void MIDIWindow::toggleSettingsAll()
-{
-    toggleSettingsPanel();
-    toggleSettingsCB();
-}
-
-void MIDIWindow::setBounds_components()
-{
-    const int pad = 16;
-    const int rowH = 36;
-    int rowTop = pad;
-
-    const int labelW = 80;
-    const int cbX = 100;
-    const int cbW = 260;
-
-
-    outputEngineTypeLabel.setBounds(pad, rowTop + labelTextOffset, labelW, labelHeight);
-    comboBoxOutputEngineType.setBounds(cbX, rowTop, engineComboWidth, rowH);
-
-    rowTop += sectionGap;
-
-
-    midiDevicesLabelIN.setBounds(pad, rowTop + labelTextOffset, labelW, labelHeight);
-    comboBoxDevicesIN.setBounds(cbX, rowTop, cbW, rowH);
-
-    rowTop += deviceRowGap;
-
-    midiDevicesLabelOUT.setBounds(pad, rowTop + labelTextOffset, labelW, labelHeight);
-    comboBoxDevicesOUT.setBounds(cbX, rowTop, cbW, rowH);
-
-	audioDevicesLabelOUT.setBounds(pad, rowTop + labelTextOffset, labelW, labelHeight);
-	comboBoxAudioDevicesOUT.setBounds(cbX, rowTop, cbW, rowH);
-
-    rowTop += sectionGap;
-
-    const int buttonW = 140;
-    const int buttonH = 34;
-    const int buttonX = (settingsPanel.getWidth() - buttonW) / centringDivisor;
-
-    sfzLibraryButton.setBounds(buttonX, rowTop, buttonW, buttonH);
-
-    rowTop += buttonH + buttonGap;
-    arrangerModeToggle.setBounds(pad, rowTop, toggleWidth, rowH);
-    rowTop += rowH + toggleGap;
-    chordBassInversionToggle.setBounds(pad, rowTop, toggleWidth, rowH);
-    rowTop += rowH + toggleGap;
-    {
-        chordModeLabel.setBounds(pad, rowTop, choiceLabelWidth, rowH);
-        const int bx = pad + choiceButtonsOffset, bw = choiceButtonWidth, gap = choiceGap;
-        chordModeFingered.setBounds(bx,                  rowTop, bw, rowH);
-        chordModeSingle.setBounds  (bx + (bw + gap),     rowTop, bw, rowH);
-        chordModeFull.setBounds    (bx + thirdChoice * (bw + gap), rowTop, bw, rowH);
-    }
-    rowTop += rowH + toggleGap;
-    chordMemoryToggle.setBounds(pad, rowTop, toggleWidth, rowH);
-    rowTop += rowH + toggleGap;
-    synchroStartToggle.setBounds(pad, rowTop, toggleWidth, rowH);
-    rowTop += rowH + toggleGap;
-    countInToggle.setBounds(pad, rowTop, toggleWidth, rowH);
-    rowTop += rowH + toggleGap;
-    chordZoneMuteToggle.setBounds(pad, rowTop, toggleWidth, rowH);
-    rowTop += rowH + toggleGap;
-    nttEnabledToggle.setBounds(pad, rowTop, toggleWidth, rowH);
-    rowTop += rowH + toggleGap;
-    {
-        nttMinorScaleLabel.setBounds(pad, rowTop, choiceLabelWidth, rowH);
-        const int bx = pad + choiceButtonsOffset, bw = choiceButtonWidth, gap = choiceGap;
-        nttMinorDorian.setBounds  (bx,                  rowTop, bw, rowH);
-        nttMinorAeolian.setBounds (bx + (bw + gap),     rowTop, bw, rowH);
-        nttMinorHarmonic.setBounds(bx + thirdChoice * (bw + gap), rowTop, bw, rowH);
-    }
-}
-
-void MIDIWindow::panelInit()
-{
-    settingsPanel.setSize(panelWidth, panelHeight);   // tall enough for the arranger + Phase 4/5/6 chord rows + Phase 7a NTT rows
-
-    setBackgroundColour(panelBg);
-
-    setContentOwned(&settingsPanel, true);
-    settingsPanel.setVisible(false);
-}
-
-void MIDIWindow::devicesCBinit()
-{
-	deviceInMIDICBinit();
-	deviceOutMIDICBinit();
-	deviceAudioOutCBinit();
-}
-
-void MIDIWindow::deviceInMIDICBinit()
-{
-    comboBoxDevicesIN.addListener(this);
-    setStyleComboBox(comboBoxDevicesIN);
-    settingsPanel.addAndMakeVisible(this->comboBoxDevicesIN);
-    comboBoxDevicesIN.setVisible(false);
-
-    midiDevicesLabelIN.setText(Text::midiIn, juce::dontSendNotification);
-    setStyleLabel(midiDevicesLabelIN);
-    settingsPanel.addAndMakeVisible(midiDevicesLabelIN);
-    midiDevicesLabelIN.setVisible(false);
-}
-
-void MIDIWindow::deviceOutMIDICBinit()
-{
-    comboBoxDevicesOUT.addListener(this);
-    setStyleComboBox(comboBoxDevicesOUT);
-    settingsPanel.addAndMakeVisible(this->comboBoxDevicesOUT);
-    comboBoxDevicesOUT.setVisible(false);
-
-    midiDevicesLabelOUT.setText(Text::midiOut, juce::dontSendNotification);
-    setStyleLabel(midiDevicesLabelOUT);
-    settingsPanel.addAndMakeVisible(this->midiDevicesLabelOUT);
-    midiDevicesLabelOUT.setVisible(false);
-}
-
-void MIDIWindow::outputEngineCBinit()
-{
-    comboBoxOutputEngineType.addListener(this);
-	setStyleComboBox(comboBoxOutputEngineType);
-	settingsPanel.addAndMakeVisible(this->comboBoxOutputEngineType);
-	comboBoxOutputEngineType.setVisible(false);
-
-	outputEngineTypeLabel.setText(Text::outputEngine, juce::dontSendNotification);
-	setStyleLabel(outputEngineTypeLabel);
-	settingsPanel.addAndMakeVisible(this->outputEngineTypeLabel);
-	outputEngineTypeLabel.setVisible(false);
-}
-
-void MIDIWindow::deviceAudioOutCBinit()
-{
-	comboBoxAudioDevicesOUT.addListener(this);
-	setStyleComboBox(comboBoxAudioDevicesOUT);
-	settingsPanel.addAndMakeVisible(this->comboBoxAudioDevicesOUT);
-	comboBoxAudioDevicesOUT.setVisible(false);
-
-	audioDevicesLabelOUT.setText(Text::audioOut, juce::dontSendNotification);
-	setStyleLabel(audioDevicesLabelOUT);
-	settingsPanel.addAndMakeVisible(this->audioDevicesLabelOUT);
-	audioDevicesLabelOUT.setVisible(false);
+    if (sfzLibraryUI && sfzLibraryUI->isVisible())
+        sfzLibraryUI->setBounds(getLocalBounds().reduced(sfzLibraryInset));
 }
 
 void MIDIWindow::sfzButtonInit()
 {
-	sfzLibraryButton.setButtonText(SettingsWindowText::sfzLibrary);
-	settingsPanel.addAndMakeVisible(sfzLibraryButton);
-	sfzLibraryButton.setVisible(false);
-	sfzLibraryButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    
+    addAndMakeVisible(sfzLibraryButton);
+
     if (sfzManager != nullptr)
     {
         sfzLibraryUI = std::make_unique<SFZLibraryUI>(*sfzManager);
-        settingsPanel.addChildComponent(sfzLibraryUI.get());
-        sfzLibraryUI->setVisible(false);
+        addChildComponent(sfzLibraryUI.get());
         sfzLibraryUI->getCurrentStyleId = [this]() -> juce::String
         {
             return getCurrentStyleId ? getCurrentStyleId() : juce::String();
@@ -444,11 +382,17 @@ void MIDIWindow::sfzButtonInit()
             sfzLibraryUI->setVisible(!sfzLibraryUI->isVisible());
             if (sfzLibraryUI->isVisible())
             {
-                sfzLibraryUI->setBounds(settingsPanel.getLocalBounds().reduced(sfzLibraryInset));
+                sfzLibraryUI->setBounds(getLocalBounds().reduced(sfzLibraryInset));
                 sfzLibraryUI->toFront(true);
             }
         }
-	};
+    };
+}
+
+void MIDIWindow::refreshChoiceLeds()
+{
+    for (auto* button : { &chordModeFingered, &chordModeSingle, &chordModeFull, &nttMinorDorian, &nttMinorAeolian, &nttMinorHarmonic })
+        button->setLedOn(button->getToggleState());
 }
 
 void MIDIWindow::allInit()
@@ -461,32 +405,42 @@ void MIDIWindow::allInit()
         lastIndexAudioOut = propertyFile->getIntValue(SettingsFileKeys::audioOutIndex, firstItemId);
     }
 
-    panelInit();
-    devicesCBinit();
-    outputEngineCBinit();
-
-    settingsPanel.addAndMakeVisible(arrangerModeToggle);
-    arrangerModeToggle.setToggleState(propertyFile != nullptr && propertyFile->getBoolValue(SettingsFileKeys::arrangerModeEnabled, false),
-                                      juce::dontSendNotification);
-    arrangerModeToggle.onClick = [this]()
+    for (auto* label : { &outputEngineTypeLabel, &midiDevicesLabelIN, &midiDevicesLabelOUT, &audioDevicesLabelOUT,
+                         &keyboardLabel, &chordModeLabel, &nttMinorScaleLabel })
+        addAndMakeVisible(*label);
+    for (auto* field : { &comboBoxOutputEngineType, &comboBoxDevicesIN, &comboBoxDevicesOUT, &comboBoxAudioDevicesOUT, &keyboardField })
     {
-        const bool on = arrangerModeToggle.getToggleState();
-        if (propertyFile != nullptr) { propertyFile->setValue(SettingsFileKeys::arrangerModeEnabled, on); propertyFile->saveIfNeeded(); }
-        if (onArrangerModeChanged) onArrangerModeChanged(on);
+        field->addListener(this);
+        addAndMakeVisible(*field);
+    }
+
+    addAndMakeVisible(addDeviceButton);
+    addDeviceButton.onClick = [this]()
+    {
+        if (onAddDevice)
+            onAddDevice(comboBoxDevicesIN.getText());
     };
 
-    // Phase 4 arranger chord toggles. Defaults: bass inversion off, split scan, memory on.
-    // Each onClick captures `this` and references its own member directly (a previous helper captured
-    // a reference parameter that dangled, so the callback never fired).
-    settingsPanel.addAndMakeVisible(chordBassInversionToggle);
-    chordBassInversionToggle.setToggleState(propertyFile != nullptr && propertyFile->getBoolValue(SettingsFileKeys::chordBassInversion, false),
-                                            juce::dontSendNotification);
-    chordBassInversionToggle.onClick = [this]()
+    auto bindToggle = [this](RowToggle& toggle, const juce::String& key, bool fallback, std::function<void(bool)>* callback)
     {
-        const bool on = chordBassInversionToggle.getToggleState();
-        if (propertyFile != nullptr) { propertyFile->setValue(SettingsFileKeys::chordBassInversion, on); propertyFile->saveIfNeeded(); }
-        if (onChordBassInversionChanged) onChordBassInversionChanged(on);
+        addAndMakeVisible(toggle);
+        toggle.setToggleState(propertyFile != nullptr ? propertyFile->getBoolValue(key, fallback) : fallback, juce::dontSendNotification);
+        toggle.setMouseClickGrabsKeyboardFocus(false);   // keep the PC keyboard playable
+        toggle.onClick = [this, &toggle, key, callback]()
+        {
+            const bool on = toggle.getToggleState();
+            if (propertyFile != nullptr) { propertyFile->setValue(key, on); propertyFile->saveIfNeeded(); }
+            if (*callback) (*callback)(on);
+        };
     };
+    // Same keys and defaults as before (Chord memory and Chord transposition default on).
+    bindToggle(arrangerModeToggle,       SettingsFileKeys::arrangerModeEnabled, false, &onArrangerModeChanged);
+    bindToggle(chordBassInversionToggle, SettingsFileKeys::chordBassInversion,  false, &onChordBassInversionChanged);
+    bindToggle(chordMemoryToggle,        SettingsFileKeys::chordMemory,         true,  &onChordMemoryChanged);
+    bindToggle(synchroStartToggle,       SettingsFileKeys::synchroStart,        false, &onSynchroStartChanged);
+    bindToggle(countInToggle,            SettingsFileKeys::countIn,             false, &onCountInChanged);
+    bindToggle(chordZoneMuteToggle,      SettingsFileKeys::chordZoneMute,       false, &onChordZoneMuteChanged);
+    bindToggle(nttEnabledToggle,         SettingsFileKeys::nttEnabled,          true,  &onNttEnabledChanged);
 
     // Phase 5: 3-way chord-recognition mode selector (replaces the old Full-Keyboard on/off toggle).
     auto readStoredMode = [this]() -> ChordMode
@@ -499,22 +453,13 @@ void MIDIWindow::allInit()
                                                                       : ChordMode::Fingered;
     };
 
-    chordModeLabel.setText(Text::chordMode, juce::dontSendNotification);
-    settingsPanel.addAndMakeVisible(chordModeLabel);
-
     const int kChordModeRadio = 0x5C40DE;   // unique non-zero radio group id
     for (auto* button : { &chordModeFingered, &chordModeSingle, &chordModeFull })
     {
         button->setClickingTogglesState(true);
         button->setRadioGroupId(kChordModeRadio);
         button->setMouseClickGrabsKeyboardFocus(false);   // keep the PC keyboard playable
-        // Selected = warm-orange fill with dark text; unselected = dark card with muted text, so the
-        // active mode reads at a glance (the default TextButton on/off states were near-identical).
-        button->setColour(juce::TextButton::buttonColourId,   cardBg);
-        button->setColour(juce::TextButton::buttonOnColourId, accent1);
-        button->setColour(juce::TextButton::textColourOffId,  subtitleText);
-        button->setColour(juce::TextButton::textColourOnId,   background);
-        settingsPanel.addAndMakeVisible(*button);
+        addAndMakeVisible(*button);
     }
 
     const ChordMode storedMode = readStoredMode();
@@ -524,6 +469,7 @@ void MIDIWindow::allInit()
 
     auto pickMode = [this](ChordMode mode)
     {
+        refreshChoiceLeds();
         if (propertyFile != nullptr) { propertyFile->setValue(SettingsFileKeys::chordMode, (int) mode); propertyFile->saveIfNeeded(); }
         if (onChordModeChanged) onChordModeChanged(mode);
     };
@@ -531,61 +477,7 @@ void MIDIWindow::allInit()
     chordModeSingle.onClick   = [pickMode]{ pickMode(ChordMode::SingleFinger); };
     chordModeFull.onClick     = [pickMode]{ pickMode(ChordMode::FullKeyboard); };
 
-    settingsPanel.addAndMakeVisible(chordMemoryToggle);
-    chordMemoryToggle.setToggleState(propertyFile == nullptr || propertyFile->getBoolValue(SettingsFileKeys::chordMemory, true),
-                                     juce::dontSendNotification);
-    chordMemoryToggle.onClick = [this]()
-    {
-        const bool on = chordMemoryToggle.getToggleState();
-        if (propertyFile != nullptr) { propertyFile->setValue(SettingsFileKeys::chordMemory, on); propertyFile->saveIfNeeded(); }
-        if (onChordMemoryChanged) onChordMemoryChanged(on);
-    };
-
-    settingsPanel.addAndMakeVisible(synchroStartToggle);
-    synchroStartToggle.setToggleState(propertyFile != nullptr && propertyFile->getBoolValue(SettingsFileKeys::synchroStart, false),
-                                      juce::dontSendNotification);
-    synchroStartToggle.onClick = [this]()
-    {
-        const bool on = synchroStartToggle.getToggleState();
-        if (propertyFile != nullptr) { propertyFile->setValue(SettingsFileKeys::synchroStart, on); propertyFile->saveIfNeeded(); }
-        if (onSynchroStartChanged) onSynchroStartChanged(on);
-    };
-
-    settingsPanel.addAndMakeVisible(countInToggle);
-    countInToggle.setToggleState(propertyFile != nullptr && propertyFile->getBoolValue(SettingsFileKeys::countIn, false),
-                                 juce::dontSendNotification);
-    countInToggle.onClick = [this]()
-    {
-        const bool on = countInToggle.getToggleState();
-        if (propertyFile != nullptr) { propertyFile->setValue(SettingsFileKeys::countIn, on); propertyFile->saveIfNeeded(); }
-        if (onCountInChanged) onCountInChanged(on);
-    };
-
-    settingsPanel.addAndMakeVisible(chordZoneMuteToggle);
-    chordZoneMuteToggle.setToggleState(propertyFile != nullptr && propertyFile->getBoolValue(SettingsFileKeys::chordZoneMute, false),
-                                       juce::dontSendNotification);
-    chordZoneMuteToggle.onClick = [this]()
-    {
-        const bool on = chordZoneMuteToggle.getToggleState();
-        if (propertyFile != nullptr) { propertyFile->setValue(SettingsFileKeys::chordZoneMute, on); propertyFile->saveIfNeeded(); }
-        if (onChordZoneMuteChanged) onChordZoneMuteChanged(on);
-    };
-
-    // Phase 7a: master Chord-Transposition (NTT) on/off. Default ON.
-    settingsPanel.addAndMakeVisible(nttEnabledToggle);
-    nttEnabledToggle.setToggleState(propertyFile == nullptr || propertyFile->getBoolValue(SettingsFileKeys::nttEnabled, true),
-                                    juce::dontSendNotification);
-    nttEnabledToggle.onClick = [this]()
-    {
-        const bool on = nttEnabledToggle.getToggleState();
-        if (propertyFile != nullptr) { propertyFile->setValue(SettingsFileKeys::nttEnabled, on); propertyFile->saveIfNeeded(); }
-        if (onNttEnabledChanged) onNttEnabledChanged(on);
-    };
-
     // Phase 7a: curated minor-scale selector for NTT passing-tone snap (Dorian default).
-    nttMinorScaleLabel.setText(Text::minorScale, juce::dontSendNotification);
-    settingsPanel.addAndMakeVisible(nttMinorScaleLabel);
-
     const int kNttMinorRadio = 0x77017A;   // unique non-zero radio group id
     int minorIdx {};
     for (auto* button : { &nttMinorDorian, &nttMinorAeolian, &nttMinorHarmonic })
@@ -593,23 +485,21 @@ void MIDIWindow::allInit()
         button->setClickingTogglesState(true);
         button->setRadioGroupId(kNttMinorRadio);
         button->setMouseClickGrabsKeyboardFocus(false);   // keep the PC keyboard playable
-        button->setColour(juce::TextButton::buttonColourId,   cardBg);
-        button->setColour(juce::TextButton::buttonOnColourId, accent1);
-        button->setColour(juce::TextButton::textColourOffId,  subtitleText);
-        button->setColour(juce::TextButton::textColourOnId,   background);
         const int idx = minorIdx++;
         button->onClick = [this, idx]()
         {
+            refreshChoiceLeds();
             if (propertyFile != nullptr) { propertyFile->setValue(SettingsFileKeys::nttMinorScale, idx); propertyFile->saveIfNeeded(); }
             if (onNttMinorScaleChanged) onNttMinorScaleChanged(idx);
         };
-        settingsPanel.addAndMakeVisible(*button);
+        addAndMakeVisible(*button);
     }
     const int storedMinor = propertyFile != nullptr ? juce::jlimit(MinorScaleButtons::dorian, MinorScaleButtons::harmonic, propertyFile->getIntValue(SettingsFileKeys::nttMinorScale, MinorScaleButtons::dorian)) : MinorScaleButtons::dorian;
     (storedMinor == MinorScaleButtons::aeolian ? nttMinorAeolian : storedMinor == MinorScaleButtons::harmonic ? nttMinorHarmonic : nttMinorDorian)
         .setToggleState(true, juce::dontSendNotification);
+    refreshChoiceLeds();
 
-	sfzButtonInit();
+    sfzButtonInit();
 }
 
 void MIDIWindow::populateCBIN()
@@ -646,6 +536,7 @@ void MIDIWindow::populateCBengine()
         id++;
     }
     comboBoxOutputEngineType.setSelectedId(firstItemId, juce::dontSendNotification);
+    switchBetweenEngineOptions(firstItemId);
 }
 
 void MIDIWindow::populateCBaudioOUT()
@@ -658,12 +549,11 @@ void MIDIWindow::populateCBaudioOUT()
     for (const auto& device : devicesListAudioOUT)
     {
         comboBoxAudioDevicesOUT.addItem(juce::String(device), id);
-		id++;
+        id++;
     }
 
     comboBoxAudioDevicesOUT.setSelectedId(firstItemId, juce::dontSendNotification);
 }
-
 
 void MIDIWindow::restoreCBoxes()
 {
@@ -672,38 +562,19 @@ void MIDIWindow::restoreCBoxes()
     if(lastIndexOUT <= comboBoxDevicesOUT.getNumItems())
         comboBoxDevicesOUT.setSelectedId(lastIndexOUT, juce::sendNotificationSync);
     if(lastIndexAudioOut <= comboBoxAudioDevicesOUT.getNumItems())
-		comboBoxAudioDevicesOUT.setSelectedId(lastIndexAudioOut, juce::sendNotificationSync);
+        comboBoxAudioDevicesOUT.setSelectedId(lastIndexAudioOut, juce::sendNotificationSync);
     if(lastIndexEngineOption <= comboBoxOutputEngineType.getNumItems())
         comboBoxOutputEngineType.setSelectedId(lastIndexEngineOption, juce::sendNotificationSync);
 }
 
-void MIDIWindow::setStyleComboBox(juce::ComboBox& cb)
-{
-    cb.setColour(juce::ComboBox::backgroundColourId, cardBg);
-    cb.setColour(juce::ComboBox::outlineColourId, separator);
-    cb.setColour(juce::ComboBox::textColourId, titleText);
-    cb.setColour(juce::ComboBox::arrowColourId, accent1);
-    cb.setMouseCursor(juce::MouseCursor::PointingHandCursor);
-}
-
-void MIDIWindow::setStyleLabel(juce::Label& label)
-{
-    label.setFont(juce::FontOptions(labelFontHeight));
-    label.setColour(juce::Label::textColourId, accent1);
-}
-
 void MIDIWindow::switchBetweenEngineOptions(int selectedId)
 {
-    if (selectedId == OutputEngineIds::externalMidi)
-    {
-		toggleSettingsOutMIDICB();
-		toggleSettingsAudioOutCB();
-        toggleSFZbutton();
-    }
-    else if(selectedId == OutputEngineIds::internalSfz)
-    {
-        toggleSettingsOutMIDICB();
-        toggleSettingsAudioOutCB();
-        toggleSFZbutton();
-	}
+    // Today the window showed MIDI out for the external engine and Audio out + SFZ library for the internal
+    // synth. The page shows all of them (board) and disables the ones that do not apply.
+    const bool internal = selectedId == OutputEngineIds::internalSfz;
+    comboBoxDevicesOUT.setEnabled(! internal);
+    comboBoxAudioDevicesOUT.setEnabled(internal);
+    sfzLibraryButton.setEnabled(internal);
+    midiDevicesLabelOUT.setAlpha(internal ? StageMetrics::disabledLabelAlpha : StageMetrics::enabledAlpha);
+    audioDevicesLabelOUT.setAlpha(internal ? StageMetrics::enabledAlpha : StageMetrics::disabledLabelAlpha);
 }
