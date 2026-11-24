@@ -38,6 +38,8 @@ namespace StylePageText
 }
 
 /** The Style page's two columns: the styles list and the tracks area (board: 230, gap 24, the rest). */
+class TableContainer;
+
 struct StylePageRects
 {
     juce::Rectangle<int> stylesColumn, tracksArea;
@@ -302,4 +304,10 @@ private:
     std::unordered_map<juce::Uuid, TrackEntry*> mapUuidToTrack; ///< Map of track UUIDs to entries
 
     juce::ListenerList<DisplayListener> displayListeners; ///< Registered listeners
+
+    // The notes page of a track (board PageNotes). Declared last: it is destroyed first, before the style
+    // component whose player it listens to.
+    void showNotes(std::unique_ptr<TableContainer> notes, const juce::String& title, const juce::String& subtitle);
+    std::unique_ptr<TableContainer> notesContainer;
+    juce::String notesTitle, notesSubtitle;
 };

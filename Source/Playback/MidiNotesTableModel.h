@@ -10,6 +10,7 @@
 
 #pragma once
 #include <JuceHeader.h>
+#include "UI/Stage/StageMetrics.h"
 #include "TrackEntry.h"
 #include "SelectableLabel.h"
 #include "TrackPlayerListener.h"
@@ -21,6 +22,7 @@ namespace NoteTableColumns
     constexpr int time     = 2;
     constexpr int velocity = 3;
     constexpr int channel  = 4;
+    constexpr int index    = 5;    // the notes page's "#" column
     constexpr int noRow    = -1;
 }
 
@@ -88,6 +90,10 @@ public:
     /** @brief Provides a custom component for a cell */
     juce::Component* refreshComponentForCell(int rowNumber, int columnId, bool isRowSelected, juce::Component* existingComponentToUpdate) override;
 
+    /** The notes page's velocity bar: velocity x 0.9 board px (board PageNotes barWidth), scaled. */
+    static float velocityBarWidth(int velocity, float scale);
+    void setScale(float newScale);
+
     /** @brief Converts a note name (e.g., "C4") to a MIDI note number */
     int getMidiNoteNumberFromName(const juce::String& name, int octaveMiddleC = NoteNames::middleCOctave);
 
@@ -136,5 +142,6 @@ private:
     //std::unordered_map<int, int> originalIndexToRowMap; /**< Maps original sequence index to table row */
     std::vector<EventWithIndex> noteOnEvents; /**< Filtered note-on events */
     int channel; /**< MIDI channel being displayed */
+    float scale = StageMetrics::referenceScale; /**< Stage scale of the notes page */
     std::unordered_map<int, MidiChangeInfo>* changesMap = nullptr; /**< Map of user modifications */
 };

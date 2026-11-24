@@ -17,6 +17,7 @@
 #include "SubjectInterface.h"
 #include "TrackPlayerListener.h"
 #include "TrackPlayer.h"
+#include "UI/Stage/StagePageWidgets.h"
 
 /** Item ids of the "Undo settings" dropdown (reset to the original track). */
 namespace ResetActionIds
@@ -46,6 +47,13 @@ namespace TableDialog
     inline const juce::String modifyAll      = "Modify All";
     inline const juce::String modifySelected = "Modify selected";
     inline const juce::String cancel         = "Cancel";
+
+    /** The id a confirm-dialog button returns: Cancel is a dismissal wherever it sits (it used to get its
+        position's id, so with no rows selected it ran "change selected" - backlog section 2). */
+    inline int resultIdFor (const juce::String& caption, int buttonIndex)
+    {
+        return caption == cancel ? dismissed : buttonIndex + firstButtonId;
+    }
 }
 
 /**
@@ -87,6 +95,16 @@ public:
      * @brief Called when the component is resized.
      */
     void resized() override;
+    void paint(juce::Graphics& g) override;
+
+    //==============================================================================
+    // The notes page (board PageNotes): the two old choice boxes become buttons; each sets the old choice
+    // and runs the old action, so the actions themselves are unchanged.
+    using ActionButton = std::pair<juce::String, int>;   ///< caption, action id
+    static std::vector<ActionButton> resetButtons();     ///< Back to recorded: Notes / Time stamps / Velocities / Everything
+    static std::vector<ActionButton> modifyButtons();    ///< Whole track: Shift time stamps... / Set velocities...
+    void setScale(float newScale);
+    int getNumNotes();
 
     void updateObjects() override;
 
@@ -274,4 +292,19 @@ private:
     int lastSelectedRow = noSelectedRow;                     ///< Last selected row for shift selection
     std::unordered_map<int, MidiChangeInfo>& changesMap; ///< Map of MIDI changes
     std::variant<int, double> editorValue{};      ///< Value entered in the modify dialog
+
+    // --- The notes page (CustomTableContainerPage.cpp) ---
+    /** The table header on the LCD (board .grid.head): mono 11 px, a rule under it, no column borders. */
+    struct NotesTableLook : public juce::LookAndFeel_V4
+    {
+        float scale = StageMetrics::referenceScale;
+        void drawTableHeaderBackground (juce::Graphics& g, juce::TableHeaderComponent& header) override;
+        void drawTableHeaderColumn (juce::Graphics& g, juce::TableHeaderComponent& header, const juce::String& columnName, int columnId,
+                                    int width, int height, bool isMouseOver, bool isMouseDown, int columnFlags) override;
+    };
+    std::unique_ptr<NotesTableLook> tableLook;
+    juce::OwnedArray<SegButton> modifyActionButtons, resetActionButtons;
+    float scale = StageMetrics::referenceScale;
+    void createPageControls();
+    void refreshPageButtons();
 };

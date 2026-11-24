@@ -339,6 +339,8 @@
         <FILE id="uwICeF" name="CustomTableContainer.cpp" compile="1" resource="0"
               file="Source/UI/CustomTableContainer.cpp"/>
         <FILE id="splgRV" name="CustomTableContainerModify.cpp" compile="1" resource="0" file="Source/UI/CustomTableContainerModify.cpp"/>
+        <FILE id="ctcPgC" name="CustomTableContainerPage.cpp" compile="1" resource="0"
+              file="Source/UI/CustomTableContainerPage.cpp"/>
         <FILE id="NpdkDy" name="CustomTableContainer.h" compile="0" resource="0"
               file="Source/UI/CustomTableContainer.h"/>
         <FILE id="Fob7bQ" name="CustomBeatBar.cpp" compile="1" resource="0"

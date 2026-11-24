@@ -1,4 +1,5 @@
 #include "displayGUI.h"
+#include "CustomTableContainer.h"
 
 namespace
 {
@@ -107,7 +108,7 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
 
 Display::~Display()
 {
-
+    destroySubView();   // the track picker / notes page listen to the style component: they go first
 }
 
 juce::String Display::getStyleID() const
@@ -148,6 +149,10 @@ void Display::showCurrentStyleTab(const juce::String& name)
 
         addAndMakeVisible(currentStyleComponent.get());
         currentStyleComponent->onInfo = [this](const juce::String& text) { if (onInfo) onInfo(text); };
+        currentStyleComponent->onShowNotes = [this](std::unique_ptr<TableContainer> notes, const juce::String& title, const juce::String& subtitle)
+        {
+            showNotes(std::move(notes), title, subtitle);
+        };
 
         if (pendingMidiInjectCallback)
             currentStyleComponent->setMidiInjectCallback(pendingMidiInjectCallback);

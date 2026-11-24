@@ -327,7 +327,7 @@ void TableContainer::showModifyChangeDialog(
                    auto& buttons = anySelected() ? buttonsWithSelection : buttonsWithoutSelection;
 
                    for (int buttonIndex {}; buttonIndex < buttons.size(); buttonIndex++)
-                       alert->addButton(buttons[buttonIndex], buttonIndex + TableDialog::firstButtonId);
+                       alert->addButton(buttons[buttonIndex], TableDialog::resultIdFor(buttons[buttonIndex], buttonIndex));
 
                    alert->enterModalState(true,
                        juce::ModalCallbackFunction::create([this, onValidResults](int result)
@@ -352,7 +352,7 @@ void TableContainer::showModifyChangeDialog(
         auto& buttons = anySelected() ? buttonsWithSelection : buttonsWithoutSelection;
 
         for (int buttonIndex {}; buttonIndex < buttons.size(); buttonIndex++)
-            alert->addButton(buttons[buttonIndex], buttonIndex + TableDialog::firstButtonId);
+            alert->addButton(buttons[buttonIndex], TableDialog::resultIdFor(buttons[buttonIndex], buttonIndex));
 
         alert->enterModalState(true,
             juce::ModalCallbackFunction::create([this, onValidResults](int result)

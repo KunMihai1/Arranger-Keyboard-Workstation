@@ -9,11 +9,20 @@
 */
 
 #include "MidiNotesTableModel.h"
+#include "UI/Stage/StagePageWidgets.h"
+#include "UI/Stage/StageFonts.h"
+#include "Common/AppColours.h"
 
 namespace
 {
-    constexpr float cellFontHeight   = 14.0f;
-    constexpr int   cellTextInset    = 2;
+    constexpr float cellFontHeight   = 13.0f;   // board PageNotes .grid: 13 px Share Tech Mono
+    constexpr float barPerVelocity   = 0.9f;    // board barWidth = velocity x 0.9
+    constexpr int   velocityTextWidth = 36;     // the number, then the bar (board: 28 + gap 8)
+    constexpr int   barHeight        = 7;
+    constexpr float barAlpha         = 0.75f;
+    constexpr int   indexTextInset   = 12;      // the "#" column keeps the grid's padding
+    constexpr int   firstRowNumber   = 1;
+    constexpr float halfOf           = 2.0f;
     constexpr int   cellTextSpare    = 4;
     constexpr int   cellTop          = 0;
     constexpr int   cellLeft         = 0;
@@ -96,15 +105,34 @@ void MidiNotesTableModel::sortOrderChanged(int newSortColumnId, bool isForwards)
         refreshData();
 }
 
-void MidiNotesTableModel::paintRowBackground(juce::Graphics& g, int rowNumber, int width, int height, bool rowIsSelected)
+float MidiNotesTableModel::velocityBarWidth(int velocity, float pageScale)
 {
+    return static_cast<float>(velocity) * barPerVelocity * pageScale;
+}
+
+void MidiNotesTableModel::setScale(float newScale)
+{
+    scale = newScale;
+}
+
+void MidiNotesTableModel::paintRowBackground(juce::Graphics& g, int, int, int, bool rowIsSelected)
+{
+    // Board PageNotes: rows on the LCD, the selected one inverted.
     if (rowIsSelected)
-        g.fillAll(juce::Colours::lightblue);
-    else g.fillAll(juce::Colours::lightgrey);
+        g.fillAll(StagePalette::lcdInk);
 }
 
 void MidiNotesTableModel::paintCell(juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool isSelected)
 {
+    if (columnId == NoteTableColumns::index)
+    {
+        g.setColour(StageLcd::textColour(isSelected));
+        g.setFont(StageFonts::lcd(cellFontHeight * scale));
+        g.drawText(juce::String(rowNumber + firstRowNumber), juce::Rectangle<float>(indexTextInset * scale, float {}, static_cast<float>(width), static_cast<float>(height)),
+                   juce::Justification::centredLeft, false);
+        return;
+    }
+
     if (columnId == NoteTableColumns::channel || columnId == NoteTableColumns::velocity || columnId == NoteTableColumns::time)
     {
         if (rowNumber < firstRow || rowNumber >= noteOnEvents.size()) return;
@@ -128,18 +156,26 @@ void MidiNotesTableModel::paintCell(juce::Graphics& g, int rowNumber, int column
             }
         }
 
-        g.setColour(juce::Colours::black);
-        g.setFont(cellFontHeight);
-        g.drawText(text, cellTextInset, cellTop, width - cellTextSpare, height, juce::Justification::centredLeft);
-        g.setColour(juce::Colours::lightgrey);
-        g.drawRect(cellLeft, cellTop, width, height);
+        g.setColour(StageLcd::textColour(isSelected));
+        g.setFont(StageFonts::lcd(cellFontHeight * scale));
+        g.drawText(text, cellLeft, cellTop, width - cellTextSpare, height, juce::Justification::centredLeft);
+
+        // Velocity: the number, then a bar as long as the velocity (board .vbar, 75 % of the text colour).
+        if (columnId == NoteTableColumns::velocity && msg.isNoteOn())
+        {
+            const auto barLength = velocityBarWidth(msg.getVelocity(), scale);
+            g.setColour(StageLcd::textColour(isSelected).withMultipliedAlpha(barAlpha));
+            g.fillRect(juce::Rectangle<float>(velocityTextWidth * scale, (static_cast<float>(height) - barHeight * scale) / halfOf,
+                                              juce::jmin(barLength, static_cast<float>(width) - velocityTextWidth * scale), barHeight * scale));
+        }
     }
 }
 
 
 juce::Component* MidiNotesTableModel::refreshComponentForCell(int rowNumber, int columnId, bool isRowSelected, juce::Component* existingComponentToUpdate)
 {
-    if (columnId == NoteTableColumns::channel || columnId == NoteTableColumns::velocity || columnId == NoteTableColumns::time)
+    if (columnId == NoteTableColumns::channel || columnId == NoteTableColumns::velocity || columnId == NoteTableColumns::time
+        || columnId == NoteTableColumns::index)   // the "#" column is drawn, not edited
         return nullptr;
 
 
@@ -164,6 +200,9 @@ juce::Component* MidiNotesTableModel::refreshComponentForCell(int rowNumber, int
         label->setWantsKeyboardFocus(true);
         label->setEditable(false, true, false);
     }
+    // The note on the LCD row (double-click edits it, as before).
+    label->setFont(StageFonts::lcd(cellFontHeight * scale));
+    label->setBorderSize({});
 
     label->onEditorHide = [this, rowNumber, columnId, label, originalIndex,changeMapIndex]()
     {
@@ -291,7 +330,7 @@ juce::Component* MidiNotesTableModel::refreshComponentForCell(int rowNumber, int
         }
         
     }
-    label->setColour(juce::Label::textColourId,juce::Colours::darkgrey);
+    label->setColour(juce::Label::textColourId, StageLcd::textColour(isRowSelected));   // the LCD's ink (inverted when selected)
 
     return label;
 }

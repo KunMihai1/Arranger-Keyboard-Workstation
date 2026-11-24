@@ -14,6 +14,7 @@
 
 #include "Display.h"
 #include "UI/Stage/StageMetrics.h"
+#include "CustomTableContainer.h"
 
 StylePageRects stylePageLayout (juce::Rectangle<int> content, float scale)
 {
@@ -34,6 +35,8 @@ void Display::setScale (float newScale)
         currentStyleComponent->setScale (scale);
     if (trackListComp)
         trackListComp->setScale (scale);
+    if (notesContainer)
+        notesContainer->setScale (scale);
     layoutViews();
     repaint();
 }
@@ -74,6 +77,7 @@ void Display::destroySubView()
         trackListComp.reset();
     }
     playBackSettings.reset();
+    notesContainer.reset();
 }
 
 void Display::layoutViews()
@@ -94,6 +98,8 @@ void Display::layoutViews()
         trackListComp->setBounds (area);
     if (playBackSettings)
         playBackSettings->setBounds (area);
+    if (notesContainer)
+        notesContainer->setBounds (area);
     repaint();
 }
 
@@ -116,7 +122,7 @@ juce::String Display::getViewTitle() const
             return StylePageText::tracksTitle + juce::String::fromUTF8 (StylePageText::slotSeparatorUtf8)
                  + juce::String (currentStyleComponent ? currentStyleComponent->getRequestingSlot() : int {});
         case StyleView::settings: return StylePageText::settingsTitle;
-        case StyleView::notes:
+        case StyleView::notes:    return notesTitle;
         case StyleView::style:    break;
     }
     return StylePageText::title;
@@ -124,7 +130,18 @@ juce::String Display::getViewTitle() const
 
 juce::String Display::getViewSubtitle() const
 {
-    return {};
+    return views.current() == StyleView::notes ? notesSubtitle : juce::String();
+}
+
+void Display::showNotes (std::unique_ptr<TableContainer> notes, const juce::String& title, const juce::String& subtitle)
+{
+    destroySubView();   // one sub-page at a time
+    notesContainer = std::move (notes);
+    notesTitle     = title;
+    notesSubtitle  = subtitle;
+    notesContainer->setScale (scale);
+    addAndMakeVisible (notesContainer.get());
+    showView (StyleView::notes);
 }
 
 std::vector<juce::Component*> Display::getTitleActions()

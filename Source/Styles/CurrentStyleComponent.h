@@ -9,6 +9,8 @@
 #include "StyleSection.h"
 #include "CustomBeatBar.h"
 
+class TableContainer;
+
 /** Item ids of the play-settings dropdown. 1 and 2 are play modes (kept ticked); 3 and 4 are actions. */
 namespace PlayModeIds
 {
@@ -94,6 +96,10 @@ public:
 
     /** Every beat position the beat bar shows, with its beats per bar (message thread). */
     std::function<void(double elapsedBeats, int beatsPerBar)> onBeatPosition;
+
+    /** The notes page of a track (board PageNotes): the host shows it in the Style page, titled
+        "Notes · <track>" with "Track n · <instrument> · N notes" under it. */
+    std::function<void(std::unique_ptr<TableContainer> notes, const juce::String& title, const juce::String& subtitle)> onShowNotes;
 
     /** A short message for the Stage screen (from a track strip). */
     std::function<void(const juce::String& text)> onInfo;
