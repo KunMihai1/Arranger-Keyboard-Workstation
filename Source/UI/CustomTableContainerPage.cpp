@@ -129,6 +129,8 @@ void TableContainer::createPageControls()
 
 void TableContainer::refreshPageButtons()
 {
+    if (modifyMultipleButton == nullptr || changeToOriginalMultipleButton == nullptr)
+        return;
     for (auto* button : modifyActionButtons)
         button->setEnabled (modifyMultipleButton->isEnabled());
     for (auto* button : resetActionButtons)

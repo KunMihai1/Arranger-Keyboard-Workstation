@@ -495,7 +495,6 @@ void Display::homeButtonInteraction()
     closeSubView();
     if (currentStyleComponent)
         currentStyleComponent->comboBoxChangeIndex(allTracksIndex);
-    this->playBackSettings.reset();
     refreshTitleActions();
 }
 

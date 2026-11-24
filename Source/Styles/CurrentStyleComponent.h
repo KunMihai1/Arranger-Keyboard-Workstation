@@ -52,6 +52,7 @@ class CurrentStyleComponent : public juce::Component,
 public:
 
     static constexpr int trackSlots = 8;   ///< Track slots per style (one row).
+    static constexpr int firstSlotNumber = 1;   ///< The strips are numbered 1..8.
 
     //==============================================================================
 
@@ -411,6 +412,9 @@ private:
     std::unique_ptr<Track> copiedTrack = nullptr;           ///< Track object used for copy/paste operations.
     float scale = StageMetrics::referenceScale;
     int requestingSlot {};
+    /** Made on the message thread (with the component): copied by callbacks that may run on the timer
+        thread, where making a new SafePointer is not thread-safe. */
+    juce::Component::SafePointer<CurrentStyleComponent> selfPointer { this };
     BeatBar customBeatBar;                                  ///< Visual component displaying beat progression.
 
     std::weak_ptr<std::unordered_map<juce::String, std::unordered_map<juce::String,StyleSection>>> styleSectionsMap;

@@ -21,7 +21,6 @@ namespace
     }
 
     constexpr double beatsAtStart        = 0.0;
-    constexpr int    firstSlotNumber     = 1;      // the strips are numbered 1..8
     constexpr double minTempoBpm         = 60.0;
     constexpr double maxTempoBpm         = 200.0;
     constexpr double tempoStepBpm        = 1.0;
@@ -240,7 +239,7 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
 
     trackPlayer->onStopTriggerClickFromPlayer = [this]()
     {
-        const juce::Component::SafePointer<CurrentStyleComponent> safeThis (this);
+        const auto safeThis = selfPointer;   // may run on the player's timer thread: copy, don't create
         juce::MessageManager::callAsync([safeThis]()
             {
                 if (safeThis == nullptr) return;

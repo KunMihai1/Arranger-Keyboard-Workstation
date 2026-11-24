@@ -126,6 +126,7 @@ namespace TrackListNames
     inline constexpr int noteGlyphSize     = 8;
     inline constexpr int rowNameLeft       = 34;
     inline constexpr int detailPaddingTop  = 6;
+    inline constexpr int panelPaddings     = 2;     // padding above and below the details
     inline constexpr int detailPaddingSide = 12;
     inline constexpr int detailRowHeight   = 22;
     inline constexpr int boardDetailRows   = 4;     // the panel keeps room for four rows (folder or track)

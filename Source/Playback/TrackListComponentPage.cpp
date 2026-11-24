@@ -71,8 +71,7 @@ void TrackListComponent::cycleSort()
     const int next = sortComboBox->getSelectedId() == SortIds::byName      ? SortIds::newestFirst
                    : sortComboBox->getSelectedId() == SortIds::newestFirst ? SortIds::oldestFirst
                                                                            : SortIds::byName;
-    sortComboBox->setSelectedId(next, juce::sendNotificationSync);
-    comboBoxChanged(sortComboBox.get());   // sorts the open folder now (a ComboBox only notifies on a change)
+    sortComboBox->setSelectedId(next, juce::sendNotificationSync);   // a new id: comboBoxChanged sorts the open folder
 }
 
 juce::String TrackListComponent::sortCaption() const
@@ -148,7 +147,7 @@ juce::Rectangle<int> TrackListComponent::detailArea() const
     const auto left = juce::roundToInt(static_cast<float>(listColumnWidth + columnGap) * scale);
     const auto top  = juce::roundToInt(static_cast<float>(StageMetrics::headingHeight + detailHeadingGap) * scale);
     const auto rows = static_cast<int>(details().size());
-    const auto height = juce::roundToInt(static_cast<float>(detailPaddingTop * static_cast<int>(halves) + rows * detailRowHeight) * scale);
+    const auto height = juce::roundToInt(static_cast<float>(detailPaddingTop * panelPaddings + rows * detailRowHeight) * scale);
     return { left, top, juce::jmax(int {}, getWidth() - left), height };
 }
 
@@ -164,7 +163,7 @@ void TrackListComponent::resized()
     // Details column: the panel (rows shown even before a selection: four, as the board), the big button, then a row of buttons.
     const auto left  = scaled(listColumnWidth + columnGap);
     const auto width = juce::jmax(int {}, getWidth() - left);
-    const auto panelBottom = scaled(StageMetrics::headingHeight + detailHeadingGap + detailPaddingTop * static_cast<int>(halves)
+    const auto panelBottom = scaled(StageMetrics::headingHeight + detailHeadingGap + detailPaddingTop * panelPaddings
                                     + boardDetailRows * detailRowHeight);
     auto* big = viewMode == ViewMode::TrackView ? &useButton : &openFolderButton;
     big->setBounds(left, panelBottom + scaled(detailHeadingGap), width, big->getPreferredHeight());

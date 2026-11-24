@@ -17,7 +17,6 @@ namespace
         const char* const  middleDotUtf8  = " \xc2\xb7 ";   // " · " (U+00B7)
     }
 
-    constexpr int    firstSlotNumber       = 1;      // the strips are numbered 1..8
     constexpr int    notesWindowWidth      = 350;
     constexpr int    notesWindowHeight     = 340;
     constexpr double noTempo               = 0.0;     // a BPM at or below this is unset
@@ -178,14 +177,7 @@ void CurrentStyleComponent::showingTheInformationNotesFromTrack(const juce::Uuid
         const auto title = Text::notesTitle + dot + displayName;
         const auto subtitle = Text::trackWord + juce::String(slot) + dot + instrument + dot + juce::String(container->getNumNotes()) + Text::notesWord;
         onShowNotes(std::move(container), title, subtitle);
-        return;
     }
-
-    juce::CallOutBox::launchAsynchronously(
-        std::move(container),
-        getScreenBounds(),
-        nullptr
-    );
 
 }
 

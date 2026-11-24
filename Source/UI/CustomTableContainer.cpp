@@ -180,6 +180,7 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
 
     table->setMultipleSelectionEnabled(true);
 
+    // "#" numbers the rows as shown; clicking its header sorts nothing (sortOrderChanged has no branch for it).
     table->getHeader().addColumn(Text::indexColumn, NoteTableColumns::index, noteColumnWidth);   // widths: setScale()
     table->getHeader().addColumn(Text::noteColumn, NoteTableColumns::note, noteColumnWidth);
     table->getHeader().addColumn(Text::timeColumn, NoteTableColumns::time, timeColumnWidth);
