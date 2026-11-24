@@ -197,6 +197,16 @@ namespace StageMetrics
     inline constexpr int   headingGap         = 10;    // section heading: title, rule, dim text
     inline constexpr int   headingHeight      = 12;
 
+    // --- Fields and row toggles (StageRevised .field / .row-toggle, Settings page) ---
+    inline constexpr int   fieldHeight        = 24;
+    inline constexpr int   fieldPadding       = 8;
+    inline constexpr int   fieldCorner        = 2;
+    inline constexpr float fieldTextSize      = 13.0f;
+    inline constexpr int   fieldArrowWidth    = 22;    // the two arrows at 13 px mono (board 21.33)
+    inline constexpr int   rowToggleHeight    = 22;
+    inline constexpr int   rowToggleGap       = 8;     // LED to text
+    inline constexpr float rowToggleSpacing   = 0.06f;
+
     // --- Track strip (StageRevised .strip, Style page): top to bottom, gaps 6 ---
     inline constexpr int   stripPadding       = 6;
     inline constexpr int   stripGap           = 6;

@@ -16,6 +16,17 @@ namespace StagePageWidgetsTestValues
     const juce::String ledSegSize     = "a seg button with an LED adds the LED and its gap";
     const juce::String litLed         = "a seg button's lit LED is drawn red";
     const juce::String greenLed       = "a seg button can have a green LED (Sustain)";
+    const juce::String fieldSteps     = "a field's arrows step its choice, stopping at the ends; the text is the choice";
+    const juce::String rowToggles     = "a row toggle flips its state on click and lights its LED; an action row never lights";
+    const juce::String choiceOne      = "External MIDI";
+    const juce::String choiceTwo      = "Internal SFZ synth";
+    constexpr int choiceOneId   = 1;
+    constexpr int choiceTwoId   = 2;
+    constexpr int fieldWidth    = 262;
+    constexpr int fieldHeight   = 24;
+    constexpr int rowWidth262   = 262;
+    constexpr int rowHeight22   = 22;
+    constexpr int twoChanges    = 2;
     const juce::String sustainText    = "Sustain";
     const juce::String faderCap       = "the fader cap runs from 116 (value 0) to 0 (value 127) like the board's capTop";
     const juce::String faderRange     = "the fader is a vertical 0-127 slider that does not jump to the click";
@@ -138,6 +149,42 @@ public:
             const auto led = button.getLedBounds().getCentre().roundToInt();
             const auto colour = image.getPixelAt (led.x, led.y);
             expect (colour.getGreen() > colour.getRed() * redDominance && colour.getGreen() > colour.getBlue() * redDominance);
+        }
+
+        beginTest (fieldSteps);
+        {
+            StageField field;
+            field.addItem (choiceOne, choiceOneId);
+            field.addItem (choiceTwo, choiceTwoId);
+            field.setSelectedId (choiceOneId, juce::dontSendNotification);
+            field.setScale (referenceScale);
+            field.setSize (fieldWidth, fieldHeight);
+            int changes {};
+            field.onChange = [&changes] { ++changes; };
+            field.step (true);
+            expectEquals (field.getSelectedId(), choiceTwoId);
+            field.step (true);   // already the last: stays
+            expectEquals (field.getSelectedId(), choiceTwoId);
+            field.step (false);
+            expectEquals (field.getSelectedId(), choiceOneId);
+            expectEquals (changes, twoChanges);   // the step at the end changed nothing
+            expect (field.getRightArrowBounds().getX() > field.getLeftArrowBounds().getX());
+            expect (field.getRightArrowBounds().getRight() <= static_cast<float> (fieldWidth));
+        }
+
+        beginTest (rowToggles);
+        {
+            RowToggle toggle { choiceOne };
+            toggle.setScale (referenceScale);
+            toggle.setSize (rowWidth262, rowHeight22);
+            expect (! toggle.isLedOn());
+            toggle.setToggleState (true, juce::sendNotificationSync);
+            expect (toggle.isLedOn());
+
+            RowToggle action { choiceTwo, RowToggle::Kind::action };
+            action.setToggleState (true, juce::dontSendNotification);
+            expect (! action.isLedOn());
+            expect (! action.getClickingTogglesState());
         }
 
         beginTest (faderCap);

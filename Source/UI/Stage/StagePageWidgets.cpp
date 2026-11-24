@@ -236,6 +236,122 @@ void SilkLabel::paint (juce::Graphics& g)
 }
 
 //==============================================================================
+namespace
+{
+    const char* const fieldArrowsUtf8 = "\xe2\x97\x82 \xe2\x96\xb8";   // U+25C2 U+25B8
+    constexpr int     oneStep         = 1;
+}
+
+StageField::StageField()
+{
+    setMouseCursor (juce::MouseCursor::PointingHandCursor);
+    // The choice is painted here (paint); the ComboBox's own label only serves the list.
+    setColour (juce::ComboBox::textColourId, juce::Colours::transparentBlack);
+    setColour (juce::ComboBox::backgroundColourId, juce::Colours::transparentBlack);
+    setColour (juce::ComboBox::outlineColourId, juce::Colours::transparentBlack);
+    setColour (juce::ComboBox::arrowColourId, juce::Colours::transparentBlack);
+}
+
+void StageField::setScale (float newScale)
+{
+    scale = newScale;
+    repaint();
+}
+
+void StageField::step (bool forward)
+{
+    const auto next = juce::jlimit (int {}, juce::jmax (int {}, getNumItems() - oneStep),
+                                    getSelectedItemIndex() + (forward ? oneStep : -oneStep));
+    if (next != getSelectedItemIndex())
+        setSelectedItemIndex (next, juce::sendNotificationSync);
+}
+
+juce::Rectangle<float> StageField::getRightArrowBounds() const
+{
+    const auto arrows = getLocalBounds().toFloat().withTrimmedRight (static_cast<float> (StageMetrics::fieldPadding) * scale)
+                            .removeFromRight (static_cast<float> (StageMetrics::fieldArrowWidth) * scale);
+    return arrows.withTrimmedLeft (arrows.getWidth() / halves);
+}
+
+juce::Rectangle<float> StageField::getLeftArrowBounds() const
+{
+    const auto right = getRightArrowBounds();
+    return right.withX (right.getX() - right.getWidth());
+}
+
+void StageField::paint (juce::Graphics& g)
+{
+    using namespace StageMetrics;
+    const auto bounds = getLocalBounds().toFloat();
+    const auto corner = static_cast<float> (fieldCorner) * scale;
+    g.setColour (StagePalette::lcd);
+    g.fillRoundedRectangle (bounds, corner);
+    g.setGradientFill (juce::ColourGradient::vertical (StagePalette::lcdInset, bounds.getY(), juce::Colours::transparentBlack,
+                                                       bounds.getY() + static_cast<float> (lcdInsetShadow) * scale));
+    g.fillRoundedRectangle (bounds.withHeight (static_cast<float> (lcdInsetShadow) * scale), corner);
+
+    auto colour = StagePalette::lcdInk;
+    if (! isEnabled())
+        colour = colour.withAlpha (disabledAlpha);
+    g.setColour (colour);
+    g.setFont (StageFonts::lcd (fieldTextSize * scale));
+    const auto padding = static_cast<float> (fieldPadding) * scale;
+    const auto arrows  = getLeftArrowBounds().getUnion (getRightArrowBounds());
+    g.drawText (getText(), bounds.withTrimmedLeft (padding).withRight (arrows.getX()), juce::Justification::centredLeft, true);
+    g.drawText (juce::String::fromUTF8 (fieldArrowsUtf8), arrows, juce::Justification::centred, false);
+}
+
+void StageField::mouseDown (const juce::MouseEvent& event)
+{
+    if (! isEnabled())
+        return;
+    if (getLeftArrowBounds().contains (event.position))
+        step (false);
+    else if (getRightArrowBounds().contains (event.position))
+        step (true);
+    else
+        juce::ComboBox::mouseDown (event);   // the list
+}
+
+//==============================================================================
+RowToggle::RowToggle (const juce::String& text, Kind rowKind)
+    : juce::Button (text), kind (rowKind)
+{
+    setClickingTogglesState (kind == Kind::setting);
+    setMouseCursor (juce::MouseCursor::PointingHandCursor);
+}
+
+void RowToggle::setScale (float newScale)
+{
+    scale = newScale;
+    repaint();
+}
+
+bool RowToggle::isLedOn() const
+{
+    return kind == Kind::setting && getToggleState();
+}
+
+juce::Rectangle<float> RowToggle::getLedBounds() const
+{
+    const auto diameter = static_cast<float> (StageMetrics::ledDiameter) * scale;
+    return { float {}, static_cast<float> (getHeight()) / halves - diameter / halves, diameter, diameter };
+}
+
+void RowToggle::paintButton (juce::Graphics& g, bool, bool)
+{
+    using namespace StageMetrics;
+    StageDrawing::drawLed (g, getLedBounds(), isLedOn(), StagePalette::ledRed, scale);
+    auto colour = StagePalette::silkscreenText;
+    if (! isEnabled())
+        colour = colour.withAlpha (disabledAlpha);
+    g.setColour (colour);
+    g.setFont (StageFonts::silkscreen (silkLabelSize * scale, semiBold, rowToggleSpacing));
+    const auto textLeft = static_cast<float> (ledDiameter + rowToggleGap) * scale;
+    g.drawText (getButtonText().toUpperCase(), getLocalBounds().toFloat().withTrimmedLeft (textLeft), juce::Justification::centredLeft, false);
+}
+
+//==============================================================================
 TitleDivider::TitleDivider()
 {
     setInterceptsMouseClicks (false, false);
