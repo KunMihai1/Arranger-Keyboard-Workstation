@@ -42,6 +42,7 @@ public:
 
     Style getStyle() const;
     int getPreferredWidth() const;    ///< text + padding + border (+ LED and gap)
+    float getExactWidth() const;      ///< the same, unrounded (rows of buttons place them without drift)
     int getPreferredHeight() const;   ///< the face; an instrument button also needs its drop edge below
     juce::Rectangle<float> getLedBounds() const;
 
@@ -78,6 +79,7 @@ public:
     /** Board size and letter-spacing for the bigger page titles (14 px, 0.2 em). */
     void setTextStyle (float newCssPixelSize, float newLetterSpacingEm);
     int getPreferredWidth() const;
+    float getExactWidth() const;
 
     void paint (juce::Graphics& g) override;
 

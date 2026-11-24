@@ -169,14 +169,14 @@ void TrackListComponent::resized()
     auto* big = viewMode == ViewMode::TrackView ? &useButton : &openFolderButton;
     big->setBounds(left, panelBottom + scaled(detailHeadingGap), width, big->getPreferredHeight());
 
-    int buttonX = left;
-    const int buttonsTop = big->getBottom() + scaled(buttonGap);
+    auto buttonX = static_cast<float>(left);   // exact widths: rounding each one would drift along the row
+    const auto buttonsTop = static_cast<float>(big->getBottom() + scaled(buttonGap));
     const auto row = viewMode == ViewMode::TrackView ? std::vector<SegButton*> { &addButton, &renameButton, &removeButton }
                                                      : std::vector<SegButton*> { &addButtonFolder, &renameButtonFolder, &removeButtonFolder };
     for (auto* button : row)
     {
-        button->setBounds(buttonX, buttonsTop, button->getPreferredWidth(), button->getPreferredHeight());
-        buttonX += button->getPreferredWidth() + scaled(buttonGap);
+        button->setBounds(juce::Rectangle<float>(buttonX, buttonsTop, button->getExactWidth(), static_cast<float>(button->getPreferredHeight())).toNearestInt());
+        buttonX += button->getExactWidth() + static_cast<float>(buttonGap) * scale;
     }
 }
 

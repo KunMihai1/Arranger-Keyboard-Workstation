@@ -59,6 +59,7 @@ public:
 
 private:
     float scaled (int referenceLength) const;
+    juce::Rectangle<float> boardBand() const;
     juce::Rectangle<float> titleRow() const;
     juce::Font titleFont() const;
     juce::Font subtitleFont() const;

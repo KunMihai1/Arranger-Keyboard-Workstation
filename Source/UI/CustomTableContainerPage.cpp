@@ -177,11 +177,12 @@ void TableContainer::resized()
     const auto right = getLocalBounds().withTrimmedLeft (scaled (tableWidth + columnGap));
     auto placeRow = [&] (juce::OwnedArray<SegButton>& buttons, int top)
     {
-        int buttonX = right.getX();
+        auto buttonX = static_cast<float> (right.getX());   // exact widths: no drift along the row
         for (auto* button : buttons)
         {
-            button->setBounds (buttonX, top, button->getPreferredWidth(), button->getPreferredHeight());
-            buttonX += button->getPreferredWidth() + scaled (buttonGap);
+            button->setBounds (juce::Rectangle<float> (buttonX, static_cast<float> (top), button->getExactWidth(),
+                                                       static_cast<float> (button->getPreferredHeight())).toNearestInt());
+            buttonX += button->getExactWidth() + static_cast<float> (buttonGap) * scale;
         }
     };
     placeRow (modifyActionButtons, scaled (wholeTrackTop + headingToButtons));

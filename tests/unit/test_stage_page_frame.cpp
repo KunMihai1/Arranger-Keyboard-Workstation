@@ -40,6 +40,15 @@ namespace StagePageFrameTestValues
     constexpr int   styleRowGap     = 14;
     constexpr int   notesRowGap     = 12;
     constexpr int   positionTolerance = 1;
+
+    // The owner's window, 1920 x 991: s = 991 / 645 = 1.5364, the 1200-wide board is 1843.7 px, centred
+    // (38 px of plain page each side, as the panel). Board: the page content starts at 28 -> 38.2 + 43.0.
+    const juce::String centredLikePanel = "a page wider than the board keeps the board's content centred, like the panel (spec 4.1)";
+    constexpr float ownerWindowScale   = 1.5364f;
+    constexpr int   ownerWindowWidth   = 1920;
+    constexpr int   ownerPageHeight    = 561;
+    constexpr int   boardContentLeft   = 81;
+    constexpr int   boardContentRight  = 1839;
 }
 
 class StagePageFrameTest : public juce::UnitTest
@@ -115,6 +124,16 @@ public:
             frame.setSize (boardWidth, boardPageHeight);
             const auto subtitle = frame.getSubtitleBounds();
             expectWithinAbsoluteError (subtitle.getX(), frame.getTitleBounds().getRight() + notesRowGap, static_cast<float> (positionTolerance));
+        }
+
+        beginTest (centredLikePanel);
+        {
+            StagePageFrame frame { styleTitle };
+            frame.setScale (ownerWindowScale);
+            frame.setSize (ownerWindowWidth, ownerPageHeight);
+            expectWithinAbsoluteError (frame.getContentBounds().getX(), boardContentLeft, positionTolerance);
+            expectWithinAbsoluteError (frame.getContentBounds().getRight(), boardContentRight, positionTolerance);
+            expectWithinAbsoluteError (frame.getExitButton().getRight(), boardContentRight, positionTolerance);
         }
 
         beginTest (contentLikeBoard);

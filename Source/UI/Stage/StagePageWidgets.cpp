@@ -86,14 +86,19 @@ juce::String SegButton::shownText() const
 
 int SegButton::getPreferredWidth() const
 {
+    return juce::roundToInt (getExactWidth());
+}
+
+float SegButton::getExactWidth() const
+{
     using namespace StageMetrics;
     if (style == Style::instrument)
-        return juce::roundToInt (scaled (instrumentWidth));
+        return scaled (instrumentWidth);
 
     auto width = juce::GlyphArrangement::getStringWidth (labelFont(), shownText()) + scaled (paddingSide + segBorder) * halves;
     if (hasLed)
         width += scaled (ledDiameter + segLedGap);
-    return juce::roundToInt (width);
+    return width;
 }
 
 int SegButton::getPreferredHeight() const
@@ -213,7 +218,12 @@ juce::Font SilkLabel::font() const
 
 int SilkLabel::getPreferredWidth() const
 {
-    return juce::roundToInt (std::ceil (juce::GlyphArrangement::getStringWidth (font(), text.toUpperCase())));
+    return juce::roundToInt (std::ceil (getExactWidth()));
+}
+
+float SilkLabel::getExactWidth() const
+{
+    return juce::GlyphArrangement::getStringWidth (font(), text.toUpperCase());
 }
 
 void SilkLabel::paint (juce::Graphics& g)

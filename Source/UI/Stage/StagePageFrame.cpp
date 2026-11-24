@@ -83,11 +83,18 @@ juce::Font StagePageFrame::subtitleFont() const
     return StageFonts::silkscreen (StageMetrics::silkLabelSize * scale, medium, StageMetrics::silkDimSpacing);
 }
 
+juce::Rectangle<float> StagePageFrame::boardBand() const
+{
+    // Spec 4.1: the board scaled as one piece and centred; a wider window only adds plain page at the sides.
+    const auto bounds = getLocalBounds().toFloat();
+    return bounds.withSizeKeepingCentre (juce::jmin (bounds.getWidth(), scaled (StageMetrics::referenceWidth)), bounds.getHeight());
+}
+
 juce::Rectangle<float> StagePageFrame::titleRow() const
 {
     using namespace StageMetrics;
     // The title row is as tall as its buttons (.seg, 22): the title is centred in it.
-    return getLocalBounds().toFloat()
+    return boardBand()
                .withTrimmedTop (scaled (pagePaddingTop))
                .withHeight (scaled (segHeight))
                .reduced (scaled (pagePaddingSide), float {});
@@ -96,7 +103,7 @@ juce::Rectangle<float> StagePageFrame::titleRow() const
 juce::Rectangle<int> StagePageFrame::getContentBounds() const
 {
     using namespace StageMetrics;
-    return getLocalBounds().toFloat()
+    return boardBand()
                .withTrimmedTop (scaled (pagePaddingTop + segHeight + rowGap))
                .withTrimmedBottom (scaled (pagePaddingTop + pageBottomEdge))
                .reduced (scaled (pagePaddingSide), float {})
@@ -121,9 +128,9 @@ juce::Rectangle<float> StagePageFrame::getSubtitleBounds() const
 float StagePageFrame::actionWidth (juce::Component& action) const
 {
     if (auto* seg = dynamic_cast<SegButton*> (&action))
-        return static_cast<float> (seg->getPreferredWidth());
+        return seg->getExactWidth();
     if (auto* label = dynamic_cast<SilkLabel*> (&action))
-        return static_cast<float> (label->getPreferredWidth());
+        return label->getExactWidth();
     if (dynamic_cast<TitleDivider*> (&action) != nullptr)
         return juce::jmax (scaled (StageMetrics::ruleWidth), onePixel);   // never thinner than a pixel
     return static_cast<float> (action.getWidth());
@@ -146,7 +153,7 @@ void StagePageFrame::resized()
 
     // Right to left: Exit, then the actions in reverse order, each one gap apart.
     auto right = row.getRight();
-    const auto exitWidth = static_cast<float> (exitButton.getPreferredWidth());
+    const auto exitWidth = exitButton.getExactWidth();
     exitButton.setBounds (juce::Rectangle<float> (right - exitWidth, row.getY(), exitWidth, row.getHeight()).toNearestInt());
     right -= exitWidth + gap;
 

@@ -66,13 +66,13 @@ void StylesListComponent::resized()
     listBounds = { int {}, listTop, getWidth(), juce::jmax(int {}, juce::jmin(rowsHeight, maxHeight)) };
     viewport.setBounds(listBounds.reduced(int {}, scaled(lcdListPadding)));
 
-    int buttonX {};
-    const auto buttonsTop = listBounds.getBottom() + scaled(sectionGap);
+    float buttonX {};   // exact widths: rounding each one would drift along the row
+    const auto buttonsTop = static_cast<float>(listBounds.getBottom() + scaled(sectionGap));
     for (auto* button : { &addButton, &renameButton, &deleteButton })
     {
         button->setScale(scale);
-        button->setBounds(buttonX, buttonsTop, button->getPreferredWidth(), button->getPreferredHeight());
-        buttonX += button->getPreferredWidth() + scaled(buttonGap);
+        button->setBounds(juce::Rectangle<float>(buttonX, buttonsTop, button->getExactWidth(), static_cast<float>(button->getPreferredHeight())).toNearestInt());
+        buttonX += button->getExactWidth() + static_cast<float>(buttonGap) * scale;
     }
 
     layoutStyles();
