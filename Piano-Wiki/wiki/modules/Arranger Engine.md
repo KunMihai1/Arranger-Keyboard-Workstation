@@ -87,6 +87,9 @@ Two threads touch the engine: the **timer thread** (advances music, dispatches M
 - Used by: [[Keyboard & Main UI]] — section buttons call `queueSection` / `selectStartSection`.
 
 ## Gotchas
+- **Posted callbacks carry a liveness token** (2026-11-24, fixes the open-style delete crash): the engine owns a
+  `std::shared_ptr<bool> liveness`; every `callAsync` lambda (beat position, stop, stopped-itself, active section)
+  holds a weak copy and returns if it expired (test `CallbackLifetime`).
 > [!key-insight] Thread seam
 > The schedulers/sequencer are pure (no I/O), so all real-time risk lives in this one class. `timerShouldStop` is set on the timer thread and honoured on the message thread; the Ending stop is deferred via `callAsync` because `stopTimer()` self-joins and must not run on the timer thread.
 

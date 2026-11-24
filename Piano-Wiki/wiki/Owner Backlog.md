@@ -54,6 +54,13 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   Owner to try: playback with a style that has tracks, chords from a hardware keyboard (manual check steps 6, 10).
   Next phases (keys, each page, Dust, finishes, sign-in) need their own plans. Owner reports fixed: knobs turn like real knobs, knob lag (save on
   release), hand cursor on every button, LED glow cut on the left; key tests failing on the Romanian layout.
+- ✅ **Phase 4a, the Style page + track picker + notes page** (2026-11-24, `feat/ui-style-page`): boards
+  `StageStyles`, `PageTracks`, `PageNotes`. Owner answers: picking an instrument keeps the track name; the
+  open-style delete crash fixed first; notes page without "Edit selected note" / Undo (a hint line). Agent calls:
+  instrument caption Drums / As recorded / —, percussion message on the screen, "Open a style on the left", Exit on
+  every page, the files-are-safe note kept. Chord indent fixed in the same batch (owner).
+- ⬜ Next pages (spec order): Effects, Settings, Voices, Chords, Recorder, Esc menu, Sections v2; then keys, Dust,
+  finishes, sign-in.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
   centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.
@@ -79,13 +86,16 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   (not Pearl accordion); Sections editor v2 and the new Dust approved.
 
 ## 2. Open engineering threads (from the wiki)
-- 🔴 **Use-after-free: stop callbacks outlive their player** (root-caused 2026-11-22, fix awaiting sign-off).
+- ✅ **Use-after-free: stop callbacks outlive their player** — fixed 2026-11-24 (owner signed off; liveness token +
+  the player stops its timer in its destructor). Was: (root-caused 2026-11-22).
   `ArrangerEngine`/`TrackPlayer` post beat-bar updates with `callAsync([this]…)`; destroying a style panel
   calls `stop()` then frees the engine, so the queued callback runs on freed memory. Only in-app trigger:
   deleting the style whose tab is open. **Reproduced live 2026-11-23**: the Debug app crashed (0xC0000005,
   same `std::function<void(double)>` frame). Found because `Project Tests.exe` with no flag crashed;
   bisected to the CurrentStyleComponent start test + any message pump; crash stack confirms.
   Spec: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
+- ⬜ Test isolation: the single-process run (`Project Tests.exe`, no flag) now completes but 4 `NoteLayer` GL pixel
+  checks fail there only (they pass in `--display-tests`); likely a window left by an earlier test (found 2026-11-24).
 - ⬜ Delay read offset still jumps on CC94 changes (needs a fractional read; `DelayLine` in `va-effects`).
 - ⬜ Swap `juce::dsp::Chorus` (CC93) for the BBD model from `va-effects`.
 - ⬜ 🔒 Missing-SFZ popup never smoke-tested; Phase 7a manual sign-off 0/9.
@@ -97,13 +107,13 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - ⬜ `SupabaseClient`: request JSON is built by string concatenation, so a `"` or `\` in an email,
   password or username breaks the request; `signup()` never reads the reply body (sign-up always shows
   "Invalid server response"). Found in the Backend names cleanup, not fixed there.
-- ⬜ Notes table (right-click a track → notes): with **no rows selected**, the reset/modify dialog shows
+- ✅ (2026-11-24, `TableDialog::resultIdFor`) Notes table (right-click a track → notes): with **no rows selected**, the reset/modify dialog shows
   "Change All" / "Cancel", but Cancel gets button id 2 = "selected", so Cancel runs the *selected* action on
   an empty selection and calls `onConfirmed()` (`TableContainer::showModifyChangeDialog`).
 - ⬜ Names check gaps: `MidiNotesTableModel.cpp:209` / `:231` compare `columnId` with bare `2` / `3`, and
   `SoundEffectWindowComponent.cpp:498` has inline row names (`"TONE"`…); `check_named_values.py` misses
   both shapes (found 2026-11-23 while designing the UI).
-- ⬜ Renaming a track from the track list doesn't focus the name box: `TrackListComponent::renameFromTrackList`
+- ✅ (2026-11-24) Renaming a track from the track list doesn't focus the name box: `TrackListComponent::renameFromTrackList`
   looks up the editor "folderName" although its editor is "trackName" (seen in the Playback names cleanup).
 
 ## 3. Owner's TODO file (last priority, owner's words summarised)
