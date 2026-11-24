@@ -299,8 +299,6 @@ void MainComponent::globalFocusChanged(juce::Component* focusedComponent)
                 if (!juce::Process::isForegroundProcess())
                 {
                     // overlayWindow is an in-app child now, so it isn't toggled on app focus loss.
-                    if (safeThis->midiWindow)
-                        safeThis->midiWindow->setVisible(false);
                 }
             });
     }
@@ -311,8 +309,6 @@ void MainComponent::globalFocusChanged(juce::Component* focusedComponent)
         // within-app focus transitions nothing was hidden, so this
         // branch does nothing, avoiding any native-window side effects.
         // (overlayWindow is an in-app child now and isn't restored here.)
-        if (midiWindow && !midiWindow->isVisible() && midiWindowShouldBeVisible)
-            midiWindow->setVisible(true);
     }
 }
 

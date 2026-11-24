@@ -5,22 +5,28 @@
     Created: 2025
     Author: Kisuke
 
+    The Settings page's content (board StageRevised openPage=settings, spec part 2
+    P.2): the MIDI, Arranger and Chords columns. It was the "MIDI Settings"
+    window; it keeps its settings keys, callbacks and device polling, and is now
+    hosted on the Settings page frame. The Display column's
+    controls belong to MainComponent; settingsPageLayout() places all four.
+
   ==============================================================================
 */
 
 #pragma once
+
 #include <JuceHeader.h>
 #include "MidiHandler.h"
 #include "SFZLibraryUI.h"
+#include "UI/Stage/StagePageWidgets.h"
 
-/** Item ids of the output-engine dropdown (persisted as "EngineOptionIndex"). */
 namespace OutputEngineIds
 {
     constexpr int externalMidi = 1;
     constexpr int internalSfz  = 2;
 }
 
-/** The NTT minor-scale buttons, in order (persisted as "NttMinorScale"). */
 namespace MinorScaleButtons
 {
     constexpr int dorian   = 0;
@@ -30,42 +36,50 @@ namespace MinorScaleButtons
 
 namespace SettingsWindowText
 {
-    inline const juce::String sfzLibrary        = "SFZ Library";
-    inline const juce::String arrangerMode      = "Arranger mode (loop accompaniment)";
-    inline const juce::String bassInversion     = "Bass inversion (slash chords)";
+    inline const char* const  sfzLibraryUtf8    = "SFZ library\xe2\x80\xa6";
+    inline const char* const  addDeviceUtf8     = "Add device\xe2\x80\xa6";
+    inline const juce::String arrangerMode      = "Arranger mode";
+    inline const juce::String bassInversion     = "Bass inversion";
     inline const juce::String fingered          = "Fingered";
     inline const juce::String oneFinger         = "1-Finger";
-    inline const juce::String fullKeyboard      = "Full-Kbd";
-    inline const juce::String chordMemory       = "Chord memory (hold on release)";
-    inline const juce::String synchroStart      = "Synchro Start (begin on first chord)";
-    inline const juce::String countIn           = "Count-In (1 bar before start)";
-    inline const juce::String muteChordKeys     = "Mute chord keys (hear only the backing)";
-    inline const juce::String chordTransposition = "Chord transposition (NTT)";
+    inline const juce::String fullKeyboard      = "Full";
+    inline const juce::String chordMemory       = "Chord memory";
+    inline const juce::String synchroStart      = "Synchro start";
+    inline const juce::String countIn           = "Count-in";
+    inline const juce::String muteChordKeys     = "Mute chord keys";
+    inline const juce::String chordTransposition = "Chord transposition";
     inline const juce::String dorian            = "Dorian";
     inline const juce::String aeolian           = "Aeolian";
-    inline const juce::String harmonic          = "Harmonic";
+    inline const juce::String harmonic          = "Harm.";
 }
 
-/**
- * @class MIDIWindow
- * @brief Window for configuring MIDI input/output devices.
- *
- * Provides a user interface for:
- *   - Selecting MIDI input and output devices
- *   - Storing and restoring user settings
- *   - Automatically updating device lists when changes occur
- *
- * Inherits from juce::DocumentWindow and implements ComboBox::Listener and Timer.
- */
-class MIDIWindow : public juce::DocumentWindow,
+/** The page's four columns (board, scale 1: 262 wide, gap 32) and the places in them. */
+struct SettingsPageRects
+{
+    static constexpr int columnCount   = 4;
+    static constexpr int fieldCount    = 4;   // output engine, MIDI in, MIDI out, audio out
+    static constexpr int arrangerRows  = 7;
+    static constexpr int choiceCount   = 3;   // a row of three seg buttons
+    static constexpr int displayRows   = 3;   // particles, note names, particle colours
+    std::array<juce::Rectangle<int>, columnCount> columns, headings;
+    std::array<juce::Rectangle<int>, fieldCount> fieldLabels, fields;
+    juce::Rectangle<int> keyboardLabel, keyboardRow, sfzRow;
+    std::array<juce::Rectangle<int>, arrangerRows> arrangerToggles;
+    juce::Rectangle<int> chordModeLabel, chordModeRow, minorScaleLabel, minorScaleRow;
+    std::array<juce::Rectangle<int>, displayRows> displayToggles;
+    juce::Rectangle<int> particleStyleLabel, particleStyleRow;
+};
+/** The Keyboard field's sizes: 49 / 61 / 76 / 88, plus the stored count when a device was added with another one. */
+std::vector<int> keyboardFieldSizes (int storedKeys);
+
+SettingsPageRects settingsPageLayout (juce::Rectangle<int> content, float scale);
+
+class MIDIWindow : public juce::Component,
                    private juce::ComboBox::Listener,
-                   private juce::Timer,
-                   public juce::KeyListener
+                   private juce::Timer
 {
 public:
-
     std::function<bool()> isMidiDeviceOpen;
-    std::function<void()> onWindowClosed;
     std::function<juce::String()> getCurrentStyleId;  // optional, set by owner
     std::function<juce::String()> getCurrentStyleName; // optional, set by owner
     std::function<void(int engineOption)> onOutputEngineChanged; // fired when engine changes while playing
@@ -80,136 +94,79 @@ public:
     std::function<void(int)>  onNttMinorScaleChanged;         // Phase 7a: 0=Dorian, 1=Aeolian, 2=HarmonicMinor
     std::function<void()> onSfzLibraryChanged;                  // fired when SFZ mappings are imported/changed
 
-    /**
-     * @brief Constructor.
-     * @param mdevice Reference to the MIDI device object.
-     * @param devicesListIN Reference to a vector containing available MIDI input devices.
-     * @param devicesListOUT Reference to a vector containing available MIDI output devices.
-     * @param prop Optional pointer to a JUCE PropertiesFile for storing settings.
-     *
-     * Initializes the window, its sliders, ComboBoxes, and panel, and sets default visibility.
-     */
+    /** Keyboard field: the key count stored for a MIDI-in device (0 = unknown device / PC keyboard), saving a
+        new one, and adding an unknown device (today's Add MIDI Device window). Set by the owner. */
+    std::function<int(const juce::String& deviceName)> getKeyCount;
+    std::function<void(const juce::String& deviceName, int keys)> setKeyCount;
+    std::function<void(const juce::String& deviceName)> onAddDevice;
+
     MIDIWindow(MidiDevice& mdevice, std::vector<std::string>& devicesListIN,
                std::vector<std::string>& devicesListOUT, std::vector<std::string>& devicesListAudioOUT, juce::PropertiesFile* prop, SFZLibraryManager* sfzManagerPtr = nullptr);
-
-    /** @brief Destructor stops the update timer and cleans up. */
     ~MIDIWindow() override;
 
-    bool keyPressed(const juce::KeyPress& key, juce::Component*) override;
+    /** The page (or the home-screen window) became visible / hidden: refresh the device lists and poll them while shown. */
+    void pageShown();
+    void pageHidden();
+    /** The key count of the MIDI-in device changed elsewhere (e.g. a device was added). */
+    void refreshKeyboardField();
 
+    void setScale(float newScale);
+    void paint(juce::Graphics& g) override;
+    void resized() override;
 
-    /** @brief Called when the window visibility changes. */
-    void visibilityChanged() override;
-
-    /** @brief Called when the window close button is pressed. */
-    void closeButtonPressed() override;
-
-    /** @brief Handles ComboBox selection changes for MIDI devices. */
     void comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged) override;
-
-    /** @brief Timer callback to update device lists if they change. */
     void timerCallback() override;
 
 private:
-
-    /** @brief Toggles visibility of the settings panel. */
-    void toggleSettingsPanel();
-
-    /** @brief Toggles visibility of device ComboBoxes. */
-    void toggleSettingsCB();
-
-	void toggleSettingsInMIDICB();
-
-	void toggleSettingsOutMIDICB();
-
-	void toggleSettingsOutputEngineCB();
-
-	void toggleSettingsAudioOutCB();
-
-	void toggleSFZbutton();
-
-    /** @brief Toggles visibility of all settings components. */
-    void toggleSettingsAll();
-
-    /** @brief Sets bounds of all window components manually. */
-    void setBounds_components();
-
-    /** @brief Initializes the main panel. */
-    void panelInit();
-
-    /** @brief Initializes device ComboBoxes. */
-    void devicesCBinit();
-
-	void deviceInMIDICBinit();
-
-	void deviceOutMIDICBinit();
-
-	void outputEngineCBinit();
-
-	void deviceAudioOutCBinit();
-
     void sfzButtonInit();
-
-    /** @brief Calls all initialization functions. */
     void allInit();
-
-    /** @brief Populates the input device ComboBox. */
     void populateCBIN();
-
-    /** @brief Populates the output device ComboBox. */
     void populateCBOUT();
-
     void populateCBengine();
-
-	void populateCBaudioOUT();
-
-    /** @brief Restores ComboBox selections from previously saved indices. */
+    void populateCBaudioOUT();
     void restoreCBoxes();
+    void switchBetweenEngineOptions(int selectedId);
+    void refreshChoiceLeds();
 
-	void static setStyleComboBox(juce::ComboBox& comboBox);
-    
-	void static setStyleLabel(juce::Label& label);
-    
-	void switchBetweenEngineOptions(int selectedId);
-
-    // Member variables
     MidiDevice& MIDIDevice;                   /**< Reference to the MIDI device object */
     std::vector<std::string>& devicesListIN; /**< Vector of available MIDI input devices */
     std::vector<std::string>& devicesListOUT;/**< Vector of available MIDI output devices */
-	std::vector<std::string>& devicesListAudioOUT;/**< Vector of available audio output devices */
+    std::vector<std::string>& devicesListAudioOUT;/**< Vector of available audio output devices */
     juce::PropertiesFile* propertyFile = nullptr; /**< Optional storage for user settings */
 
-    juce::Component settingsPanel;            /**< Panel containing all settings components */
-	juce::TextButton sfzLibraryButton{ SettingsWindowText::sfzLibrary };
+    SegButton sfzLibraryButton { juce::String::fromUTF8 (SettingsWindowText::sfzLibraryUtf8), SegButton::Style::seg };
     SFZLibraryManager* sfzManager = nullptr;
     std::unique_ptr<SFZLibraryUI> sfzLibraryUI;
 
-    juce::ComboBox comboBoxDevicesIN;         /**< ComboBox for selecting MIDI input devices */
-    juce::ComboBox comboBoxDevicesOUT;        /**< ComboBox for selecting MIDI output devices */
-    juce::ComboBox comboBoxOutputEngineType;  /**< ComboBox for selecting audio output engine type */
-    juce::ToggleButton arrangerModeToggle { SettingsWindowText::arrangerMode }; /**< Classic vs Arranger playback */
-    juce::ToggleButton chordBassInversionToggle { SettingsWindowText::bassInversion };   /**< Phase 4 */
-    juce::Label        chordModeLabel;                                                  /**< Phase 5 */
-    juce::TextButton   chordModeFingered { SettingsWindowText::fingered };                                /**< Phase 5 */
-    juce::TextButton   chordModeSingle   { SettingsWindowText::oneFinger };                                /**< Phase 5 */
-    juce::TextButton   chordModeFull     { SettingsWindowText::fullKeyboard };                                /**< Phase 5 */
-    juce::ToggleButton chordMemoryToggle        { SettingsWindowText::chordMemory };   /**< Phase 4 */
-    juce::ToggleButton synchroStartToggle       { SettingsWindowText::synchroStart }; /**< Phase 6 */
-    juce::ToggleButton countInToggle            { SettingsWindowText::countIn };        /**< Phase 6b */
-    juce::ToggleButton chordZoneMuteToggle      { SettingsWindowText::muteChordKeys };
-    juce::ToggleButton nttEnabledToggle         { SettingsWindowText::chordTransposition };                 /**< Phase 7a master */
-    juce::Label        nttMinorScaleLabel;                                                        /**< Phase 7a */
-    juce::TextButton   nttMinorDorian   { SettingsWindowText::dorian };                                             /**< Phase 7a */
-    juce::TextButton   nttMinorAeolian  { SettingsWindowText::aeolian };                                            /**< Phase 7a */
-    juce::TextButton   nttMinorHarmonic { SettingsWindowText::harmonic };                                           /**< Phase 7a */
-	juce::ComboBox comboBoxAudioDevicesOUT;       /**< ComboBox for selecting audio output devices */
-    juce::Label midiDevicesLabelIN;           /**< Label for input devices */
-    juce::Label midiDevicesLabelOUT;          /**< Label for output devices */
-	juce::Label outputEngineTypeLabel;        /**< Label for audio output engine type */
-	juce::Label audioDevicesLabelOUT;        /**< Label for audio output devices */
+    StageField comboBoxDevicesIN;         /**< MIDI input devices */
+    StageField comboBoxDevicesOUT;        /**< MIDI output devices */
+    StageField comboBoxOutputEngineType;  /**< audio output engine type */
+    StageField comboBoxAudioDevicesOUT;   /**< audio output devices */
+    StageField keyboardField;             /**< key count of the MIDI-in device */
+    SegButton  addDeviceButton { juce::String::fromUTF8 (SettingsWindowText::addDeviceUtf8), SegButton::Style::seg };
+
+    RowToggle arrangerModeToggle        { SettingsWindowText::arrangerMode };
+    RowToggle chordBassInversionToggle  { SettingsWindowText::bassInversion };
+    RowToggle chordMemoryToggle         { SettingsWindowText::chordMemory };
+    RowToggle synchroStartToggle        { SettingsWindowText::synchroStart };
+    RowToggle countInToggle             { SettingsWindowText::countIn };
+    RowToggle chordZoneMuteToggle       { SettingsWindowText::muteChordKeys };
+    RowToggle nttEnabledToggle          { SettingsWindowText::chordTransposition };
+
+    SegButton chordModeFingered { SettingsWindowText::fingered, SegButton::Style::seg, true };
+    SegButton chordModeSingle   { SettingsWindowText::oneFinger, SegButton::Style::seg, true };
+    SegButton chordModeFull     { SettingsWindowText::fullKeyboard, SegButton::Style::seg, true };
+    SegButton nttMinorDorian    { SettingsWindowText::dorian, SegButton::Style::seg, true };
+    SegButton nttMinorAeolian   { SettingsWindowText::aeolian, SegButton::Style::seg, true };
+    SegButton nttMinorHarmonic  { SettingsWindowText::harmonic, SegButton::Style::seg, true };
+
+    SilkLabel outputEngineTypeLabel, midiDevicesLabelIN, midiDevicesLabelOUT, audioDevicesLabelOUT,
+              keyboardLabel, chordModeLabel, nttMinorScaleLabel;
+
     static constexpr int firstItemId = 1;   ///< ComboBox item ids start at 1
     int lastIndexIN = firstItemId;                       /**< Last selected input device index */
     int lastIndexOUT = firstItemId;                      /**< Last selected output device index */
     int lastIndexEngineOption = firstItemId;
-	int lastIndexAudioOut = firstItemId;
+    int lastIndexAudioOut = firstItemId;
+    float scale = StageMetrics::referenceScale;
 };

@@ -363,6 +363,7 @@ void MainComponent::keyBoardUIinit(int min, int max)
     addAndMakeVisible(keyboard);
     this->keyboard.set_min_and_max(min, max);
     noteLayer = std::make_unique<NoteLayer>(this->keyboard);
+    noteLayer->setParticleStyle(particleStyleId);   // the stored style (Settings page), chosen before the layer existed
     midiHandler.addListener(noteLayer.get());
     addAndMakeVisible(noteLayer.get());
     layoutStage();   // keys and note area take their Stage regions

@@ -11,9 +11,9 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-24. UI phase 4a (Style page) merged (PR #64); **phase 4b, the Effects page**, on `feat/ui-effects-page`
-(replaces the Sound Effects window). `docs/superpowers/` is **local only** (owner). Next: Settings page, then the
-others in spec order. Detail in [[log]].
+2026-11-24. Style page (PR #64) and Effects page (PR #65) merged; **phase 4c, the Settings page**, on
+`feat/ui-settings-page` (the MIDI Settings window becomes the page; particle style Sparks / Dust / Smoke).
+`docs/superpowers/` is **local only** (owner). Next: Voices page, then the others in spec order. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -30,7 +30,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 1660, arranger 770, integration 130 (+7 skipped), display 8**.
+  Current: **unit 1694, arranger 770, integration 130 (+7 skipped), display 8**.
 - Visual checks: screenshot/click the app's largest window; boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test

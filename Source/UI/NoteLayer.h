@@ -40,6 +40,9 @@ namespace ParticleStyles
     constexpr int sparks = 1;
     constexpr int dust   = 2;
     constexpr int smoke  = 3;
+
+    /** A style read from the settings file: anything but Sparks / Dust / Smoke reads as Dust (the default). */
+    constexpr int fromStored (int stored) { return stored >= sparks && stored <= smoke ? stored : dust; }
 }
 
 class NoteLayer : public juce::Component, public MidiHandlerListener, private juce::OpenGLRenderer

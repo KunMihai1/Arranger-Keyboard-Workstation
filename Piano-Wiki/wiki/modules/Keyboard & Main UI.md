@@ -48,7 +48,9 @@ Full-screen "working" overlay = the always-on-top `openingAudioLabel` (black 0.7
 
 ## Phase 4 wiring & chord Settings
 - **Live chord route:** `MidiHandler.onChordChanged` → `Display::setArrangerLiveChord` → `CurrentStyleComponent::setLiveChord` → `ArrangerEngine::setActiveChord`. See [[Chord Recognition & Transposition]].
-- **Settings toggles** (`SettingsWindow` panel, grown to fit): **Bass Inversion** (`onChordBassInversionChanged` → `Display::setArrangerBassInversion`), **Full-Keyboard scan** (`onChordFullKeyboardChanged` → `MidiHandler::setChordScanArea`), **Chord Memory** (`onChordMemoryChanged` → `MidiHandler::setChordMemory`). Startup re-applies the stored values from app properties. `Display`/`CurrentStyleComponent` **remember** bass-inversion and re-apply it when the style component is rebuilt or on each Start (the component is created/destroyed dynamically, so a one-shot set would be lost).
+- **Settings toggles** (`SettingsWindow`'s `MIDIWindow`; since 2026-11-24 a component on the Settings page — MIDI /
+  Arranger / Chords columns — no longer a window; created once in `stagePagesInit` by `createSettingsContent`, device
+  polling only while the page shows): **Bass Inversion** (`onChordBassInversionChanged` → `Display::setArrangerBassInversion`), **Full-Keyboard scan** (`onChordFullKeyboardChanged` → `MidiHandler::setChordScanArea`), **Chord Memory** (`onChordMemoryChanged` → `MidiHandler::setChordMemory`). Startup re-applies the stored values from app properties. `Display`/`CurrentStyleComponent` **remember** bass-inversion and re-apply it when the style component is rebuilt or on each Start (the component is created/destroyed dynamically, so a one-shot set would be lost).
 
 ## Keyboard-focus model (Korg/Yamaha "always listening")
 The PC keyboard plays only while `MainComponent` holds keyboard focus, so focus must reliably return to the play surface after any UI interaction.

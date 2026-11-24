@@ -98,6 +98,50 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SilkLabel)
 };
 
+/** The board's .field: an LCD box showing the choice, with the two arrows at the right. The arrows step the choice
+    (stopping at the ends); a click anywhere else opens the list, as a ComboBox does. */
+class StageField : public juce::ComboBox
+{
+public:
+    StageField();
+
+    void setScale (float newScale);
+    void step (bool forward);
+    juce::Rectangle<float> getLeftArrowBounds() const;
+    juce::Rectangle<float> getRightArrowBounds() const;
+
+    void paint (juce::Graphics& g) override;
+    void mouseDown (const juce::MouseEvent& event) override;
+
+private:
+    float scale { StageMetrics::referenceScale };
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StageField)
+};
+
+/** The board's .row-toggle: an LED and a silkscreen label, the whole row clickable. A setting flips its state and
+    lights the LED; an action (e.g. Particle colours) only reports the click. */
+class RowToggle : public juce::Button
+{
+public:
+    enum class Kind { setting, action };
+
+    explicit RowToggle (const juce::String& text, Kind kind = Kind::setting);
+
+    void setScale (float newScale);
+    bool isLedOn() const;
+    juce::Rectangle<float> getLedBounds() const;
+
+protected:
+    void paintButton (juce::Graphics& g, bool isHighlighted, bool isDown) override;
+
+private:
+    Kind kind;
+    float scale { StageMetrics::referenceScale };
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RowToggle)
+};
+
 class TitleDivider : public juce::Component
 {
 public:

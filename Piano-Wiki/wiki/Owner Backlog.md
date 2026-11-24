@@ -62,8 +62,12 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - ✅ **Phase 4b, the Effects page** (2026-11-24, `feat/ui-effects-page`): board `StageEffects`; replaces the Sound
   Effects window (agent calls: the window goes; Esc menu "Effects" opens the page; Effects and MIDI Settings replace
   each other as before).
-- ⬜ Next pages (spec order): Settings, Voices, Chords, Recorder, Esc menu, Sections v2; then keys, Dust, finishes,
-  sign-in.
+- ✅ **Phase 4c, the Settings page** (2026-11-24, `feat/ui-settings-page`): board `StageSettings`; the MIDI
+  Settings window becomes the page (MIDI / Arranger / Chords) plus Display (Particles, Note names, Particle colours…,
+  particle style Sparks / Dust / Smoke = spec B9, key `ParticleStyle`). Agent calls: the field that does not apply to
+  the engine is dimmed, not hidden; SFZ library… stays in the MIDI column until the Voices page; Keyboard field = the
+  old "Update key count"; Esc menu "Settings" opens the page; the Effects ↔ MIDI window exclusivity is gone.
+- ⬜ Next pages (spec order): Voices, Chords, Recorder, Esc menu, Sections v2; then keys, Dust, finishes, sign-in.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
   centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.

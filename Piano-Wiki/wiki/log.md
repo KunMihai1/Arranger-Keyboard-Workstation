@@ -13,6 +13,21 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-24 — UI redesign phase 4c: Settings page (`feat/ui-settings-page`)
+- Effects page merged (PR #65).
+- The Settings button and the Esc menu's "Settings" open the board's `StageSettings` page instead of the MIDI
+  Settings window. `MIDIWindow` (`SettingsWindow.h`) is a component now: MIDI (four LCD fields with step arrows,
+  Keyboard = the old "Update key count", Add device…, SFZ library… until the Voices page) / Arranger (seven LED rows) /
+  Chords (Chord mode, Minor scale); same settings keys, defaults and callbacks. MainComponent adds Display: Particles,
+  Note names on keys, Particle colours… and the particle style (spec B9: `NoteLayer::setParticleStyle` finally
+  called, key `ParticleStyle`, default Dust). New widgets `StageField`, `RowToggle` (`f4f465f`).
+- Gone: the window, its focus-loss hide / restore, the Effects ↔ MIDI window exclusivity.
+- Review: the stored particle style reached no layer before Play created it (now applied there, and validated);
+  the SFZ library panel drew under the Display column; switching pages left it open; a device added with an odd key
+  count showed a blank Keyboard field. Rejected: "Esc menu Settings closes an open page" (Esc closes the page first).
+- Live: toggles, choices, engine switch, Esc menu, 800 x 600; 1:1 against the board. Unit 1694 / 0, arranger
+  770 / 0, integration 130 / 0 (+7 skipped), display 8 / 0; names 0.
+
 ## 2026-11-24 — UI redesign phase 4b: Effects page (`feat/ui-effects-page`)
 - Style page work merged (PR #64, `e970b53`).
 - The Effects button and the Esc menu's "Effects" open the board's `StageEffects` page instead of the always-on-top
