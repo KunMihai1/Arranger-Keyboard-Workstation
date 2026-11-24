@@ -1,7 +1,7 @@
 ---
 type: meta
 title: "Hot Cache"
-updated: 2026-11-23T21:30:00
+updated: 2026-11-24T06:00:00
 tags:
   - meta
   - hot
@@ -11,12 +11,14 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-23. **UI redesign phase 1 (Stage panel) merged** (PR #61, `908891f`). Owner to try playback with
-tracks and hardware-keyboard chords. Next phases (keys, pages, Dust, finishes, sign-in) need plans. Detail in [[log]].
+2026-11-24. **UI phase 4a (Style page, track picker, notes page)** on `feat/ui-style-page`, PR to `main`; the
+open-style delete crash is fixed. `docs/superpowers/` (specs, plans, test plans) is **local only** now (owner).
+Next: Effects page, then the other pages in spec order. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
-minimal diff. Never commit/push without approval; **no AI attribution** in commits or PRs.
+minimal diff. **No AI attribution** in commits or PRs; no secrets, local files stay git-ignored, never read the
+owner's env. UI redesign: commit / push / PR / merge without asking (owner, 2026-11-24); other work asks first.
 Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 
 ## Key Facts
@@ -28,7 +30,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 1501, arranger 770, integration 130 (+7 skipped), display 8**.
+  Current: **unit 1629, arranger 770, integration 130 (+7 skipped), display 8**.
 - Visual checks: screenshot/click the app's largest window; boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
@@ -42,13 +44,12 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 
 ## Active Threads / Next
 Full task list with states: [[Owner Backlog]].
-- 🔴 **Use-after-free on deleting the open style** — `callAsync([this]…)` stop callbacks outlive the
-  engine/player. Reproduced live 2026-11-23 (Debug crash) and in the no-flag test run. Fix (liveness
-  token) awaits owner sign-off: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
+- ✅ **Use-after-free on deleting the open style** fixed 2026-11-24 (liveness token; player stops its timer).
 - 🟡 **UI redesign** ("Stage" panel, pages, real keys/knobs, new Dust, six finishes, Remember me):
   spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2, plan
-  `docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md` (phase 1 merged, PR #61). Owner: same look on
-  every resolution; agent checks the running app **1:1** against the boards before finishing.
+  `docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md` (phase 1 merged, PR #61); phase 4a Style page
+  (plan `...-style-page.md`). Owner: same look on every resolution; pages centred like the panel; agent checks the
+  running app **1:1** against the boards before finishing.
 - ✅ **Arranger hard testing** done. Owner: style switch while playing applies on the next Start; any
   section may start; restore-down stays work-area sized.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional

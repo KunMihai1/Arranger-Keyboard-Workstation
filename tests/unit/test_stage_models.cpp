@@ -3,6 +3,8 @@
 
 namespace StageModelsTestValues
 {
+    const juce::String styleViewsBack  = "Style page views: Exit / Esc from a sub-page goes back to the Style view";
+    const juce::String styleViewsReset = "Style page views: closing the page forgets the sub-page";
     const juce::String testName     = "StageModels";
     const juce::String testCategory = "Unit";
 
@@ -328,6 +330,26 @@ public:
             expect (router.close() == StagePage::none);
             expect (router.open() == StagePage::none);
             expect (router.toggle (StagePage::none) == StagePage::none);
+        }
+
+        beginTest (styleViewsBack);
+        {
+            StyleViewRouter views;
+            expect (views.current() == StyleView::style);
+            expect (views.show (StyleView::tracks) == StyleView::tracks);
+            expect (views.back() == StyleView::style);
+            expect (views.back() == StyleView::style);
+            views.show (StyleView::notes);
+            expect (views.show (StyleView::settings) == StyleView::settings);
+            expect (views.back() == StyleView::style);
+        }
+
+        beginTest (styleViewsReset);
+        {
+            StyleViewRouter views;
+            views.show (StyleView::notes);
+            views.reset();
+            expect (views.current() == StyleView::style);
         }
     }
 };

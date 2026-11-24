@@ -148,4 +148,8 @@ private:
     // same pitch again before releasing it, and a chord change in between gives the two starts different
     // sounding pitches: each note-off releases the oldest, so none is left hanging.
     std::map<std::pair<int,int>, std::deque<int>> activePlayedNote;
+
+    // Posted messages capture a weak copy and do nothing once this engine is gone (a stop posted just
+    // before destruction used to call into the freed engine: the crash on deleting the open style).
+    std::shared_ptr<bool> liveness = std::make_shared<bool> (true);
 };

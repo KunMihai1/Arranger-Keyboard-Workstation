@@ -32,6 +32,8 @@ namespace
         const juce::String recorderMode     = "RECORDER";
         const juce::String settingsMode     = "SETTINGS";
         const juce::String chordsMode       = "CHORDS";
+        const juce::String tracksMode       = "TRACKS";
+        const juce::String notesMode        = "NOTES";
         const juce::String noStyleTitle     = "No style";
         const juce::String noStyleOpen      = "Open a style first (Styles)";
         const juce::String choosePart       = "Choose a part: Left or Right";
@@ -100,14 +102,33 @@ void MainComponent::stagePagesInit()
     auto makePage = [this] (const juce::String& title)
     {
         auto page = std::make_unique<StagePageFrame> (title);
+        page->onExit = [this] { closeStagePage(); refreshStage(); };   // spec §6: Exit returns to the play view
         addChildComponent (*page);
         return page;
     };
 
-    // Styles: today's style tabs (styles list, the open style's tracks, Start / Stop, play settings).
+    // Styles (board StageStyles): the styles list and the open style's track strips; the track picker,
+    // notes and style settings open in the same page. Exit / Esc go back from those first.
     stylesPage = makePage (StageWiringText::stylesTitle);
     stylesPage->addAndMakeVisible (display.get());
-    stylesPage->onLayoutContent = [this] (juce::Rectangle<int> area, float) { display->setBounds (area); };
+    stylesPage->onLayoutContent = [this] (juce::Rectangle<int> area, float scale)
+    {
+        display->setScale (scale);
+        display->setBounds (area);
+    };
+    stylesPage->onExit = [this]
+    {
+        if (display->getView() != StyleView::style)
+            display->closeSubView();
+        else
+        {
+            closeStagePage();
+            refreshStage();
+        }
+    };
+    display->onViewChanged = [this] { syncStylesPage(); };
+    display->onInfo = [this] (const juce::String& text) { showStageMessage (text); };
+    syncStylesPage();
 
     // Recorder: play the recording, save it, play a MIDI file.
     filePage = makePage (StageWiringText::recorderTitle);
@@ -155,6 +176,19 @@ void MainComponent::stagePagesInit()
     chordsBrowser->onEscape = [this] { closeStagePage(); refreshStage(); };
     chordsPage->addAndMakeVisible (*chordsBrowser);
     chordsPage->onLayoutContent = [this] (juce::Rectangle<int> area, float) { chordsBrowser->setBounds (area); };
+}
+
+void MainComponent::syncStylesPage()
+{
+    // The Style page's frame follows the view Display shows (style, track picker, notes, settings).
+    if (stylesPage == nullptr || display == nullptr)
+        return;
+    const bool styleView = display->getView() == StyleView::style;
+    stylesPage->setTitle (display->getViewTitle());
+    stylesPage->setSubtitle (display->getViewSubtitle());
+    stylesPage->setRowGap (styleView ? StageMetrics::pageRowGap : StageMetrics::subPageRowGap);
+    stylesPage->setActions (display->getTitleActions());
+    updateStageScreen();
 }
 
 std::array<StagePageFrame*, MainComponent::stagePageCount> MainComponent::stagePageFrames() const
@@ -220,7 +254,14 @@ void MainComponent::updateStageScreen()
     content.styleName     = styleOpen ? display->getStyleName() : StageWiringText::noStyleTitle;
     switch (pageRouter.open())
     {
-        case StagePage::styles:   content.mode = StageWiringText::stylesMode;   break;
+        case StagePage::styles:
+        {
+            const auto view = display != nullptr ? display->getView() : StyleView::style;
+            content.mode = view == StyleView::tracks ? StageWiringText::tracksMode
+                         : view == StyleView::notes  ? StageWiringText::notesMode
+                                                     : StageWiringText::stylesMode;
+        }
+            break;
         case StagePage::file:     content.mode = StageWiringText::recorderMode; break;
         case StagePage::settings: content.mode = StageWiringText::settingsMode; break;
         case StagePage::chords:   content.mode = StageWiringText::chordsMode;   break;
@@ -364,6 +405,8 @@ void MainComponent::openStagePage (StagePage page)
     switch (page)
     {
         case StagePage::home:
+            if (display != nullptr && display->hasOpenStyle() && display->getView() != StyleView::style)
+                display->homeButtonInteraction();   // as Home did with a temporary style tab open
             closeStagePage();
             homeButtonOnClick();
             return;
@@ -421,6 +464,8 @@ void MainComponent::showStagePage (StagePage page)
 void MainComponent::closeStagePage()
 {
     pageRouter.close();
+    if (display != nullptr)
+        display->resetView();   // a track picker / notes page does not outlive its page
     bool anyPageWasOpen = false;
     for (auto* frame : stagePageFrames())
         if (frame != nullptr && frame->isVisible())

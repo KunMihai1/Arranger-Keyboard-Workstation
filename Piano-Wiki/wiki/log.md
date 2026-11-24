@@ -2,7 +2,7 @@
 type: meta
 title: "Operations Log"
 created: 2026-06-06
-updated: 2026-11-23
+updated: 2026-11-24
 tags:
   - meta
   - log
@@ -12,6 +12,22 @@ status: evergreen
 # Operations Log
 
 Append-only. Newest entries at the TOP. Never edit past entries.
+
+## 2026-11-24 — UI redesign phase 4a: Style page, track picker, notes page (`feat/ui-style-page`)
+- **Specs / plans are local only now** (owner): `docs/superpowers/` is git-ignored (PR #63); AGENTS.md says no
+  secrets, local files stay ignored, agents don't look in the owner's environment.
+- **Delete-the-open-style crash fixed** (`34be599` + review `77cae73`): `ArrangerEngine` / `MultipleTrackPlayer` own a
+  liveness token, every posted lambda holds a weak copy; the player now stops its timer in its own destructor.
+  Test `CallbackLifetime` crashed before (exit 3). The no-flag run completes now (4 GL pixel checks fail only there).
+- Styles page = board `StageStyles`: LCD styles list (Add / Rename / Delete), 8 track strips (`StageFader` follows
+  the hand), title row PLAY · All tracks · Solo | Sections... · Style settings... · Exit; tabs removed
+  (`StyleViewRouter`, `DisplayViews.cpp`). Picking an instrument keeps the track name (owner). Track picker =
+  `PageTracks` (rename box focus fixed); notes page = `PageNotes` (owner: hint line, no Undo; Cancel = dismissal).
+  Stage screen chord indent fixed. Every page frame got Exit and is centred like the panel (was 38 px off at
+  1920 x 991).
+- 1:1 check at 1920 x 991 (+ 1280 x 720, 800 x 600): `docs/superpowers/test-plans/2026-11-23-ui-redesign-style-page-visual.md`
+  (local). Sonnet review: 4 fixed, 3 rejected with reasons (`77cae73`).
+- Tests: unit 1629 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 8 / 0; names 0.
 
 ## 2026-11-23 — UI redesign phase 1 merged (PR #61)
 - `feat/ui-stage-panel` merged into `main` (`908891f`, merge commit as usual). CI: unit 1501 / 0, arranger 770 / 0,

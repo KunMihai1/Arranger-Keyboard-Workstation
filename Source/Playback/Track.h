@@ -3,6 +3,22 @@
 #include "SubjectInterface.h"
 #include "TrackListener.h"
 #include "CustomToolTip.h"
+#include "UI/Stage/StagePageWidgets.h"
+
+/** Component IDs of a track strip's parts (findChildWithID). */
+namespace TrackStripIds
+{
+    inline const juce::String name       = "trackName";
+    inline const juce::String instrument = "trackInstrument";
+    inline const juce::String fader      = "trackFader";
+    inline const juce::String volume     = "trackVolume";
+    inline const juce::String notes      = "trackNotes";
+}
+
+namespace TrackStripText
+{
+    inline const juce::String notes = "Notes";
+}
 
 /**
  * @class Track
@@ -49,6 +65,20 @@ public:
 
     /** @brief Displays note information for the given track UUID and channel. */
     std::function<void(const juce::Uuid& uuid, int channel)> onShowInformation;
+
+    /** A short message for the Stage screen (e.g. a drum track's instrument cannot change). */
+    std::function<void(const juce::String& text)> onInfo;
+
+    /** Slot number (1-8) drawn at the top of the strip, and the Stage scale. */
+    void setSlotNumber(int oneBasedSlot);
+    void setScale(float newScale);
+
+    /** What the instrument button reads: the General MIDI name when one is set, "Drums" on a percussion
+        track, "As recorded" with none set, an em dash on an empty slot. */
+    juce::String instrumentCaption() const;
+
+    /** What picking an instrument does: sets and sends it. The track keeps its name (owner, 2026-11-23). */
+    void chooseInstrument(int instrumentIndex);
 
     //==============================================================================
     /** @brief Constructs an empty Track component with default UI elements. */
@@ -184,10 +214,14 @@ private:
     juce::Uuid uniqueIdentifierTrack;  ///< Unique ID for identifying this track.
 
     //==============================================================================
-    juce::Slider volumeSlider;               ///< Vertical slider controlling track volume.
+    StageFader volumeSlider;               ///< Vertical slider controlling track volume.
     juce::Label volumeLabel;                 ///< Displays numeric volume value.
     juce::Label nameLabel;                   ///< Displays the track's name.
-    juce::TextButton instrumentChooserButton;///< Opens instrument selection popup.
+    SegButton instrumentChooserButton { {}, SegButton::Style::instrument };
+    SegButton notesButton { TrackStripText::notes, SegButton::Style::seg };   ///< Opens the notes page (as "Notes information").
+    int slotNumber {};
+    float scale = StageMetrics::referenceScale;
+    void refreshInstrumentCaption();///< Opens instrument selection popup.
     juce::StringArray instrumentlist;        ///< List of all MIDI instrument names.
     std::unique_ptr<CustomToolTip> toolTipWindow = nullptr; ///< Tooltip window for displaying track name.
 };

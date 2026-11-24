@@ -20,7 +20,6 @@
 #include "PlayScreenLookAndFeel.h"
 #include "StyleViewComponent.h"
 #include "StylesListComponent.h"
-#include "MyTabbedComponent.h"
 #include "Track.h"
 #include "TrackListComponent.h"
 #include "CurrentStyleComponent.h"

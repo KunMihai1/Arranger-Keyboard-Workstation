@@ -175,3 +175,25 @@ StagePage PageRouter::open() const
 {
     return openPage;
 }
+
+StyleView StyleViewRouter::show (StyleView view)
+{
+    shown = view;
+    return shown;
+}
+
+StyleView StyleViewRouter::back()
+{
+    shown = StyleView::style;
+    return shown;
+}
+
+void StyleViewRouter::reset()
+{
+    shown = StyleView::style;
+}
+
+StyleView StyleViewRouter::current() const
+{
+    return shown;
+}

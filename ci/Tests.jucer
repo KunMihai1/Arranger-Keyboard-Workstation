@@ -9,6 +9,18 @@
               file="../tests/unit/test_stage_page_frame.cpp"/>
         <FILE id="chBrwT" name="test_chord_browser.cpp" compile="1" resource="0"
               file="../tests/unit/test_chord_browser.cpp"/>
+        <FILE id="cbLifT" name="test_callback_lifetime.cpp" compile="1" resource="0"
+              file="../tests/unit/test_callback_lifetime.cpp"/>
+        <FILE id="stgPwT" name="test_stage_page_widgets.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_page_widgets.cpp"/>
+        <FILE id="trkStT" name="test_track_strip.cpp" compile="1" resource="0"
+              file="../tests/unit/test_track_strip.cpp"/>
+        <FILE id="stlPgT" name="test_style_page.cpp" compile="1" resource="0"
+              file="../tests/unit/test_style_page.cpp"/>
+        <FILE id="trkPkT" name="test_track_picker.cpp" compile="1" resource="0"
+              file="../tests/unit/test_track_picker.cpp"/>
+        <FILE id="ntsPgT" name="test_notes_page.cpp" compile="1" resource="0"
+              file="../tests/unit/test_notes_page.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"
@@ -99,8 +111,6 @@
               file="../tests/unit/test_midi_handler_keyboard.cpp"/>
         <FILE id="SynQue" name="test_internal_synth_midi_queue.cpp" compile="1" resource="0"
               file="../tests/unit/test_internal_synth_midi_queue.cpp"/>
-        <FILE id="TmpTab" name="test_temporary_tabs.cpp" compile="1" resource="0"
-              file="../tests/unit/test_temporary_tabs.cpp"/>
       </GROUP>
       <GROUP id="{B2C3D4E5-5555-6666-7777-888899990000}" name="Integration">
         <FILE id="HwMdDv" name="test_midi_device_hw.cpp" compile="1" resource="0"
@@ -402,6 +412,10 @@
                 file="../Source/UI/Stage/StageWidgets.cpp"/>
           <FILE id="stgWdH" name="StageWidgets.h" compile="0" resource="0"
                 file="../Source/UI/Stage/StageWidgets.h"/>
+          <FILE id="stgPwC" name="StagePageWidgets.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StagePageWidgets.cpp"/>
+          <FILE id="stgPwH" name="StagePageWidgets.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StagePageWidgets.h"/>
           <FILE id="stgSrC" name="StageScreen.cpp" compile="1" resource="0"
                 file="../Source/UI/Stage/StageScreen.cpp"/>
           <FILE id="stgSrH" name="StageScreen.h" compile="0" resource="0"
@@ -449,6 +463,8 @@
         <FILE id="uwICeF" name="CustomTableContainer.cpp" compile="1" resource="0"
               file="../Source/UI/CustomTableContainer.cpp"/>
         <FILE id="splgRV" name="CustomTableContainerModify.cpp" compile="1" resource="0" file="../Source/UI/CustomTableContainerModify.cpp"/>
+        <FILE id="ctcPgC" name="CustomTableContainerPage.cpp" compile="1" resource="0"
+              file="../Source/UI/CustomTableContainerPage.cpp"/>
         <FILE id="NpdkDy" name="CustomTableContainer.h" compile="0" resource="0"
               file="../Source/UI/CustomTableContainer.h"/>
         <FILE id="Fob7bQ" name="CustomBeatBar.cpp" compile="1" resource="0"
@@ -465,12 +481,10 @@
               file="../Source/UI/InstrumentChooser.h"/>
         <FILE id="HiLb6c" name="displayGUI.cpp" compile="1" resource="0" file="../Source/UI/displayGUI.cpp"/>
         <FILE id="ICOTvm" name="displayGUI.h" compile="0" resource="0" file="../Source/UI/displayGUI.h"/>
-        <FILE id="myTab1" name="MyTabbedComponent.cpp" compile="1" resource="0"
-              file="../Source/UI/MyTabbedComponent.cpp"/>
-        <FILE id="myTab2" name="MyTabbedComponent.h" compile="0" resource="0"
-              file="../Source/UI/MyTabbedComponent.h"/>
         <FILE id="diCmp1" name="Display.cpp" compile="1" resource="0" file="../Source/UI/Display.cpp"/>
         <FILE id="dspStg" name="DisplayStage.cpp" compile="1" resource="0" file="../Source/UI/DisplayStage.cpp"/>
+        <FILE id="dspVws" name="DisplayViews.cpp" compile="1" resource="0"
+              file="../Source/UI/DisplayViews.cpp"/>
         <FILE id="spl5If" name="DisplayStyleStore.cpp" compile="1" resource="0" file="../Source/UI/DisplayStyleStore.cpp"/>
         <FILE id="diCmp2" name="Display.h" compile="0" resource="0" file="../Source/UI/Display.h"/>
         <FILE id="dExTT9" name="temporaryNotificationUI.cpp" compile="1" resource="0"
@@ -534,6 +548,8 @@
               file="../Source/Playback/TrackListComponentFolders.cpp"/>
         <FILE id="tlCmp4" name="TrackListComponentNames.h" compile="0" resource="0"
               file="../Source/Playback/TrackListComponentNames.h"/>
+        <FILE id="tlPgC" name="TrackListComponentPage.cpp" compile="1" resource="0"
+              file="../Source/Playback/TrackListComponentPage.cpp"/>
         <FILE id="k5GJ5O" name="TrackEntry.h" compile="0" resource="0" file="../Source/Playback/TrackEntry.h"/>
         <FILE id="zfMrzS" name="TrackListener.h" compile="0" resource="0" file="../Source/Playback/TrackListener.h"/>
         <FILE id="dxeclC" name="TrackPlayer.cpp" compile="1" resource="0" file="../Source/Playback/TrackPlayer.cpp"/>

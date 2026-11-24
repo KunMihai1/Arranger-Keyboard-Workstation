@@ -7,7 +7,8 @@
 #include "trackListComponentListener.h"
 #include "StyleSection.h"
 #include "StylesListComponent.h"
-#include "MyTabbedComponent.h"
+#include "UI/Stage/StageModels.h"
+#include "UI/Stage/StagePageWidgets.h"
 #include "CurrentStyleComponent.h"
 #include "TrackListComponent.h"
 
@@ -20,8 +21,32 @@
  * and rename styles, manage track assignments, and interact with playback settings.
  * This class also persists style and track data in JSON format.
  */
+/** The Style page's text (board StageRevised openPage=styles). */
+namespace StylePageText
+{
+    inline const juce::String title         = "Style";
+    inline const juce::String play          = "Play";
+    inline const juce::String allTracks     = "All tracks";
+    inline const juce::String solo          = "Solo";
+    inline const char* const  sectionsUtf8      = "Sections\xe2\x80\xa6";         // + U+2026 ellipsis
+    inline const char* const  styleSettingsUtf8 = "Style settings\xe2\x80\xa6";
+    inline const juce::String settingsTitle = "Style settings";
+    inline const juce::String tracksTitle   = "Choose track";
+    inline const char* const  slotSeparatorUtf8 = " \xc2\xb7 slot ";   // "Choose track · slot 3"
+    inline const juce::String tracks        = "Tracks";
+    inline const juce::String openAStyle    = "Open a style on the left";
+}
+
+/** The Style page's two columns: the styles list and the tracks area (board: 230, gap 24, the rest). */
+class TableContainer;
+
+struct StylePageRects
+{
+    juce::Rectangle<int> stylesColumn, tracksArea;
+};
+StylePageRects stylePageLayout (juce::Rectangle<int> content, float scale);
+
 class Display : public juce::Component,
-                public juce::ChangeListener,
                 public TrackListListener
 {
 public:
@@ -40,18 +65,10 @@ public:
     /** @brief Destructor */
     ~Display() override;
 
-    /** @brief Callback from `ChangeBroadcaster` */
-    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
 
     juce::String getStyleID() const;
     juce::String getStyleName() const;
 
-    /**
-     * @brief Gets the tab index for a tab by its name.
-     * @param name Name of the tab.
-     * @return Index of the tab, or -1 if not found.
-     */
-    int getTabIndexByName(const juce::String& name);
 
     /** @brief Initializes all default styles in JSON if missing */
     void initializeAllStyles();
@@ -79,6 +96,25 @@ public:
 
     /** @brief Handles resizing of the component */
     void resized() override;
+    void paint(juce::Graphics& g) override;
+
+    //==============================================================================
+    // The Style page (board StageRevised openPage=styles; DisplayViews.cpp). The page frame shows the
+    // view's title, subtitle and title-row actions; Exit / Esc call closeSubView() first.
+    void setScale(float newScale);
+    StyleView getView() const;
+    void showView(StyleView view);
+    /** Back to the style from the track picker, notes or style settings (they are destroyed). */
+    void closeSubView();
+    /** The Styles page closed: forget any sub-view. */
+    void resetView();
+    juce::String getViewTitle() const;
+    juce::String getViewSubtitle() const;
+    std::vector<juce::Component*> getTitleActions();
+    /** The view, its title or its actions changed: the host updates the page frame and the screen. */
+    std::function<void()> onViewChanged;
+    /** A short message for the Stage screen. */
+    std::function<void(const juce::String& text)> onInfo;
 
     /** @brief Returns the root JSON variable representing all styles */
     const juce::var& getJsonVar();
@@ -206,14 +242,8 @@ public:
     /** @brief calling the listener's function that they inherit */
     void callingListeners();
 
-    /** @brief get total number of tabs of the tabbed component */
-    int getNumTabs();
-
     /** @brief sets all the settings including min,max note, playing range on left/right hand */
     void setNewSettingsHelperFunction(int value);
-
-    /** @brief Checks if a certain tab exists in the tabbed component*/
-    bool existsTab(const juce::String& name);
 
     void initializeSectionsForStyle(std::unordered_map<juce::String, StyleSection>& sections);
 
@@ -231,11 +261,23 @@ private:
     //==============================================================================
     juce::HashMap<juce::String, std::unique_ptr<juce::DynamicObject>> styleDataCache; ///< Cached style data
     std::unique_ptr<StylesListComponent> stylesListComponent; ///< UI component for style list
-    std::unique_ptr<MyTabbedComponent> tabComp; ///< Tabbed component for styles & tracks
     std::unique_ptr<CurrentStyleComponent> currentStyleComponent; ///< UI for current style
     std::unique_ptr<PlayBackSettingsComponent> playBackSettings; ///< Playback settings UI
-    bool created = false; ///< Flag for style tab creation
-    std::unique_ptr<TemporaryTabs> temporaryTabs; ///< "Playback Settings" / "My tracks" open/close rules
+
+    // --- The Style page (DisplayViews.cpp) ---
+    void openStyleSettings();
+    void destroySubView();
+    void layoutViews();
+    void refreshTitleActions();
+    void viewChanged();
+    StyleViewRouter views;
+    float scale = StageMetrics::referenceScale;
+    SilkLabel    playLabel      { StylePageText::play, SilkLabel::Tone::dim };
+    SegButton    allTracksButton { StylePageText::allTracks, SegButton::Style::seg, true };
+    SegButton    soloButton     { StylePageText::solo, SegButton::Style::seg, true };
+    TitleDivider playDivider;
+    SegButton    sectionsButton { juce::String::fromUTF8 (StylePageText::sectionsUtf8), SegButton::Style::seg };
+    SegButton    styleSettingsButton { juce::String::fromUTF8 (StylePageText::styleSettingsUtf8), SegButton::Style::seg };
 
     int minNote, maxNote;  ///< min and max notes of playing range
     PlayBackSettings settings; ///< Playback settings
@@ -262,4 +304,10 @@ private:
     std::unordered_map<juce::Uuid, TrackEntry*> mapUuidToTrack; ///< Map of track UUIDs to entries
 
     juce::ListenerList<DisplayListener> displayListeners; ///< Registered listeners
+
+    // The notes page of a track (board PageNotes). Declared last: it is destroyed first, before the style
+    // component whose player it listens to.
+    void showNotes(std::unique_ptr<TableContainer> notes, const juce::String& title, const juce::String& subtitle);
+    std::unique_ptr<TableContainer> notesContainer;
+    juce::String notesTitle, notesSubtitle;
 };

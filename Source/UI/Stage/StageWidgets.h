@@ -23,6 +23,13 @@
 #include <JuceHeader.h>
 #include "StageMetrics.h"
 
+namespace StageDrawing
+{
+    /** The board's .led / .led-on: off = dark with an inset shade; lit = the colour with its CSS blur glow
+        (box-shadow 0 0 3px), which reaches StageMetrics::ledGlowRadius past the LED. */
+    void drawLed (juce::Graphics& g, juce::Rectangle<float> led, bool lit, juce::Colour litColour, float scale);
+}
+
 class RubberButton : public juce::Button
 {
 public:

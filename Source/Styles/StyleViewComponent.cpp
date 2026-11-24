@@ -1,5 +1,7 @@
 #include "displayGUI.h"
 #include "PersistedKeys.h"
+#include "UI/Stage/StagePageWidgets.h"
+#include "UI/Stage/StageMetrics.h"
 
 namespace
 {
@@ -17,19 +19,16 @@ namespace
         const juce::String removeButton       = "Remove";
         const juce::String removedTitle       = "Remove style";
         const juce::String removed            = "Style removed succesfully!";
+        const char* const  openMarkUtf8       = "\xe2\x97\x82";   // U+25C2: the open style's arrow
     }
-
-    constexpr float labelFontHeight = 18.0f;
-    constexpr int   labelInset      = 10;
-    constexpr int   labelExtraWidth = 10;
-    constexpr int   labelExtraHeight = 6;
 }
 
 StyleViewComponent::StyleViewComponent(const juce::String& styleName)
 {
-    label.setFont(juce::Font(labelFontHeight, juce::Font::bold));
+    // The label fills the row (the whole row takes clicks); the row's LCD background is painted behind it.
     label.setText(styleName, juce::dontSendNotification);
-    label.setColour(juce::Label::textColourId, AppColours::accent3);
+    label.setColour(juce::Label::textColourId, StageLcd::textColour(false));
+    label.setJustificationType(juce::Justification::centredLeft);
     label.setInterceptsMouseClicks(true, false);
     label.setMouseCursor(juce::MouseCursor::PointingHandCursor);
 
@@ -41,11 +40,31 @@ StyleViewComponent::StyleViewComponent(const juce::String& styleName)
 
 void StyleViewComponent::resized()
 {
-    auto font = label.getFont();
-    int textWidth = juce::GlyphArrangement::getStringWidthInt(font, label.getText());
-    int textHeight = static_cast<int>(font.getHeight());
+    const auto padding = juce::roundToInt(static_cast<float>(StageMetrics::lcdRowPaddingSide) * scale);
+    label.setFont(StageLcd::rowFont(scale));
+    label.setBorderSize({ {}, padding, {}, padding });
+    label.setBounds(getLocalBounds());
+}
 
-    label.setBounds(labelInset, labelInset, textWidth + labelExtraWidth, textHeight + labelExtraHeight);
+void StyleViewComponent::setOpen(bool shouldBeOpen)
+{
+    open = shouldBeOpen;
+    label.setColour(juce::Label::textColourId, StageLcd::textColour(open));
+    repaint();
+}
+
+bool StyleViewComponent::isOpen() const { return open; }
+
+void StyleViewComponent::setScale(float newScale)
+{
+    scale = newScale;
+    resized();
+    repaint();
+}
+
+void StyleViewComponent::paint(juce::Graphics& g)
+{
+    StageLcd::paintRow(g, getLocalBounds(), scale, {}, open ? juce::String::fromUTF8(Text::openMarkUtf8) : juce::String(), open);
 }
 
 void StyleViewComponent::mouseUp(const juce::MouseEvent& event)

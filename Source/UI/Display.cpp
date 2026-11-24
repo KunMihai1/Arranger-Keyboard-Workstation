@@ -1,12 +1,8 @@
 #include "displayGUI.h"
+#include "CustomTableContainer.h"
 
 namespace
 {
-    constexpr int    firstTabIndex       = 0;
-    constexpr int    nextTab             = 1;    // the style tab sits right after the Styles list
-    constexpr int    lastTabOffset       = 1;    // getNumTabs() - 1 is the last tab
-    constexpr int    tabBeforeLastOffset = 2;
-    constexpr int    tabNotFound         = -1;
     constexpr int    allTracksIndex      = 0;    // CurrentStyleComponent::comboBoxChangeIndex
     constexpr int    lowestPianoNote     = 21;   // A0, the lowest key of an 88-key piano
     constexpr int    highestPianoNote    = 108;  // C8
@@ -24,19 +20,6 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
     groupedTracks = std::make_shared<std::unordered_map<juce::String, std::deque<TrackEntry>>>();
     groupedTrackKeys = std::make_shared<std::vector<juce::String>>();
     sectionsPerStyleMap = std::make_shared<std::unordered_map<juce::String, std::unordered_map<juce::String,StyleSection>>>();
-
-    tabComp = std::make_unique<MyTabbedComponent>(juce::TabbedButtonBar::TabsAtLeft);
-    temporaryTabs = std::make_unique<TemporaryTabs>(*tabComp);
-    temporaryTabs->onTracksClosed = [this]()
-    {
-        if (trackListComp)
-            trackListComp->removeListener(this);
-        trackListComp.reset();
-    };
-    temporaryTabs->onPlaybackSettingsClosed = [this]() { playBackSettings.reset(); };
-
-
-    addAndMakeVisible(tabComp.get());
 
     initializeAllStyles();
     loadAllStyles();
@@ -84,12 +67,10 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
 
     list->onStyleRename = [this](const juce::String& oldName, const juce::String& newName)
     {
-        int index = tabComp->getCurrentTabIndex();
-        if (index>=firstTabIndex && index + nextTab < tabComp->getNumTabs())
+        if (currentStyleComponent && currentStyleComponent->getName() == oldName)
         {
-            tabComp->setTabName(index + nextTab, newName);
-
             currentStyleComponent->updateName(newName);
+            viewChanged();   // the screen shows the open style's name
         }
 
         updateStyleNameInJson(oldName, newName);
@@ -102,56 +83,32 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
 
     list->onStyleRemove = [this](const juce::String& name)
     {
-        if (tabComp)
+        // Removing the open style closes it. Sub-pages hold callbacks into it: they go first.
+        if (currentStyleComponent && currentStyleComponent->getName() == name)
         {
-            int currentTabIndex = tabComp->getCurrentTabIndex();
-            if (currentTabIndex + nextTab <= tabComp->getNumTabs())
-            {
-                juce::String tabName = tabComp->getTabNames()[currentTabIndex + nextTab];
-                if (tabName == name)
-                {
-                    tabComp->removeTab(currentTabIndex + nextTab);
-                    currentStyleComponent.reset();
-                    created = false;
-                }
-            }
+            destroySubView();
+            currentStyleComponent.reset();
+            layoutViews();
+            refreshTitleActions();   // nothing open: All tracks / Solo / Sections... / Style settings... off
+            viewChanged();
         }
         removeStyleInJson(name);
     };
 
-    //auto* scrollableView = new juce::Viewport();
-    //scrollableView->setScrollBarsShown(true, false); // only vertical
-    //scrollableView->setViewedComponent(list, true);
-    tabComp->addTab(StylePanelTabs::styles, AppColours::stylePanelTab, list.get(), false);
-
+    addAndMakeVisible(list.get());
     stylesListComponent = std::move(list);
-    //list->resized();
-    //scrollableView->getViewedComponent()->resized();
 
-    tabComp->onTabChanged = [this](int newIndex, juce::String tabName)
-    {
-        temporaryTabs->tabChanged(newIndex, tabName);
-    };
+    // The Style page's title row (board: PLAY · All tracks · Solo | Sections... · Style settings...).
+    allTracksButton.onClick     = [this] { if (currentStyleComponent) { currentStyleComponent->setPlayModeSolo(false); refreshTitleActions(); } };
+    soloButton.onClick          = [this] { if (currentStyleComponent) { currentStyleComponent->setPlayModeSolo(true);  refreshTitleActions(); } };
+    sectionsButton.onClick      = [this] { if (currentStyleComponent) currentStyleComponent->openSectionConfigurations(); };
+    styleSettingsButton.onClick = [this] { openStyleSettings(); };
+    refreshTitleActions();
 }
 
 Display::~Display()
 {
-
-}
-
-void Display::changeListenerCallback(juce::ChangeBroadcaster* source)
-{
-    auto* tabbedCast = dynamic_cast<juce::TabbedComponent*>(source);
-    if (tabbedCast == tabComp.get())
-    {
-        int currentIndex = tabComp->getCurrentTabIndex();
-        int tracksTabIndex = getTabIndexByName(StylePanelTabs::myTracks);
-
-        if (tracksTabIndex >= firstTabIndex && currentIndex != tracksTabIndex)
-        {
-            tabComp->removeTab(tracksTabIndex);
-        }
-    }
+    destroySubView();   // the track picker / notes page listen to the style component: they go first
 }
 
 juce::String Display::getStyleID() const
@@ -168,21 +125,9 @@ juce::String Display::getStyleName() const
     else return StyleNames::defaultStyle;
 }
 
-int Display::getTabIndexByName(const juce::String& name)
-{
-    auto& tabBar = tabComp->getTabbedButtonBar();
-
-    for (int tabIndex {}; tabIndex < tabComp->getNumTabs(); ++tabIndex)
-    {
-        if (tabBar.getTabButton(tabIndex)->getName() == name)
-            return tabIndex;
-    }
-    return tabNotFound;
-}
-
 void Display::showCurrentStyleTab(const juce::String& name)
 {
-    if (!created)
+    if (currentStyleComponent == nullptr)
     {
         std::weak_ptr<std::unordered_map<juce::String, std::unordered_map<juce::String,StyleSection>>> weakSectionsMap = sectionsPerStyleMap;
 
@@ -200,45 +145,14 @@ void Display::showCurrentStyleTab(const juce::String& name)
             TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
         };
 
-        currentStyleComponent->keybindTabStarting = [this]()
+        currentStyleComponent->keybindTabStarting = [this]() { openStyleSettings(); };
+
+        addAndMakeVisible(currentStyleComponent.get());
+        currentStyleComponent->onInfo = [this](const juce::String& text) { if (onInfo) onInfo(text); };
+        currentStyleComponent->onShowNotes = [this](std::unique_ptr<TableContainer> notes, const juce::String& title, const juce::String& subtitle)
         {
-
-            int existingIndex = getTabIndexByName(StylePanelTabs::playbackSettings);
-
-            if (existingIndex >= firstTabIndex)
-            {
-                tabComp->setCurrentTabIndex(existingIndex);
-                return;
-            }
-
-
-            playBackSettings = std::make_unique<PlayBackSettingsComponent>(minNote, maxNote, this->settings);
-            playBackSettings->getStyleID = [this]() { return this->getStyleID(); };
-            playBackSettings->setBounds(getLocalBounds());
-
-            playBackSettings->onChangingSettings = [this](PlayBackSettings newSettings)
-            {
-                // Save settings using PropertiesFile
-                PlaybackSettingsIOHelper::savePlaybackSettings(propertiesFile, this->settings, minNote, maxNote, this->getStyleID());
-                displayListeners.call(&DisplayListener::playBackSettingsChanged, this->settings);
-            };
-
-            playBackSettings->onChangingTranspose = [this](int transposeValue)
-            {
-                displayListeners.call(&DisplayListener::playBackSettingsTransposeChanged, transposeValue);
-            };
-
-            temporaryTabs->playbackSettingsOpened();
-            tabComp->addTab(StylePanelTabs::playbackSettings, AppColours::stylePanelTab, playBackSettings.get(), false);
-
-            existingIndex = tabComp->getNumTabs() - lastTabOffset;
-
-
-            tabComp->setCurrentTabIndex(existingIndex);
+            showNotes(std::move(notes), title, subtitle);
         };
-
-        tabComp->addTab(name, AppColours::stylePanelTab, currentStyleComponent.get(), false);
-        created = true;
 
         if (pendingMidiInjectCallback)
             currentStyleComponent->setMidiInjectCallback(pendingMidiInjectCallback);
@@ -256,8 +170,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
         for (auto& track : currentStyleComponent->getAllTracks())
             track->removeListener(currentStyleComponent->getTrackPlayer());
 
-        int index = tabComp->getNumTabs() - lastTabOffset;
-        tabComp->getTabbedButtonBar().setTabName(index, name);
+        destroySubView();   // a sub-page of the previous style must not outlive the switch
         currentStyleComponent->updateName(name);
     }
 
@@ -301,11 +214,6 @@ void Display::showCurrentStyleTab(const juce::String& name)
             onBeatPosition(elapsedBeats, beatsPerBar);
     };
 
-    currentStyleComponent->tabExsitsCallback = [this](const juce::String& name)
-    {
-        return this->existsTab(name);
-    };
-
     if (allStylesJsonVar.isObject())
     {
         auto stylesArray = allStylesJsonVar[juce::Identifier { AllStylesJsonKeys::styles }];
@@ -324,7 +232,11 @@ void Display::showCurrentStyleTab(const juce::String& name)
             }
         }
     }
-    tabComp->setCurrentTabIndex(tabComp->getNumTabs() - lastTabOffset);
+    stylesListComponent->setOpenStyle(name);
+    views.reset();
+    layoutViews();
+    refreshTitleActions();
+    viewChanged();
 
     juce::String styleID = currentStyleComponent->getStyleID();
 
@@ -353,6 +265,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
 
 void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String&, const juce::Uuid& uuid, const juce::String& type)> onTrackSelected)
 {
+    destroySubView();   // one sub-page at a time
     trackListComp = std::make_unique<TrackListComponent>(availableTracksFromFolder, groupedTracks, groupedTrackKeys,
         [this, onTrackSelected](int index)
         {
@@ -371,15 +284,20 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
                 currentStyleComponent->applyBPMchangeBeforePlayback(currentStyleComponent->getTempo(),true);
             }
 
-            if (trackListComp)
-                trackListComp->removeListener(this);
-            int styleTabIndex = tabComp->getNumTabs() - tabBeforeLastOffset;
-            if (styleTabIndex >= firstTabIndex)
+            if (currentStyleComponent)
             {
                 DBG(saveLogged);
                 updateStyleInJson(currentStyleComponent->getName());
-                tabComp->setCurrentTabIndex(styleTabIndex);
             }
+
+            // Back to the style. Not now: this runs inside the picker's own click, which must not
+            // delete the picker under itself.
+            const juce::Component::SafePointer<Display> safeThis (this);
+            juce::MessageManager::callAsync([safeThis]
+            {
+                if (safeThis != nullptr && safeThis->getView() == StyleView::tracks)
+                    safeThis->closeSubView();
+            });
         });
 
     trackListComp->addListener(this);
@@ -409,10 +327,10 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
         mapUuidToTrack[newEntry->getUniqueID()] = newEntry;
     };
 
-    tabComp->addTab(StylePanelTabs::myTracks, AppColours::stylePanelTab, trackListComp.get(), false);
-    tabComp->setCurrentTabIndex(tabComp->getNumTabs() - lastTabOffset);
-
-    temporaryTabs->tracksOpened();
+    trackListComp->setSlotNumber(currentStyleComponent ? currentStyleComponent->getRequestingSlot() : int {});
+    trackListComp->setScale(scale);
+    addAndMakeVisible(trackListComp.get());
+    showView(StyleView::tracks);
 }
 
 std::vector<TrackEntry> Display::getAvailableTracksFromFolder(const juce::File& folder)
@@ -573,9 +491,11 @@ void Display::readPlaybackSettingsFromProperties()
 
 void Display::homeButtonInteraction()
 {
-    temporaryTabs->homePressed();
-    this->currentStyleComponent->comboBoxChangeIndex(allTracksIndex);
-    this->playBackSettings.reset();
+    // Home with a sub-page open (formerly: a temporary tab): back to the style, play mode All tracks.
+    closeSubView();
+    if (currentStyleComponent)
+        currentStyleComponent->comboBoxChangeIndex(allTracksIndex);
+    refreshTitleActions();
 }
 
 int Display::getStartNote()
@@ -608,11 +528,6 @@ void Display::removeListener(DisplayListener* listener)
     displayListeners.remove(listener);
 }
 
-int Display::getNumTabs()
-{
-    return this->tabComp->getNumTabs();
-}
-
 void Display::setNewSettingsHelperFunction(int value)
 {
     if(settings.startNote!=PlaybackSettingsKeys::notSet)
@@ -642,16 +557,6 @@ void Display::setNewSettingsHelperFunction(int value)
     if(playBackSettings)
         this->playBackSettings->setNewSettings(settings);
     else displayListeners.call(&DisplayListener::playBackSettingsChanged, this->settings);
-}
-
-bool Display::existsTab(const juce::String& name)
-{
-    for (auto& tabName : tabComp->getTabNames())
-    {
-        if (tabName == name)
-            return true;
-    }
-    return false;
 }
 
 void Display::initializeSectionsForStyle(std::unordered_map<juce::String,StyleSection>& sections)
@@ -741,6 +646,5 @@ void Display::callingListeners()
 
 void Display::resized()
 {
-    tabComp->setBounds(getLocalBounds());
-
+    layoutViews();
 }

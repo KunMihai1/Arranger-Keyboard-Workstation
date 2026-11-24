@@ -15,6 +15,7 @@ namespace
     namespace Text
     {
         const juce::String notesTitlePrefix    = "Notes - ";
+        const juce::String indexColumn         = "#";
         const juce::String noteColumn          = "Note";
         const juce::String timeColumn          = "Time";
         const juce::String velocityColumn      = "Velocity";
@@ -179,6 +180,8 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
 
     table->setMultipleSelectionEnabled(true);
 
+    // "#" numbers the rows as shown; clicking its header sorts nothing (sortOrderChanged has no branch for it).
+    table->getHeader().addColumn(Text::indexColumn, NoteTableColumns::index, noteColumnWidth);   // widths: setScale()
     table->getHeader().addColumn(Text::noteColumn, NoteTableColumns::note, noteColumnWidth);
     table->getHeader().addColumn(Text::timeColumn, NoteTableColumns::time, timeColumnWidth);
     table->getHeader().addColumn(Text::velocityColumn, NoteTableColumns::velocity, velocityColumnWidth);
@@ -276,40 +279,13 @@ TableContainer::TableContainer(juce::MidiMessageSequence& seq, const juce::Strin
     addAndMakeVisible(disclaimerLabel.get());
     table->setBounds(getLocalBounds());
     table->updateContent();
-}
 
-void TableContainer::resized()
-{
-    auto area = getLocalBounds();
-    const int spacing = 10;
-    const int verticalPadding = 5;
-    const int infoLabelHeight = 20;
-
-    table->setBounds(area.removeFromTop(area.getHeight() - (labelHeight + buttonsControlBarHeight*controlBars)));
-
-    auto disclaimerArea = area.removeFromBottom(labelHeight);
-    auto controlBarChangeArea = area.removeFromBottom(buttonsControlBarHeight);
-    auto controlBarModifyArea = area.removeFromBottom(buttonsControlBarHeight);
-
-    auto innerBarChange = controlBarChangeArea.reduced(horizontalPadding, verticalPadding);
-
-    actionToOriginalCB->setBounds(innerBarChange.removeFromLeft(comboWidth));
-    innerBarChange.removeFromLeft(spacing);
-    changeToOriginalMultipleButton->setBounds(innerBarChange.removeFromLeft(buttonWidth));
-
-    infoLabelChange->setBounds(innerBarChange.withTrimmedTop((innerBarChange.getHeight() - infoLabelHeight) / centringDivisor)
-        .withHeight(infoLabelHeight));
-
-    auto innerBarModify = controlBarModifyArea.reduced(horizontalPadding, verticalPadding);
-
-    actionModifyCB->setBounds(innerBarModify.removeFromLeft(comboWidth));
-    innerBarModify.removeFromLeft(spacing);
-    modifyMultipleButton->setBounds(innerBarModify.removeFromLeft(buttonWidth));
-
-    infoLabelModify->setBounds(innerBarModify.withTrimmedTop((innerBarModify.getHeight() - infoLabelHeight) / centringDivisor)
-        .withHeight(infoLabelHeight));
-
-    disclaimerLabel->setBounds(disclaimerArea);
+    // The notes page shows the board's buttons instead; these stay as the state and actions they run.
+    for (juce::Component* old : { static_cast<juce::Component*>(changeToOriginalMultipleButton.get()), static_cast<juce::Component*>(actionToOriginalCB.get()),
+                                   static_cast<juce::Component*>(infoLabelChange.get()), static_cast<juce::Component*>(modifyMultipleButton.get()),
+                                   static_cast<juce::Component*>(actionModifyCB.get()), static_cast<juce::Component*>(infoLabelModify.get()) })
+        old->setVisible(false);
+    createPageControls();
 }
 
 void TableContainer::updateObjects()
@@ -326,10 +302,13 @@ void TableContainer::updateObjects()
 
     if (modifyMultipleButton)
         modifyMultipleButton->setEnabled(editingAllowed);
+
+    refreshPageButtons();
 }
 
 TableContainer::~TableContainer()
 {
+    table->getHeader().setLookAndFeel(nullptr);   // tableLook goes before the table
     table->setModel(nullptr);
 
     if (model && removeModelFromListener)

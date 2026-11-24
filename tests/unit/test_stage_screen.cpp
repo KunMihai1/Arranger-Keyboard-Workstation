@@ -4,6 +4,8 @@
 
 namespace StageScreenTestValues
 {
+    const juce::String chordAtRowStart = "with no variation shown, the chord starts at the row's left edge (owner: it was indented)";
+    const juce::String chordText       = "C maj";
     const juce::String testName     = "StageScreen";
     const juce::String testCategory = "Unit";
 
@@ -186,6 +188,31 @@ public:
             expect (! under.screen.isEditingTempo());
             expectEquals (static_cast<int> (under.reported.size()), singleClick);
             expectWithinAbsoluteError (under.screen.tempo().value(), typedValue, tolerance);
+        }
+
+        beginTest (chordAtRowStart);
+        {
+            // The same text as the chord (no variation) and as the variation (no chord) lands on the same pixels.
+            auto render = [] (const juce::String& variation, const juce::String& chord)
+            {
+                ScreenUnderTest under;
+                auto content = awakeContent();
+                content.variation = variation;
+                content.chord = chord;
+                under.screen.setContent (content);
+                juce::Image canvas (juce::Image::ARGB, under.screen.getWidth(), under.screen.getHeight(), true, juce::SoftwareImageType());
+                juce::Graphics g (canvas);
+                under.screen.paintEntireComponent (g, false);
+                return canvas;
+            };
+            const auto asChord     = render ({}, chordText);
+            const auto asVariation = render (chordText, {});
+            int differentPixels {};
+            for (int row {}; row < asChord.getHeight(); ++row)
+                for (int column {}; column < asChord.getWidth(); ++column)
+                    if (asChord.getPixelAt (column, row) != asVariation.getPixelAt (column, row))
+                        ++differentPixels;
+            expectEquals (differentPixels, int {});
         }
 
         beginTest (editorLooksLikeBoard);

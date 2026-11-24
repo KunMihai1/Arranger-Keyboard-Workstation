@@ -3,7 +3,7 @@
 #include "TrackEntry.h"
 #include "SubjectInterface.h"
 #include "trackListComponentListener.h"
-#include "PlayScreenLookAndFeel.h"
+#include "UI/Stage/StagePageWidgets.h"
 
 /**
  * @class TrackListComponent
@@ -86,6 +86,31 @@ public:
      */
     void listBoxItemClicked(int row, const juce::MouseEvent& event) override;
 
+    //==============================================================================
+    // The track picker page (board PageTracks)
+    void paint(juce::Graphics& g) override;
+    void setScale(float newScale);
+    /** The slot being filled ("Use in slot N"). */
+    void setSlotNumber(int oneBasedSlot);
+    juce::String getUseButtonText() const;
+    void selectRow(int row);
+    void selectedRowsChanged(int lastRowSelected) override;
+    /** The title row's controls: SORT and the sort button. */
+    std::vector<juce::Component*> getTitleActions();
+    /** Steps the sort: Name -> Newest -> Oldest -> Name (today's three choices). */
+    void cycleSort();
+    juce::String sortCaption() const;
+
+    struct PickerDetail { juce::String label, value; };
+    /** The right column: the selected folder (Folder, Tracks, Melodic, Percussion) or track (Track,
+        Instrument, Type, Folder). */
+    std::vector<PickerDetail> details() const;
+
+    /** The track rename dialog's name box: added and found under one name (the focus call used the folder
+        dialog's name, found nothing and focused nothing - backlog section 2). */
+    static void addTrackRenameEditor(juce::AlertWindow& window, const juce::String& currentName);
+    static juce::TextEditor* trackRenameEditor(juce::AlertWindow& window);
+
     /** @brief Adds new tracks to the current folder from selected MIDI files. */
     void addToTrackList();
 
@@ -159,25 +184,32 @@ private:
     /** @brief Callback invoked when a user selects a track to play or edit. */
     std::function<void(int)> trackChosenCallBack;
 
-    PlayScreenLookAndFeel laf;
 
     /** @brief ListBox displaying folders or tracks. */
     juce::ListBox listBox;
 
     // UI Controls -----------------------------------------------------------
-    std::unique_ptr<juce::TextButton> addButton = nullptr;      /**< Add track button. */
-    std::unique_ptr<juce::TextButton> removeButton = nullptr;   /**< Remove track button. */
-    std::unique_ptr<juce::TextButton> backButton = nullptr;     /**< Back to folders button. */
-    std::unique_ptr<juce::TextButton> renameButton = nullptr;   /**< Rename track button. */
+    SegButton addButton    { {}, SegButton::Style::seg };   /**< Add from MIDI file... (track view) */
+    SegButton removeButton { {}, SegButton::Style::seg };   /**< Remove (track view) */
+    SegButton backButton   { {}, SegButton::Style::seg };   /**< < Back to the folders */
+    SegButton renameButton { {}, SegButton::Style::seg };   /**< Rename... (track view) */
+    SegButton useButton    { {}, SegButton::Style::lit };   /**< Use in slot N (= double-click a track) */
+    SegButton openFolderButton { {}, SegButton::Style::lit }; /**< Open folder (= double-click a folder) */
+    SilkLabel sortLabel    { {}, SilkLabel::Tone::dim };
+    SegButton sortButton   { {}, SegButton::Style::seg };
+    int slotNumber {};
+    float scale = StageMetrics::referenceScale;
+    void updateViewControls();
+    void openFolderAt(int row);
+    juce::Rectangle<int> listArea() const;
+    juce::Rectangle<int> detailArea() const;
 
-    inline static const juce::String addFolderCaption    = "Add folder";
-    inline static const juce::String removeFolderCaption = "Remove folder";
-    inline static const juce::String renameFolderCaption = "Rename folder";
-    juce::TextButton addButtonFolder{ addFolderCaption };           /**< Add folder button (visible in folder view). */
-    juce::TextButton removeButtonFolder{ removeFolderCaption };     /**< Remove folder button (visible in folder view). */
-    juce::TextButton renameButtonFolder{ renameFolderCaption };     /**< Rename folder button (visible in folder view). */
+    SegButton addButtonFolder    { {}, SegButton::Style::seg };   /**< Add folder... (folder view) */
+    SegButton removeButtonFolder { {}, SegButton::Style::seg };   /**< Remove (folder view) */
+    SegButton renameButtonFolder { {}, SegButton::Style::seg };   /**< Rename... (folder view) */
 
-    std::unique_ptr<juce::ComboBox> sortComboBox = nullptr;     /**< Sorting options dropdown. */
+    /** Today's sort choice, kept as the state the sort button steps (hidden). */
+    std::unique_ptr<juce::ComboBox> sortComboBox = std::make_unique<juce::ComboBox>();
 
     /** @brief Stores the name of the currently selected folder. */
     juce::String currentFolderName;

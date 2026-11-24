@@ -11,6 +11,10 @@ namespace
     {
         const juce::String unnamedTrack   = "<Unnamed>";
         const juce::String styleExtension = ".style";
+        const juce::String notesTitle     = "Notes";
+        const juce::String trackWord      = "Track ";
+        const juce::String notesWord      = " notes";
+        const char* const  middleDotUtf8  = " \xc2\xb7 ";   // " · " (U+00B7)
     }
 
     constexpr int    notesWindowWidth      = 350;
@@ -157,11 +161,23 @@ void CurrentStyleComponent::showingTheInformationNotesFromTrack(const juce::Uuid
         return trackPlayer != nullptr && trackPlayer->isPlaying();
     };
 
-    juce::CallOutBox::launchAsynchronously(
-        std::move(container),
-        getScreenBounds(),
-        nullptr
-    );
+    if (onShowNotes)
+    {
+        // "Notes · Bass" / "Track 2 · Finger Bass · 48 notes"
+        int slot {};
+        juce::String instrument;
+        for (int trackIndex {}; trackIndex < allTracks.size(); ++trackIndex)
+            if (allTracks[trackIndex]->getUsedID() == uuid && allTracks[trackIndex]->getChannel() == channel)
+            {
+                slot = trackIndex + firstSlotNumber;
+                instrument = allTracks[trackIndex]->instrumentCaption();
+                break;
+            }
+        const auto dot = juce::String::fromUTF8(Text::middleDotUtf8);
+        const auto title = Text::notesTitle + dot + displayName;
+        const auto subtitle = Text::trackWord + juce::String(slot) + dot + instrument + dot + juce::String(container->getNumNotes()) + Text::notesWord;
+        onShowNotes(std::move(container), title, subtitle);
+    }
 
 }
 

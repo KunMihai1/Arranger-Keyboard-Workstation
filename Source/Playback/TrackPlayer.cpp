@@ -97,7 +97,8 @@ void MultipleTrackPlayer::stop(bool shouldModify)
     this->lastKnownSequenceTime = noTime;
     if (onElapsedUpdate)
     {
-        juce::MessageManager::callAsync([this]() {
+        juce::MessageManager::callAsync([this, alive = std::weak_ptr<bool> (liveness)]() {
+            if (alive.expired()) return;
             onElapsedUpdate(noTime);
             });
     }
@@ -149,7 +150,9 @@ void MultipleTrackPlayer::updatePlaybackSettings(int channel, int newVolume, int
 
 MultipleTrackPlayer::~MultipleTrackPlayer()
 {
-
+    // JUCE: a HighResolutionTimer must be stopped in the derived destructor; otherwise a tick can still run
+    // (and post) while this player's members are being destroyed.
+    stopTimer();
 }
 
 void MultipleTrackPlayer::applyBPMchangeDuringPlayback(double newBPM)
@@ -308,9 +311,11 @@ void MultipleTrackPlayer::hiResTimerCallback()
 
     double beatsElapsed = elapsed * (currentBPM / secondsPerMinute);
 
-    juce::MessageManager::callAsync([this, beatsElapsed, elapsed]
+    juce::MessageManager::callAsync([this, alive = std::weak_ptr<bool> (liveness), beatsElapsed, elapsed]
         {
-            onElapsedUpdate(beatsElapsed);
+            if (alive.expired()) return;
+            if (onElapsedUpdate)
+                onElapsedUpdate(beatsElapsed);
             trackPlayerSubjects.notifyMidPlay(elapsed);
         });
 

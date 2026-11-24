@@ -212,9 +212,8 @@ void TrackListComponent::backToFolderView()
 {
     viewMode = ViewMode::FolderView;
     deallocateTracksFromList();
-    addButtonFolder.setVisible(true);
-    removeButtonFolder.setVisible(true);
-    renameButtonFolder.setVisible(true);
+    listBox.deselectAllRows();
     listBox.updateContent();
     listBox.repaint();
+    resized();
 }

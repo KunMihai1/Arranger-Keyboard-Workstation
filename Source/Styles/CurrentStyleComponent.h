@@ -9,6 +9,8 @@
 #include "StyleSection.h"
 #include "CustomBeatBar.h"
 
+class TableContainer;
+
 /** Item ids of the play-settings dropdown. 1 and 2 are play modes (kept ticked); 3 and 4 are actions. */
 namespace PlayModeIds
 {
@@ -50,6 +52,7 @@ class CurrentStyleComponent : public juce::Component,
 public:
 
     static constexpr int trackSlots = 8;   ///< Track slots per style (one row).
+    static constexpr int firstSlotNumber = 1;   ///< The strips are numbered 1..8.
 
     //==============================================================================
 
@@ -94,6 +97,25 @@ public:
 
     /** Every beat position the beat bar shows, with its beats per bar (message thread). */
     std::function<void(double elapsedBeats, int beatsPerBar)> onBeatPosition;
+
+    /** The notes page of a track (board PageNotes): the host shows it in the Style page, titled
+        "Notes · <track>" with "Track n · <instrument> · N notes" under it. */
+    std::function<void(std::unique_ptr<TableContainer> notes, const juce::String& title, const juce::String& subtitle)> onShowNotes;
+
+    /** A short message for the Stage screen (from a track strip). */
+    std::function<void(const juce::String& text)> onInfo;
+
+    // --- The Style page (board StageRevised openPage=styles) ---
+    /** All tracks / Solo: set through the old play-mode choice, so its rules (an active section
+        configuration is cleared) stay. */
+    void setPlayModeSolo(bool solo);
+    bool isPlayModeSolo() const;
+    /** Sections...: today's section-configuration browser (until the new sections editor). */
+    void openSectionConfigurations();
+    void setScale(float newScale);
+    void paint(juce::Graphics& g) override;
+    /** The slot (1-8) whose name was clicked last: the track picker fills it. */
+    int getRequestingSlot() const { return requestingSlot; }
 
     //==============================================================================
     /**
@@ -388,6 +410,11 @@ private:
     juce::String styleID;                                   ///< Unique ID of the current style.
 
     std::unique_ptr<Track> copiedTrack = nullptr;           ///< Track object used for copy/paste operations.
+    float scale = StageMetrics::referenceScale;
+    int requestingSlot {};
+    /** Made on the message thread (with the component): copied by callbacks that may run on the timer
+        thread, where making a new SafePointer is not thread-safe. */
+    juce::Component::SafePointer<CurrentStyleComponent> selfPointer { this };
     BeatBar customBeatBar;                                  ///< Visual component displaying beat progression.
 
     std::weak_ptr<std::unordered_map<juce::String, std::unordered_map<juce::String,StyleSection>>> styleSectionsMap;

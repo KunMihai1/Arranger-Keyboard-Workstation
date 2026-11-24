@@ -54,6 +54,37 @@ namespace TrackListNames
         inline const juce::String sortByName          = "Sort by Name(ascending)";
         inline const juce::String sortNewestFirst     = "Sort by Last Modified (Newest)";
         inline const juce::String sortOldestFirst     = "Sort by Last Modified (Oldest)";
+        // The track picker page (board PageTracks)
+        inline const char* const  backUtf8            = "\xe2\x97\x82 Back";           // U+25C2 + "Back"
+        inline const char* const  ellipsisUtf8        = "\xe2\x80\xa6";               // U+2026
+        inline const char* const  sortArrowsUtf8      = " \xe2\x97\x82 \xe2\x96\xb8";   // " < >" as U+25C2 U+25B8
+        inline const char* const  pathSeparatorUtf8   = " \xe2\x80\xba ";             // " > " as U+203A
+        inline const juce::String useInSlot           = "Use in slot ";
+        inline const juce::String openFolder          = "Open folder";
+        inline const juce::String addFolder           = "Add folder";
+        inline const juce::String renameShort         = "Rename";
+        inline const juce::String addFromMidi         = "Add from MIDI file";
+        inline const juce::String removeShort         = "Remove";
+        inline const juce::String sort                = "Sort";
+        inline const juce::String sortName            = "Name";
+        inline const juce::String sortNewest          = "Newest";
+        inline const juce::String sortOldest          = "Oldest";
+        inline const juce::String folders             = "Folders";
+        inline const juce::String folderHeading       = "Folder";
+        inline const juce::String trackHeading        = "Track";
+        inline const juce::String doubleClickOpen     = "Double-click to open";
+        inline const juce::String doubleClickUse      = "Double-click to use the track";
+        inline const juce::String tracksSuffix        = " tracks";
+        inline const juce::String folderKey           = "Folder";
+        inline const juce::String tracksKey           = "Tracks";
+        inline const juce::String melodicKey          = "Melodic";
+        inline const juce::String percussionKey       = "Percussion";
+        inline const juce::String trackKey            = "Track";
+        inline const juce::String instrumentKey       = "Instrument";
+        inline const juce::String typeKey             = "Type";
+        inline const juce::String melodicMark         = "MEL";
+        inline const juce::String percussionMark      = "PERC";
+        inline const char* const  noValueUtf8         = "\xe2\x80\x94";               // U+2014
     }
 
     namespace SortIds
@@ -78,4 +109,32 @@ namespace TrackListNames
     inline constexpr int backButtonWidth  = 60;
     inline constexpr int sortBoxWidth     = 120;
     inline constexpr int trackButtonWidth = 80;
+
+    // The track picker page (board PageTracks, scale 1): list column 620, gap 22, details column the rest.
+    inline constexpr int listColumnWidth   = 620;
+    inline constexpr int columnGap         = 22;
+    inline constexpr int headingToList     = 6;
+    inline constexpr int headingGap        = 8;     // Back - path - rule - hint
+    inline constexpr int detailHeadingGap  = 8;
+    inline constexpr int pickerRowHeight   = 24;
+    inline constexpr int glyphLeft         = 10;
+    inline constexpr int glyphWidth        = 14;
+    inline constexpr int glyphHeight       = 10;
+    inline constexpr int glyphTab          = 6;     // the folder glyph's tab
+    inline constexpr int glyphTabHeight    = 3;
+    inline constexpr float glyphStroke     = 1.5f;
+    inline constexpr int noteGlyphSize     = 8;
+    inline constexpr int rowNameLeft       = 34;
+    inline constexpr int detailPaddingTop  = 6;
+    inline constexpr int panelPaddings     = 2;     // padding above and below the details
+    inline constexpr int detailPaddingSide = 12;
+    inline constexpr int detailRowHeight   = 22;
+    inline constexpr int boardDetailRows   = 4;     // the panel keeps room for four rows (folder or track)
+    inline constexpr float detailTextSize  = 13.0f;
+    inline constexpr float dashLength      = 2.0f;
+    inline constexpr float detailRuleAlpha = 0.3f;
+    inline constexpr int bigButtonHeight   = 30;
+    inline constexpr float bigButtonText   = 12.0f;
+    inline constexpr int buttonGap         = 6;
+    inline constexpr int firstSlot         = 1;
 }

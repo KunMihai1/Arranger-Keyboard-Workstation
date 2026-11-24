@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "908891f",
-  "last_synced_branch": "main",
-  "last_synced_at": "2026-11-23",
-  "note": "Synced through 908891f: UI redesign phase 1 merged (PR #61)."
+  "last_synced_commit": "77cae73",
+  "last_synced_branch": "feat/ui-style-page",
+  "last_synced_at": "2026-11-24",
+  "note": "Synced through 77cae73: Style page, track picker, notes page, crash fix, review fixes."
 }

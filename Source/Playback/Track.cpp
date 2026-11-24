@@ -1,11 +1,13 @@
 #include "displayGUI.h"
 #include "PersistedKeys.h"
+#include "UI/Stage/StageFonts.h"
+#include "UI/Stage/StageMetrics.h"
+#include "Common/AppColours.h"
 
 namespace
 {
     namespace Text
     {
-        const juce::String instrumentButton  = "Instrument";
         const juce::String percussionNoInstrument = "Since this is a track for percussion, the instrument change won't take effect!\n"
                                                     "If you want to change anything, you must change the original notes!";
         const juce::String renameItem        = "Rename";
@@ -24,37 +26,22 @@ namespace
         const juce::String removeButton      = "Remove";
         const juce::String trackInfoTitle    = "Track info";
         const juce::String trackCopied       = "The track has been succesfully copied!";
+        const juce::String drums             = "Drums";
+        const juce::String asRecorded        = "As recorded";
+        const char* const  emptyUtf8         = "\xe2\x80\x94";   // U+2014 em dash: an empty slot
+        const juce::String lineBreak         = "\n";
+        const juce::String space             = " ";
     }
 
-    constexpr int    lowestVolume        = 0;
-    constexpr int    highestVolume       = 127;     // MIDI CC7 range
-    constexpr int    volumeStep          = 1;
     constexpr int    firstTrackChannel   = 2;       // style tracks use channels 2..16
     constexpr int    lastTrackChannel    = 16;
     constexpr int    drumChannel         = 10;
     constexpr int    dialogOk            = 1;
     constexpr int    dialogCancel        = 0;
-    // Layout (pixels)
-    constexpr int    sliderHeightDivisor = 2;
-    constexpr int    sliderExtraHeight   = 20;
-    constexpr int    sliderLeft          = 0;
-    constexpr int    sliderRaise         = 10;
-    constexpr int    sliderWidth         = 15;
-    constexpr int    volumeLabelX        = 20;
-    constexpr int    volumeLabelY        = 0;
-    constexpr int    volumeLabelWidth    = 30;
-    constexpr int    volumeLabelHeight   = 40;
-    constexpr int    nameLabelInset      = 40;
-    constexpr int    centreDivisor       = 2;
-    constexpr int    nameLabelGap        = 20;
-    constexpr int    nameLabelHeight     = 20;
-    constexpr int    buttonGap           = 10;
-    constexpr int    buttonRightSpace    = 5;
-    constexpr int    buttonDesiredWidth  = 40;
-    constexpr int    buttonAboveName     = 25;
-    constexpr int    buttonWidthTrim     = 2;
-    constexpr int    buttonHeight        = 20;
-    constexpr int    borderThickness     = 1;
+    constexpr float  halves              = 2.0f;
+    constexpr float  noSquash            = 1.0f;   // Label minimum horizontal scale: cut, never squash
+    constexpr int    firstProgram        = 0;
+    constexpr int    lastProgram         = 127;    // General MIDI programs 0..127
     constexpr int    tooltipWidth        = 150;
     constexpr int    tooltipHeight       = 24;
     constexpr int    tooltipOffset       = 4;
@@ -66,11 +53,11 @@ namespace
 
 Track::Track()
 {
-    volumeSlider.setSliderStyle(juce::Slider::LinearVertical);
-    volumeSlider.setRange(lowestVolume, highestVolume, volumeStep); //changed from 100 to 127 recently
+    // StageFader is the board's 0-127 channel fader (CC7).
+    volumeSlider.setComponentID(TrackStripIds::fader);
     volumeSlider.onValueChange = [this]()
     {
-        volumeLabel.setText(juce::String(volumeSlider.getValue()), juce::dontSendNotification);
+        volumeLabel.setText(juce::String(juce::roundToInt(volumeSlider.getValue())), juce::dontSendNotification);
     };
 
     volumeSlider.onDragEnd = [this]()
@@ -88,13 +75,21 @@ Track::Track()
     addAndMakeVisible(volumeSlider);
 
 
-    volumeLabel.setText(juce::String(volumeSlider.getValue()), juce::dontSendNotification);
-    volumeLabel.setColour(juce::Label::textColourId, juce::Colours::crimson);
+    volumeLabel.setText(juce::String(juce::roundToInt(volumeSlider.getValue())), juce::dontSendNotification);
+    volumeLabel.setComponentID(TrackStripIds::volume);
+    volumeLabel.setColour(juce::Label::textColourId, StagePalette::silkscreenDimText);
+    volumeLabel.setJustificationType(juce::Justification::centred);
+    volumeLabel.setBorderSize({});
+    volumeLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(volumeLabel);
 
+    // The name sits on an LCD strip (.tname) that paint() draws behind it.
     nameLabel.setText(StyleTrackJsonKeys::emptySlot, juce::dontSendNotification);
-    //nameLabel.setTooltip(nameLabel.getText());
-    nameLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    nameLabel.setComponentID(TrackStripIds::name);
+    nameLabel.setColour(juce::Label::textColourId, StagePalette::lcdInk);
+    nameLabel.setJustificationType(juce::Justification::centred);
+    nameLabel.setBorderSize({});
+    nameLabel.setMinimumHorizontalScale(noSquash);
 
     nameLabel.setInterceptsMouseClicks(true, false);
     nameLabel.addMouseListener(this, false);
@@ -102,23 +97,28 @@ Track::Track()
 
     addAndMakeVisible(nameLabel);
 
-    instrumentChooserButton.setButtonText(Text::instrumentButton);
-
+    instrumentChooserButton.setComponentID(TrackStripIds::instrument);
     instrumentChooserButton.onClick = [this] {
         if (channel >= firstTrackChannel && channel <= lastTrackChannel)
         {
             if (channel != drumChannel)
                 openInstrumentChooser();
+            else if (onInfo)
+                onInfo(Text::percussionNoInstrument.replace(Text::lineBreak, Text::space));   // one line for the screen
             else
-            {
                 showInstantInfo(Text::percussionNoInstrument);
-            }
         }
     };
-    instrumentChooserButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     addAndMakeVisible(instrumentChooserButton);
 
+    notesButton.setComponentID(TrackStripIds::notes);
+    notesButton.setBoardHeight(StageMetrics::stripNotesHeight);
+    notesButton.setPaddingSide(StageMetrics::stripNotesPadding);
+    notesButton.onClick = [this] { showNotesInformation(); };
+    addAndMakeVisible(notesButton);
+
     instrumentlist = instrumentListBuild();
+    setScale(StageMetrics::referenceScale);
 
 
 }
@@ -129,26 +129,85 @@ Track::~Track()
     volumeSlider.onValueChange = nullptr; //in case of alt f4 it will crash otherwise since these listeners will propagate the onChange
 }
 
+void Track::setSlotNumber(int oneBasedSlot)
+{
+    slotNumber = oneBasedSlot;
+    repaint();
+}
+
+void Track::setScale(float newScale)
+{
+    scale = newScale;
+    volumeSlider.setScale(scale);
+    instrumentChooserButton.setScale(scale);
+    notesButton.setScale(scale);
+    nameLabel.setFont(StageFonts::lcd(StageMetrics::stripNameTextSize * scale));
+    volumeLabel.setFont(StageFonts::lcd(StageMetrics::silkLabelSize * scale));
+    refreshInstrumentCaption();
+    resized();
+    repaint();
+}
+
+juce::String Track::instrumentCaption() const
+{
+    if (nameLabel.getText() == StyleTrackJsonKeys::emptySlot)
+        return juce::String::fromUTF8(Text::emptyUtf8);
+    if (typeOfTrack == TrackTypeConversion::toString(TrackType::Percussion))
+        return Text::drums;
+    if (usedInstrumentNumber >= firstProgram && usedInstrumentNumber <= lastProgram)
+        return instrumentlist[usedInstrumentNumber];
+    return Text::asRecorded;
+}
+
+void Track::chooseInstrument(int instrumentIndex)
+{
+    setInstrumentNumber(instrumentIndex, true);
+    if (onChange)
+        onChange();
+}
+
+void Track::refreshInstrumentCaption()
+{
+    instrumentChooserButton.setButtonText(instrumentCaption());
+}
+
 void Track::resized()
 {
-    auto heightOfSlider = getHeight() / sliderHeightDivisor + sliderExtraHeight;
-    auto startY = (getHeight() - heightOfSlider) / centreDivisor;
-    volumeSlider.setBounds(sliderLeft, startY - sliderRaise, sliderWidth, heightOfSlider);
-    volumeLabel.setBounds(volumeLabelX, volumeLabelY, volumeLabelWidth, volumeLabelHeight);
-    nameLabel.setBounds((getWidth() - nameLabelInset) / centreDivisor, volumeLabel.getHeight() + volumeLabel.getY() + nameLabelGap, getWidth(), nameLabelHeight);
-
-
-    int buttonX = volumeSlider.getX() + volumeSlider.getWidth() + buttonGap;
-    int maxWidth = getWidth() - buttonX - buttonRightSpace;
-    int desiredWidth = buttonDesiredWidth;
-    int actualWidth = juce::jmin(desiredWidth, maxWidth);
-    instrumentChooserButton.setBounds(buttonX, nameLabel.getY() - buttonAboveName, maxWidth - buttonWidthTrim, buttonHeight);
+    // Board .strip, top to bottom with 6 px gaps: number, name, instrument, fader, value, Notes;
+    // everything centred in the strip right of its 1 px border.
+    using namespace StageMetrics;
+    auto scaled = [this] (int boardLength) { return static_cast<float>(boardLength) * scale; };
+    const auto content = getLocalBounds().toFloat().withTrimmedLeft(scaled(stripBorder));
+    const auto centreX = content.getCentreX();
+    auto top = scaled(stripPadding + stripNumberHeight + stripGap);
+    auto place = [&] (juce::Component& part, float width, float height, int boardHeight)
+    {
+        part.setBounds(juce::Rectangle<float>(centreX - width / halves, top, width, height).toNearestInt());
+        top += scaled(boardHeight + stripGap);
+    };
+    place(nameLabel, scaled(stripNameWidth), scaled(stripNameHeight), stripNameHeight);
+    place(instrumentChooserButton, scaled(instrumentWidth), scaled(instrumentHeight + instrumentDropEdge), instrumentHeight);
+    place(volumeSlider, scaled(faderWidth), scaled(faderHeight), faderHeight);
+    place(volumeLabel, content.getWidth(), scaled(stripValueHeight), stripValueHeight);
+    place(notesButton, static_cast<float>(notesButton.getPreferredWidth()), scaled(stripNotesHeight), stripNotesHeight);
 }
 
 void Track::paint(juce::Graphics& g)
 {
-    g.setColour(juce::Colours::lightgrey);
-    g.drawRect(getLocalBounds(), borderThickness);
+    using namespace StageMetrics;
+    // .strip border-left, the slot number (silk-dim), and the LCD strip behind the name (.tname).
+    const auto border = static_cast<float>(stripBorder) * scale;
+    g.setColour(StagePalette::stripBorder);
+    g.fillRect(getLocalBounds().toFloat().withWidth(border));
+
+    const auto number = getLocalBounds().toFloat().withTrimmedLeft(border)
+                            .withTrimmedTop(static_cast<float>(stripPadding) * scale)
+                            .withHeight(static_cast<float>(stripNumberHeight) * scale);
+    g.setColour(StagePalette::silkscreenDimText);
+    g.setFont(StageFonts::silkscreen(silkLabelSize * scale, false, silkDimSpacing));
+    g.drawText(juce::String(slotNumber), number, juce::Justification::centred, false);
+
+    StageLcd::paintPanel(g, nameLabel.getBounds().toFloat(), scale);
 }
 
 void Track::mouseEnter(const juce::MouseEvent& ev)
@@ -231,13 +290,9 @@ juce::var Track::loadJson(const juce::File& file)
 void Track::openInstrumentChooser()
 {
     std::unique_ptr<InstrumentChooserComponent> chooser = std::make_unique<InstrumentChooserComponent>(instrumentlist);
-    chooser->instrumentSelectedFunction = [this](int instrumentIndex, const juce::String& name)
+    chooser->instrumentSelectedFunction = [this](int instrumentIndex, const juce::String&)
     {
-        setInstrumentNumber(instrumentIndex, true);
-        nameLabel.setText(name, juce::dontSendNotification);
-        if (onChange)
-            onChange();
-
+        chooseInstrument(instrumentIndex);   // keeps the track name (owner, 2026-11-23)
     };
 
     auto* display = findParentComponentOfClass<Display>();
@@ -387,6 +442,7 @@ juce::StringArray Track::instrumentListBuild()
 void Track::setInstrumentNumber(int newInstrumentNumber, bool shouldNotify)
 {
     this->usedInstrumentNumber = newInstrumentNumber;
+    refreshInstrumentCaption();
     if (usedInstrumentNumber != noInstrument && shouldNotify)
         notify(channel, TrackEntryDefaults::keepCurrent, usedInstrumentNumber);
 }
@@ -403,7 +459,7 @@ void Track::setVolumeSlider(double value)
 
 void Track::setVolumeLabel(const juce::String& value, bool shouldNotify)
 {
-    volumeLabel.setText(value, juce::dontSendNotification);
+    volumeLabel.setText(juce::String(juce::roundToInt(value.getDoubleValue())), juce::dontSendNotification);   // board: 100, not 100.0
     if (value.getIntValue() != TrackEntryDefaults::keepCurrent && shouldNotify)
         notify(channel, value.getIntValue(), TrackEntryDefaults::keepCurrent);
 }
@@ -411,6 +467,7 @@ void Track::setVolumeLabel(const juce::String& value, bool shouldNotify)
 void Track::setNameLabel(const juce::String& name)
 {
     nameLabel.setText(name, juce::dontSendNotification);
+    refreshInstrumentCaption();
 }
 
 void Track::mouseDown(const juce::MouseEvent& event)
@@ -470,6 +527,7 @@ void Track::setUUID(const juce::Uuid& newUUID)
 void Track::setTypeOfTrack(const juce::String& newType)
 {
     this->typeOfTrack = newType;
+    refreshInstrumentCaption();
 }
 
 juce::String Track::getTypeOfTrack() const

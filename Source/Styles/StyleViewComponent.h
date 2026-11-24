@@ -1,5 +1,6 @@
 #pragma once
 #include <JuceHeader.h>
+#include "UI/Stage/StageMetrics.h"
 
 /** The style-name dialog shared by StylesListComponent (add) and StyleViewComponent (rename). */
 namespace StyleDialogText
@@ -56,6 +57,12 @@ public:
      */
     std::function<void(const juce::String&)> onStyleClicked;
 
+    /** The open style's row is inverted and marked (board .lcd-row .lcd-sel with the arrow). */
+    void setOpen(bool shouldBeOpen);
+    bool isOpen() const;
+    void setScale(float newScale);
+    void paint(juce::Graphics& g) override;
+
     //==============================================================================
     /**
      * @brief Constructs a StyleViewComponent with the given style name.
@@ -93,5 +100,7 @@ public:
 
 private:
     //==============================================================================
+    bool open = false;
+    float scale = StageMetrics::referenceScale;
     juce::Label label;  ///< Label displaying the style name.
 };

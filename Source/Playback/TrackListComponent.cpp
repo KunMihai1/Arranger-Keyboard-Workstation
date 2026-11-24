@@ -17,73 +17,55 @@ TrackListComponent::TrackListComponent(std::shared_ptr<std::deque<TrackEntry>> t
     addAndMakeVisible(listBox);
     listBox.setMultipleSelectionEnabled(true);
     listBox.setModel(this);
+    listBox.setColour(juce::ListBox::backgroundColourId, juce::Colours::transparentBlack);
     listBox.updateContent();
-    addAndMakeVisible(addButtonFolder);
-    addAndMakeVisible(removeButtonFolder);
-    addAndMakeVisible(renameButtonFolder);
 
-    addButtonFolder.setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    removeButtonFolder.setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    renameButtonFolder.setMouseCursor(juce::MouseCursor::PointingHandCursor);
+    const auto ellipsis = juce::String::fromUTF8(Text::ellipsisUtf8);
+    addButtonFolder.setButtonText(Text::addFolder + ellipsis);
+    renameButtonFolder.setButtonText(Text::renameShort + ellipsis);
+    removeButtonFolder.setButtonText(Text::removeShort);
+    openFolderButton.setButtonText(Text::openFolder);
+    backButton.setButtonText(juce::String::fromUTF8(Text::backUtf8));
+    addButton.setButtonText(Text::addFromMidi + ellipsis);
+    renameButton.setButtonText(Text::renameShort + ellipsis);
+    removeButton.setButtonText(Text::removeShort);
+    sortLabel.setText(Text::sort);
+    for (auto* big : { &useButton, &openFolderButton })
+    {
+        big->setBoardHeight(bigButtonHeight);
+        big->setTextSize(bigButtonText);
+    }
 
-    addButtonFolder.setLookAndFeel(&laf);
-    addButtonFolder.setColour(juce::TextButton::buttonColourId, AppColours::accent7);
-
-    removeButtonFolder.setLookAndFeel(&laf);
-    removeButtonFolder.setColour(juce::TextButton::buttonColourId, AppColours::accent6);
-
-    renameButtonFolder.setLookAndFeel(&laf);
-    renameButtonFolder.setColour(juce::TextButton::buttonColourId, AppColours::accent4);
-
-    addButtonFolder.onClick = [this] {
-        addToFolderList();
+    addButtonFolder.onClick    = [this] { addToFolderList(); };
+    removeButtonFolder.onClick = [this] { removeFromFolderList(); };
+    renameButtonFolder.onClick = [this] { renameFromFolderList(); };
+    openFolderButton.onClick   = [this] { openFolderAt(listBox.getSelectedRow()); };
+    backButton.onClick         = [this] { backToFolderView(); };
+    addButton.onClick          = [this] { addToTrackList(); };
+    removeButton.onClick       = [this] { removeFromTrackList(); };
+    renameButton.onClick       = [this] { renameFromTrackList(); };
+    useButton.onClick          = [this]
+    {
+        const int row = listBox.getSelectedRow();
+        if (viewMode == ViewMode::TrackView && juce::isPositiveAndBelow(row, availableTracks->size()) && trackChosenCallBack)
+            trackChosenCallBack(row);   // as a double-click on the track
     };
+    sortButton.onClick         = [this] { cycleSort(); };
 
-    removeButtonFolder.onClick = [this] {
-        removeFromFolderList();
-    };
+    for (auto* control : { &addButtonFolder, &removeButtonFolder, &renameButtonFolder, &openFolderButton, &backButton,
+                           &addButton, &removeButton, &renameButton, &useButton })
+        addChildComponent(control);
 
-    renameButtonFolder.onClick = [this] {
-        renameFromFolderList();
-    };
-}
+    // Today's three sort choices; the sort button steps through them. Not shown.
+    sortComboBox->addItem(Text::sortByName, SortIds::byName);
+    sortComboBox->addItem(Text::sortNewestFirst, SortIds::newestFirst);
+    sortComboBox->addItem(Text::sortOldestFirst, SortIds::oldestFirst);
+    sortComboBox->setSelectedId(SortIds::byName, juce::dontSendNotification);
+    sortComboBox->addListener(this);
+    addChildComponent(sortComboBox.get());
 
-void TrackListComponent::resized()
-{
-    auto area = getLocalBounds();
-
-    auto controlBarArea = area.removeFromTop(controlBarHeight);
-
-    const int backWidth = 100;
-    const int smallButtonWidth = 100;
-    const int comboWidth = 150;
-    const int spacing = 5;
-
-    if (addButtonFolder.isVisible())
-        addButtonFolder.setBounds(controlBarArea.removeFromLeft(smallButtonWidth).reduced(spacing));
-
-    if (removeButtonFolder.isVisible())
-        removeButtonFolder.setBounds(controlBarArea.removeFromLeft(smallButtonWidth).reduced(spacing));
-
-    if (renameButtonFolder.isVisible())
-        renameButtonFolder.setBounds(controlBarArea.removeFromLeft(smallButtonWidth).reduced(spacing));
-
-    if (backButton)
-        backButton->setBounds(controlBarArea.removeFromLeft(backButtonWidth).reduced(spacing));
-
-    if (sortComboBox)
-        sortComboBox->setBounds(controlBarArea.removeFromLeft(sortBoxWidth).reduced(spacing));
-
-    if (addButton)
-        addButton->setBounds(controlBarArea.removeFromLeft(trackButtonWidth).reduced(spacing));
-
-    if (removeButton)
-        removeButton->setBounds(controlBarArea.removeFromLeft(trackButtonWidth).reduced(spacing));
-
-    if (renameButton)
-        renameButton->setBounds(controlBarArea.removeFromLeft(trackButtonWidth).reduced(spacing));
-
-    listBox.setBounds(area);
+    setSlotNumber(firstSlot);
+    updateViewControls();
 }
 
 int TrackListComponent::getNumRows()
@@ -122,35 +104,8 @@ void TrackListComponent::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged)
 
         listBox.updateContent();
         listBox.repaint();
+        updateViewControls();
     }
-}
-
-void TrackListComponent::paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected)
-{
-    if (rowIsSelected)
-        g.fillAll(AppColours::accent2.withAlpha(selectedRowAlpha));
-    else
-        g.fillAll(AppColours::panelBg);
-
-    g.setColour(AppColours::titleText);
-
-    juce::String label;
-
-    if (viewMode == ViewMode::TrackView)
-    {
-        if (juce::isPositiveAndBelow(rowNumber, availableTracks->size()))
-            label = (*availableTracks)[rowNumber].getDisplayName();
-    }
-    else if (viewMode == ViewMode::FolderView)
-    {
-        if (juce::isPositiveAndBelow(rowNumber, groupedTrackKeys->size()))
-            label = (*groupedTrackKeys)[rowNumber];
-    }
-
-    g.drawText(label, rowTextInset, rowTop, width - rowTextSpare, height, juce::Justification::centredLeft);
-
-    g.setColour(AppColours::separator);
-    g.drawRect(rowLeft, rowTop, width, height, rowBorder);
 }
 
 void TrackListComponent::listBoxItemClicked(int row, const juce::MouseEvent& event)
@@ -163,27 +118,27 @@ void TrackListComponent::listBoxItemClicked(int row, const juce::MouseEvent& eve
                 trackChosenCallBack(row);
         }
         else if (viewMode == ViewMode::FolderView)
-        {
-            if (juce::isPositiveAndBelow(row, groupedTrackKeys->size()))
-            {
-                juce::String folderKey = (*groupedTrackKeys)[row];
-                currentFolderName = folderKey;
-                if (groupedTracks->find(folderKey) != groupedTracks->end())
-                {
-                    *availableTracks = (*groupedTracks)[folderKey];
-                    initializeTracksFromList();
-                    resized();
-
-
-                    listBox.updateContent();
-                    listBox.repaint();
-                }
-            }
-        }
+            openFolderAt(row);
     }
-    else
-    {
+    repaint();   // the details column follows the selection
+}
 
+void TrackListComponent::openFolderAt(int row)
+{
+    if (viewMode != ViewMode::FolderView || ! juce::isPositiveAndBelow(row, groupedTrackKeys->size()))
+        return;
+
+    juce::String folderKey = (*groupedTrackKeys)[row];
+    currentFolderName = folderKey;
+    if (groupedTracks->find(folderKey) != groupedTracks->end())
+    {
+        *availableTracks = (*groupedTracks)[folderKey];
+        initializeTracksFromList();
+        resized();
+
+        listBox.deselectAllRows();
+        listBox.updateContent();
+        listBox.repaint();
     }
 }
 
@@ -393,7 +348,7 @@ void TrackListComponent::renameFromTrackList()
     juce::String oldName = track.displayName;
     juce::Uuid trackUuid = track.uuid;
 
-    window->addTextEditor(Text::trackNameField, oldName);
+    addTrackRenameEditor(*window, oldName);
     window->addButton(Text::okButton, dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
     window->addButton(Text::cancelButton, dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
 
@@ -457,7 +412,7 @@ void TrackListComponent::renameFromTrackList()
 
     juce::MessageManager::callAsync([window]()
         {
-            if (auto* editor = window->getTextEditor(Text::folderNameField))
+            if (auto* editor = trackRenameEditor(*window))   // was the folder dialog's box: nothing got focus
                 editor->grabKeyboardFocus();
         });
 
@@ -504,69 +459,11 @@ juce::String TrackListComponent::extractDisplayNameFromTrack(const juce::MidiMes
 void TrackListComponent::initializeTracksFromList()
 {
     viewMode = ViewMode::TrackView;
-    addButtonFolder.setVisible(false);
-    removeButtonFolder.setVisible(false);
-    renameButtonFolder.setVisible(false);
-
-    backButton = std::make_unique<juce::TextButton>(Text::backButton);
-    addButton = std::make_unique<juce::TextButton>(Text::addButton);
-    removeButton = std::make_unique<juce::TextButton>(Text::removeButton);
-    sortComboBox = std::make_unique<juce::ComboBox>();
-    renameButton = std::make_unique<juce::TextButton>(Text::renameButton);
-
-    sortComboBox->addListener(this);
-
-    backButton->setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    addButton->setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    removeButton->setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    renameButton->setMouseCursor(juce::MouseCursor::PointingHandCursor);
-
-    backButton->setLookAndFeel(&laf);
-    backButton->setColour(juce::TextButton::buttonColourId, AppColours::accent2);
-
-    addButton->setLookAndFeel(&laf);
-    addButton->setColour(juce::TextButton::buttonColourId, AppColours::accent7);
-
-    removeButton->setLookAndFeel(&laf);
-    removeButton->setColour(juce::TextButton::buttonColourId, AppColours::accent6);
-
-    renameButton->setLookAndFeel(&laf);
-    renameButton->setColour(juce::TextButton::buttonColourId, AppColours::accent4);
-
-    backButton->onClick = [this]() {
-        backToFolderView();
-    };
-
-    addButton->onClick = [this]() {
-        addToTrackList();
-    };
-
-    removeButton->onClick = [this]() {
-        removeFromTrackList();
-    };
-
-    renameButton->onClick = [this]()
-    {
-        renameFromTrackList();
-    };
-
-    addAndMakeVisible(backButton.get());
-    addAndMakeVisible(addButton.get());
-    addAndMakeVisible(removeButton.get());
-    addAndMakeVisible(sortComboBox.get());
-    addAndMakeVisible(renameButton.get());
-
-    sortComboBox->addItem(Text::sortByName, SortIds::byName);
-    sortComboBox->addItem(Text::sortNewestFirst, SortIds::newestFirst);
-    sortComboBox->addItem(Text::sortOldestFirst, SortIds::oldestFirst);
-
-    sortComboBox->setSelectedId(SortIds::byName);
+    comboBoxChanged(sortComboBox.get());   // the folder opens in the chosen order
+    updateViewControls();
 }
 
 void TrackListComponent::deallocateTracksFromList()
 {
-    backButton = nullptr;
-    addButton = nullptr;
-    removeButton = nullptr;
-    sortComboBox = nullptr;
+    updateViewControls();
 }
