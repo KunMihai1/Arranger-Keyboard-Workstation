@@ -434,6 +434,8 @@ void MainComponent::openStagePage (StagePage page)
                 closeStagePage();
             else
             {
+                if (midiWindow)
+                    midiWindow->closeButtonPressed();   // as before: Effects and the MIDI Settings window replace each other
                 showStagePage (page);
                 // As a newly opened window did: the knobs show the selected instrument's stored values.
                 if (effectsContent && effectsContent->onChannelChanged)
@@ -540,4 +542,8 @@ void MainComponent::applyQuickKnob (StagePanel::QuickKnob knob, int value, bool 
         applyAndSaveEffect (controller, value, HandChannels::leftHand, save);
     if (rightHandInstrumentToggle.getToggleState())
         applyAndSaveEffect (controller, value, HandChannels::rightHand, save);
+
+    // The Effects page shows the same stored values: keep it current while it is open.
+    if (pageRouter.open() == StagePage::effects && effectsContent && effectsContent->onChannelChanged)
+        effectsContent->onChannelChanged (effectsContent->getSelectedChannel());
 }

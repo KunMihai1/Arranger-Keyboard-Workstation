@@ -45,6 +45,11 @@ void MainComponent::setCallBacksForOverlayWindow()
         if (!midiWindow)
         {
             midiWindowShouldBeVisible = true;
+            if (pageRouter.open() == StagePage::effects)
+            {
+                closeStagePage();   // as before: the MIDI Settings window and Effects replace each other
+                refreshStage();
+            }
 
             midiWindow = std::make_unique<MIDIWindow>(
                 this->MIDIDevice, devicesIN, devicesOUT, devicesAudioOUT, propertiesFile, &sfzManager);

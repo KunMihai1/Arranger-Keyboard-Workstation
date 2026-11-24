@@ -241,7 +241,6 @@ private:
 
     void setCallBacksForOverlayWindow();
 
-    void setInitialValuesFromSettingsFileEffectWindow();
 
     void sendEffectsBeforePlaying();
     void disconnectCurrentOutput();
