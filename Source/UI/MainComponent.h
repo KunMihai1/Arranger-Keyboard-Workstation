@@ -420,7 +420,6 @@ private:
 
     bool midiWindowShouldBeVisible = false;
     bool overlayShouldBeVisible = false;
-    bool soundEffecttWindowShouldBeVisible = false;
 
     // Saved scene-layer visibility so overlays can hide the GL note layer (+ keyboard) and restore it.
     bool loadingOverlayActive = false;          ///< Loading label currently using the hide-note-layer path
@@ -471,7 +470,7 @@ private:
     std::unique_ptr<Display> display = nullptr;
     std::unique_ptr<AddDeviceWindow> addDeviceWindow=nullptr;
     std::unique_ptr<OverlayComponent> overlayWindow=nullptr;
-    std::unique_ptr<SoundEffectWindow> soundEffectWindow = nullptr;
+    std::unique_ptr<SoundEffectContentComponent> effectsContent;   ///< the Effects page's knobs (board StageEffects)
     
     std::vector<Chord> myChordLibrary;
     std::vector<int> currentlyPlayingNotes;
@@ -500,9 +499,9 @@ private:
     headerPanel headerPanel;   ///< no longer shown: its controls moved to the Stage panel and pages
 
     std::unique_ptr<StagePanel> stagePanel;
-    std::unique_ptr<StagePageFrame> stylesPage, filePage, settingsPage, chordsPage;
+    std::unique_ptr<StagePageFrame> stylesPage, filePage, settingsPage, chordsPage, effectsPage;
     std::unique_ptr<ChordBrowserComponent> chordsBrowser;   ///< today's chord helper, hosted by the Chords page
-    static constexpr int stagePageCount = 4;   ///< Styles, Recorder, Settings, Chords
+    static constexpr int stagePageCount = 5;   ///< Styles, Recorder, Settings, Chords, Effects
     std::array<StagePageFrame*, stagePageCount> stagePageFrames() const;
     void syncStylesPage();
     juce::TextButton midiSettingsPageButton;   ///< the Settings page's way into today's MIDI Settings window

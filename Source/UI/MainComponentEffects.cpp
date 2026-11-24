@@ -213,11 +213,11 @@ void MainComponent::setCallBacksForEffectWindow()
 {
     std::function<void(int, int)> saveCallback = [this](int ccNumber, int value)
     {
-        applyAndSaveEffect(ccNumber, value, this->soundEffectWindow->getContent().getSelectedChannel());
+        applyAndSaveEffect(ccNumber, value, this->effectsContent->getSelectedChannel());
     };
 
 
-    auto& content = this->soundEffectWindow->getContent();
+    auto& content = *this->effectsContent;
 
     // Line 1 – Tone
     content.getBrightnessKnob().onValueChanged = saveCallback;
@@ -246,7 +246,7 @@ void MainComponent::setCallBacksForEffectWindow()
 
     content.onChannelChanged = [this](int channel)
     {
-        auto& content = this->soundEffectWindow->getContent();
+        auto& content = *this->effectsContent;
 
         // Line 1 – Tone
         content.getBrightnessKnob().setValue(MIDIDevice.getBrightness(channel));
@@ -276,7 +276,7 @@ void MainComponent::setCallBacksForEffectWindow()
 }
 void MainComponent::setInitialValuesFromSettingsFileEffectWindow()
 {
-    auto& content = soundEffectWindow->getContent();
+    auto& content = *effectsContent;
 
     content.getBrightnessKnob().setValue(MIDIDevice.getBrightness(HandChannels::leftHand));
     content.getChorusKnob().setValue(MIDIDevice.getChorus(HandChannels::leftHand));

@@ -38,9 +38,6 @@ void MainComponent::setCallBacksForOverlayWindow()
         if (midiWindow)
             midiWindow->toFront(false);
 
-        if (soundEffectWindow)
-            soundEffectWindow->toFront(false);
-
     };
 
     overlayWindow->onSettingsClick = [this]()
@@ -48,8 +45,6 @@ void MainComponent::setCallBacksForOverlayWindow()
         if (!midiWindow)
         {
             midiWindowShouldBeVisible = true;
-            if (soundEffectWindow)
-                soundEffectWindow->closeButtonPressed();
 
             midiWindow = std::make_unique<MIDIWindow>(
                 this->MIDIDevice, devicesIN, devicesOUT, devicesAudioOUT, propertiesFile, &sfzManager);
@@ -209,50 +204,9 @@ void MainComponent::setCallBacksForOverlayWindow()
 
     overlayWindow->onEffectsClick = [this]()
     {
-
-        if (!soundEffectWindow)
-        {
-            soundEffecttWindowShouldBeVisible = true;
-            if (midiWindow)
-                midiWindow->closeButtonPressed();
-
-            soundEffectWindow = std::make_unique<SoundEffectWindow>();
-
-            soundEffectWindow->setAlwaysOnTop(true);
-            soundEffectWindow->setVisible(true);
-
-            soundEffectWindow->onWindowClosed = [this]()
-            {
-                soundEffecttWindowShouldBeVisible = false;
-                soundEffectWindow.reset();
-            };
-
-            setCallBacksForEffectWindow();
-
-            setInitialValuesFromSettingsFileEffectWindow();
-
-
-        }
-        else {
-            if (!soundEffectWindow->isVisible())
-            {
-                soundEffecttWindowShouldBeVisible = true;
-                soundEffectWindow->setVisible(true);
-                soundEffectWindow->toFront(true);
-
-                juce::MessageManager::callAsync([this]()
-                    {
-                        if (soundEffectWindow)
-                        {
-                            soundEffectWindow->grabKeyboardFocus();
-                        }
-                    });
-            }
-            else {
-                soundEffectWindow->setVisible(false);
-                soundEffecttWindowShouldBeVisible = false;
-            }
-        }
+        // The Esc menu's Effects opens the Effects page (it used to be a separate window).
+        setOverlayMenuVisible(false);
+        openStagePage(StagePage::effects);
     };
 }
 
