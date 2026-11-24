@@ -108,6 +108,10 @@ public:
     /** The ring (ticks + knob) inside the component. */
     juce::Rectangle<float> getRingBounds() const;
 
+    /** Effects page: the value (0-127) under the label (board: Share Tech Mono 10, dim). */
+    void setShowsValue (bool shouldShowValue);
+    juce::Rectangle<float> getValueBounds() const;
+
     void paint (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent& event) override;
     void mouseDrag (const juce::MouseEvent& event) override;
@@ -120,6 +124,7 @@ private:
 
     juce::String label;
     Size size;
+    bool   showsValue {};
     bool   turning {};
     bool   haveTurnAngle {};
     double lastTurnAngle {};

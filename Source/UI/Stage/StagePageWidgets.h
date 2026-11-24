@@ -22,13 +22,15 @@
 
 #include <JuceHeader.h>
 #include "StageMetrics.h"
+#include "StageWidgets.h"
 
 class SegButton : public juce::Button
 {
 public:
     enum class Style { seg, lit, instrument };
 
-    SegButton (const juce::String& text, Style style, bool hasLed = false);
+    SegButton (const juce::String& text, Style style, bool hasLed = false,
+               RubberButton::LedColour ledColour = RubberButton::LedColour::red);
 
     void setLedOn (bool shouldBeOn);
     bool isLedOn() const;
@@ -57,6 +59,7 @@ private:
 
     Style style;
     bool hasLed;
+    RubberButton::LedColour ledColour;
     bool ledOn {};
     int boardHeight;
     float textSize { StageMetrics::segLabelSize };

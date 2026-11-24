@@ -32,6 +32,8 @@ namespace
         const juce::String recorderMode     = "RECORDER";
         const juce::String settingsMode     = "SETTINGS";
         const juce::String chordsMode       = "CHORDS";
+        const juce::String effectsMode      = "EFFECTS";
+        const juce::String effectsTitle     = "Effects";
         const juce::String tracksMode       = "TRACKS";
         const juce::String notesMode        = "NOTES";
         const juce::String noStyleTitle     = "No style";
@@ -176,6 +178,18 @@ void MainComponent::stagePagesInit()
     chordsBrowser->onEscape = [this] { closeStagePage(); refreshStage(); };
     chordsPage->addAndMakeVisible (*chordsBrowser);
     chordsPage->onLayoutContent = [this] (juce::Rectangle<int> area, float) { chordsBrowser->setBounds (area); };
+
+    // Effects (board StageEffects): the effect knobs on a page (they used to be the Sound Effects window).
+    effectsPage = makePage (StageWiringText::effectsTitle);
+    effectsContent = std::make_unique<SoundEffectContentComponent>();
+    setCallBacksForEffectWindow();
+    effectsPage->addAndMakeVisible (*effectsContent);
+    effectsPage->setActions (effectsContent->getTitleActions());
+    effectsPage->onLayoutContent = [this] (juce::Rectangle<int> area, float scale)
+    {
+        effectsContent->setScale (scale);
+        effectsContent->setBounds (area);
+    };
 }
 
 void MainComponent::syncStylesPage()
@@ -193,7 +207,7 @@ void MainComponent::syncStylesPage()
 
 std::array<StagePageFrame*, MainComponent::stagePageCount> MainComponent::stagePageFrames() const
 {
-    return { stylesPage.get(), filePage.get(), settingsPage.get(), chordsPage.get() };
+    return { stylesPage.get(), filePage.get(), settingsPage.get(), chordsPage.get(), effectsPage.get() };
 }
 
 //==============================================================================
@@ -265,6 +279,7 @@ void MainComponent::updateStageScreen()
         case StagePage::file:     content.mode = StageWiringText::recorderMode; break;
         case StagePage::settings: content.mode = StageWiringText::settingsMode; break;
         case StagePage::chords:   content.mode = StageWiringText::chordsMode;   break;
+        case StagePage::effects:  content.mode = StageWiringText::effectsMode;  break;
         default:                  content.mode = StageWiringText::playMode;     break;
     }
     content.variation     = stageLitSection.toUpperCase();
@@ -291,8 +306,6 @@ void MainComponent::refreshStage()
     stagePanel->setPartLeds (leftHandInstrumentToggle.getToggleState(), rightHandInstrumentToggle.getToggleState());
 
     auto page = pageRouter.open();
-    if (page == StagePage::none && soundEffectWindow != nullptr && soundEffectWindow->isVisible())
-        page = StagePage::effects;
     stagePanel->setPageLed (page);
 
     if (variationsFills != nullptr)
@@ -417,8 +430,17 @@ void MainComponent::openStagePage (StagePage page)
             break;
 
         case StagePage::effects:
-            if (overlayWindow && overlayWindow->onEffectsClick)
-                overlayWindow->onEffectsClick();   // toggles today's Sound Effects window
+            if (pageRouter.toggle (page) == StagePage::none)
+                closeStagePage();
+            else
+            {
+                if (midiWindow)
+                    midiWindow->closeButtonPressed();   // as before: Effects and the MIDI Settings window replace each other
+                showStagePage (page);
+                // As a newly opened window did: the knobs show the selected instrument's stored values.
+                if (effectsContent && effectsContent->onChannelChanged)
+                    effectsContent->onChannelChanged (effectsContent->getSelectedChannel());
+            }
             break;
 
         case StagePage::styles:
@@ -443,6 +465,7 @@ void MainComponent::showStagePage (StagePage page)
     StagePageFrame* shown = page == StagePage::styles ? stylesPage.get()
                           : page == StagePage::file   ? filePage.get()
                           : page == StagePage::chords ? chordsPage.get()
+                          : page == StagePage::effects ? effectsPage.get()
                                                       : settingsPage.get();
     const auto frames = stagePageFrames();
     const bool anyPageWasOpen = std::any_of (frames.begin(), frames.end(),
@@ -519,4 +542,8 @@ void MainComponent::applyQuickKnob (StagePanel::QuickKnob knob, int value, bool 
         applyAndSaveEffect (controller, value, HandChannels::leftHand, save);
     if (rightHandInstrumentToggle.getToggleState())
         applyAndSaveEffect (controller, value, HandChannels::rightHand, save);
+
+    // The Effects page shows the same stored values: keep it current while it is open.
+    if (pageRouter.open() == StagePage::effects && effectsContent && effectsContent->onChannelChanged)
+        effectsContent->onChannelChanged (effectsContent->getSelectedChannel());
 }

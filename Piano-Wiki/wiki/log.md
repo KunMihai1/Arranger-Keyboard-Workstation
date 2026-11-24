@@ -13,6 +13,17 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-24 — UI redesign phase 4b: Effects page (`feat/ui-effects-page`)
+- Style page work merged (PR #64, `e970b53`).
+- The Effects button and the Esc menu's "Effects" open the board's `StageEffects` page instead of the always-on-top
+  Sound Effects window: Instrument 1st / 2nd | Sustain (green LED), Tone / Envelope / Space / Modulation, 16
+  effects-size knobs with values. `SoundEffectContentComponent` restyled in place (API and `MainComponentEffects`
+  wiring unchanged); the hidden 1st / 2nd combo stays the state; the window class is gone.
+- Review (`14efc0b`): Effects and the MIDI Settings window replace each other again; Quick FX changes refresh the
+  open page; a dead loader removed.
+- Live: turn, per-instrument values, Sustain, Esc menu, 800 x 600; 1:1 against the board. Unit 1660 / 0, arranger
+  770 / 0, integration 130 / 0 (+7 skipped), display 8 / 0; names 0.
+
 ## 2026-11-24 — UI redesign phase 4a: Style page, track picker, notes page (`feat/ui-style-page`)
 - **Specs / plans are local only now** (owner): `docs/superpowers/` is git-ignored (PR #63); AGENTS.md says no
   secrets, local files stay ignored, agents don't look in the owner's environment.

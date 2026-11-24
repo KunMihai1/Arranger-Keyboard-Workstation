@@ -213,11 +213,11 @@ void MainComponent::setCallBacksForEffectWindow()
 {
     std::function<void(int, int)> saveCallback = [this](int ccNumber, int value)
     {
-        applyAndSaveEffect(ccNumber, value, this->soundEffectWindow->getContent().getSelectedChannel());
+        applyAndSaveEffect(ccNumber, value, this->effectsContent->getSelectedChannel());
     };
 
 
-    auto& content = this->soundEffectWindow->getContent();
+    auto& content = *this->effectsContent;
 
     // Line 1 – Tone
     content.getBrightnessKnob().onValueChanged = saveCallback;
@@ -246,7 +246,7 @@ void MainComponent::setCallBacksForEffectWindow()
 
     content.onChannelChanged = [this](int channel)
     {
-        auto& content = this->soundEffectWindow->getContent();
+        auto& content = *this->effectsContent;
 
         // Line 1 – Tone
         content.getBrightnessKnob().setValue(MIDIDevice.getBrightness(channel));
@@ -274,35 +274,6 @@ void MainComponent::setCallBacksForEffectWindow()
         content.getRandomModKnob().setValue(MIDIDevice.getRandomMod(channel));
     };
 }
-void MainComponent::setInitialValuesFromSettingsFileEffectWindow()
-{
-    auto& content = soundEffectWindow->getContent();
-
-    content.getBrightnessKnob().setValue(MIDIDevice.getBrightness(HandChannels::leftHand));
-    content.getChorusKnob().setValue(MIDIDevice.getChorus(HandChannels::leftHand));
-    content.getExpressionKnob().setValue(MIDIDevice.getExpression(HandChannels::leftHand));
-    content.getResonanceKnob().setValue(MIDIDevice.getResonance(HandChannels::leftHand));
-    content.getSustainToggle().setOn(MIDIDevice.getSustainToggle(HandChannels::leftHand));
-
-    // Line 2 - Envelope & Modulation
-    content.getAttackKnob().setValue(MIDIDevice.getAttack(HandChannels::leftHand));
-    content.getDecayKnob().setValue(MIDIDevice.getDecay(HandChannels::leftHand));
-    content.getReleaseKnob().setValue(MIDIDevice.getRelease(HandChannels::leftHand));
-    content.getVibratoKnob().setValue(MIDIDevice.getVibrato(HandChannels::leftHand));
-
-    // Line 3 - Effects & Pan
-    content.getVolumeKnob().setValue(MIDIDevice.getVolume(HandChannels::leftHand));
-    content.getReverbKnob().setValue(MIDIDevice.getReverb(HandChannels::leftHand));
-    content.getDelayKnob().setValue(MIDIDevice.getDelay(HandChannels::leftHand));
-    content.getPanKnob().setValue(MIDIDevice.getPan(HandChannels::leftHand));
-
-    // Line 4 - Additional Effects
-    content.getDistortionKnob().setValue(MIDIDevice.getDistortion(HandChannels::leftHand));
-    content.getFilterTrackKnob().setValue(MIDIDevice.getFilterTrack(HandChannels::leftHand));
-    content.getTremoloKnob().setValue(MIDIDevice.getTremolo(HandChannels::leftHand));
-    content.getRandomModKnob().setValue(MIDIDevice.getRandomMod(HandChannels::leftHand));
-}
-
 void MainComponent::sendEffectsBeforePlaying()
 {
     const bool hasOut   = MIDIDevice.isOpenOUT();

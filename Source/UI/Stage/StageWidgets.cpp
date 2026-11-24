@@ -409,7 +409,21 @@ int StageKnob::getPreferredWidth() const
 int StageKnob::getPreferredHeight() const
 {
     const auto geometry = geometryFor (size);
-    return juce::roundToInt (scaled (geometry.ring + geometry.labelGap + StageMetrics::silkLabelLineHeight));
+    const auto valueLine = showsValue ? geometry.labelGap + StageMetrics::knobValueLineHeight : int {};
+    return juce::roundToInt (scaled (geometry.ring + geometry.labelGap + StageMetrics::silkLabelLineHeight + valueLine));
+}
+
+void StageKnob::setShowsValue (bool shouldShowValue)
+{
+    showsValue = shouldShowValue;
+    repaint();
+}
+
+juce::Rectangle<float> StageKnob::getValueBounds() const
+{
+    const auto geometry = geometryFor (size);
+    const auto top = getRingBounds().getBottom() + scaled (geometry.labelGap + StageMetrics::silkLabelLineHeight + geometry.labelGap);
+    return getLocalBounds().toFloat().withTop (top).withHeight (scaled (StageMetrics::knobValueLineHeight));
 }
 
 juce::Rectangle<float> StageKnob::getRingBounds() const
@@ -493,4 +507,11 @@ void StageKnob::paint (juce::Graphics& g)
     g.setFont (StageFonts::silkscreen (scaled (silkLabelSize), semiBold, silkLabelSpacing));
     const auto labelTop = ring.getBottom() + scaled (geometry.labelGap);
     g.drawText (label.toUpperCase(), getLocalBounds().toFloat().withTop (labelTop), juce::Justification::centredTop, false);
+
+    if (showsValue)
+    {
+        g.setColour (StagePalette::silkscreenDimText);
+        g.setFont (StageFonts::lcd (scaled (knobValueTextSize)));
+        g.drawText (juce::String (juce::roundToInt (getValue())), getValueBounds(), juce::Justification::centred, false);
+    }
 }

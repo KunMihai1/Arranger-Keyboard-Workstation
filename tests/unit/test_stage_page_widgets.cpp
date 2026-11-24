@@ -15,6 +15,8 @@ namespace StagePageWidgetsTestValues
     const juce::String segSizes       = "a seg button is as big as the board's .seg: 22 high, text + padding wide";
     const juce::String ledSegSize     = "a seg button with an LED adds the LED and its gap";
     const juce::String litLed         = "a seg button's lit LED is drawn red";
+    const juce::String greenLed       = "a seg button can have a green LED (Sustain)";
+    const juce::String sustainText    = "Sustain";
     const juce::String faderCap       = "the fader cap runs from 116 (value 0) to 0 (value 127) like the board's capTop";
     const juce::String faderRange     = "the fader is a vertical 0-127 slider that does not jump to the click";
     const juce::String faderFollows   = "the fader cap follows the hand: dragged 58 px up at scale 1 it moves 58 px (half its travel)";
@@ -120,6 +122,22 @@ public:
             }
             const auto led = button.getLedBounds().getCentre().roundToInt();
             expect (isReddish (image.getPixelAt (led.x, led.y)));
+        }
+
+        beginTest (greenLed);
+        {
+            SegButton button { sustainText, SegButton::Style::seg, true, RubberButton::LedColour::green };
+            button.setScale (referenceScale);
+            button.setSize (ledButtonWidth, boardSegHeight);
+            button.setLedOn (true);
+            juce::Image image (juce::Image::ARGB, button.getWidth(), button.getHeight(), true);
+            {
+                juce::Graphics g (image);
+                button.paintEntireComponent (g, true);
+            }
+            const auto led = button.getLedBounds().getCentre().roundToInt();
+            const auto colour = image.getPixelAt (led.x, led.y);
+            expect (colour.getGreen() > colour.getRed() * redDominance && colour.getGreen() > colour.getBlue() * redDominance);
         }
 
         beginTest (faderCap);
