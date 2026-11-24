@@ -24,10 +24,11 @@ namespace
 }
 
 //==============================================================================
-SegButton::SegButton (const juce::String& text, Style buttonStyle, bool withLed)
+SegButton::SegButton (const juce::String& text, Style buttonStyle, bool withLed, RubberButton::LedColour withLedColour)
     : juce::Button (text),
       style (buttonStyle),
       hasLed (withLed),
+      ledColour (withLedColour),
       boardHeight (buttonStyle == Style::instrument ? StageMetrics::instrumentHeight : StageMetrics::segHeight)
 {
     setMouseCursor (juce::MouseCursor::PointingHandCursor);   // owner: every button shows the hand
@@ -153,7 +154,8 @@ void SegButton::paintButton (juce::Graphics& g, bool isHighlighted, bool isDown)
     }
 
     if (hasLed)
-        StageDrawing::drawLed (g, getLedBounds(), ledOn, StagePalette::ledRed, scale);
+        StageDrawing::drawLed (g, getLedBounds(), ledOn,
+                               ledColour == RubberButton::LedColour::green ? StagePalette::ledGreen : StagePalette::ledRed, scale);
 
     auto colour = lit ? StagePalette::litText : StagePalette::silkscreenText;
     if (! isEnabled())

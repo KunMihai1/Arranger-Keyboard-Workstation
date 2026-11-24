@@ -152,6 +152,8 @@ namespace StageMetrics
     inline constexpr int knobPointerWidth   = 2;
     inline constexpr float knobSweepDegrees = 135.0f;   // each side of 12 o'clock
     inline constexpr int   knobDeadZone     = 5;        // px around the centre where a turn has no direction
+    inline constexpr int   knobValueLineHeight = 11;    // effects page: the value under the label
+    inline constexpr float knobValueTextSize   = 10.0f;
 
     // --- Page materials (StageRevised .seg / .inst / .fader / .lcd-list; PageTracks .seg-lit) ---
     inline constexpr int   segHeight          = 22;

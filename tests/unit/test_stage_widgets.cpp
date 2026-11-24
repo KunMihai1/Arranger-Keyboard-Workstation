@@ -42,6 +42,11 @@ namespace StageWidgetsTestValues
     const juce::String sectionLabel  = "Intro 1";
     const juce::String twoLineLabel  = "Sync\nStart";
     const juce::String knobLabel     = "Volume";
+    const juce::String valueLine     = "an effects knob can show its value under the label (board .ering + label + value)";
+    constexpr int boardKnobHeight    = 99;   // ring 72, gap 2, label 12, gap 2, value 11
+    constexpr float boardValueTop    = 88.0f;
+    constexpr float boardValueHeight = 11.0f;
+    constexpr float unitScale        = 1.0f;
 
     constexpr float ownerScale   = 1.6f;
     constexpr int   oneLine      = 1;
@@ -63,6 +68,17 @@ public:
     void runTest() override
     {
         using namespace StageWidgetsTestValues;
+
+        beginTest (valueLine);
+        {
+            StageKnob knob { knobLabel, StageKnob::Size::effects };
+            knob.setScale (unitScale);
+            knob.setShowsValue (true);
+            knob.setSize (knob.getPreferredWidth(), knob.getPreferredHeight());
+            expectEquals (knob.getPreferredHeight(), boardKnobHeight);
+            expectWithinAbsoluteError (knob.getValueBounds().getY(), boardValueTop, halfPixel);
+            expectWithinAbsoluteError (knob.getValueBounds().getHeight(), boardValueHeight, halfPixel);
+        }
 
         beginTest (ledState);
         {
