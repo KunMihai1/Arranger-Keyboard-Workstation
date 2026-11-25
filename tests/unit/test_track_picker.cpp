@@ -4,8 +4,8 @@
 #include "TrackEntry.h"
 
 /*  The track picker page (board PageTracks): folder details on the right, the sort button cycling
-    Name / Newest / Oldest, and the track rename dialog focusing its own box (backlog section 2: it looked
-    up the folder dialog's box, found none and focused nothing). In-memory library only. */
+    Name / Newest / Oldest, and the rename dialogs (in-app, holding the current name; the stock AlertWindow
+    stalled the UI ~1 s). In-memory library only; nothing is confirmed, so nothing is saved. */
 
 namespace TrackPickerTestValues
 {
@@ -14,7 +14,8 @@ namespace TrackPickerTestValues
 
     const juce::String folderDetails  = "a selected folder shows its name and its track counts by type";
     const juce::String sortCycles     = "the sort button steps Name -> Newest -> Oldest -> Name and the open folder follows";
-    const juce::String renameFocus    = "the track rename dialog's box is found by the name the focus call uses";
+    const juce::String renameDialog   = "Rename opens an in-app dialog holding the selected track's name";
+    const juce::String folderDialogs  = "Add folder / Rename open in-app dialogs; with no selection Rename only tells the screen";
     const juce::String useInSlot      = "the use button names the slot being filled";
 
     const juce::String ballads   = "Ballads";
@@ -30,9 +31,8 @@ namespace TrackPickerTestValues
     const juce::String gamma = "Gamma";
     const juce::String drums = "Drums";
     const juce::String slotWord = "slot 3";
-    const juce::String noTitle;
-    const juce::String noMessage;
 
+    constexpr size_t oneFolder = 1;
     constexpr int melodicCount = 4;
     constexpr int percussionCount = 1;
     constexpr int totalCount = 5;
@@ -143,11 +143,43 @@ public:
             expectEquals (list.sortCaption(), nameSort);
         }
 
-        beginTest (renameFocus);
+        beginTest (renameDialog);
         {
-            juce::AlertWindow window (noTitle, noMessage, juce::AlertWindow::NoIcon);
-            TrackListComponent::addTrackRenameEditor (window, alpha);
-            expect (TrackListComponent::trackRenameEditor (window) != nullptr);
+            Library lib;
+            (*lib.folders)[ballads] = { entry (alpha, TrackType::Melodic, {}) };
+            lib.keys->push_back (ballads);
+            juce::Component page;
+            TrackListComponent list (lib.openFolder, lib.folders, lib.keys, [] (int) {});
+            page.addAndMakeVisible (list);
+            openFolder (list, folderRow);
+            list.selectRow (firstRow);
+            list.renameFromTrackList();
+            auto* dialog = list.getOpenDialog();
+            expect (dialog != nullptr && dialog->isVisible() && dialog->hasInput());
+            if (dialog != nullptr)
+                expectEquals (dialog->getText(), list.getAllAvailableTracks()[firstRow].displayName);
+        }
+
+        beginTest (folderDialogs);
+        {
+            Library lib;
+            lib.keys->push_back (ballads);
+            juce::Component page;
+            TrackListComponent list (lib.openFolder, lib.folders, lib.keys, [] (int) {});
+            page.addAndMakeVisible (list);
+            juce::String info;
+            list.onInfo = [&info] (const juce::String& text) { info = text; };
+
+            list.renameFromFolderList();   // nothing selected
+            expect (list.getOpenDialog() == nullptr);
+            expect (info.isNotEmpty());
+
+            list.addToFolderList();
+            auto* dialog = list.getOpenDialog();
+            expect (dialog != nullptr && dialog->isVisible() && dialog->hasInput());
+            if (dialog != nullptr)
+                dialog->cancel();
+            expectEquals (lib.keys->size(), oneFolder);   // cancelled: no folder added
         }
 
         beginTest (useInSlot);

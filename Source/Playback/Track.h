@@ -4,6 +4,7 @@
 #include "TrackListener.h"
 #include "CustomToolTip.h"
 #include "UI/Stage/StagePageWidgets.h"
+#include "UI/Stage/StageDialog.h"
 
 /** Component IDs of a track strip's parts (findChildWithID). */
 namespace TrackStripIds
@@ -68,6 +69,12 @@ public:
 
     /** A short message for the Stage screen (e.g. a drum track's instrument cannot change). */
     std::function<void(const juce::String& text)> onInfo;
+
+    /** The in-app Rename / Delete dialog on screen, or nullptr. */
+    StageDialog* getOpenDialog() const;
+
+    /** The user chose this strip's instrument (GM program). */
+    std::function<void(int program)> onInstrumentChosen;
 
     /** Slot number (1-8) drawn at the top of the strip, and the Stage scale. */
     void setSlotNumber(int oneBasedSlot);
@@ -224,4 +231,5 @@ private:
     void refreshInstrumentCaption();///< Opens instrument selection popup.
     juce::StringArray instrumentlist;        ///< List of all MIDI instrument names.
     std::unique_ptr<CustomToolTip> toolTipWindow = nullptr; ///< Tooltip window for displaying track name.
+    std::unique_ptr<StageDialog> dialog;   ///< Rename / Delete (in-app; juce::AlertWindow stalled the UI ~1 s)
 };

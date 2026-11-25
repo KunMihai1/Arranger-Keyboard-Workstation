@@ -13,6 +13,7 @@
       TitleDivider  the thin vertical rule between groups of title-row buttons
       StageFader    the Style page's channel fader (0-127); dragging moves it by
                     the drag, it never jumps to where it was clicked
+      StageLcdInput the board's .lcd-input: an LCD text box (the Voices page search)
       StageLcd      drawing helpers for LCD lists and section headings
 
   ==============================================================================
@@ -131,15 +132,38 @@ public:
     void setScale (float newScale);
     bool isLedOn() const;
     juce::Rectangle<float> getLedBounds() const;
+    /** The bounds that put the LED on the board row's left edge with room for a lit LED's glow. */
+    juce::Rectangle<int> boundsForBoardBox (juce::Rectangle<int> boardBox) const;
 
 protected:
     void paintButton (juce::Graphics& g, bool isHighlighted, bool isDown) override;
 
 private:
+    /** Whole pixels left of the LED for a lit LED's glow (drawn outside the bounds, it would be clipped). */
+    int glowRoom() const;
+
     Kind kind;
     float scale { StageMetrics::referenceScale };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RowToggle)
+};
+
+/** The board's .lcd-input: one line of LCD text, with a dim hint while it is empty. */
+class StageLcdInput : public juce::TextEditor
+{
+public:
+    explicit StageLcdInput (const juce::String& hint);
+
+    void setScale (float newScale);
+
+    void paint (juce::Graphics& g) override;
+    void paintOverChildren (juce::Graphics& g) override;
+
+private:
+    juce::String hint;
+    float scale { StageMetrics::referenceScale };
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StageLcdInput)
 };
 
 class TitleDivider : public juce::Component

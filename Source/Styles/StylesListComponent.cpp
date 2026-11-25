@@ -6,12 +6,11 @@ namespace
 {
     namespace Text
     {
-        const juce::String addingStyleTitle    = "Adding a style";
+        const juce::String addStyleTitle       = "Add style";
         const juce::String nameEmpty           = "Name can't be empty!";
         const juce::String nameExists          = "Name already exists!";
-        const juce::String styleAddedTitle     = "Add style";
-        const juce::String styleAddedStart     = "The style '";
-        const juce::String styleAddedEnd       = "' has been added!";
+        const juce::String styleAddedStart     = "Style '";
+        const juce::String styleAddedEnd       = "' added";
         const juce::String fallbackStylePrefix = "Style ";
     }
 
@@ -160,66 +159,68 @@ void StylesListComponent::repopulate()
 
 void StylesListComponent::addNewStyle()
 {
-    auto* window = new juce::AlertWindow{ StyleDialogText::nameDialogTitle, StyleDialogText::nameDialogPrompt, juce::AlertWindow::NoIcon };
-
-    window->addTextEditor(StyleDialogText::nameEditor, {}, StyleDialogText::nameEditorLabel);;
-
-    window->addButton(StyleDialogText::okButton, StyleDialogText::dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton(StyleDialogText::cancelButton, StyleDialogText::dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
-
-    window->enterModalState(true, juce::ModalCallbackFunction::create([this, window](int result)
-            {
-                std::unique_ptr<juce::AlertWindow> cleanup{ window };
-                if (result != StyleDialogText::dialogOk)
-                    return;
-
-                juce::String newName = window->getTextEditor(StyleDialogText::nameEditor)->getText().trim();
-
-                if (newName.isEmpty())
-                {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::addingStyleTitle, Text::nameEmpty);
-                    return;
-                }
-
-                for (auto& name : stylesNames)
-                {
-                    if (name.trim() == newName)
-                    {
-                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::addingStyleTitle, Text::nameExists);
-                        return;
-                    }
-                }
-
-                auto* newStyle = new StyleViewComponent{ newName };
-
-                juce::String currentName = newName;
-
-                allCallBacks(newStyle,currentName);
-
-                if (onStyleAdd)
-                    onStyleAdd(newName);
-
-                stylesNames.push_back(newName);
-                styleItemsContainer->addAndMakeVisible(newStyle);
-                allStyles.add(newStyle);
-                refreshRows();
-                resized(); // instead of repopulating, we just layout the styles again ( repopulating would mean creating all the lambdas again and so on )
-
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::styleAddedTitle, Text::styleAddedStart + newName + Text::styleAddedEnd);
-            }
-        )
-    );
-
-    juce::MessageManager::callAsync([window]()
+    openDialog({ Text::addStyleTitle, StyleDialogText::nameLabel, StyleDialogText::okButton, true, {} },
+        [this](const juce::String& newName)
         {
-            if (auto* editor = window->getTextEditor(StyleDialogText::nameEditor))
-                editor->grabKeyboardFocus();
+            if (newName.isEmpty())
+            {
+                showInfo(Text::nameEmpty);
+                return;
+            }
+
+            for (auto& name : stylesNames)
+            {
+                if (name.trim() == newName)
+                {
+                    showInfo(Text::nameExists);
+                    return;
+                }
+            }
+
+            auto* newStyle = new StyleViewComponent{ newName };
+
+            juce::String currentName = newName;
+
+            allCallBacks(newStyle,currentName);
+
+            if (onStyleAdd)
+                onStyleAdd(newName);
+
+            stylesNames.push_back(newName);
+            styleItemsContainer->addAndMakeVisible(newStyle);
+            allStyles.add(newStyle);
+            refreshRows();
+            resized(); // instead of repopulating, we just layout the styles again ( repopulating would mean creating all the lambdas again and so on )
+
+            showInfo(Text::styleAddedStart + newName + Text::styleAddedEnd);
         });
+}
+
+StageDialog* StylesListComponent::getOpenDialog() const
+{
+    return dialog != nullptr && dialog->isVisible() ? dialog.get() : nullptr;
+}
+
+void StylesListComponent::openDialog(StageDialogOptions options, StageDialog::OnConfirm onConfirm)
+{
+    dialog = std::make_unique<StageDialog>(std::move(options), std::move(onConfirm));
+    dialog->showOver(*this, scale);
+}
+
+void StylesListComponent::showInfo(const juce::String& text)
+{
+    if (onInfo)
+        onInfo(text);
 }
 
 void StylesListComponent::allCallBacks(StyleViewComponent* newStyle, const juce::String& currentName)
 {
     newStyle->onStyleClicked = this->onStyleClicked;
+    newStyle->openDialog = [this](StageDialogOptions options, StageDialog::OnConfirm onConfirm)
+    {
+        openDialog(std::move(options), std::move(onConfirm));
+    };
+    newStyle->onInfo = [this](const juce::String& text) { showInfo(text); };
 
     newStyle->onStyleRenamed = [this](const juce::String& oldName, const juce::String& newName)
     {

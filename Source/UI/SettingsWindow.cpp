@@ -331,7 +331,7 @@ void MIDIWindow::resized()
     const std::array<RowToggle*, SettingsPageRects::arrangerRows> toggles { &arrangerModeToggle, &chordBassInversionToggle, &chordMemoryToggle,
                                                                            &synchroStartToggle, &countInToggle, &chordZoneMuteToggle, &nttEnabledToggle };
     for (size_t row {}; row < toggles.size(); ++row)
-        toggles[row]->setBounds(rects.arrangerToggles[row]);
+        toggles[row]->setBounds(toggles[row]->boundsForBoardBox(rects.arrangerToggles[row]));
 
     chordModeLabel.setBounds(rects.chordModeLabel);
     nttMinorScaleLabel.setBounds(rects.minorScaleLabel);

@@ -13,12 +13,11 @@ namespace
         const juce::String renameStyleTitle   = "Rename style";
         const juce::String emptyName          = "You can't put an empty name!";
         const juce::String nameExists         = "The name already exists!";
-        const juce::String confirmRemoveTitle = "Confirm Remove";
-        const juce::String removePromptStart  = "Are you sure you want to remove ' ";
-        const juce::String removePromptEnd    = "' ?";
+        const juce::String removeStyleTitle   = "Remove style";
+        const juce::String removePromptStart  = "Remove the style '";
+        const juce::String removePromptEnd    = "'?";
         const juce::String removeButton       = "Remove";
-        const juce::String removedTitle       = "Remove style";
-        const juce::String removed            = "Style removed succesfully!";
+        const juce::String removed            = "Style removed";
         const char* const  openMarkUtf8       = "\xe2\x97\x82";   // U+25C2: the open style's arrow
     }
 }
@@ -114,74 +113,48 @@ juce::String StyleViewComponent::getNameLabel() const
 
 void StyleViewComponent::changeNameLabel()
 {
-    auto* window = new juce::AlertWindow{ StyleDialogText::nameDialogTitle, StyleDialogText::nameDialogPrompt, juce::AlertWindow::NoIcon };
+    if (! openDialog)
+        return;
 
-    window->addTextEditor(StyleDialogText::nameEditor, label.getText(), StyleDialogText::nameEditorLabel);
-
-    window->addButton(StyleDialogText::okButton, StyleDialogText::dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton(StyleDialogText::cancelButton, StyleDialogText::dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
-
-    window->enterModalState(true, juce::ModalCallbackFunction::create([this, window](int result)
+    openDialog({ Text::renameStyleTitle, StyleDialogText::nameLabel, StyleDialogText::okButton, true, label.getText() },
+        [this](const juce::String& theNewName)
         {
-            std::unique_ptr<juce::AlertWindow> cleanup{ window };
-            if (result != StyleDialogText::dialogOk)
-                return;
-
-            juce::String oldName = label.getText();
-            juce::String theNewName = window->getTextEditor(StyleDialogText::nameEditor)->getText().trim();
+            const juce::String oldName = label.getText();
 
             if (theNewName.isEmpty())
             {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::renameStyleTitle, Text::emptyName);
+                if (onInfo)
+                    onInfo(Text::emptyName);
                 return;
             }
 
-            if (isInListNames)
+            if (isInListNames && isInListNames(theNewName))
             {
-                if (isInListNames(theNewName))
-                {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::renameStyleTitle, Text::nameExists);
-                    return;
-                }
+                if (onInfo)
+                    onInfo(Text::nameExists);
+                return;
             }
 
             setNameLabel(theNewName);
 
             if (onStyleRenamed)
                 onStyleRenamed(oldName, theNewName);
-
-
-        }
-    ));
-
-    juce::MessageManager::callAsync([window]()
-        {
-            if (auto* editor = window->getTextEditor(StyleDialogText::nameEditor))
-                editor->grabKeyboardFocus();
         });
 }
 
 void StyleViewComponent::removeStyle()
 {
-    juce::AlertWindow::showOkCancelBox(
-        juce::AlertWindow::WarningIcon,
-        Text::confirmRemoveTitle,
-        Text::removePromptStart + label.getText() + Text::removePromptEnd,
-        Text::removeButton,
-        StyleDialogText::cancelButton,
-        this,
-        juce::ModalCallbackFunction::create(
-            [this](int result)
-            {
-                if (result == StyleDialogText::dialogCancel) // Cancel
-                    return;
+    if (! openDialog)
+        return;
 
-                if (onStyleRemoveComponent)
-                    onStyleRemoveComponent(label.getText());
-
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::removedTitle, Text::removed);
-
-            }
-        )
-    );
+    openDialog({ Text::removeStyleTitle, Text::removePromptStart + label.getText() + Text::removePromptEnd, Text::removeButton },
+        [this](const juce::String&)
+        {
+            const auto name = label.getText();
+            const auto info = onInfo;   // the removal deletes this row
+            if (onStyleRemoveComponent)
+                onStyleRemoveComponent(name);
+            if (info)
+                info(Text::removed);
+        });
 }

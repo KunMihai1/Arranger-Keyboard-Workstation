@@ -4,6 +4,7 @@
 #include "SubjectInterface.h"
 #include "trackListComponentListener.h"
 #include "UI/Stage/StagePageWidgets.h"
+#include "UI/Stage/StageDialog.h"
 
 /**
  * @class TrackListComponent
@@ -106,10 +107,11 @@ public:
         Instrument, Type, Folder). */
     std::vector<PickerDetail> details() const;
 
-    /** The track rename dialog's name box: added and found under one name (the focus call used the folder
-        dialog's name, found nothing and focused nothing - backlog section 2). */
-    static void addTrackRenameEditor(juce::AlertWindow& window, const juce::String& currentName);
-    static juce::TextEditor* trackRenameEditor(juce::AlertWindow& window);
+    /** A short message for the Stage screen (a warning such as "select a folder first", or a result). */
+    std::function<void(const juce::String& text)> onInfo;
+
+    /** The in-app dialog on screen (add / rename / remove), or nullptr. */
+    StageDialog* getOpenDialog() const;
 
     /** @brief Adds new tracks to the current folder from selected MIDI files. */
     void addToTrackList();
@@ -213,4 +215,10 @@ private:
 
     /** @brief Stores the name of the currently selected folder. */
     juce::String currentFolderName;
+
+    /** The page's dialog (one at a time; the next one replaces it). Not juce::AlertWindow: building one stalled
+        the UI for 0.6 - 1 s. */
+    std::unique_ptr<StageDialog> dialog;
+    void openDialog(StageDialogOptions options, StageDialog::OnConfirm onConfirm);
+    void showInfo(const juce::String& text);
 };
