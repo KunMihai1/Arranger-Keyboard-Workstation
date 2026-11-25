@@ -1,7 +1,7 @@
 ---
 type: meta
 title: "Hot Cache"
-updated: 2026-11-24T06:00:00
+updated: 2026-11-25T03:30:00
 tags:
   - meta
   - hot
@@ -11,9 +11,10 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-24. Style page (PR #64) and Effects page (PR #65) merged; **phase 4c, the Settings page**, on
-`feat/ui-settings-page` (the MIDI Settings window becomes the page; particle style Sparks / Dust / Smoke).
-`docs/superpowers/` is **local only** (owner). Next: Voices page, then the others in spec order. Detail in [[log]].
+2026-11-25. Settings page merged (PR #66). **UI polish fixes** on `fix/ui-polish` (one PR): LEDs, cut labels,
+in-app `StageDialog` instead of the slow `AlertWindow` (track picker, styles list, strips), instrument picker
+sub-page, Stage tooltips, the chosen instrument now plays. Voices page WIP on `feat/ui-voices-page`.
+`docs/superpowers/` is **local only** (owner). Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -30,7 +31,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 1694, arranger 770, integration 130 (+7 skipped), display 8**.
+  Current: **unit 1788, arranger 770, integration 130 (+7 skipped), display 8**.
 - Visual checks: screenshot/click the app's largest window; boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
@@ -44,14 +45,12 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 
 ## Active Threads / Next
 Full task list with states: [[Owner Backlog]].
-- ✅ **Use-after-free on deleting the open style** fixed 2026-11-24 (liveness token; player stops its timer).
+- 🟡 **~100 `juce::AlertWindow`s left** (0.5–1 s each in Debug, balanced text layout): move to `StageDialog`.
 - 🟡 **UI redesign** ("Stage" panel, pages, real keys/knobs, new Dust, six finishes, Remember me):
   spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2, plan
   `docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md` (phase 1 merged, PR #61); phase 4a Style page
   (plan `...-style-page.md`). Owner: same look on every resolution; pages centred like the panel; agent checks the
   running app **1:1** against the boards before finishing.
-- ✅ **Arranger hard testing** done. Owner: style switch while playing applies on the next Start; any
-  section may start; restore-down stays work-area sized.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.
 - 🟡 **Swap `juce::dsp::Chorus` (CC93) for the BBD model** from `va-effects`; budget = 16 `ChannelDSP`s.

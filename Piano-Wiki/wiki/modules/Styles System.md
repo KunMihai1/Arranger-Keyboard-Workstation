@@ -27,7 +27,8 @@ Manages arranger *styles* (named collections of accompaniment tracks) and the *s
 
 ## Key files
 - `StyleViewComponent.h/.cpp` — one style as an LCD row of the styles list (the open one inverted with ◂). Click opens it, right-click renames/deletes (`onStyleClicked`, `onStyleRenamed`, `onStyleRemoveComponent`).
-- `StylesListComponent.h/.cpp` — the styles list of the Style page: heading, LCD rows, **Add / Rename / Delete** (Rename / Delete act on the open style through its row's own dialogs; DEFAULT Style: disabled).
+- `StylesListComponent.h/.cpp` — the styles list of the Style page: heading, LCD rows, **Add / Rename / Delete** (Rename / Delete act on the open style through its row's own dialogs; DEFAULT Style: disabled). The dialogs are `StageDialog`s owned by the list (2026-11-25); outcomes go to the stage screen message through `onInfo`.
+- `InstrumentPicker.h/.cpp` — the "Choose instrument · slot N" sub-page (2026-11-25): LCD search, the 16 GM families as a 2 × 8 grid, the family's 8 programs (current one marked ◂); typing searches all 128. `GmInstruments::families / familyOf / search` are pure (test `InstrumentPicker`).
 - `SectionsComponent.h/.cpp` — `StyleSectionComponent`: lays out the section buttons grouped via `SectionGroupComponent`, tracks the last-clicked/active button, applies activation colours, and wires each button to a callback (the callback map drives which engine action fires).
 - `SectionGroupComponent.h/.cpp` — a group of related section buttons (mutually-exclusive activation within a group).
 - `StyleSection.h`, `styleSettingsEntry.h` — section/style data types and persisted settings.
@@ -48,7 +49,13 @@ the view's title, subtitle, row gap and title-row actions to the `StagePageFrame
   `comboBoxChanged`, so an active section configuration is still cleared), Start / Stop / tempo slider / beat bar
   (the panel drives them), the picker's sort combo, the notes page's reset / modify combos.
 - Picking an instrument keeps the track's name (owner 2026-11-23); the instrument button shows
-  `Track::instrumentCaption()` (GM name / Drums / As recorded / —).
+  `Track::instrumentCaption()` (GM name / Drums / As recorded / —). The button opens the **instrument picker**
+  (`StyleView::instruments`, `Display::showInstrumentPicker`); a pick returns to the style through `callAsync`.
+- **The chosen instrument is what plays** (2026-11-25, test `TrackInstrumentPlayback`): `startPlaying` re-runs
+  `applyBPMchangeBeforePlayback`, which takes the strip's instrument and drops the MIDI file's own program changes on
+  that track; an arranger config gets the strip's instrument as well as its volume (`applyLiveTrackSettings`); a pick
+  reloads the SFZ (`onTrackInstrumentChosen` → `loadSfzForCurrentStyle`). Before, the program baked at style load and
+  the file's own program changes won, and the arranger copied volumes only.
 - Board values: `docs/superpowers/specs/assets/2026-11-23-ui-redesign/` (`StageRevised` openPage=styles,
   `PageTracks`, `PageNotes`); local only, see [[Owner Backlog]].
 
