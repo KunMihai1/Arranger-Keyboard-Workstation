@@ -203,7 +203,8 @@ int RubberButton::getPreferredWidth() const
     {
         case Style::key:       return juce::roundToInt (scaled (keyComponentWidth));
         case Style::screen:    return juce::roundToInt (labelWidth() + scaled (screenButtonGap + screenButtonWidth + screenButtonGap + ledDiameter));
-        case Style::ledToggle: return juce::roundToInt (scaled (ledDiameter + toggleGap) + labelWidth());
+        // Rounded up: a box rounded narrower than its label loses the last letter ("RIGH" at some window sizes).
+        case Style::ledToggle: return static_cast<int> (std::ceil (scaled (ledDiameter + toggleGap) + labelWidth()));
     }
     return {};
 }

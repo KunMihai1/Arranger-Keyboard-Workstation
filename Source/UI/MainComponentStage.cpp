@@ -480,6 +480,9 @@ void MainComponent::openStagePage (StagePage page)
             else
             {
                 showStagePage (page);
+                // Open on the instrument the Quick FX knobs show (the lit part), so the two show the same values.
+                if (const auto partChannel = selectedPartChannel(); partChannel != int {} && effectsContent)
+                    effectsContent->selectSecondInstrument (partChannel == HandChannels::rightHand);
                 // As a newly opened window did: the knobs show the selected instrument's stored values.
                 if (effectsContent && effectsContent->onChannelChanged)
                     effectsContent->onChannelChanged (effectsContent->getSelectedChannel());

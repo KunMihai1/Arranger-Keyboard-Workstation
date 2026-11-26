@@ -42,6 +42,10 @@ namespace StagePageWidgetsTestValues
     constexpr float noAngle    = 0.0f;
     constexpr int   singleClick = 1;
     const juce::String lcdRowInverts  = "a selected LCD row is dark with light text; an unselected one the reverse";
+    const juce::String rowTextsApart  = "a row's left text stops a gap before its right text (a long SFZ file name ran under its instrument)";
+    const juce::String assignmentText = "Acoustic Guitar (nylon)";
+    constexpr int sfzRowWidth = 438;
+    constexpr int sfzRowHeight = 21;
     const juce::String headingRule    = "a section heading's rule starts after the title and fills to the right edge";
     const juce::String headingDimText = "a section heading's dim text sits at the right edge, the rule ends before it";
 
@@ -274,6 +278,19 @@ public:
             fader.mouseDrag (drag);
             fader.mouseUp (drag);
             expectWithinAbsoluteError (fader.getValue(), halfTravelValue, stepTolerance);
+        }
+
+        beginTest (rowTextsApart);
+        {
+            const juce::Rectangle<int> row { sfzRowWidth, sfzRowHeight };
+            const auto padding = static_cast<float> (StageMetrics::lcdRowPaddingSide) * referenceScale;
+            const auto rightWidth = juce::GlyphArrangement::getStringWidth (StageLcd::rowFont (referenceScale), assignmentText);
+            const auto withRight = StageLcd::rowLeftTextArea (row, referenceScale, assignmentText);
+            expectEquals (withRight.getX(), padding);
+            expectLessOrEqual (withRight.getRight(), static_cast<float> (row.getRight()) - padding - rightWidth
+                                                    - static_cast<float> (StageMetrics::lcdRowTextGap) * referenceScale);
+            const auto alone = StageLcd::rowLeftTextArea (row, referenceScale, {});
+            expectEquals (alone.getRight(), static_cast<float> (row.getRight()) - padding);
         }
 
         beginTest (lcdRowInverts);
