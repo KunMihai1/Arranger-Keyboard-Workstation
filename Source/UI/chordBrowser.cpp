@@ -9,278 +9,204 @@
 */
 
 #include "chordBrowser.h"
+#include "Common/AppColours.h"
+#include "UI/Stage/StageFonts.h"
 
 namespace
 {
-    constexpr int   chordShapes        = 3;       // root position and two inversions
-    constexpr float labelFontHeight    = 13.0f;
-    constexpr int   previewPadding     = 6;
-    constexpr int   labelHeight        = 22;
-    constexpr int   labelInsetX        = 4;
-    constexpr int   labelInsetY        = 2;
-    constexpr int   imageInset         = 4;
-    const juce::Colour hoverColour { 0xffe8f0ff };
-    constexpr float rowFontHeight      = 20.0f;
-    constexpr int   rowTextInsetX      = 6;
-    constexpr int   rowTextInsetY      = 4;
-    const juce::String searchHint      = "Search chords...";
-    constexpr int   browserWidth       = 1200;
-    constexpr int   browserHeight      = 750;
-    constexpr int   firstRow           = 0;
-    constexpr int   outerPadding       = 8;
-    constexpr int   searchHeight       = 28;
-    constexpr int   listWidthDivisor   = 3;       // the list takes a third of the width
-    constexpr int   listInset          = 2;
-    constexpr int   previewInset       = 4;
-}
-
-ChordPreview::ChordPreview()
-{
-    const juce::String labels[] = { "Root", "1st Inversion", "2nd Inversion" };
-
-    for (int shapeIndex {}; shapeIndex < chordShapes; ++shapeIndex)
+    namespace ChordPageText
     {
-        auto* container = new juce::Component();
-        addAndMakeVisible(container);
-        containers.add(container);
-
-        auto* lbl = new juce::Label();
-        lbl->setText(labels[shapeIndex], juce::dontSendNotification);
-        lbl->setJustificationType(juce::Justification::centred);
-        lbl->setFont(juce::Font(labelFontHeight, juce::Font::bold));
-        container->addAndMakeVisible(lbl);
-        labelsArray.add(lbl);
-
-        auto* imageComp = new juce::ImageComponent();
-        imageComp->setMouseCursor(juce::MouseCursor::PointingHandCursor);
-        imageComp->setOpaque(true);
-        imageComp->setInterceptsMouseClicks(false, false);
-        container->addAndMakeVisible(imageComp);
-        imageComponents.add(imageComp);
+        const char* const searchHintUtf8      = "Search chords\xe2\x80\xa6";                         // "Search chords…"
+        const char* const nameNotesSeparator  = " \xc2\xb7 ";                                       // " · "
+        const char* const voicingSeparator    = " \xe2\x80\x93 ";                                   // " – "
+        const char* const hintUtf8            = "Click a chord to see it \xc2\xb7 the keys show where to put your fingers";
+        const juce::String rowNotesSeparator  = " ";
+        const juce::String voicingTitles[]    = { "Root position", "1st inversion", "2nd inversion" };
     }
+
+    constexpr bool  mediumFace     = false;   // silkscreen Medium (the board's .silk-dim)
+    constexpr float noLetterSpacing = 0.0f;   // the voicing notes: mono, letter-spacing 0
+    constexpr int   whiteEdgeWidth = 1;       // .mw inset -1px 0 0
 }
 
-void ChordPreview::resized()
+//==============================================================================
+struct ChordBrowserComponent::Rows : public juce::ListBoxModel
 {
-    auto area = getLocalBounds().reduced(previewPadding);
-    int singleH = area.getHeight() / chordShapes;
+    explicit Rows (ChordBrowserComponent& ownerBrowser) : owner (ownerBrowser) {}
 
-    for (int shapeIndex {}; shapeIndex < containers.size(); ++shapeIndex)
+    int getNumRows() override { return owner.getNumShown(); }
+
+    void paintListBoxItem (int rowNumber, juce::Graphics& g, int width, int height, bool) override
     {
-        auto row = area.removeFromTop(singleH);
-        containers[shapeIndex]->setBounds(row);
-
-        
-        auto containerLocal = containers[shapeIndex]->getLocalBounds();
-
-        
-        auto labelArea = containerLocal.removeFromTop(labelHeight).reduced(labelInsetX, labelInsetY);
-        labelsArray[shapeIndex]->setBounds(labelArea);
-
-        
-        imageComponents[shapeIndex]->setBounds(containerLocal.reduced(imageInset));
+        if (! juce::isPositiveAndBelow (rowNumber, owner.filteredIndices.size()))
+            return;
+        const auto chordIndex = owner.filteredIndices[static_cast<size_t> (rowNumber)];
+        const auto& chord = owner.allChords[chordIndex];
+        const auto notes = ChordHelperModel::noteNames (ChordHelper::getNotesForChord (chord), ChordPageText::rowNotesSeparator);
+        StageLcd::paintRow (g, { width, height }, owner.scale, chord.name, notes, chordIndex == owner.chosen);
     }
-}
 
-void ChordPreview::showChordImages(Chord& chord)
-{
-    ChordHelper::loadChordNeeded(chord);
-
-    const juce::Image images[] = { chord.imgRoot,chord.imgInv1,chord.imgInv2 };
-
-    for (int shapeIndex {}; shapeIndex < imageComponents.size(); ++shapeIndex)
+    void listBoxItemClicked (int rowNumber, const juce::MouseEvent&) override
     {
-        if (!images[shapeIndex].isNull())
-        {
-            ChordHelper::loadChordNeeded(chord);
-        }
-
-        imageComponents[shapeIndex]->setImage(images[shapeIndex]);
+        owner.chooseShownRow (rowNumber);
     }
-}
 
-void ChordPreview::clearImages()
+    ChordBrowserComponent& owner;
+};
+
+//==============================================================================
+ChordBrowserComponent::ChordBrowserComponent (const std::vector<Chord>& chords)
+    : allChords (chords),
+      search (juce::String::fromUTF8 (ChordPageText::searchHintUtf8)),
+      rows (std::make_unique<Rows> (*this))
 {
-    for (auto* img : imageComponents)
-        img->setImage(juce::Image());
-}
+    addAndMakeVisible (search);
+    search.onTextChange = [this] { rebuildFilteredList(); };
+    search.onEscapeKey  = [this] { if (onEscape) onEscape(); };
 
+    listBox.setColour (juce::ListBox::backgroundColourId, juce::Colours::transparentBlack);
+    listBox.setOutlineThickness (int {});
+    listBox.getViewport()->setScrollBarsShown (false, false, true, false);   // scrolls by wheel, as the LCD lists
+    listBox.setMouseCursor (juce::MouseCursor::PointingHandCursor);
+    listBox.setModel (rows.get());
+    addAndMakeVisible (listBox);
 
-ChordRowComponent::ChordRowComponent(Chord& chord, std::function<void(Chord& clicked)> onClick, std::function<void(Chord& hovered)> onHoverEnter, std::function<void()> onHoverExit)
-    :chordData{chord}, onClick{onClick}, onHoverEnter{onHoverEnter}, onHoverExit{onHoverExit}
-{
-    setInterceptsMouseClicks(true, true);
-    setMouseCursor(juce::MouseCursor::PointingHandCursor);
-}
-
-ChordRowComponent::~ChordRowComponent()
-{
-}
-
-void ChordRowComponent::updateChordData(const Chord& chord)
-{
-    chordData = chord;
-    repaint();
-}
-
-void ChordRowComponent::paint(juce::Graphics& g)
-{
-    auto rowBounds = getLocalBounds();
-    if (isMouseOver())
-        g.fillAll(hoverColour);
-    g.setColour(juce::Colours::lightgrey);
-    g.setFont(rowFontHeight);
-    g.drawText(chordData.name, rowBounds.reduced(rowTextInsetX, rowTextInsetY), juce::Justification::centredLeft);
-}
-
-void ChordRowComponent::mouseEnter(const juce::MouseEvent& ev)
-{
-    if (onHoverEnter) onHoverEnter(chordData);
-    repaint();
-}
-
-void ChordRowComponent::mouseExit(const juce::MouseEvent& ev)
-{
-    if (onHoverExit) onHoverExit();
-    repaint();
-}
-
-void ChordRowComponent::mouseDown(const juce::MouseEvent& ev)
-{
-    if (onClick) onClick(chordData);
-}
-
-ChordBrowserComponent::ChordBrowserComponent(const std::vector<Chord>& allChords): allChords{allChords}
-{
-    addAndMakeVisible(search);
-    search.setTextToShowWhenEmpty(searchHint, juce::Colours::grey);
-    search.addListener(this);
-
-    addAndMakeVisible(listBox);
-
-
-    listBox.setModel(this);
-
-
-    addAndMakeVisible(preview);
-
+    setScale (scale);
     rebuildFilteredList();
-    setSize(browserWidth, browserHeight);
 }
 
 ChordBrowserComponent::~ChordBrowserComponent()
 {
-    listBox.setModel(nullptr);
-    listBox.updateContent();
-
-
-    search.removeListener(this);
+    listBox.setModel (nullptr);
 }
 
-int ChordBrowserComponent::getNumRows()
+void ChordBrowserComponent::setScale (float newScale)
 {
-    return (int)filteredIndices.size();
+    scale = newScale;
+    search.setScale (scale);
+    listBox.setRowHeight (juce::roundToInt (static_cast<float> (ChordHelperMetrics::chordRowHeight) * scale));
+    resized();
+    repaint();
 }
 
-juce::Component* ChordBrowserComponent::refreshComponentForRow(
-    int rowNumber, bool isRowSelected, juce::Component* existingComponentToUpdate)
+void ChordBrowserComponent::setSearchText (const juce::String& text)
 {
-    if (rowNumber < firstRow || rowNumber >= (int)filteredIndices.size())
-    {
-        if (existingComponentToUpdate != nullptr)
-            delete existingComponentToUpdate;
-
-        return nullptr;
-    }
-    Chord& rowChord = allChords[filteredIndices[(size_t)rowNumber]];
-
-    
-    auto* row = dynamic_cast<ChordRowComponent*>(existingComponentToUpdate);
-
-    if (row == nullptr)
-    {
-        
-        if (existingComponentToUpdate != nullptr)
-            delete existingComponentToUpdate;
-
-        
-
-        row = new ChordRowComponent(rowChord,
-            [this](Chord& chosen) { if (onChordChosen) onChordChosen(chosen); },
-            [this](Chord& hovered) { showPreviewForChord(hovered); },
-            [this]() { clearPreview(); });
-    }
-    else
-    {
-        
-        row->updateChordData(rowChord);
-    }
-
-    return row;
-}
-
-void ChordBrowserComponent::paint(juce::Graphics& g)
-{
-}
-
-void ChordBrowserComponent::resized()
-{
-    auto area = getLocalBounds().reduced(outerPadding);
-    auto top = area.removeFromTop(searchHeight);
-    search.setBounds(top.removeFromLeft(area.getWidth()));
-
-    
-    auto left = area.removeFromLeft(getWidth() / listWidthDivisor);
-    listBox.setBounds(left.reduced(listInset));
-
-    preview.setBounds(area.reduced(previewInset));
-}
-
-void ChordBrowserComponent::paintListBoxItem(int rowNumber, juce::Graphics&, int width, int height, bool rowIsSelected)
-{
-}
-
-
-void ChordBrowserComponent::textEditorTextChanged(juce::TextEditor& editor)
-{
-    filterText = editor.getText();
+    search.setText (text, juce::dontSendNotification);
     rebuildFilteredList();
 }
 
-void ChordBrowserComponent::textEditorReturnKeyPressed(juce::TextEditor& editor)
+int ChordBrowserComponent::getNumShown() const
 {
+    return static_cast<int> (filteredIndices.size());
 }
 
-void ChordBrowserComponent::textEditorEscapeKeyPressed(juce::TextEditor& editor)
+void ChordBrowserComponent::chooseShownRow (int row)
 {
-    if (onEscape) onEscape();
+    if (! juce::isPositiveAndBelow (row, filteredIndices.size()))
+        return;
+    chosen = filteredIndices[static_cast<size_t> (row)];
+    listBox.repaint();
+    repaint();
+    if (onChordChosen)
+        onChordChosen (allChords[chosen]);
 }
 
-void ChordBrowserComponent::textEditorFocusLost(juce::TextEditor& editor)
+juce::String ChordBrowserComponent::getChosenName() const
 {
+    return chosen < allChords.size() ? allChords[chosen].name : juce::String();
 }
 
 void ChordBrowserComponent::rebuildFilteredList()
 {
+    const auto query = search.getText().trim();
     filteredIndices.clear();
-    for (int chordIndex {}; chordIndex < (int)allChords.size(); ++chordIndex)
+    for (size_t chordIndex {}; chordIndex < allChords.size(); ++chordIndex)
+        if (query.isEmpty() || allChords[chordIndex].name.containsIgnoreCase (query))
+            filteredIndices.push_back (chordIndex);
+    listBox.updateContent();
+    listBox.repaint();
+}
+
+ChordHelperRects ChordBrowserComponent::layout() const
+{
+    return chordHelperLayout (getLocalBounds(), scale);
+}
+
+void ChordBrowserComponent::resized()
+{
+    const auto rects = layout();
+    const auto padding = juce::roundToInt (static_cast<float> (StageMetrics::lcdListPadding) * scale);
+    search.setBounds (rects.search);
+    listBox.setBounds (rects.list.reduced (int {}, padding));
+}
+
+void ChordBrowserComponent::paint (juce::Graphics& g)
+{
+    using namespace ChordHelperMetrics;
+    const auto rects = layout();
+    StageLcd::paintPanel (g, rects.list.toFloat(), scale);
+
+    if (chosen < allChords.size())
     {
-        if (filterText.isEmpty()
-            || allChords[(size_t)chordIndex].name.toLowerCase().contains(filterText.toLowerCase()))
+        const auto& chord = allChords[chosen];
+
+        // Name row: the name large, its notes after it on the same baseline.
+        const auto nameFont = StageFonts::lcd (nameTextSize * scale);
+        g.setColour (StagePalette::chordName);
+        g.setFont (nameFont);
+        g.drawText (chord.name, rects.name, juce::Justification::centredLeft, false);
+
+        const auto notesX = static_cast<float> (rects.name.getX()) + juce::GlyphArrangement::getStringWidth (nameFont, chord.name)
+                          + static_cast<float> (nameNotesGap) * scale;
+        const juce::Rectangle<float> notesArea (notesX, static_cast<float> (rects.name.getY()) + static_cast<float> (nameNotesTop) * scale,
+                                                static_cast<float> (rects.name.getRight()) - notesX, static_cast<float> (nameNotesHeight) * scale);
+        g.setColour (StagePalette::silkscreenDimText);
+        g.setFont (StageFonts::silkscreen (nameNotesTextSize * scale, mediumFace, StageMetrics::silkDimSpacing));
+        g.drawText (ChordHelperModel::noteNames (ChordHelper::getNotesForChord (chord), juce::String::fromUTF8 (ChordPageText::nameNotesSeparator)),
+                    notesArea, juce::Justification::centredLeft, false);
+
+        const auto shapes = ChordHelperModel::voicings (chord);
+        for (size_t column {}; column < shapes.size(); ++column)
+            paintVoicing (g, rects, column, ChordPageText::voicingTitles[column], shapes[column]);
+    }
+
+    g.setColour (StagePalette::silkscreenDimText);
+    g.setFont (StageFonts::silkscreen (StageMetrics::silkLabelSize * scale, mediumFace, StageMetrics::silkDimSpacing));
+    g.drawText (juce::String::fromUTF8 (ChordPageText::hintUtf8).toUpperCase(), rects.hint, juce::Justification::centredLeft, false);
+}
+
+void ChordBrowserComponent::paintVoicing (juce::Graphics& g, const ChordHelperRects& rects, size_t column,
+                                          const juce::String& title, const std::vector<int>& voicing) const
+{
+    using namespace ChordHelperMetrics;
+    StageLcd::paintHeading (g, rects.voicingTitle[column].toFloat(), scale, title, {});
+
+    // The board's .mini: a dark bed, three octaves of keys from its left edge, cut off at its right (overflow hidden).
+    const auto bed = rects.keyboard[column].toFloat();
+    g.setColour (StagePalette::miniKeyBed);
+    g.fillRoundedRectangle (bed, static_cast<float> (keyboardCorner) * scale);
+    {
+        juce::Graphics::ScopedSaveState clip (g);
+        g.reduceClipRegion (rects.keyboard[column]);
+        const auto isLit = [&voicing] (int note) { return std::find (voicing.begin(), voicing.end(), note) != voicing.end(); };
+        for (const auto& key : MiniKeyboard::keys (scale))
         {
-            filteredIndices.push_back(chordIndex);
+            const auto box = key.box.translated (bed.getX(), bed.getY());
+            const bool lit = isLit (key.note);
+            g.setColour (key.black ? (lit ? StagePalette::miniBlackLit : StagePalette::miniBlack)
+                                   : (lit ? StagePalette::miniWhiteLit : StagePalette::miniWhite));
+            g.fillRect (box);
+            if (! key.black)
+            {
+                const auto edge = static_cast<float> (whiteEdgeWidth) * scale;
+                g.setColour (StagePalette::miniWhiteEdge);
+                g.fillRect (box.withLeft (box.getRight() - edge));
+            }
         }
     }
-    listBox.updateContent();
-}
 
-void ChordBrowserComponent::showPreviewForChord(Chord& chord)
-{
-    preview.showChordImages(chord);
-
-}
-
-void ChordBrowserComponent::clearPreview()
-{
-    preview.clearImages();
+    g.setColour (StagePalette::silkscreenDimText);
+    g.setFont (StageFonts::lcd (voicingNotesTextSize * scale).withExtraKerningFactor (noLetterSpacing));
+    g.drawText (ChordHelperModel::noteNames (voicing, juce::String::fromUTF8 (ChordPageText::voicingSeparator)),
+                rects.voicingNotes[column], juce::Justification::centredLeft, false);
 }

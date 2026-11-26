@@ -52,7 +52,6 @@ namespace
         constexpr int   instrumentButtonX      = 195;
         constexpr int   transportButtonSize    = 30;
         constexpr int   transportRightMargin   = 35;
-        constexpr int   chordHelperRightOffset = 205;
         constexpr int   saveButtonWidth        = 140;
         constexpr int   playRecordingX         = 305;
         constexpr int   loginPanelSize         = 400;
@@ -375,7 +374,6 @@ void MainComponent::resized()
     stopRecording.setBounds(startPlayback.getX()-transportButtonSize-headerMargin, headerMargin, transportButtonSize, transportButtonSize);
     startRecording.setBounds(stopRecording.getX()-transportButtonSize-headerMargin, headerMargin, transportButtonSize, transportButtonSize);
 
-    chordHelperButton.setBounds(getLocalBounds().getRight()-chordHelperRightOffset, startRecording.getBottom()+smallGap, panelButtonWidth, panelButtonHeight);
 
     saveRecordingButton.setBounds(startRecording.getX()-saveButtonWidth-headerMargin, headerMargin, saveButtonWidth, headerButtonHeight);
     playRecordingFileButton.setBounds(playRecordingX, headerMargin, headerButtonWidth, headerButtonHeight);

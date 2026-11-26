@@ -40,7 +40,7 @@ namespace StageMetrics
     inline constexpr int   pagePaddingTop    = 16;
     inline constexpr int   pagePaddingSide   = 28;
     inline constexpr int   pageRowGap        = 14;    // title row to content
-    inline constexpr int   subPageRowGap     = 12;    // the track picker and notes pages (PageTracks, PageNotes)
+    inline constexpr int   subPageRowGap     = 12;    // the track picker, notes and chord helper pages (PageTracks, PageNotes, PageChords)
     inline constexpr float pageTitleSize     = 14.0f;
     inline constexpr float pageTitleSpacing  = 0.2f;
     inline constexpr int   pageTitleRuleGap  = 14;

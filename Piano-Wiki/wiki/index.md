@@ -21,6 +21,7 @@ The master catalog of every page in this wiki. Update on every ingest or new pag
 - [[hot]] — hot cache, recent context
 - [[Owner Backlog]] — every task the owner gave, with its state (read before picking work)
 - [[log]] — chronological record of operations
+- [[log-archive-2026]] — the oldest log entries (2026-06-06 to 06-08), moved when the log neared 800 lines
 
 ## Modules — `wiki/modules/`
 See [[modules/_index|Modules Index]]. One page per major subsystem.

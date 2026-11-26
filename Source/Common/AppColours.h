@@ -106,6 +106,15 @@ namespace StagePalette
     static const juce::Colour lcdInk      { 0xff1b2216 };
     static const juce::Colour lcdInputInk { 0xff3b4630 };   // .lcd-input: its text, a shade lighter than the lists'
 
+    // --- Chord helper (PageChords) ---
+    static const juce::Colour chordName     { 0xffe9e6de };
+    static const juce::Colour miniKeyBed    { 0xff0b0b0c };
+    static const juce::Colour miniWhite     { 0xfff6f4ee };
+    static const juce::Colour miniWhiteEdge { 0x2e000000 };   // inset -1px 0 0 rgba(0,0,0,.18)
+    static const juce::Colour miniWhiteLit  { 0xffe4a33a };
+    static const juce::Colour miniBlack     { 0xff1a1a1c };
+    static const juce::Colour miniBlackLit  { 0xffc27d14 };
+
     // --- Beat lamps ---
     static const juce::Colour lampOff            { 0xff2b2c2f };
     static const juce::Colour lampDownbeatTop    { 0xffff7a66 };

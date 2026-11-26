@@ -13,6 +13,7 @@ namespace NoteLayerIntegrationTestValues
     const juce::String releasedNotesRiseOffTheScreenAnd = "released notes rise off the screen and the layer clears";
     const juce::String drawingSurvivesTheHideShowCycleThat = "drawing survives the hide/show cycle that re-creates the GL context";
     const juce::String resetStateActiveNotesReleasesHeldNotesResetStateClearsAt = "resetStateActiveNotes releases held notes; resetState clears at once";
+    const juce::String heldHiddenStaysHidden = "held hidden (a page over the note area), a note does not show the layer; released, it does again";
 
     constexpr juce::uint32 noMessageFilter = 0;
     constexpr int pollIntervalMs = 2;
@@ -213,6 +214,23 @@ public:
             layer.resetState();
             pumpMessages (clearMs);
             expectLessThan (brightestOnScreen (layer.getScreenBounds()), dark);
+        }
+
+        beginTest (heldHiddenStaysHidden);
+        {
+            layer.setVisible (false);
+            layer.setHeldHidden (true);
+            layer.noteOnReceived (noteC3);
+            pumpMessages (noteAppearsMs);
+            expect (! layer.isVisible());
+            layer.noteOffReceived (noteC3);
+
+            layer.setHeldHidden (false);
+            layer.noteOnReceived (noteC3);
+            pumpMessages (noteAppearsMs);
+            expect (layer.isVisible());
+            layer.resetState();
+            pumpMessages (clearMs);
         }
 
         host.removeFromDesktop();

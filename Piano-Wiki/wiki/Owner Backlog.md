@@ -80,7 +80,12 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   from the "Style settings…" sub-view, which now opens this page) and the SFZ library (moved from the Settings page;
   Remove = right-click). Not done: the old "Assigned" `AlertWindow` and the Assign / Import choosers' look (later
   PR); the strips' 128-program picker (PR #67) and this page's 33-program list stay separate.
-- ⬜ Next pages (spec order): Chords, Recorder, Esc menu, Sections v2; then keys, Dust, finishes, sign-in.
+- ✅ **Phase 4e, the Chord helper page** (2026-11-26, `feat/ui-chords-page`): board `PageChords`; search, LCD list
+  "name · notes", the chosen chord with three voicings drawn on mini keyboards; a click shows and plays it. Also
+  fixed (on `main` too): any note played while a page was open brought the GL note layer back over the page. Not
+  done: the PNG chord diagrams are no longer used but stay in the project (owner's call to delete); the loading
+  label hides the note layer without the page hold (same as before).
+- ⬜ Next pages (spec order): Recorder, Esc menu, Sections v2; then keys, Dust, finishes, sign-in.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
   centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.

@@ -417,7 +417,6 @@ void MainComponent::headerPanelInit()
     knobsInit();
     annotationInit();
     sectionsInit();
-    chordHelperButtonInit();
 }
 
 void MainComponent::homeButtonInit()
@@ -567,27 +566,3 @@ void MainComponent::annotationInit()
     noteNumbersAnnotation.setVisible(false);
 }
 
-void MainComponent::chordHelperButtonInit()
-{
-    chordHelperButton.setButtonText(MainComponentText::chordHelper);
-    chordHelperButton.setLookAndFeel(&playScreenLAF);
-    chordHelperButton.setColour(juce::TextButton::buttonColourId, AppColours::accent2);
-    chordHelperButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
-
-    chordHelperButton.onClick = [this]()
-    {
-        std::vector<Chord> lib=myChordLibrary;
-
-        auto chordBrowser = std::make_unique<ChordBrowserComponent>(lib);
-
-        chordBrowser->onChordChosen = [this](const Chord& chord)
-        {
-            playChordOnClick(chord);
-        };
-
-        juce::CallOutBox::launchAsynchronously(std::move(chordBrowser), chordHelperButton.getScreenBounds(), nullptr);
-    };
-
-    headerPanel.addAndMakeVisible(chordHelperButton);
-    chordHelperButton.setVisible(false);
-}

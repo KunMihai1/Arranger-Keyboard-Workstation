@@ -14,90 +14,49 @@
 #include <functional>
 #include <vector>
 #include "HelperFunctions.h"
+#include "UI/Chords/ChordHelperModel.h"
+#include "UI/Stage/StagePageWidgets.h"
 
 //==============================================================================
-// ChordPreview: shows Root, 1st inv, 2nd inv images
-class ChordPreview : public juce::Component
-{
-public:
-    ChordPreview();
-    ~ChordPreview() override = default;
-
-    void resized() override;
-    void showChordImages(Chord& chord);
-    void clearImages();
-
-private:
-    juce::OwnedArray<juce::Component> containers;
-    juce::OwnedArray<juce::Label> labelsArray;
-    juce::OwnedArray<juce::ImageComponent> imageComponents;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChordPreview)
-};
-
-//==============================================================================
-// ChordRowComponent: single row in the list
-class ChordRowComponent : public juce::Component
-{
-public:
-    ChordRowComponent(Chord& chord,
-        std::function<void(Chord& chord)> onClick,
-        std::function<void(Chord& chord)> onHoverEnter,
-        std::function<void()> onHoverExit);
-
-    ~ChordRowComponent() override;
-    void updateChordData(const Chord& chord);
-    void paint(juce::Graphics& g) override;
-    void mouseEnter(const juce::MouseEvent& ev) override;
-    void mouseExit(const juce::MouseEvent& ev) override;
-    void mouseDown(const juce::MouseEvent& ev) override;
-
-private:
-    Chord chordData;
-    std::function<void(Chord& chord)> onClick;
-    std::function<void(Chord& chord)> onHoverEnter;
-    std::function<void()> onHoverExit;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChordRowComponent)
-};
-
-//==============================================================================
-// ChordBrowserComponent: main component with search + list + preview
-class ChordBrowserComponent : public juce::Component,
-    public juce::ListBoxModel,
-    private juce::TextEditor::Listener
+/*  The Chord helper page's content (board StageRevised openPage=chords, PageChords): a search and the chord list
+    ("name · notes") at the left; the chosen chord's name, notes and three voicings on mini keyboards at the right.
+    A click on a row shows that chord and reports it (the host plays it). */
+class ChordBrowserComponent : public juce::Component
 {
 public:
     std::function<void(const Chord& chord)> onChordChosen;
-    std::function<void()> onEscape;   ///< Esc in the search box (which keeps the key to itself): the host closes the browser
+    std::function<void()> onEscape;   ///< Esc in the search box (which keeps the key to itself): the host closes the page
 
-    ChordBrowserComponent(const std::vector<Chord>& allChords);
+    explicit ChordBrowserComponent(const std::vector<Chord>& allChords);
     ~ChordBrowserComponent() override;
 
-    int getNumRows() override;
-    juce::Component* refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component* existingComponentToUpdate) override;
+    void setScale(float newScale);
+
+    void setSearchText(const juce::String& text);
+    int getNumShown() const;
+    /** Shows the shown row's chord and reports it; a row that isn't there changes nothing. */
+    void chooseShownRow(int row);
+    juce::String getChosenName() const;
+
     void paint(juce::Graphics& g) override;
     void resized() override;
-    void paintListBoxItem(int rowNumber, juce::Graphics&, int width, int height, bool rowIsSelected) override;
-
-    // TextEditor::Listener
-    void textEditorTextChanged(juce::TextEditor& editor) override;
-    void textEditorReturnKeyPressed(juce::TextEditor& editor) override;
-    void textEditorEscapeKeyPressed(juce::TextEditor& editor) override;
-    void textEditorFocusLost(juce::TextEditor& editor) override;
 
 private:
-    juce::TextEditor search;
-    juce::ListBox listBox;
-    ChordPreview preview;
-
-    std::vector<Chord> allChords;
-    std::vector<int> filteredIndices;
-    juce::String filterText;
+    struct Rows;
 
     void rebuildFilteredList();
-    void showPreviewForChord(Chord& chord);
-    void clearPreview();
+    ChordHelperRects layout() const;
+    void paintVoicing(juce::Graphics& g, const ChordHelperRects& rects, size_t column,
+                      const juce::String& title, const std::vector<int>& voicing) const;
+
+    std::vector<Chord> allChords;
+    std::vector<size_t> filteredIndices;
+    size_t chosen {};
+    float scale { StageMetrics::referenceScale };
+
+    StageLcdInput search;
+    std::unique_ptr<Rows> rows;
+    juce::ListBox listBox;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChordBrowserComponent)
 };

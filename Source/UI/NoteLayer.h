@@ -90,6 +90,10 @@ public:
     /** @brief Sets the particle skin style (1 = Sparks, 2 = Dust, 3 = Smoke) */
     void setParticleStyle(int styleId);
 
+    /** @brief A page covers the note area: stay hidden even when a note arrives (otherwise the layer shows
+        itself on a note while the keyboard is visible, and the GL layer would cover the page). */
+    void setHeldHidden(bool shouldStayHidden);
+
     std::pair<const char*, const char*> sparksShader();
     std::pair<const char*, const char*> dustShader();
     std::pair<const char*, const char*> smokeShader();
@@ -158,6 +162,7 @@ private:
     float layerWidth {}, layerHeight {};
     juce::Colour particleColourUser;           /**< Particle color */
     bool spawnParticleState = false;           /**< Whether particle spawning is enabled */
+    bool heldHidden = false;                   /**< A page covers the note area (setHeldHidden) */
     int currentStyle = ParticleStyles::dust;   /**< ParticleStyles */
     bool styleChanged = false;
 
