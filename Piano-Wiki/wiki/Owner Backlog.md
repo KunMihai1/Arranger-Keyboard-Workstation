@@ -74,7 +74,13 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   "Choose instrument · slot N" sub-page (owner: like Voices); tooltips in the Stage look (owner: dark panel + silk
   text); the chosen instrument now plays. Not done: the section-config errors and the other ~100 `AlertWindow`s
   (later PR); `SFZLibraryUI` keeps the old `InstrumentChooserComponent`.
-- ⬜ Next pages (spec order): Voices, Chords, Recorder, Esc menu, Sections v2; then keys, Dust, finishes, sign-in.
+- ✅ **Phase 4d, the Voices page** (2026-11-26, `feat/ui-voices-page`): board `StageVoices`; panel Voices opens it
+  (the call-out instrument tree goes). Instrument column (8 groups / 33 GM programs, search across groups, title-row
+  Left hand / Right hand = the Part LEDs, none lit → "Choose a part" on the screen), range / split / transpose (moved
+  from the "Style settings…" sub-view, which now opens this page) and the SFZ library (moved from the Settings page;
+  Remove = right-click). Not done: the old "Assigned" `AlertWindow` and the Assign / Import choosers' look (later
+  PR); the strips' 128-program picker (PR #67) and this page's 33-program list stay separate.
+- ⬜ Next pages (spec order): Chords, Recorder, Esc menu, Sections v2; then keys, Dust, finishes, sign-in.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
   centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.
