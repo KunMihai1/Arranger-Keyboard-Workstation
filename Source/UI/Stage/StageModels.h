@@ -113,9 +113,9 @@ private:
     StagePage openPage { StagePage::none };
 };
 
-/** What the Style page shows: the style itself, or one of the pages opened from it (track picker,
-    notes). Exit / Esc from those goes back to the style; closing the Styles page forgets them. */
-enum class StyleView { style, tracks, notes };
+/** What the Style page shows: the style itself, or one of the pages opened from it (track picker, notes,
+    instrument picker). Exit / Esc from those goes back to the style; closing the Styles page forgets them. */
+enum class StyleView { style, tracks, notes, instruments };
 
 class StyleViewRouter
 {

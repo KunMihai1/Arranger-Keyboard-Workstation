@@ -29,7 +29,9 @@ The original ("classic") playback engine: plays multiple MIDI tracks together wi
 - `TrackPlayer.h/.cpp` — `MultipleTrackPlayer`: `juce::HighResolutionTimer` + `TrackListener` + `Subject<TrackPlayerListener>`. Plays a vector of `TrackEntry`, each as a filtered `juce::MidiMessageSequence`. Supports live BPM change (`applyBPMchangeDuringPlayback`), time signature, per-channel volume/instrument, `onElapsedUpdate` (beats) and `onMidiMessage` (SFZ inject). Non-percussion tracks start at `baseChannelTrack = 2`.
 - `Track.h/.cpp` — `Track`: a UI `juce::Component` for one track (volume slider, instrument chooser, name, channel, type), serializable to/from JSON. Acts as `Subject<TrackListener>`; supports copy/paste/rename/delete and note-info display.
 - `TrackListComponent.h/.cpp` (+ `TrackListComponentFolders.cpp`, `TrackListComponentPage.cpp`) — the track library
-  (folders → tracks, MIDI import, rename / remove dialogs), shown as the Style page's **track picker** (board
+  (folders → tracks, MIDI import, rename / remove dialogs — in-app `StageDialog`s since 2026-11-25: a
+  `juce::AlertWindow` cost 0.5–1 s per open in Debug, almost all in its balanced-line text layout; import / error
+  messages go to the stage screen through `onInfo`), shown as the Style page's **track picker** (board
   `PageTracks`): LCD rows with glyphs, details column, Open folder / Use in slot N (= double-click), SORT stepping the
   hidden sort combo. Picking returns to the style through `callAsync` (never deletes the picker inside its own click).
 - `Track.h/.cpp` — one style slot drawn as a track strip (name on an LCD strip, instrument button, `StageFader`,

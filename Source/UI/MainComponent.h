@@ -21,6 +21,7 @@
 #include "UI/Voices/VoicesInstrumentPanel.h"
 #include "MidiRecordPlayer.h"
 #include "displayGUI.h"
+#include "CustomToolTip.h"
 #include "addDeviceWindow.h"
 #include "SectionsComponent.h"
 #include "OverlayComponent.h"
@@ -389,6 +390,7 @@ private:
     juce::Label helpIcon;                ///< Help icon label
     juce::Label openingAudioLabel;       ///< Loading overlay label
     bool pendingPlayInit = false;        ///< Set on Play click; the blocking init runs once the overlay has actually painted
+    StageTooltipLookAndFeel tooltipLook;                        ///< the tooltips' Stage look (outlives the window below)
     juce::TooltipWindow tooltipWindow{ this, tooltipDelayMs }; ///< Tooltip manager
 
     std::weak_ptr<juce::MidiInput> deviceOpenedIN; ///< Currently opened MIDI input device

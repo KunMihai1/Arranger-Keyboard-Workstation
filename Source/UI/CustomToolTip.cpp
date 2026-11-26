@@ -9,55 +9,76 @@
 */
 
 #include "CustomToolTip.h"
+#include "UI/Stage/StageFonts.h"
+#include "Common/AppColours.h"
 
 namespace
 {
-    constexpr float fontHeight         = 14.0f;
-    constexpr int   horizontalInset    = 10;
-    constexpr int   verticalInset      = 5;
-    constexpr int   insetSides         = 2;      // both sides of each axis
-    constexpr int   widthSafety        = 4;
-    constexpr int   heightSafety       = 2;
-    constexpr float backgroundAlpha    = 0.8f;
-    constexpr float cornerRadius       = 5.0f;
+    constexpr float textSize      = 12.0f;
+    constexpr float letterSpacing = 0.04f;
+    constexpr float cornerRadius  = 3.0f;
+    constexpr float borderWidth   = 1.0f;
+    constexpr float borderInset   = 0.5f;   // a 1 px stroke centred on the pixel grid
+    constexpr bool  mediumWeight  = false;
+    constexpr int   halves        = 2;
 }
 
-CustomToolTip::CustomToolTip(const juce::String& text)
+juce::Font StageTooltip::font (float scale)
 {
-    label.setFont(fontHeight);
-    label.setText(text, juce::dontSendNotification);
-    label.setColour(juce::Label::backgroundColourId, juce::Colours::black);
-    label.setColour(juce::Label::textColourId, juce::Colours::white);
-    label.setJustificationType(juce::Justification::centredLeft);
-    addAndMakeVisible(label);
-
-    updateSizeForText(text);
+    return StageFonts::silkscreen (textSize * scale, mediumWeight, letterSpacing);
 }
 
-void CustomToolTip::updateSizeForText(const juce::String& text)
+juce::Rectangle<int> StageTooltip::sizeFor (const juce::String& text, float scale)
 {
-    const int textWidth  = juce::GlyphArrangement::getStringWidthInt(label.getFont(), text);
-    const int textHeight = (int) label.getFont().getHeight();
+    const auto scaledPadding = static_cast<float> (padding) * scale;
+    const auto textWidth  = juce::GlyphArrangement::getStringWidth (font (scale), text);
+    const auto textHeight = font (scale).getHeight();
+    return { static_cast<int> (std::ceil (textWidth + scaledPadding * halves)), static_cast<int> (std::ceil (textHeight + scaledPadding)) };
+}
 
-    // resized() lays the label out with getLocalBounds().reduced(hInset, vInset), so the tooltip must
-    // be that much larger than the text or the inset would shrink the label below the string width and
-    // clip an edge glyph. The small extra guards against getStringWidthInt under-measuring.
-    setSize(textWidth + horizontalInset * insetSides + widthSafety, textHeight + verticalInset * insetSides + heightSafety);
+void StageTooltip::paint (juce::Graphics& g, juce::Rectangle<int> bounds, const juce::String& text, float scale)
+{
+    const auto area = bounds.toFloat();
+    g.setGradientFill (juce::ColourGradient::vertical (StagePalette::pageTop, area.getY(), StagePalette::pageBottom, area.getBottom()));
+    g.fillRoundedRectangle (area, cornerRadius * scale);
+    g.setColour (StagePalette::ruleLine);
+    g.drawRoundedRectangle (area.reduced (borderInset), cornerRadius * scale, borderWidth);   // 1 px at every scale
+
+    g.setColour (StagePalette::silkscreenText);
+    g.setFont (font (scale));
+    g.drawText (text, area.reduced (static_cast<float> (padding) * scale, float {}), juce::Justification::centredLeft, false);
+}
+
+juce::Rectangle<int> StageTooltipLookAndFeel::getTooltipBounds (const juce::String& tipText, juce::Point<int> screenPos, juce::Rectangle<int> parentArea)
+{
+    // As LookAndFeel_V4: below-right of the mouse, kept inside the parent area.
+    const auto size = StageTooltip::sizeFor (tipText);
+    const auto tipLeft = screenPos.x > parentArea.getCentreX() ? screenPos.x - (size.getWidth() + StageTooltip::padding) : screenPos.x + StageTooltip::padding;
+    const auto tipTop  = screenPos.y > parentArea.getCentreY() ? screenPos.y - (size.getHeight() + StageTooltip::padding) : screenPos.y + StageTooltip::padding;
+    return juce::Rectangle<int> (tipLeft, tipTop, size.getWidth(), size.getHeight()).constrainedWithin (parentArea);
+}
+
+void StageTooltipLookAndFeel::drawTooltip (juce::Graphics& g, const juce::String& text, int width, int height)
+{
+    StageTooltip::paint (g, { width, height }, text);
+}
+
+CustomToolTip::CustomToolTip(const juce::String& text, float tipScale) : text (text), scale (tipScale)
+{
+    setInterceptsMouseClicks (false, false);
+    const auto size = StageTooltip::sizeFor (text, scale);
+    setSize (size.getWidth(), size.getHeight());
 }
 
 void CustomToolTip::paint(juce::Graphics& g)
 {
-    g.setColour(juce::Colours::black.withAlpha(backgroundAlpha));
-    g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerRadius);
+    StageTooltip::paint (g, getLocalBounds(), text, scale);
 }
 
 void CustomToolTip::setNewText(const juce::String& newText)
 {
-    label.setText(newText, juce::dontSendNotification);
-    updateSizeForText(newText);   // re-fit so a longer string doesn't clip
-}
-
-void CustomToolTip::resized()
-{
-    label.setBounds(getLocalBounds().reduced(horizontalInset, verticalInset));
+    text = newText;
+    const auto size = StageTooltip::sizeFor (text, scale);
+    setSize (size.getWidth(), size.getHeight());   // re-fit so a longer string doesn't clip
+    repaint();
 }

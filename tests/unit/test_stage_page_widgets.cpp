@@ -88,6 +88,17 @@ namespace StagePageWidgetsTestValues
     constexpr int sampleY = 10;
     constexpr int ledButtonWidth = 100;
     constexpr int redDominance   = 2;   // red at least twice green and blue
+
+    const juce::String rowToggleGlow  = "a lit row toggle's glow fits inside it, and its LED stays on the board row's left edge";
+    const juce::String silkLastLetter = "a silk label set to its rounded-down width still draws its last letter (seen: INSTRUMEN, SOR)";
+    const juce::String instrumentText = "Instrument";
+    const juce::String sortText       = "Sort";
+    constexpr int   boardRowX       = 667;
+    constexpr int   boardRowY       = 160;
+    constexpr float ownerScale      = 1.5364f;
+    constexpr float labelScales[]   = { 1.0f, 1.25f, 1.5364f, 2.0f };
+    constexpr int   roomyExtra      = 40;
+    constexpr int   oneColumn       = 1;
 }
 
 class StagePageWidgetsTest : public juce::UnitTest
@@ -185,6 +196,48 @@ public:
             action.setToggleState (true, juce::dontSendNotification);
             expect (! action.isLedOn());
             expect (! action.getClickingTogglesState());
+        }
+
+        beginTest (rowToggleGlow);
+        {
+            RowToggle toggle { choiceOne };
+            toggle.setScale (ownerScale);
+            const juce::Rectangle<int> boardRow { boardRowX, boardRowY, rowWidth262, rowHeight22 };
+            toggle.setBounds (toggle.boundsForBoardBox (boardRow));
+            const auto glow = toggle.getLedBounds().expanded (StageMetrics::ledGlowRadius * ownerScale);
+            expect (toggle.getLocalBounds().toFloat().contains (glow), glow.toString());
+            const auto ledInParent = toggle.getLedBounds() + toggle.getPosition().toFloat();
+            expectWithinAbsoluteError (ledInParent.getX(), static_cast<float> (boardRowX), positionTolerance);
+        }
+
+        beginTest (silkLastLetter);
+        {
+            // Draw the label at its exact width rounded down (as a page frame's toNearestInt can) and at a
+            // roomy width: the columns they share must match, so no letter is dropped.
+            for (const auto& text : { instrumentText, sortText })
+                for (const auto labelScale : labelScales)
+                {
+                    auto render = [&] (int width)
+                    {
+                        SilkLabel label { text, SilkLabel::Tone::dim };
+                        label.setScale (labelScale);
+                        label.setSize (width, rowHeight22);
+                        juce::Image image (juce::Image::ARGB, width, rowHeight22, true, juce::SoftwareImageType());
+                        juce::Graphics g (image);
+                        label.paintEntireComponent (g, false);
+                        return image;
+                    };
+                    SilkLabel measure { text, SilkLabel::Tone::dim };
+                    measure.setScale (labelScale);
+                    const auto tight = static_cast<int> (std::floor (measure.getExactWidth()));
+                    const auto tightImage = render (tight);
+                    const auto roomyImage = render (tight + roomyExtra);
+                    bool same = true;
+                    for (int column {}; column < tight - oneColumn && same; ++column)
+                        for (int row {}; row < rowHeight22 && same; ++row)
+                            same = tightImage.getPixelAt (column, row) == roomyImage.getPixelAt (column, row);
+                    expect (same, text + juce::String (labelScale));
+                }
         }
 
         beginTest (faderCap);

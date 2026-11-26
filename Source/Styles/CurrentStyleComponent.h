@@ -105,6 +105,13 @@ public:
     /** A short message for the Stage screen (from a track strip). */
     std::function<void(const juce::String& text)> onInfo;
 
+    /** A strip's instrument was chosen: its channel and the GM program (the SFZ engine reloads that channel). */
+    std::function<void(int channel, int program)> onTrackInstrumentChosen;
+
+    /** Overlay each live strip onto the matching configuration track (by UUID): its slider volume, and its
+        instrument when one is chosen, so the strips win over what a saved configuration baked in. */
+    static void applyLiveTrackSettings (ArrangerStyle& style, const juce::OwnedArray<Track>& liveTracks);
+
     // --- The Style page (board StageRevised openPage=styles) ---
     /** All tracks / Solo: set through the old play-mode choice, so its rules (an active section
         configuration is cleared) stay. */
@@ -376,10 +383,6 @@ private:
 
     /** Gather the style's current tracks (instrument/volume synced) to seed the editor. */
     std::vector<TrackEntry> collectSelectedTracks();
-    /** Overlay each live track's current slider volume onto the matching config track (by UUID),
-        so live sliders win over the volumes baked into a saved configuration. Tracks with no live
-        match keep their saved volume. */
-    void applyLiveTrackVolumes (ArrangerStyle& style) const;
     void showStyleList (bool shouldShow);
     void openStyleEditorNew();
     void openStyleEditorFromFile (const juce::File& styleFile);

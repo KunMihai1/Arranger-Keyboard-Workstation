@@ -108,14 +108,21 @@ std::vector<TrackListComponent::PickerDetail> TrackListComponent::details() cons
              { Text::folderKey, currentFolderName } };
 }
 
-void TrackListComponent::addTrackRenameEditor(juce::AlertWindow& window, const juce::String& currentName)
+StageDialog* TrackListComponent::getOpenDialog() const
 {
-    window.addTextEditor(Text::trackNameField, currentName);
+    return dialog != nullptr && dialog->isVisible() ? dialog.get() : nullptr;
 }
 
-juce::TextEditor* TrackListComponent::trackRenameEditor(juce::AlertWindow& window)
+void TrackListComponent::openDialog(StageDialogOptions options, StageDialog::OnConfirm onConfirm)
 {
-    return window.getTextEditor(Text::trackNameField);
+    dialog = std::make_unique<StageDialog>(std::move(options), std::move(onConfirm));
+    dialog->showOver(*this, scale);
+}
+
+void TrackListComponent::showInfo(const juce::String& text)
+{
+    if (onInfo)
+        onInfo(text);
 }
 
 void TrackListComponent::updateViewControls()

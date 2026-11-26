@@ -2,7 +2,7 @@
 type: meta
 title: "Operations Log"
 created: 2026-06-06
-updated: 2026-11-24
+updated: 2026-11-25
 tags:
   - meta
   - log
@@ -12,6 +12,24 @@ status: evergreen
 # Operations Log
 
 Append-only. Newest entries at the TOP. Never edit past entries.
+
+## 2026-11-25 — UI polish fixes, one PR (`fix/ui-polish`)
+- Owner's six reports. LEDs cut on the Settings page: `RowToggle::boundsForBoardBox` leaves room for the glow.
+  "INSTRUMEN" / "SOR": `SilkLabel` draws every glyph (JUCE curtailed the last one when the width rounded down).
+- Freeze on add / remove / rename folder, measured 541–1019 ms per dialog; a stack sampler put 33 of 34 samples in
+  `AlertWindow::updateLayout` → `createLayoutWithBalancedLineLengths`. New `StageDialog` (overlay on the page frame)
+  for the track picker, the styles list and the strips; messages go to the stage screen (`onInfo`). After: the
+  message thread stalls at most 41 ms (WM_NULL round-trips). The section-config errors and ~100 other
+  `AlertWindow`s stay for a later PR.
+- Strip instrument list → `InstrumentPicker` sub-page ("Choose instrument · slot N", owner: like Voices).
+  Tooltips → `StageTooltip` (dark panel, rule border, silk text, sized to the text, scaled with the stage).
+- The chosen instrument now plays: the program baked in at style load and the MIDI file's own program changes won,
+  the arranger config copied only volumes, and the SFZ wasn't reloaded on a pick (see [[Styles System]]).
+- Sonnet review, each claim checked: fixed: a click on a dialog let `MainComponent` take the focus back
+  (reproduced: the typed name was lost), and the dialog didn't follow a window resize. Kept on purpose: the strip's
+  instrument beats a saved arranger config's (the owner's report). Not done: `setTooltip` tooltips are not scaled
+  (no visible user today).
+- Tests: unit 1788, arranger 770, integration 130 (+7 skipped).
 
 ## 2026-11-24 — UI redesign phase 4c: Settings page (`feat/ui-settings-page`)
 - Effects page merged (PR #65).

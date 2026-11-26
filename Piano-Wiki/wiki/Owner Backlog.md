@@ -67,6 +67,13 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   particle style Sparks / Dust / Smoke = spec B9, key `ParticleStyle`). Agent calls: the field that does not apply to
   the engine is dimmed, not hidden; SFZ library… stays in the MIDI column until the Voices page; Keyboard field = the
   old "Update key count"; Esc menu "Settings" opens the page; the Effects ↔ MIDI window exclusivity is gone.
+- ✅ **UI polish fixes, one PR** (owner, 2026-11-25, `fix/ui-polish`): Settings LEDs cut on the left (`RowToggle`
+  gets room for its glow); "INSTRUMEN" / "SOR" (`SilkLabel` draws every glyph, no curtailing); the small freeze on
+  add / remove / rename folder (measured 0.5–1 s, `AlertWindow`'s balanced text layout → in-app `StageDialog` on the
+  track picker, the styles list and the strips; messages on the stage screen); the strip's instrument list → a
+  "Choose instrument · slot N" sub-page (owner: like Voices); tooltips in the Stage look (owner: dark panel + silk
+  text); the chosen instrument now plays. Not done: the section-config errors and the other ~100 `AlertWindow`s
+  (later PR); `SFZLibraryUI` keeps the old `InstrumentChooserComponent`.
 - ⬜ Next pages (spec order): Voices, Chords, Recorder, Esc menu, Sections v2; then keys, Dust, finishes, sign-in.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and

@@ -37,6 +37,8 @@ void Display::setScale (float newScale)
         trackListComp->setScale (scale);
     if (notesContainer)
         notesContainer->setScale (scale);
+    if (instrumentPicker)
+        instrumentPicker->setScale (scale);
     layoutViews();
     repaint();
 }
@@ -77,6 +79,7 @@ void Display::destroySubView()
         trackListComp.reset();
     }
     notesContainer.reset();
+    instrumentPicker.reset();
 }
 
 void Display::layoutViews()
@@ -97,6 +100,8 @@ void Display::layoutViews()
         trackListComp->setBounds (area);
     if (notesContainer)
         notesContainer->setBounds (area);
+    if (instrumentPicker)
+        instrumentPicker->setBounds (area);
     repaint();
 }
 
@@ -118,6 +123,8 @@ juce::String Display::getViewTitle() const
         case StyleView::tracks:
             return StylePageText::tracksTitle + juce::String::fromUTF8 (StylePageText::slotSeparatorUtf8)
                  + juce::String (currentStyleComponent ? currentStyleComponent->getRequestingSlot() : int {});
+        case StyleView::instruments:
+            return StylePageText::instrumentsTitle + juce::String::fromUTF8 (StylePageText::slotSeparatorUtf8) + juce::String (instrumentSlot);
         case StyleView::notes:    return notesTitle;
         case StyleView::style:    break;
     }
@@ -138,6 +145,29 @@ void Display::showNotes (std::unique_ptr<TableContainer> notes, const juce::Stri
     notesContainer->setScale (scale);
     addAndMakeVisible (notesContainer.get());
     showView (StyleView::notes);
+}
+
+void Display::showInstrumentPicker (int slot, int currentProgram, std::function<void (int)> onChosen)
+{
+    destroySubView();   // one sub-page at a time
+    instrumentSlot = slot;
+    instrumentPicker = std::make_unique<InstrumentPicker> (currentProgram);
+    instrumentPicker->setScale (scale);
+    instrumentPicker->onChosen = [this, onChosen] (int program)
+    {
+        if (onChosen)
+            onChosen (program);
+        // Back to the style. Not now: this runs inside the picker's own click, which must not delete the
+        // picker under itself.
+        const juce::Component::SafePointer<Display> safeThis (this);
+        juce::MessageManager::callAsync ([safeThis]
+        {
+            if (safeThis != nullptr && safeThis->getView() == StyleView::instruments)
+                safeThis->closeSubView();
+        });
+    };
+    addAndMakeVisible (instrumentPicker.get());
+    showView (StyleView::instruments);
 }
 
 std::vector<juce::Component*> Display::getTitleActions()

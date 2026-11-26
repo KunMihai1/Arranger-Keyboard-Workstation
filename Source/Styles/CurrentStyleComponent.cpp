@@ -9,10 +9,8 @@ namespace
 {
     namespace Text
     {
-        const juce::String playingTracksTitle   = "Playing tracks";
         const juce::String noOutputDevice       = "No output device selected.";
         const juce::String noTracksToPlay       = "There are no tracks to play";
-        const juce::String pastingTitle         = "Pasting a track";
         const juce::String copyFirst            = "First you have to copy!";
         const juce::String bpmSuffix            = " BPM";
         const juce::String sectionConfigTitle   = "Section configuration";
@@ -41,7 +39,8 @@ bool CurrentStyleComponent::startPlaying()
 
     if (!hasMidiOut && !hasAudioInject)
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::playingTracksTitle, Text::noOutputDevice);
+        if (onInfo)
+            onInfo(Text::noOutputDevice);
         return false;
     }
 
@@ -53,7 +52,7 @@ bool CurrentStyleComponent::startPlaying()
         // overlay each track's current on-screen slider value (matched by UUID) so a slider change
         // is heard on the next Start. Tracks with no live match keep their saved volume.
         ArrangerStyle cfg = activeArrangerConfig;
-        applyLiveTrackVolumes(cfg);
+        applyLiveTrackSettings(cfg, allTracks);
         arrangerEngine->setStyle(cfg);
         arrangerEngine->setBpm(currentTempo);
         arrangerEngine->setBassInversion(arrangerBassInversion);   // re-apply: setStyle/rebuild may reset it
@@ -64,6 +63,10 @@ bool CurrentStyleComponent::startPlaying()
         seedHeldChordIntoArranger();   // honour a chord already held when Start was pressed
         return true;
     }
+
+    // The sequences were built when the style loaded (or the tempo changed); an instrument chosen on a strip since
+    // then must be what plays, so rebuild them as loading does.
+    applyBPMchangeBeforePlayback(currentTempo, true);
 
     if (selectedID == PlayModeIds::allTracks)
     {
@@ -92,7 +95,8 @@ bool CurrentStyleComponent::startPlaying()
 
     if (selectedTracks.empty())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::playingTracksTitle, Text::noTracksToPlay);
+        if (onInfo)
+            onInfo(Text::noTracksToPlay);
         return false;
     }
 
@@ -268,7 +272,8 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
         {
             if (copiedTrack == nullptr)
             {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::pastingTitle, Text::copyFirst);
+                if (onInfo)
+                    onInfo(Text::copyFirst);
                 return;
             }
 
@@ -303,6 +308,11 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
 
         newTrack->setSlotNumber(trackIndex + firstSlotNumber);
         newTrack->onInfo = [this](const juce::String& text) { if (onInfo) onInfo(text); };
+        newTrack->onInstrumentChosen = [this, newTrack](int program)
+        {
+            if (onTrackInstrumentChosen)
+                onTrackInstrumentChosen(newTrack->getChannel(), program);
+        };
 
         addAndMakeVisible(newTrack);
         allTracks.add(newTrack);
@@ -455,16 +465,18 @@ std::vector<TrackEntry> CurrentStyleComponent::collectSelectedTracks()
     return selected;
 }
 
-void CurrentStyleComponent::applyLiveTrackVolumes(ArrangerStyle& style) const
+void CurrentStyleComponent::applyLiveTrackSettings(ArrangerStyle& style, const juce::OwnedArray<Track>& liveTracks)
 {
-    // allTracks and the config's tracks are both small (a handful each), so a direct nested match
+    // The strips and the config's tracks are both small (a handful each), so a direct nested match
     // by UUID is fine and avoids needing a hash for juce::String.
     for (auto& section : style.sections)
         for (auto& track : section.tracks)
-            for (const auto* live : allTracks)
+            for (const auto* live : liveTracks)
                 if (live != nullptr && live->getUsedID().toString() == track.id)
                 {
                     track.volume = live->getVolume();
+                    if (live->getInstrumentNumber() != TrackEntryDefaults::notSet)
+                        track.instrument = live->getInstrumentNumber();
                     break;
                 }
 }

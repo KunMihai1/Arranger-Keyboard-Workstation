@@ -52,6 +52,12 @@ public:
      */
     std::function<void(const juce::String& name)> onStyleRemove;
 
+    /** A short message for the Stage screen (a refused name, a style added or removed). */
+    std::function<void(const juce::String& text)> onInfo;
+
+    /** The in-app name / remove dialog on screen, or nullptr. */
+    StageDialog* getOpenDialog() const;
+
     //==============================================================================
     /** @brief Handles resizing of the component and lays out child components. */
     void resized() override;
@@ -127,6 +133,12 @@ private:
     juce::Rectangle<int> listBounds;
     std::unique_ptr<juce::Component> styleItemsContainer = nullptr;  ///< Container holding all styles.
     juce::Viewport viewport;  ///< Scrollable viewport for the style list.
+
+    /** One dialog at a time, owned here (a removal deletes the row that asked). Not juce::AlertWindow: building
+        one stalled the UI for 0.6 - 1 s. */
+    std::unique_ptr<StageDialog> dialog;
+    void openDialog(StageDialogOptions options, StageDialog::OnConfirm onConfirm);
+    void showInfo(const juce::String& text);
 
     JUCE_LEAK_DETECTOR(StylesListComponent)
 };

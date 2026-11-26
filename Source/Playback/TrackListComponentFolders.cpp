@@ -7,34 +7,18 @@ using namespace TrackListNames;
 
 void TrackListComponent::addToFolderList()
 {
-    auto* window = new juce::AlertWindow(Text::createFolderTitle,
-        Text::newFolderName,
-        juce::AlertWindow::NoIcon);
-
-    window->addTextEditor(Text::folderNameField, "");
-    window->addButton(Text::okButton, dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton(Text::cancelButton, dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
-
-    window->enterModalState(true, juce::ModalCallbackFunction::create([this, window](int result)
+    openDialog({ Text::createFolderTitle, Text::folderNameLabel, Text::okButton, true, {} },
+        [this](const juce::String& folderName)
         {
-            std::unique_ptr<juce::AlertWindow> cleanup(window);
-            if (result != dialogOk)
-                return;
-
-            juce::String folderName = window->getTextEditor(Text::folderNameField)->getText().trim();
             if (folderName.isEmpty())
             {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                    Text::invalidName,
-                    Text::emptyFolderName);
+                showInfo(Text::emptyFolderName);
                 return;
             }
 
             if (groupedTracks->count(folderName) > size_t {})
             {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                    Text::duplicateName,
-                    Text::folderNameTaken);
+                showInfo(Text::folderNameTaken);
                 return;
             }
 
@@ -46,17 +30,8 @@ void TrackListComponent::addToFolderList()
             listBox.updateContent();
             listBox.repaint();
 
-            auto appDataFolder = IOHelper::getAppDataFolder();
-
             auto jsonFile = IOHelper::getFile(AppDataNames::tracksFile);
             TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
-
-        }));
-
-    juce::MessageManager::callAsync([window]()
-        {
-            if (auto* editor = window->getTextEditor(Text::folderNameField))
-                editor->grabKeyboardFocus();
         });
 }
 
@@ -66,30 +41,18 @@ void TrackListComponent::removeFromFolderList()
 
     if (selectedRows.isEmpty())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::removeFoldersTitle, Text::selectFolderToRemove);
+        showInfo(Text::selectFolderToRemove);
         return;
     }
 
-    juce::AlertWindow::showOkCancelBox(
-        juce::AlertWindow::WarningIcon,
-        Text::confirmRemove,
-        Text::sureRemoveFolders,
-        Text::removeButton,
-        Text::cancelButton,
-        this,
-        juce::ModalCallbackFunction::create(
-            [this, selectedRows](int result)
-            {
-                if (result == dialogCancel)
-                    return;
+    openDialog({ Text::removeFoldersTitle, Text::sureRemoveFolders, Text::removeButton },
+        [this, selectedRows](const juce::String&)
+        {
+            removeFolders(selectedRows);
 
-                removeFolders(selectedRows);
-
-                auto jsonFile = IOHelper::getFile(AppDataNames::tracksFile);
-                TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
-            }
-        )
-    );
+            auto jsonFile = IOHelper::getFile(AppDataNames::tracksFile);
+            TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
+        });
 }
 
 // The library change itself, kept apart from the confirmation dialog and the save to disk.
@@ -131,44 +94,33 @@ void TrackListComponent::renameFromFolderList()
 
     if (selectedRows.isEmpty())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::renameFolderTitle, Text::selectOneFolder);
+        showInfo(Text::selectOneFolder);
         return;
     }
 
     if (selectedRows.size() > oneRow)
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::renameFolderLower, Text::selectOnlyOneFolder);
+        showInfo(Text::selectOnlyOneFolder);
         return;
     }
 
-    auto* window = new juce::AlertWindow(Text::renameFolderTitle,
-        Text::folderNamePrompt,
-        juce::AlertWindow::NoIcon);
+    const juce::String oldName = (*groupedTrackKeys)[selectedRows[int {}]];
 
-    const int selectedIndex = selectedRows[int {}];
-
-    juce::String oldName = (* groupedTrackKeys)[selectedIndex];
-
-    window->addTextEditor(Text::folderNameField, oldName);
-    window->addButton(Text::okButton, dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton(Text::cancelButton, dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
-
-    window->enterModalState(true, juce::ModalCallbackFunction::create([this, oldName, window](int result)
+    openDialog({ Text::renameFolderLower, Text::folderNameLabel, Text::okButton, true, oldName },
+        [this, oldName](const juce::String& newName)
         {
-            std::unique_ptr<juce::AlertWindow> cleanup(window);
-            if (result != dialogOk)
+            if (newName.isEmpty())
+            {
+                showInfo(Text::emptyFolderName);
                 return;
-
-
-            juce::String newName = window->getTextEditor(Text::folderNameField)->getText().trim();
+            }
 
             if (oldName == newName)
                 return;
 
             if (groupedTracks->find(newName) != groupedTracks->end())
             {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                    Text::renameFolderLower, Text::folderNameTaken);
+                showInfo(Text::folderNameTaken);
                 return;
             }
 
@@ -193,18 +145,8 @@ void TrackListComponent::renameFromFolderList()
             listBox.updateContent();
             listBox.repaint();
 
-            auto appDataFolder = IOHelper::getAppDataFolder();
-
             auto jsonFile = IOHelper::getFile(AppDataNames::tracksFile);
             TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
-
-        }
-    ));
-
-    juce::MessageManager::callAsync([window]()
-        {
-            if (auto* editor = window->getTextEditor(Text::folderNameField))
-                editor->grabKeyboardFocus();
         });
 }
 

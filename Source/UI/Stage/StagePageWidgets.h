@@ -132,11 +132,16 @@ public:
     void setScale (float newScale);
     bool isLedOn() const;
     juce::Rectangle<float> getLedBounds() const;
+    /** The bounds that put the LED on the board row's left edge with room for a lit LED's glow. */
+    juce::Rectangle<int> boundsForBoardBox (juce::Rectangle<int> boardBox) const;
 
 protected:
     void paintButton (juce::Graphics& g, bool isHighlighted, bool isDown) override;
 
 private:
+    /** Whole pixels left of the LED for a lit LED's glow (drawn outside the bounds, it would be clipped). */
+    int glowRoom() const;
+
     Kind kind;
     float scale { StageMetrics::referenceScale };
 

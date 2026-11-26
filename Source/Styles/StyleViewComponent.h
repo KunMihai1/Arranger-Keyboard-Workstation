@@ -1,19 +1,13 @@
 #pragma once
 #include <JuceHeader.h>
 #include "UI/Stage/StageMetrics.h"
+#include "UI/Stage/StageDialog.h"
 
 /** The style-name dialog shared by StylesListComponent (add) and StyleViewComponent (rename). */
 namespace StyleDialogText
 {
-    inline const juce::String nameDialogTitle  = "Rename track";
-    inline const juce::String nameDialogPrompt = "Enter a name for your track";
-    inline const juce::String nameEditor       = "nameEditor";
-    inline const juce::String nameEditorLabel  = "Style Name:";
-    inline const juce::String okButton         = "OK";
-    inline const juce::String cancelButton     = "Cancel";
-
-    constexpr int dialogOk     = 1;   // AlertWindow button results
-    constexpr int dialogCancel = 0;
+    inline const juce::String nameLabel = "Style name";
+    inline const juce::String okButton  = "OK";
 }
 
 /**
@@ -56,6 +50,12 @@ public:
      * @param name Name of the clicked style.
      */
     std::function<void(const juce::String&)> onStyleClicked;
+
+    /** Opens the list's in-app dialog (the list owns it: a removal deletes this row). */
+    std::function<void(StageDialogOptions options, StageDialog::OnConfirm onConfirm)> openDialog;
+
+    /** A short message for the Stage screen. */
+    std::function<void(const juce::String& text)> onInfo;
 
     /** The open style's row is inverted and marked (board .lcd-row .lcd-sel with the arrow). */
     void setOpen(bool shouldBeOpen);

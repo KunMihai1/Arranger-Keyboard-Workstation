@@ -233,6 +233,12 @@ void CurrentStyleComponent::applyBPMchangeBeforePlayback(double userBPM, bool ap
         if (tr->type != TrackType::Percussion)
             ++channelCounter;
 
+        // The strip's instrument is the one to play (Start sends it too): bake it in, and drop the file's own
+        // program changes, which would switch the channel back to the file's sound.
+        if (trackPtr->getInstrumentNumber() != TrackEntryDefaults::notSet)
+            tr->instrumentAssociated = trackPtr->getInstrumentNumber();
+        const bool instrumentChosen = targetChannel != MultipleTrackPlayer::drumChannel && tr->instrumentAssociated != TrackEntryDefaults::notSet;
+
         double originalBPM = (tr->originalBPM > noTempo) ? tr->originalBPM : ArrangerStyleDefaults::tempoBpm;
         double ratio = originalBPM / userBPM;
 
@@ -241,6 +247,8 @@ void CurrentStyleComponent::applyBPMchangeBeforePlayback(double userBPM, bool ap
         for (int eventIndex {}; eventIndex < tr->originalSequenceTicks.getNumEvents(); ++eventIndex)
         {
             const auto& event = tr->originalSequenceTicks.getEventPointer(eventIndex)->message;
+            if (instrumentChosen && event.isProgramChange())
+                continue;
             double scaledTime = event.getTimeStamp() * ratio;
 
             juce::MidiMessage newMsg = event;

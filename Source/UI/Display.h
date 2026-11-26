@@ -11,6 +11,7 @@
 #include "UI/Stage/StagePageWidgets.h"
 #include "CurrentStyleComponent.h"
 #include "TrackListComponent.h"
+#include "InstrumentPicker.h"
 
 /**
  * @class Display
@@ -31,6 +32,7 @@ namespace StylePageText
     inline const char* const  sectionsUtf8      = "Sections\xe2\x80\xa6";         // + U+2026 ellipsis
     inline const char* const  styleSettingsUtf8 = "Style settings\xe2\x80\xa6";
     inline const juce::String tracksTitle   = "Choose track";
+    inline const juce::String instrumentsTitle = "Choose instrument";
     inline const char* const  slotSeparatorUtf8 = " \xc2\xb7 slot ";   // "Choose track · slot 3"
     inline const juce::String tracks        = "Tracks";
     inline const juce::String openAStyle    = "Open a style on the left";
@@ -107,6 +109,8 @@ public:
     void closeSubView();
     /** The Styles page closed: forget any sub-view. */
     void resetView();
+    /** The "Choose instrument - Slot N" sub-page; a pick reports the GM program, then the Style page returns. */
+    void showInstrumentPicker(int slot, int currentProgram, std::function<void(int program)> onChosen);
     juce::String getViewTitle() const;
     juce::String getViewSubtitle() const;
     std::vector<juce::Component*> getTitleActions();
@@ -118,6 +122,8 @@ public:
     std::function<void()> onStyleSettings;
     /** The style's range, split and transpose fields; the Voices page shows them. Created once. */
     PlayBackSettingsComponent& getPlaybackSettings();
+    /** A style track's instrument was chosen on its strip (channel, GM program). */
+    std::function<void(int channel, int program)> onTrackInstrumentChosen;
 
     /** @brief Returns the root JSON variable representing all styles */
     const juce::var& getJsonVar();
@@ -311,5 +317,7 @@ private:
     // component whose player it listens to.
     void showNotes(std::unique_ptr<TableContainer> notes, const juce::String& title, const juce::String& subtitle);
     std::unique_ptr<TableContainer> notesContainer;
+    std::unique_ptr<InstrumentPicker> instrumentPicker;
+    int instrumentSlot {};
     juce::String notesTitle, notesSubtitle;
 };

@@ -304,6 +304,10 @@
                 file="Source/UI/Voices/VoicesInstrumentPanel.cpp"/>
           <FILE id="stgPwH" name="StagePageWidgets.h" compile="0" resource="0"
                 file="Source/UI/Stage/StagePageWidgets.h"/>
+          <FILE id="stgDlC" name="StageDialog.cpp" compile="1" resource="0"
+                file="Source/UI/Stage/StageDialog.cpp"/>
+          <FILE id="stgDlH" name="StageDialog.h" compile="0" resource="0"
+                file="Source/UI/Stage/StageDialog.h"/>
           <FILE id="stgSrC" name="StageScreen.cpp" compile="1" resource="0"
                 file="Source/UI/Stage/StageScreen.cpp"/>
           <FILE id="stgSrH" name="StageScreen.h" compile="0" resource="0"
@@ -402,6 +406,10 @@
               file="Source/Styles/SectionsComponent.h"/>
         <FILE id="svCmp1" name="StyleViewComponent.cpp" compile="1" resource="0"
               file="Source/Styles/StyleViewComponent.cpp"/>
+        <FILE id="insPkC" name="InstrumentPicker.cpp" compile="1" resource="0"
+              file="Source/Styles/InstrumentPicker.cpp"/>
+        <FILE id="insPkH" name="InstrumentPicker.h" compile="0" resource="0"
+              file="Source/Styles/InstrumentPicker.h"/>
         <FILE id="svCmp2" name="StyleViewComponent.h" compile="0" resource="0"
               file="Source/Styles/StyleViewComponent.h"/>
         <FILE id="slCmp1" name="StylesListComponent.cpp" compile="1" resource="0"
