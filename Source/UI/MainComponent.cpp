@@ -143,6 +143,7 @@ MainComponent::MainComponent()
     };
 
     juce::Desktop::getInstance().addFocusChangeListener(this);
+    tooltipWindow.setLookAndFeel(&tooltipLook);
 
     // Korg/Yamaha-style focus policy: listen to mouse clicks on the whole play
     // scene (this component and every nested child) so we can always return
@@ -327,6 +328,10 @@ void MainComponent::mouseDown(const juce::MouseEvent& event)
     if (juce::Component::getCurrentlyModalComponent() != nullptr)
         return;
     if (overlayWindow && overlayWindow->isVisible())
+        return;
+
+    // An in-app dialog keeps the focus it gave its input (Enter / Esc / typing go to it).
+    if (StageDialog::isInsideDialog(event.eventComponent))
         return;
 
     // Leave focus alone while the user is typing into a text field.

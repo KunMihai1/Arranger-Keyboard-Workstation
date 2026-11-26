@@ -13,6 +13,14 @@
               file="../tests/unit/test_callback_lifetime.cpp"/>
         <FILE id="stgPwT" name="test_stage_page_widgets.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_page_widgets.cpp"/>
+        <FILE id="stgDlT" name="test_stage_dialog.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_dialog.cpp"/>
+        <FILE id="stLsDT" name="test_style_list_dialogs.cpp" compile="1" resource="0"
+              file="../tests/unit/test_style_list_dialogs.cpp"/>
+        <FILE id="stTipT" name="test_stage_tooltip.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_tooltip.cpp"/>
+        <FILE id="insPkT" name="test_instrument_picker.cpp" compile="1" resource="0"
+              file="../tests/unit/test_instrument_picker.cpp"/>
         <FILE id="trkStT" name="test_track_strip.cpp" compile="1" resource="0"
               file="../tests/unit/test_track_strip.cpp"/>
         <FILE id="stlPgT" name="test_style_page.cpp" compile="1" resource="0"
@@ -97,6 +105,8 @@
               file="../tests/unit/test_note_field.cpp"/>
         <FILE id="csStrT" name="test_current_style_start.cpp" compile="1" resource="0"
               file="../tests/unit/test_current_style_start.cpp"/>
+        <FILE id="trInPl" name="test_track_instrument_playback.cpp" compile="1" resource="0"
+              file="../tests/unit/test_track_instrument_playback.cpp"/>
         <FILE id="tlRemT" name="test_track_list_removal.cpp" compile="1" resource="0"
               file="../tests/unit/test_track_list_removal.cpp"/>
         <FILE id="stWhPl" name="test_start_while_playing.cpp" compile="1" resource="0"
@@ -420,6 +430,10 @@
                 file="../Source/UI/Stage/StagePageWidgets.cpp"/>
           <FILE id="stgPwH" name="StagePageWidgets.h" compile="0" resource="0"
                 file="../Source/UI/Stage/StagePageWidgets.h"/>
+          <FILE id="stgDlC" name="StageDialog.cpp" compile="1" resource="0"
+                file="../Source/UI/Stage/StageDialog.cpp"/>
+          <FILE id="stgDlH" name="StageDialog.h" compile="0" resource="0"
+                file="../Source/UI/Stage/StageDialog.h"/>
           <FILE id="stgSrC" name="StageScreen.cpp" compile="1" resource="0"
                 file="../Source/UI/Stage/StageScreen.cpp"/>
           <FILE id="stgSrH" name="StageScreen.h" compile="0" resource="0"
@@ -521,6 +535,10 @@
               file="../Source/Styles/SectionsComponent.h"/>
         <FILE id="svCmp1" name="StyleViewComponent.cpp" compile="1" resource="0"
               file="../Source/Styles/StyleViewComponent.cpp"/>
+        <FILE id="insPkC" name="InstrumentPicker.cpp" compile="1" resource="0"
+              file="../Source/Styles/InstrumentPicker.cpp"/>
+        <FILE id="insPkH" name="InstrumentPicker.h" compile="0" resource="0"
+              file="../Source/Styles/InstrumentPicker.h"/>
         <FILE id="svCmp2" name="StyleViewComponent.h" compile="0" resource="0"
               file="../Source/Styles/StyleViewComponent.h"/>
         <FILE id="slCmp1" name="StylesListComponent.cpp" compile="1" resource="0"

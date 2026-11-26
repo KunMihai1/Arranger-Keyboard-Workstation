@@ -231,8 +231,15 @@ float SilkLabel::getExactWidth() const
 void SilkLabel::paint (juce::Graphics& g)
 {
     g.setColour (tone == Tone::bright ? StagePalette::silkscreenText : StagePalette::silkscreenDimText);
-    g.setFont (font());
-    g.drawText (text.toUpperCase(), getLocalBounds().toFloat(), juce::Justification::centredLeft, false);
+    // Not drawText: it drops a last letter that overruns the box, and a page frame rounding the label's
+    // exact width down to whole pixels made that happen ("INSTRUMEN", "SOR"). The overrun is only the
+    // trailing letter-spacing, so every glyph is laid out and the box merely centres the line.
+    juce::GlyphArrangement line;
+    line.addLineOfText (font(), text.toUpperCase(), float {}, float {});
+    const auto bounds = getLocalBounds().toFloat();
+    line.justifyGlyphs (int {}, line.getNumGlyphs(), bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(),
+                        juce::Justification::centredLeft);
+    line.draw (g);
 }
 
 //==============================================================================
@@ -351,7 +358,17 @@ bool RowToggle::isLedOn() const
 juce::Rectangle<float> RowToggle::getLedBounds() const
 {
     const auto diameter = static_cast<float> (StageMetrics::ledDiameter) * scale;
-    return { float {}, static_cast<float> (getHeight()) / halves - diameter / halves, diameter, diameter };
+    return { static_cast<float> (glowRoom()), static_cast<float> (getHeight()) / halves - diameter / halves, diameter, diameter };
+}
+
+int RowToggle::glowRoom() const
+{
+    return static_cast<int> (std::ceil (static_cast<float> (StageMetrics::ledGlowRadius) * scale));
+}
+
+juce::Rectangle<int> RowToggle::boundsForBoardBox (juce::Rectangle<int> boardBox) const
+{
+    return boardBox.withLeft (boardBox.getX() - glowRoom());
 }
 
 void RowToggle::paintButton (juce::Graphics& g, bool, bool)
@@ -363,7 +380,7 @@ void RowToggle::paintButton (juce::Graphics& g, bool, bool)
         colour = colour.withAlpha (disabledAlpha);
     g.setColour (colour);
     g.setFont (StageFonts::silkscreen (silkLabelSize * scale, semiBold, rowToggleSpacing));
-    const auto textLeft = static_cast<float> (ledDiameter + rowToggleGap) * scale;
+    const auto textLeft = static_cast<float> (glowRoom()) + static_cast<float> (ledDiameter + rowToggleGap) * scale;
     g.drawText (getButtonText().toUpperCase(), getLocalBounds().toFloat().withTrimmedLeft (textLeft), juce::Justification::centredLeft, false);
 }
 
@@ -463,6 +480,56 @@ void StageFader::paint (juce::Graphics& g)
     g.fillRoundedRectangle (cap, capCorner);
     g.setColour (StagePalette::faderCapShine);
     g.fillRect (cap.reduced (capCorner, float {}).withHeight (scaled (ruleWidth)));
+}
+
+//==============================================================================
+namespace
+{
+    constexpr float lcdInputSelectionAlpha = 0.3f;
+}
+
+StageLcdInput::StageLcdInput (const juce::String& hintText) : hint (hintText)
+{
+    // The LCD is painted here (paint / paintOverChildren); the editor only draws its text and caret.
+    setColour (juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+    setColour (juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+    setColour (juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
+    setColour (juce::TextEditor::textColourId, StagePalette::lcdInputInk);
+    setColour (juce::TextEditor::highlightColourId, StagePalette::lcdInk.withAlpha (lcdInputSelectionAlpha));
+    setColour (juce::TextEditor::highlightedTextColourId, StagePalette::lcdInk);
+    setColour (juce::CaretComponent::caretColourId, StagePalette::lcdInk);
+    setMultiLine (false);
+    setJustification (juce::Justification::centredLeft);
+    setScale (scale);
+}
+
+void StageLcdInput::setScale (float newScale)
+{
+    scale = newScale;
+    const auto font = StageFonts::lcd (StageMetrics::fieldTextSize * scale);
+    setFont (font);
+    applyFontToAllText (font);
+    setTextToShowWhenEmpty (hint, StagePalette::lcdInputInk);
+    setIndents (juce::roundToInt (static_cast<float> (StageMetrics::fieldPadding) * scale), int {});
+    repaint();
+}
+
+void StageLcdInput::paint (juce::Graphics& g)
+{
+    const auto bounds = getLocalBounds().toFloat();
+    g.setColour (StagePalette::lcd);
+    g.fillRoundedRectangle (bounds, static_cast<float> (StageMetrics::fieldCorner) * scale);
+}
+
+void StageLcdInput::paintOverChildren (juce::Graphics& g)
+{
+    juce::TextEditor::paintOverChildren (g);   // the hint while empty
+    // inset 0 1px 2px rgba(0,0,0,.45), as the fields
+    const auto bounds = getLocalBounds().toFloat();
+    const auto shade = static_cast<float> (StageMetrics::lcdInsetShadow) * scale;
+    g.setGradientFill (juce::ColourGradient::vertical (StagePalette::lcdInset, bounds.getY(), juce::Colours::transparentBlack,
+                                                       bounds.getY() + shade));
+    g.fillRoundedRectangle (bounds.withHeight (shade), static_cast<float> (StageMetrics::fieldCorner) * scale);
 }
 
 //==============================================================================

@@ -76,6 +76,7 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
         updateStyleNameInJson(oldName, newName);
     };
 
+    list->onInfo = [this](const juce::String& text) { if (onInfo) onInfo(text); };
     list->onStyleAdd = [this](const juce::String& newName)
     {
         appendNewStyleInJson(newName);
@@ -149,6 +150,11 @@ void Display::showCurrentStyleTab(const juce::String& name)
 
         addAndMakeVisible(currentStyleComponent.get());
         currentStyleComponent->onInfo = [this](const juce::String& text) { if (onInfo) onInfo(text); };
+        currentStyleComponent->onTrackInstrumentChosen = [this](int channel, int program)
+        {
+            if (onTrackInstrumentChosen)
+                onTrackInstrumentChosen(channel, program);
+        };
         currentStyleComponent->onShowNotes = [this](std::unique_ptr<TableContainer> notes, const juce::String& title, const juce::String& subtitle)
         {
             showNotes(std::move(notes), title, subtitle);
@@ -304,6 +310,7 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
 
     // Removing entries shifts or destroys the library's deque elements, so the UUID -> entry map is
     // rebuilt (assigned in place: CurrentStyleComponent holds a reference to this same map).
+    trackListComp->onInfo = [this](const juce::String& text) { if (onInfo) onInfo(text); };
     trackListComp->onRemoveTrack = [this](const juce::Uuid& uuid)
     {
         removeTrackFromAllStyles(uuid);

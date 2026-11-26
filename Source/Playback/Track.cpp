@@ -16,16 +16,12 @@ namespace
         const juce::String pasteItem         = "Paste";
         const juce::String notesInfoItem     = "Notes information";
         const juce::String renameTitle       = "Rename track";
-        const juce::String renamePrompt      = "Enter a name for your track";
-        const juce::String nameField         = "nameEditor";
-        const juce::String nameFieldLabel    = "Track Name:";
+        const juce::String nameFieldLabel    = "Track name";
         const juce::String okButton          = "OK";
-        const juce::String cancelButton      = "Cancel";
-        const juce::String confirmRemove     = "Confirm Remove";
-        const juce::String sureRemoveTrack   = "Are you sure you want to remove the selected track?";
+        const juce::String removeTitle       = "Remove track";
+        const juce::String sureRemoveTrack   = "Empty this slot? The track stays in the library.";
         const juce::String removeButton      = "Remove";
-        const juce::String trackInfoTitle    = "Track info";
-        const juce::String trackCopied       = "The track has been succesfully copied!";
+        const juce::String trackCopied       = "Track copied";
         const juce::String drums             = "Drums";
         const juce::String asRecorded        = "As recorded";
         const char* const  emptyUtf8         = "\xe2\x80\x94";   // U+2014 em dash: an empty slot
@@ -36,14 +32,10 @@ namespace
     constexpr int    firstTrackChannel   = 2;       // style tracks use channels 2..16
     constexpr int    lastTrackChannel    = 16;
     constexpr int    drumChannel         = 10;
-    constexpr int    dialogOk            = 1;
-    constexpr int    dialogCancel        = 0;
     constexpr float  halves              = 2.0f;
     constexpr float  noSquash            = 1.0f;   // Label minimum horizontal scale: cut, never squash
     constexpr int    firstProgram        = 0;
     constexpr int    lastProgram         = 127;    // General MIDI programs 0..127
-    constexpr int    tooltipWidth        = 150;
-    constexpr int    tooltipHeight       = 24;
     constexpr int    tooltipOffset       = 4;
     constexpr int    noDesktopFlags      = 0;
     constexpr int    infoBorder          = 2;
@@ -162,6 +154,8 @@ juce::String Track::instrumentCaption() const
 void Track::chooseInstrument(int instrumentIndex)
 {
     setInstrumentNumber(instrumentIndex, true);
+    if (onInstrumentChosen)
+        onInstrumentChosen(instrumentIndex);
     if (onChange)
         onChange();
 }
@@ -214,8 +208,7 @@ void Track::mouseEnter(const juce::MouseEvent& ev)
 {
     if (ev.eventComponent == &nameLabel && toolTipWindow == nullptr)
     {
-        toolTipWindow = std::make_unique<CustomToolTip>(nameLabel.getText());
-        toolTipWindow->setSize(tooltipWidth, tooltipHeight);
+        toolTipWindow = std::make_unique<CustomToolTip>(nameLabel.getText(), scale);   // sized to the whole name
 
         auto labelBounds = nameLabel.getScreenBounds();
         int tooltipX = labelBounds.getX() + tooltipOffset;
@@ -289,18 +282,16 @@ juce::var Track::loadJson(const juce::File& file)
 
 void Track::openInstrumentChooser()
 {
-    std::unique_ptr<InstrumentChooserComponent> chooser = std::make_unique<InstrumentChooserComponent>(instrumentlist);
-    chooser->instrumentSelectedFunction = [this](int instrumentIndex, const juce::String&)
-    {
-        chooseInstrument(instrumentIndex);   // keeps the track name (owner, 2026-11-23)
-    };
-
     auto* display = findParentComponentOfClass<Display>();
-    auto bounds = display->getScreenBounds();
+    if (display == nullptr)
+        return;
 
-    chooser->setSize(bounds.getWidth(), bounds.getHeight());
-
-    juce::CallOutBox::launchAsynchronously(std::move(chooser), bounds, nullptr);
+    const juce::Component::SafePointer<Track> safeThis (this);
+    display->showInstrumentPicker(slotNumber, usedInstrumentNumber, [safeThis](int program)
+    {
+        if (safeThis != nullptr)
+            safeThis->chooseInstrument(program);   // keeps the track name (owner, 2026-11-23)
+    });
 }
 
 juce::StringArray Track::instrumentListBuild()
@@ -570,61 +561,37 @@ void Track::pasteFrom(const Track& source)
     copyFrom(source);
 }
 
+StageDialog* Track::getOpenDialog() const
+{
+    return dialog != nullptr && dialog->isVisible() ? dialog.get() : nullptr;
+}
+
 void Track::renameOneTrack()
 {
-    auto* window = new juce::AlertWindow{ Text::renameTitle, Text::renamePrompt, juce::AlertWindow::NoIcon};
-
-    window->addTextEditor(Text::nameField, nameLabel.getText(), Text::nameFieldLabel);
-
-    window->addButton(Text::okButton, dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton(Text::cancelButton, dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
-
-    window->enterModalState(true, juce::ModalCallbackFunction::create([this, window](int result)
+    dialog = std::make_unique<StageDialog>(StageDialogOptions { Text::renameTitle, Text::nameFieldLabel, Text::okButton, true, nameLabel.getText() },
+        [this](const juce::String& newNameToPut)
         {
-            std::unique_ptr<juce::AlertWindow> cleanup{ window };
-            if (result != dialogOk)
-                return;
-
-
-
-            juce::String newNameToPut=window->getTextEditor(Text::nameField)->getText().trim();
             setNameLabel(newNameToPut);
             if (onChange)
                 onChange();
-        }
-    ));
-
-    juce::MessageManager::callAsync([window]()
-        {
-            if (auto* editor = window->getTextEditor(Text::nameField))
-                editor->grabKeyboardFocus();
         });
+    dialog->showOver(*this, scale);
 }
 
 void Track::deleteOneTrack()
 {
-    juce::AlertWindow::showOkCancelBox(
-        juce::AlertWindow::WarningIcon,
-        Text::confirmRemove,
-        Text::sureRemoveTrack,
-        Text::removeButton,
-        Text::cancelButton,
-        this,
-        juce::ModalCallbackFunction::create(
-            [this](int result)
-            {
-                if (result == dialogCancel)
-                    return;
+    dialog = std::make_unique<StageDialog>(StageDialogOptions { Text::removeTitle, Text::sureRemoveTrack, Text::removeButton },
+        [this](const juce::String&)
+        {
+            setNameLabel(StyleTrackJsonKeys::emptySlot);
+            setTypeOfTrack(StyleTrackJsonKeys::emptySlot);
+            setInstrumentNumber(noInstrument);
+            setUUID(juce::Uuid{ StyleTrackJsonKeys::noTrackId });
 
-                setNameLabel(StyleTrackJsonKeys::emptySlot);
-                setTypeOfTrack(StyleTrackJsonKeys::emptySlot);
-                setInstrumentNumber(noInstrument);
-                setUUID(juce::Uuid{ StyleTrackJsonKeys::noTrackId });
-
-                if (onChange)
-                    onChange();
-            }
-            ));
+            if (onChange)
+                onChange();
+        });
+    dialog->showOver(*this, scale);
 }
 
 void Track::copyOneTrack()
@@ -632,7 +599,8 @@ void Track::copyOneTrack()
     if (onCopy)
         onCopy(this);
 
-    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::trackInfoTitle, Text::trackCopied);
+    if (onInfo)
+        onInfo(Text::trackCopied);
 }
 
 void Track::pasteOneTrack()

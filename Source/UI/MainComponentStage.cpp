@@ -43,6 +43,7 @@ namespace
         const juce::String smoke            = "Smoke";
         const juce::String tracksMode       = "TRACKS";
         const juce::String notesMode        = "NOTES";
+        const juce::String instrumentsMode  = "INSTRUMENT";
         const juce::String noStyleTitle     = "No style";
         const juce::String noStyleOpen      = "Open a style first (Styles)";
         const juce::String choosePart       = "Choose a part: Left or Right";
@@ -137,6 +138,13 @@ void MainComponent::stagePagesInit()
     };
     display->onViewChanged = [this] { syncStylesPage(); };
     display->onInfo = [this] (const juce::String& text) { showStageMessage (text); };
+    display->onTrackInstrumentChosen = [this] (int, int)
+    {
+        // The SFZ engine ignores program changes: load the SFZ the style maps to the new instrument
+        // (channels whose file did not change are skipped).
+        if (MIDIDevice.isOpenAudioOUT())
+            loadSfzForCurrentStyle();
+    };
     syncStylesPage();
 
     // Recorder: play the recording, save it, play a MIDI file.
@@ -185,9 +193,11 @@ void MainComponent::stagePagesInit()
         midiWindow->setScale (scale);
         midiWindow->setBounds (area);
         const auto rects = settingsPageLayout (area, scale);
-        particleToggle.setBounds (rects.displayToggles[displayParticlesRow]);
-        noteNumbersAnnotation.setBounds (rects.displayToggles[displayNoteNamesRow]);
-        colourSelectorButton.setBounds (rects.displayToggles[displayColoursRow]);
+        for (auto* toggle : { &particleToggle, &noteNumbersAnnotation, &colourSelectorButton })
+            toggle->setScale (scale);   // first: the bounds leave room for the LED glow at this scale
+        particleToggle.setBounds (particleToggle.boundsForBoardBox (rects.displayToggles[displayParticlesRow]));
+        noteNumbersAnnotation.setBounds (noteNumbersAnnotation.boundsForBoardBox (rects.displayToggles[displayNoteNamesRow]));
+        colourSelectorButton.setBounds (colourSelectorButton.boundsForBoardBox (rects.displayToggles[displayColoursRow]));
         particleStyleLabel.setBounds (rects.particleStyleLabel);
         auto left = static_cast<float> (rects.particleStyleRow.getX());   // adjacent seg buttons, as the board
         for (auto* button : { &particleSparks, &particleDust, &particleSmoke })
@@ -197,8 +207,6 @@ void MainComponent::stagePagesInit()
                                                        static_cast<float> (rects.particleStyleRow.getHeight())).toNearestInt());
             left += button->getExactWidth();
         }
-        for (auto* toggle : { &particleToggle, &noteNumbersAnnotation, &colourSelectorButton })
-            toggle->setScale (scale);
         particleStyleLabel.setScale (scale);
     };
 
@@ -305,6 +313,7 @@ void MainComponent::updateStageScreen()
             const auto view = display != nullptr ? display->getView() : StyleView::style;
             content.mode = view == StyleView::tracks ? StageWiringText::tracksMode
                          : view == StyleView::notes  ? StageWiringText::notesMode
+                         : view == StyleView::instruments ? StageWiringText::instrumentsMode
                                                      : StageWiringText::stylesMode;
         }
             break;

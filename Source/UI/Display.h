@@ -11,6 +11,7 @@
 #include "UI/Stage/StagePageWidgets.h"
 #include "CurrentStyleComponent.h"
 #include "TrackListComponent.h"
+#include "InstrumentPicker.h"
 
 /**
  * @class Display
@@ -32,6 +33,7 @@ namespace StylePageText
     inline const char* const  styleSettingsUtf8 = "Style settings\xe2\x80\xa6";
     inline const juce::String settingsTitle = "Style settings";
     inline const juce::String tracksTitle   = "Choose track";
+    inline const juce::String instrumentsTitle = "Choose instrument";
     inline const char* const  slotSeparatorUtf8 = " \xc2\xb7 slot ";   // "Choose track · slot 3"
     inline const juce::String tracks        = "Tracks";
     inline const juce::String openAStyle    = "Open a style on the left";
@@ -108,6 +110,8 @@ public:
     void closeSubView();
     /** The Styles page closed: forget any sub-view. */
     void resetView();
+    /** The "Choose instrument - Slot N" sub-page; a pick reports the GM program, then the Style page returns. */
+    void showInstrumentPicker(int slot, int currentProgram, std::function<void(int program)> onChosen);
     juce::String getViewTitle() const;
     juce::String getViewSubtitle() const;
     std::vector<juce::Component*> getTitleActions();
@@ -115,6 +119,8 @@ public:
     std::function<void()> onViewChanged;
     /** A short message for the Stage screen. */
     std::function<void(const juce::String& text)> onInfo;
+    /** A style track's instrument was chosen on its strip (channel, GM program). */
+    std::function<void(int channel, int program)> onTrackInstrumentChosen;
 
     /** @brief Returns the root JSON variable representing all styles */
     const juce::var& getJsonVar();
@@ -309,5 +315,7 @@ private:
     // component whose player it listens to.
     void showNotes(std::unique_ptr<TableContainer> notes, const juce::String& title, const juce::String& subtitle);
     std::unique_ptr<TableContainer> notesContainer;
+    std::unique_ptr<InstrumentPicker> instrumentPicker;
+    int instrumentSlot {};
     juce::String notesTitle, notesSubtitle;
 };
