@@ -150,10 +150,21 @@ void TrackListComponent::renameFromFolderList()
         });
 }
 
+bool TrackListComponent::openFolderNamed(const juce::String& folder)
+{
+    const auto found = std::find(groupedTrackKeys->begin(), groupedTrackKeys->end(), folder);
+    if (found == groupedTrackKeys->end())
+        return false;
+    openFolderAt(static_cast<int>(std::distance(groupedTrackKeys->begin(), found)));
+    return viewMode == ViewMode::TrackView;
+}
+
 void TrackListComponent::backToFolderView()
 {
     viewMode = ViewMode::FolderView;
     deallocateTracksFromList();
+    if (onFolderOpened)
+        onFolderOpened({});   // back at the folder list: the next picker starts here too
     listBox.deselectAllRows();
     listBox.updateContent();
     listBox.repaint();

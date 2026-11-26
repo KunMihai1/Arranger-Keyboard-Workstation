@@ -135,6 +135,8 @@ void TrackListComponent::openFolderAt(int row)
         *availableTracks = (*groupedTracks)[folderKey];
         initializeTracksFromList();
         resized();
+        if (onFolderOpened)
+            onFolderOpened(folderKey);
 
         listBox.deselectAllRows();
         listBox.updateContent();

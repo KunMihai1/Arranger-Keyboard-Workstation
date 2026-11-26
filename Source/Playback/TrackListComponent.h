@@ -140,6 +140,12 @@ public:
     /** @brief Returns to folder view from inside a track list. */
     void backToFolderView();
 
+    /** The folder opened (its name), or empty on Back to the folder list: the host remembers it for the next picker. */
+    std::function<void(const juce::String& folder)> onFolderOpened;
+
+    /** Opens the named folder (the one remembered from the last picker); false, and the folder list, if it is gone. */
+    bool openFolderNamed(const juce::String& folder);
+
     /**
      * @brief Returns a reference to the current list of available tracks.
      * @return Reference to the track deque.

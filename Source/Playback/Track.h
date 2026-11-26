@@ -2,6 +2,7 @@
 #include <JuceHeader.h>
 #include "SubjectInterface.h"
 #include "TrackListener.h"
+#include "TrackEntry.h"
 #include "CustomToolTip.h"
 #include "UI/Stage/StagePageWidgets.h"
 #include "UI/Stage/StageDialog.h"
@@ -48,9 +49,9 @@ public:
      * @brief Callback for requesting track selection.
      *
      * This function accepts another callback which is called once a user selects a track,
-     * providing the selected name, UUID, and track type.
+     * providing the selected track (name, UUID, type and its own instrument).
      */
-    std::function<void(std::function<void(const juce::String&, const juce::Uuid&, const juce::String&)>)> onRequestTrackSelection;
+    std::function<void(TrackChosenCallback)> onRequestTrackSelection;
 
     /** @brief Returns whether the application is currently playing. */
     std::function<bool()> isPlaying;
@@ -83,6 +84,9 @@ public:
     /** What the instrument button reads: the General MIDI name when one is set, "Drums" on a percussion
         track, "As recorded" with none set, an em dash on an empty slot. */
     juce::String instrumentCaption() const;
+
+    /** A click on the name: asks the host for a track; the picked one replaces this strip's (takeChosenTrack). */
+    void requestTrackSelection();
 
     /** What picking an instrument does: sets and sends it. The track keeps its name (owner, 2026-11-23). */
     void chooseInstrument(int instrumentIndex);

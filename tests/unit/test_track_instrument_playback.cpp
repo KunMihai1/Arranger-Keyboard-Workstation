@@ -10,6 +10,11 @@ namespace TrackInstrumentPlaybackTestValues
     const juce::String configTakesStrip   = "a saved arranger configuration plays the strip's instrument and volume";
     const juce::String configKeepsUnset   = "a strip with no instrument keeps the configuration's instrument";
     const juce::String choiceIsReported   = "choosing an instrument on a strip reports its channel and program";
+    const juce::String newTrackTakesItsOwn = "picking another track for a strip shows (and reports) that track's instrument, not the old one";
+    const juce::String newTrackAsRecorded  = "a picked track with no instrument shows As recorded (and is reported)";
+    const juce::String drumPickNotReported = "a picked drum track is not reported (no instrument reload)";
+    const juce::String pickedTrackName     = "Bass line";
+    const juce::String asRecordedCaption   = "As recorded";
     const juce::String noNoteOn           = "the sequence has no note-on";
 
     const juce::String styleName = "Style 1";
@@ -29,6 +34,8 @@ namespace TrackInstrumentPlaybackTestValues
     constexpr int    firstSlot        = 0;
     constexpr int    secondSlot       = 1;
     constexpr int    notReported      = -1;
+    constexpr int    noInstrument     = -1;
+    constexpr int    notReportedYet   = -2;    // neither a program nor "no instrument"
 }
 
 /*
@@ -47,6 +54,7 @@ public:
         checkStartPlaysChosenInstrument();
         checkConfigurationTakesStrip();
         checkChoiceIsReported();
+        checkNewTrackTakesItsInstrument();
     }
 
 private:
@@ -160,6 +168,46 @@ private:
 
         expectEquals (reportedChannel, strip->getChannel());
         expectEquals (reportedProgram, chosenProgram);
+    }
+
+    void checkNewTrackTakesItsInstrument()
+    {
+        using namespace TrackInstrumentPlaybackTestValues;
+        beginTest (newTrackTakesItsOwn);
+
+        std::unordered_map<juce::Uuid, TrackEntry*> noEntries;
+        CurrentStyleComponent panel (styleName, noEntries, {}, {});
+        TrackChosenCallback pickTrack;
+        panel.onRequestTrackSelectionFromTrack = [&pickTrack] (TrackChosenCallback onPicked) { pickTrack = std::move (onPicked); };
+        int reportedProgram = notReported;
+        panel.onTrackInstrumentChosen = [&reportedProgram] (int, int program) { reportedProgram = program; };
+
+        auto* strip = panel.getAllTracks()[secondSlot];
+        strip->chooseInstrument (chosenProgram);       // the old track's instrument
+        reportedProgram = notReported;
+        strip->requestTrackSelection();
+        expect (pickTrack != nullptr);
+        if (pickTrack != nullptr)
+            pickTrack ({ pickedTrackName, juce::Uuid(), TrackTypeNames::melodic, configProgram });
+        expectEquals (strip->getInstrumentNumber(), configProgram);
+        expectEquals (strip->instrumentCaption(), juce::String (juce::MidiMessage::getGMInstrumentName (configProgram)));
+        expectEquals (reportedProgram, configProgram);   // the SFZ engine loads the new channel's instrument
+
+        beginTest (newTrackAsRecorded);
+        reportedProgram = notReportedYet;
+        strip->requestTrackSelection();
+        if (pickTrack != nullptr)
+            pickTrack ({ pickedTrackName, juce::Uuid(), TrackTypeNames::melodic, TrackEntryDefaults::notSet });
+        expectEquals (strip->getInstrumentNumber(), noInstrument);
+        expectEquals (strip->instrumentCaption(), asRecordedCaption);
+        expectEquals (reportedProgram, noInstrument);      // reported too: the old instrument's SFZ must not stay loaded
+
+        beginTest (drumPickNotReported);
+        reportedProgram = notReportedYet;
+        strip->requestTrackSelection();
+        if (pickTrack != nullptr)
+            pickTrack ({ pickedTrackName, juce::Uuid(), TrackTypeNames::percussion, configProgram });
+        expectEquals (reportedProgram, notReportedYet);    // drums play on their own channel: nothing to reload
     }
 };
 

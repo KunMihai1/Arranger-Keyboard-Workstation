@@ -290,7 +290,7 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
             syncPercussionTracksVolumeChange(newVolume);
         };
 
-        newTrack->onRequestTrackSelection = [this, trackIndex](std::function<void(const juce::String&, const juce::Uuid& uuid, const juce::String& type)> trackChosenCallback)
+        newTrack->onRequestTrackSelection = [this, trackIndex](TrackChosenCallback trackChosenCallback)
         {
             requestingSlot = trackIndex + firstSlotNumber;
             if (onRequestTrackSelectionFromTrack)
