@@ -13,6 +13,22 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-26 — UI redesign phase 4d: Voices page (`feat/ui-voices-page`)
+- UI polish fixes merged (PR #67, owner asked), then merged into this branch: `StyleView` keeps `instruments`
+  (strip picker) and loses `settings`; `Display` keeps both sides' members.
+- Panel Voices opens the board's `StageVoices` page (`MainComponentVoices.cpp`, `Source/UI/Voices/`): instrument
+  column over the pure `InstrumentCatalog` (same 8 groups / 33 programs, search across groups), `Display`'s
+  `PlayBackSettingsComponent` restyled and created once (fields save per style only on an edit), `SFZLibraryUI`
+  restyled and moved from the Settings page. "Style settings…" opens the page. `InstrumentTreeItem` removed.
+- Live fixes (test first): the group list stayed drawn selected during a search (painter read the raw member, not
+  `getSelectedGroup()`); title-row labels round outwards (`StagePageFrame` rounded "EDITING" narrower than its
+  text at 81 of 161 scales; with PR #67's glyph-drawing fix alone the "G" was still shaved by the clip at 800 x 600).
+- Review (Sonnet): `setNewSettings` removed (no caller; it would save on open). Rejected: "Style settings… toggles
+  the page shut when already open" (the style component is hidden while Voices shows); two spec-wording nits.
+- Live: per hand / both / none, search, per-style range save across restart, transpose kept, Load / Assign /
+  Import / Remove, "Style settings…", 800 x 600; 1:1 against the board. Unit 1912 / 0 (after the merge), arranger
+  770 / 0, integration 130 / 0 (+7 skipped); names 0.
+
 ## 2026-11-25 — UI polish fixes, one PR (`fix/ui-polish`)
 - Owner's six reports. LEDs cut on the Settings page: `RowToggle::boundsForBoardBox` leaves room for the glow.
   "INSTRUMEN" / "SOR": `SilkLabel` draws every glyph (JUCE curtailed the last one when the width rounded down).

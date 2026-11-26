@@ -31,7 +31,6 @@ namespace StylePageText
     inline const juce::String solo          = "Solo";
     inline const char* const  sectionsUtf8      = "Sections\xe2\x80\xa6";         // + U+2026 ellipsis
     inline const char* const  styleSettingsUtf8 = "Style settings\xe2\x80\xa6";
-    inline const juce::String settingsTitle = "Style settings";
     inline const juce::String tracksTitle   = "Choose track";
     inline const juce::String instrumentsTitle = "Choose instrument";
     inline const char* const  slotSeparatorUtf8 = " \xc2\xb7 slot ";   // "Choose track · slot 3"
@@ -119,6 +118,10 @@ public:
     std::function<void()> onViewChanged;
     /** A short message for the Stage screen. */
     std::function<void(const juce::String& text)> onInfo;
+    /** "Style settings..." (and the style's keybind for it): the host opens the Voices page. */
+    std::function<void()> onStyleSettings;
+    /** The style's range, split and transpose fields; the Voices page shows them. Created once. */
+    PlayBackSettingsComponent& getPlaybackSettings();
     /** A style track's instrument was chosen on its strip (channel, GM program). */
     std::function<void(int channel, int program)> onTrackInstrumentChosen;
 
@@ -271,7 +274,6 @@ private:
     std::unique_ptr<PlayBackSettingsComponent> playBackSettings; ///< Playback settings UI
 
     // --- The Style page (DisplayViews.cpp) ---
-    void openStyleSettings();
     void destroySubView();
     void layoutViews();
     void refreshTitleActions();
@@ -285,7 +287,7 @@ private:
     SegButton    sectionsButton { juce::String::fromUTF8 (StylePageText::sectionsUtf8), SegButton::Style::seg };
     SegButton    styleSettingsButton { juce::String::fromUTF8 (StylePageText::styleSettingsUtf8), SegButton::Style::seg };
 
-    int minNote, maxNote;  ///< min and max notes of playing range
+    int minNote, maxNote;  ///< min and max notes of playing range (set_min_max)
     PlayBackSettings settings; ///< Playback settings
 
     std::shared_ptr<std::deque<TrackEntry>> availableTracksFromFolder; ///< Tracks loaded from folder

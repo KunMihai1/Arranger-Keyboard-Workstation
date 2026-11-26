@@ -166,7 +166,9 @@ void StagePageFrame::resized()
         auto box = juce::Rectangle<float> (right - width, row.getY(), width, row.getHeight());
         if (dynamic_cast<TitleDivider*> (component) != nullptr)
             box = box.withSizeKeepingCentre (width, scaled (dividerHeight));
-        component->setBounds (box.toNearestInt());
+        // A label rounds outwards: a box rounded narrower than its text loses the last letters (JUCE drops glyphs that don't fit).
+        const bool isLabel = dynamic_cast<SilkLabel*> (component) != nullptr;
+        component->setBounds (isLabel ? box.getSmallestIntegerContainer() : box.toNearestInt());
         right -= width + gap;
     }
 

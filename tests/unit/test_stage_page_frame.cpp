@@ -49,6 +49,17 @@ namespace StagePageFrameTestValues
     constexpr int   ownerPageHeight    = 561;
     constexpr int   boardContentLeft   = 81;
     constexpr int   boardContentRight  = 1839;
+
+    // Voices title row (Editing | Left hand | Right hand): a label laid out narrower than its text loses its last
+    // letters (JUCE drops glyphs that do not fit; 800 x 600 showed "EDITIN").
+    const juce::String labelNeverClipped = "a label action is laid out at least as wide as its text at every scale";
+    const juce::String voicesTitle  = "Voices";
+    const juce::String editingLabel = "Editing";
+    const juce::String leftHand     = "Left hand";
+    const juce::String rightHand    = "Right hand";
+    constexpr float smallestScale   = 0.4f;
+    constexpr float largestScale    = 2.0f;
+    constexpr float scaleStep       = 0.01f;
 }
 
 class StagePageFrameTest : public juce::UnitTest
@@ -134,6 +145,25 @@ public:
             expectWithinAbsoluteError (frame.getContentBounds().getX(), boardContentLeft, positionTolerance);
             expectWithinAbsoluteError (frame.getContentBounds().getRight(), boardContentRight, positionTolerance);
             expectWithinAbsoluteError (frame.getExitButton().getRight(), boardContentRight, positionTolerance);
+        }
+
+        beginTest (labelNeverClipped);
+        {
+            StagePageFrame frame { voicesTitle };
+            SilkLabel editing { editingLabel, SilkLabel::Tone::dim };
+            SegButton left { leftHand, SegButton::Style::seg };
+            SegButton right { rightHand, SegButton::Style::seg };
+            frame.setActions ({ &editing, &left, &right });
+            int clippedScales {};
+            for (auto scale = smallestScale; scale <= largestScale; scale += scaleStep)
+            {
+                frame.setScale (scale);
+                frame.setSize (juce::roundToInt (static_cast<float> (boardWidth) * scale),
+                               juce::roundToInt (static_cast<float> (boardPageHeight) * scale));
+                if (static_cast<float> (editing.getWidth()) < editing.getExactWidth())
+                    ++clippedScales;
+            }
+            expectEquals (clippedScales, int {});
         }
 
         beginTest (contentLikeBoard);

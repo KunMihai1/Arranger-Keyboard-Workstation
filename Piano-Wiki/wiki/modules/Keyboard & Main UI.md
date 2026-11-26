@@ -26,6 +26,8 @@ sources: []
 
 > [!key-insight] The wiring hub
 > `MainComponent` is where everything is owned and connected. Its includes are effectively the system diagram: `MidiHandler`, `KeyboardUI`, `NoteLayer`, `keyListener`, `MidiRecordPlayer`, `displayGUI`, `SectionsComponent`, `LoginComponent`, `PlaytimeTracker`, `SoundEffectWindowComponent` (the Effects page's knobs since 2026-11-24, hosted on a `StagePageFrame`; no separate window), `SFZLibraryUI`, `AudioHandler`.
+>
+> **Voices page** (2026-11-26, `MainComponentVoices.cpp`, `Source/UI/Voices/`): panel **Voices** opens it (the call-out instrument tree and `InstrumentTreeItem` are gone). Three columns (`VoicesPageLayout`): the instrument column (`VoicesInstrumentPanel` over the pure `InstrumentCatalog`, 8 groups / 33 GM programs, search across groups), range / split / transpose (`Display`'s `PlayBackSettingsComponent`) and the SFZ library (`SFZLibraryUI`). Title row Left hand / Right hand = the Quick FX Part LEDs; a pick goes to `chooseHandInstrument` (every lit hand; none lit → "Choose a part: Left or Right" on the screen).
 
 ## Purpose
 The main application screen: hosts the on-screen keyboard, the display/transport, effect knobs, and owns + connects every subsystem.

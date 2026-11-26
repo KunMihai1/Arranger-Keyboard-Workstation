@@ -14,8 +14,23 @@ namespace
     const juce::String saveLogged         = "save happens";
 }
 
-Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile* props, int widthForList) : outputDevice{outputDev}, propertiesFile{props}
+Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile* props, int widthForList) : outputDevice{outputDev}, propertiesFile{props},
+    minNote{lowestPianoNote}, maxNote{highestPianoNote}
 {
+    playBackSettings = std::make_unique<PlayBackSettingsComponent>(minNote, maxNote, this->settings);
+    playBackSettings->getStyleID = [this]() { return this->getStyleID(); };
+    playBackSettings->onChangingSettings = [this](PlayBackSettings)
+    {
+        // Save settings using PropertiesFile
+        PlaybackSettingsIOHelper::savePlaybackSettings(propertiesFile, this->settings, minNote, maxNote, this->getStyleID());
+        displayListeners.call(&DisplayListener::playBackSettingsChanged, this->settings);
+    };
+    playBackSettings->onChangingTranspose = [this](int transposeValue)
+    {
+        displayListeners.call(&DisplayListener::playBackSettingsTransposeChanged, transposeValue);
+    };
+    playBackSettings->setStyleOpen(false);
+
     availableTracksFromFolder = std::make_shared<std::deque<TrackEntry>>();
     groupedTracks = std::make_shared<std::unordered_map<juce::String, std::deque<TrackEntry>>>();
     groupedTrackKeys = std::make_shared<std::vector<juce::String>>();
@@ -89,6 +104,7 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
         {
             destroySubView();
             currentStyleComponent.reset();
+            playBackSettings->setStyleOpen(false);
             layoutViews();
             refreshTitleActions();   // nothing open: All tracks / Solo / Sections... / Style settings... off
             viewChanged();
@@ -103,7 +119,7 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
     allTracksButton.onClick     = [this] { if (currentStyleComponent) { currentStyleComponent->setPlayModeSolo(false); refreshTitleActions(); } };
     soloButton.onClick          = [this] { if (currentStyleComponent) { currentStyleComponent->setPlayModeSolo(true);  refreshTitleActions(); } };
     sectionsButton.onClick      = [this] { if (currentStyleComponent) currentStyleComponent->openSectionConfigurations(); };
-    styleSettingsButton.onClick = [this] { openStyleSettings(); };
+    styleSettingsButton.onClick = [this] { if (onStyleSettings) onStyleSettings(); };
     refreshTitleActions();
 }
 
@@ -146,7 +162,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
             TrackIOHelper::saveToFile(jsonFile, *groupedTracks);
         };
 
-        currentStyleComponent->keybindTabStarting = [this]() { openStyleSettings(); };
+        currentStyleComponent->keybindTabStarting = [this]() { if (onStyleSettings) onStyleSettings(); };
 
         addAndMakeVisible(currentStyleComponent.get());
         currentStyleComponent->onInfo = [this](const juce::String& text) { if (onInfo) onInfo(text); };
@@ -259,11 +275,8 @@ void Display::showCurrentStyleTab(const juce::String& name)
     if (loadSettingsOnStyleChange)
         loadSettingsOnStyleChange(styleID);
 
-    readPlaybackSettingsFromProperties();
-    if (playBackSettings)
-    {
-        playBackSettings->setNewSettings(this->settings);
-    }
+    readPlaybackSettingsFromProperties();   // the Voices page's range fields show the style's settings
+    playBackSettings->setStyleOpen(true);
 
     currentStyleComponent->applyBPMchangeBeforePlayback(bpmToUse);
     currentStyleComponent->applyChangesForAllTracksCurrentStyle();
@@ -470,8 +483,7 @@ void Display::set_min_max(int min, int max)
     if (max > highestPianoNote)
         this->maxNote = highestPianoNote;
     else this->maxNote = max;
-    if (playBackSettings)
-        this->playBackSettings->setLowestHighest(minNote, maxNote);
+    playBackSettings->setLowestHighest(minNote, maxNote);
 }
 
 void Display::set_VID_PID(const juce::String& VID, const juce::String& PID)
@@ -494,6 +506,7 @@ void Display::readPlaybackSettingsFromProperties()
 {
     PlayBackSettings settingsLoaded = PlaybackSettingsIOHelper::loadPlaybackSettings(propertiesFile, this->settings.VID, this->settings.PID, this->getStyleID());
     this->settings = settingsLoaded;
+    playBackSettings->showSettings();
 }
 
 void Display::homeButtonInteraction()
@@ -561,9 +574,8 @@ void Display::setNewSettingsHelperFunction(int value)
     if (settings.rightHandBound > highestPianoNote)
         settings.rightHandBound = highestPianoNote;
 
-    if(playBackSettings)
-        this->playBackSettings->setNewSettings(settings);
-    else displayListeners.call(&DisplayListener::playBackSettingsChanged, this->settings);
+    playBackSettings->showSettings();
+    displayListeners.call(&DisplayListener::playBackSettingsChanged, this->settings);
 }
 
 void Display::initializeSectionsForStyle(std::unordered_map<juce::String,StyleSection>& sections)

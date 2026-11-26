@@ -40,8 +40,10 @@ A style is chosen in the styles list. The `StyleSectionComponent` renders the se
 No tabs any more (`MyTabbedComponent` / `TemporaryTabs` removed). `Display` is the Styles page's content and shows one
 view at a time (`StyleViewRouter`, `DisplayViews.cpp`): the **style** (styles list + the open style's 8 `Track` strips,
 `stylePageLayout`: column 230, gap 24), the **track picker** (`TrackListComponent`, "Choose track · slot N"), the
-**notes page** (`TableContainer`, owned by `Display`, declared last so it dies before `CurrentStyleComponent`) and
-**style settings** (today's `PlayBackSettingsComponent`). Exit / Esc go back to the style first; closing the page
+**notes page** (`TableContainer`, owned by `Display`, declared last so it dies before `CurrentStyleComponent`).
+"Style settings…" opens the **Voices page** (2026-11-26; the `StyleView::settings` sub-view is gone): `Display` creates
+its `PlayBackSettingsComponent` (range / split / transpose) once and the Voices page hosts it, so the transpose shown
+stays the one in effect; its fields save per style only on an edit in them. Exit / Esc go back to the style first; closing the page
 (`MainComponent::closeStagePage` → `Display::resetView`) destroys the sub-view. `MainComponent::syncStylesPage` copies
 the view's title, subtitle, row gap and title-row actions to the `StagePageFrame`.
 

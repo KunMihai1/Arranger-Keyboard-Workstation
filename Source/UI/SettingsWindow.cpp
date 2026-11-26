@@ -27,7 +27,6 @@ namespace
 
     constexpr int   deviceRefreshMs     = 750;
     constexpr int   firstListIndex      = 0;
-    constexpr int   sfzLibraryInset     = 20;
     constexpr int   firstChordMode      = 0;     // ChordMode values as stored
     constexpr int   lastChordMode       = 2;
     constexpr int   unknownKeyCount     = 0;
@@ -75,7 +74,7 @@ SettingsPageRects settingsPageLayout (juce::Rectangle<int> content, float scale)
         rects.headings[static_cast<size_t> (column)] = columns[static_cast<size_t> (column)].withHeight (scaled (headingHeight)).toNearestInt();
     }
 
-    // MIDI: label, field, label, field ... then Keyboard [field][Add device...], then SFZ library...
+    // MIDI: label, field, label, field ... then Keyboard [field][Add device...]
     auto midi = columns[Board::midiColumn];
     auto top = midi.getY() + scaled (headingHeight + Board::fieldGap);
     for (size_t field {}; field < rects.fields.size(); ++field)
@@ -88,8 +87,6 @@ SettingsPageRects settingsPageLayout (juce::Rectangle<int> content, float scale)
     rects.keyboardLabel = juce::Rectangle<float> (midi.getX(), top, columnWidth, scaled (Board::labelHeight)).toNearestInt();
     top += scaled (Board::labelHeight + Board::keyboardGap);
     rects.keyboardRow = juce::Rectangle<float> (midi.getX(), top, columnWidth, scaled (fieldHeight)).toNearestInt();
-    top += scaled (fieldHeight + Board::fieldGap);
-    rects.sfzRow = juce::Rectangle<float> (midi.getX(), top, columnWidth, scaled (segHeight)).toNearestInt();
 
     // Arranger: seven LED rows.
     const auto arranger = columns[Board::arrangerColumn];
@@ -138,8 +135,8 @@ std::vector<int> keyboardFieldSizes (int storedKeys)
 
 //==============================================================================
 MIDIWindow::MIDIWindow(MidiDevice& mdevice, std::vector<std::string>& devicesListIN, std::vector<std::string>& devicesListOUT
-    , std::vector<std::string>& devicesListAudioOUT, juce::PropertiesFile* prop, SFZLibraryManager* sfzManagerPtr)
-    : MIDIDevice{ mdevice }, devicesListIN{ devicesListIN }, devicesListOUT{ devicesListOUT }, devicesListAudioOUT{ devicesListAudioOUT }, propertyFile{ prop }, sfzManager{ sfzManagerPtr },
+    , std::vector<std::string>& devicesListAudioOUT, juce::PropertiesFile* prop)
+    : MIDIDevice{ mdevice }, devicesListIN{ devicesListIN }, devicesListOUT{ devicesListOUT }, devicesListAudioOUT{ devicesListAudioOUT }, propertyFile{ prop },
       outputEngineTypeLabel (Text::outputEngine, SilkLabel::Tone::dim),
       midiDevicesLabelIN (Text::midiIn, SilkLabel::Tone::dim),
       midiDevicesLabelOUT (Text::midiOut, SilkLabel::Tone::dim),
@@ -173,8 +170,6 @@ void MIDIWindow::pageShown()
 void MIDIWindow::pageHidden()
 {
     stopTimer();
-    if (sfzLibraryUI)
-        sfzLibraryUI->setVisible(false);
 }
 
 void MIDIWindow::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged)
@@ -288,7 +283,7 @@ void MIDIWindow::setScale(float newScale)
     scale = newScale;
     for (auto* field : { &comboBoxOutputEngineType, &comboBoxDevicesIN, &comboBoxDevicesOUT, &comboBoxAudioDevicesOUT, &keyboardField })
         field->setScale(scale);
-    for (auto* button : { &sfzLibraryButton, &addDeviceButton, &chordModeFingered, &chordModeSingle, &chordModeFull,
+    for (auto* button : { &addDeviceButton, &chordModeFingered, &chordModeSingle, &chordModeFull,
                           &nttMinorDorian, &nttMinorAeolian, &nttMinorHarmonic })
         button->setScale(scale);
     for (auto* toggle : { &arrangerModeToggle, &chordBassInversionToggle, &chordMemoryToggle, &synchroStartToggle,
@@ -326,7 +321,6 @@ void MIDIWindow::resized()
     const auto addWidth = static_cast<float>(Board::addDeviceWidth) * scale;
     addDeviceButton.setBounds(keyboardRow.removeFromRight(addWidth).withTrimmedTop(keyboardRow.getHeight() - static_cast<float>(addDeviceButton.getPreferredHeight())).toNearestInt());
     keyboardField.setBounds(keyboardRow.withTrimmedRight(static_cast<float>(Board::keyboardGap) * scale).toNearestInt());
-    sfzLibraryButton.setBounds(rects.sfzRow.withWidth(sfzLibraryButton.getPreferredWidth()));
 
     const std::array<RowToggle*, SettingsPageRects::arrangerRows> toggles { &arrangerModeToggle, &chordBassInversionToggle, &chordMemoryToggle,
                                                                            &synchroStartToggle, &countInToggle, &chordZoneMuteToggle, &nttEnabledToggle };
@@ -347,46 +341,6 @@ void MIDIWindow::resized()
     };
     placeRow(rects.chordModeRow, { &chordModeFingered, &chordModeSingle, &chordModeFull });
     placeRow(rects.minorScaleRow, { &nttMinorDorian, &nttMinorAeolian, &nttMinorHarmonic });
-
-    if (sfzLibraryUI && sfzLibraryUI->isVisible())
-        sfzLibraryUI->setBounds(getLocalBounds().reduced(sfzLibraryInset));
-}
-
-void MIDIWindow::sfzButtonInit()
-{
-    addAndMakeVisible(sfzLibraryButton);
-
-    if (sfzManager != nullptr)
-    {
-        sfzLibraryUI = std::make_unique<SFZLibraryUI>(*sfzManager);
-        addChildComponent(sfzLibraryUI.get());
-        sfzLibraryUI->getCurrentStyleId = [this]() -> juce::String
-        {
-            return getCurrentStyleId ? getCurrentStyleId() : juce::String();
-        };
-        sfzLibraryUI->getCurrentStyleName = [this]() -> juce::String
-        {
-            return getCurrentStyleName ? getCurrentStyleName() : StyleNames::defaultStyle;
-        };
-        sfzLibraryUI->onLibraryChanged = [this]()
-        {
-            sfzManager->save(IOHelper::getFile(AppDataNames::sfzLibraryFile));
-            if (onSfzLibraryChanged) onSfzLibraryChanged();
-        };
-    }
-
-    sfzLibraryButton.onClick = [this]()
-    {
-        if (sfzLibraryUI)
-        {
-            sfzLibraryUI->setVisible(!sfzLibraryUI->isVisible());
-            if (sfzLibraryUI->isVisible())
-            {
-                sfzLibraryUI->setBounds(getLocalBounds().reduced(sfzLibraryInset));
-                sfzLibraryUI->toFront(true);
-            }
-        }
-    };
 }
 
 void MIDIWindow::refreshChoiceLeds()
@@ -498,8 +452,6 @@ void MIDIWindow::allInit()
     (storedMinor == MinorScaleButtons::aeolian ? nttMinorAeolian : storedMinor == MinorScaleButtons::harmonic ? nttMinorHarmonic : nttMinorDorian)
         .setToggleState(true, juce::dontSendNotification);
     refreshChoiceLeds();
-
-    sfzButtonInit();
 }
 
 void MIDIWindow::populateCBIN()
@@ -569,12 +521,11 @@ void MIDIWindow::restoreCBoxes()
 
 void MIDIWindow::switchBetweenEngineOptions(int selectedId)
 {
-    // Today the window showed MIDI out for the external engine and Audio out + SFZ library for the internal
-    // synth. The page shows all of them (board) and disables the ones that do not apply.
+    // Today the window showed MIDI out for the external engine and Audio out for the internal synth. The page
+    // shows both (board) and disables the one that does not apply.
     const bool internal = selectedId == OutputEngineIds::internalSfz;
     comboBoxDevicesOUT.setEnabled(! internal);
     comboBoxAudioDevicesOUT.setEnabled(internal);
-    sfzLibraryButton.setEnabled(internal);
     midiDevicesLabelOUT.setAlpha(internal ? StageMetrics::disabledLabelAlpha : StageMetrics::enabledAlpha);
     audioDevicesLabelOUT.setAlpha(internal ? StageMetrics::enabledAlpha : StageMetrics::disabledLabelAlpha);
 }

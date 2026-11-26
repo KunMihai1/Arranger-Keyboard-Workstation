@@ -105,7 +105,7 @@ void MainComponent::instrumentSelectorButtonInit()
     instrumentSelectorButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
 
     instrumentSelectorButton.onClick = [this] {
-        showInstrumentSelector();
+        openStagePage(StagePage::voices);
     };
     headerPanel.addAndMakeVisible(instrumentSelectorButton);
     instrumentSelectorButton.setVisible(false);

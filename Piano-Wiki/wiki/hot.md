@@ -1,7 +1,7 @@
 ---
 type: meta
 title: "Hot Cache"
-updated: 2026-11-25T03:30:00
+updated: 2026-11-26T23:00:00
 tags:
   - meta
   - hot
@@ -11,10 +11,9 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-25. Settings page merged (PR #66). **UI polish fixes** on `fix/ui-polish` (one PR): LEDs, cut labels,
-in-app `StageDialog` instead of the slow `AlertWindow` (track picker, styles list, strips), instrument picker
-sub-page, Stage tooltips, the chosen instrument now plays. Voices page WIP on `feat/ui-voices-page`.
-`docs/superpowers/` is **local only** (owner). Detail in [[log]].
+2026-11-26. UI polish fixes merged (PR #67). **Phase 4d, the Voices page** on `feat/ui-voices-page`: instrument
+(8 groups / 33 programs, search), range / split / transpose ("Style settings…" opens the page) and the SFZ library
+(moved from Settings) on one page. Next page: Chords. `docs/superpowers/` is **local only** (owner). Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -31,8 +30,8 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 1788, arranger 770, integration 130 (+7 skipped), display 8**.
-- Visual checks: screenshot/click the app's largest window; boards: `specs/assets/…/render/render.sh`.
+  Current: **unit 1912, arranger 770, integration 130 (+7 skipped), display 8**.
+- Visual checks: screenshot/click the app's window by process id (a VS panel can share its title); boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
 - App `Builds\VisualStudio2022\Arranger Workstation.sln`, Debug x64; close the app first (PDB lock).
@@ -46,11 +45,9 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 ## Active Threads / Next
 Full task list with states: [[Owner Backlog]].
 - 🟡 **~100 `juce::AlertWindow`s left** (0.5–1 s each in Debug, balanced text layout): move to `StageDialog`.
-- 🟡 **UI redesign** ("Stage" panel, pages, real keys/knobs, new Dust, six finishes, Remember me):
-  spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2, plan
-  `docs/superpowers/plans/2026-11-23-ui-redesign-phase1-panel.md` (phase 1 merged, PR #61); phase 4a Style page
-  (plan `...-style-page.md`). Owner: same look on every resolution; pages centred like the panel; agent checks the
-  running app **1:1** against the boards before finishing.
+- 🟡 **UI redesign** (spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2): panel and
+  pages Style, Effects, Settings, Voices done. Owner: same look on every resolution; pages centred like the
+  panel; agent checks the running app **1:1** against the boards before finishing.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.
 - 🟡 **Swap `juce::dsp::Chorus` (CC93) for the BBD model** from `va-effects`; budget = 16 `ChannelDSP`s.
