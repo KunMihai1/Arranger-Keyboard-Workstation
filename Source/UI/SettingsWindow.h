@@ -18,7 +18,6 @@
 
 #include <JuceHeader.h>
 #include "MidiHandler.h"
-#include "SFZLibraryUI.h"
 #include "UI/Stage/StagePageWidgets.h"
 
 namespace OutputEngineIds
@@ -36,7 +35,6 @@ namespace MinorScaleButtons
 
 namespace SettingsWindowText
 {
-    inline const char* const  sfzLibraryUtf8    = "SFZ library\xe2\x80\xa6";
     inline const char* const  addDeviceUtf8     = "Add device\xe2\x80\xa6";
     inline const juce::String arrangerMode      = "Arranger mode";
     inline const juce::String bassInversion     = "Bass inversion";
@@ -63,7 +61,7 @@ struct SettingsPageRects
     static constexpr int displayRows   = 3;   // particles, note names, particle colours
     std::array<juce::Rectangle<int>, columnCount> columns, headings;
     std::array<juce::Rectangle<int>, fieldCount> fieldLabels, fields;
-    juce::Rectangle<int> keyboardLabel, keyboardRow, sfzRow;
+    juce::Rectangle<int> keyboardLabel, keyboardRow;
     std::array<juce::Rectangle<int>, arrangerRows> arrangerToggles;
     juce::Rectangle<int> chordModeLabel, chordModeRow, minorScaleLabel, minorScaleRow;
     std::array<juce::Rectangle<int>, displayRows> displayToggles;
@@ -80,8 +78,6 @@ class MIDIWindow : public juce::Component,
 {
 public:
     std::function<bool()> isMidiDeviceOpen;
-    std::function<juce::String()> getCurrentStyleId;  // optional, set by owner
-    std::function<juce::String()> getCurrentStyleName; // optional, set by owner
     std::function<void(int engineOption)> onOutputEngineChanged; // fired when engine changes while playing
     std::function<void(bool)> onArrangerModeChanged;             // fired when the Classic/Arranger toggle changes
     std::function<void(bool)> onChordBassInversionChanged;       // Phase 4: bass follows the lowest fingered note
@@ -92,7 +88,6 @@ public:
     std::function<void(bool)> onChordZoneMuteChanged;          // silence the chord-recognition keys (Korg-style)
     std::function<void(bool)> onNttEnabledChanged;             // Phase 7a: master Chord-Transposition on/off
     std::function<void(int)>  onNttMinorScaleChanged;         // Phase 7a: 0=Dorian, 1=Aeolian, 2=HarmonicMinor
-    std::function<void()> onSfzLibraryChanged;                  // fired when SFZ mappings are imported/changed
 
     /** Keyboard field: the key count stored for a MIDI-in device (0 = unknown device / PC keyboard), saving a
         new one, and adding an unknown device (today's Add MIDI Device window). Set by the owner. */
@@ -101,7 +96,7 @@ public:
     std::function<void(const juce::String& deviceName)> onAddDevice;
 
     MIDIWindow(MidiDevice& mdevice, std::vector<std::string>& devicesListIN,
-               std::vector<std::string>& devicesListOUT, std::vector<std::string>& devicesListAudioOUT, juce::PropertiesFile* prop, SFZLibraryManager* sfzManagerPtr = nullptr);
+               std::vector<std::string>& devicesListOUT, std::vector<std::string>& devicesListAudioOUT, juce::PropertiesFile* prop);
     ~MIDIWindow() override;
 
     /** The page (or the home-screen window) became visible / hidden: refresh the device lists and poll them while shown. */
@@ -118,7 +113,6 @@ public:
     void timerCallback() override;
 
 private:
-    void sfzButtonInit();
     void allInit();
     void populateCBIN();
     void populateCBOUT();
@@ -134,9 +128,6 @@ private:
     std::vector<std::string>& devicesListAudioOUT;/**< Vector of available audio output devices */
     juce::PropertiesFile* propertyFile = nullptr; /**< Optional storage for user settings */
 
-    SegButton sfzLibraryButton { juce::String::fromUTF8 (SettingsWindowText::sfzLibraryUtf8), SegButton::Style::seg };
-    SFZLibraryManager* sfzManager = nullptr;
-    std::unique_ptr<SFZLibraryUI> sfzLibraryUI;
 
     StageField comboBoxDevicesIN;         /**< MIDI input devices */
     StageField comboBoxDevicesOUT;        /**< MIDI output devices */

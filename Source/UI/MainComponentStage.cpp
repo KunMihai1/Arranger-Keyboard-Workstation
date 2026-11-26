@@ -13,9 +13,9 @@
       Rec              -> today's record start / stop
       Auto Fill        -> today's Auto Fill toggle; Sync Start -> SynchroStart
       tempo            -> the open style, as if its BPM slider were released
-      pages            -> Styles / Recorder / Settings / Chords host today's
-                          controls on a page frame; Effects, Voices and Home open
-                          what their old buttons opened
+      pages            -> Styles / Recorder / Settings / Chords / Effects / Voices
+                          host today's controls on a page frame (Voices:
+                          MainComponentVoices.cpp); Home does what it did
       Quick FX         -> the Effects window's save path, on the selected part
 
   ==============================================================================
@@ -33,6 +33,7 @@ namespace
         const juce::String settingsMode     = "SETTINGS";
         const juce::String chordsMode       = "CHORDS";
         const juce::String effectsMode      = "EFFECTS";
+        const juce::String voicesMode       = "VOICES";
         const juce::String effectsTitle     = "Effects";
         const juce::String particles        = "Particles";
         const juce::String noteNames        = "Note names on keys";
@@ -179,7 +180,6 @@ void MainComponent::stagePagesInit()
                                        static_cast<juce::Component*> (&particleDust), static_cast<juce::Component*> (&particleSmoke) })
         settingsPage->addAndMakeVisible (control);
     midiWindow->setInterceptsMouseClicks (false, true);   // its empty area (the Display column) clicks through
-    midiWindow->toFront (false);                          // the SFZ library panel (its child) covers the Display column
     settingsPage->onLayoutContent = [this] (juce::Rectangle<int> area, float scale)
     {
         midiWindow->setScale (scale);
@@ -222,6 +222,8 @@ void MainComponent::stagePagesInit()
         effectsContent->setScale (scale);
         effectsContent->setBounds (area);
     };
+
+    voicesPageInit();
 }
 
 void MainComponent::syncStylesPage()
@@ -239,7 +241,7 @@ void MainComponent::syncStylesPage()
 
 std::array<StagePageFrame*, MainComponent::stagePageCount> MainComponent::stagePageFrames() const
 {
-    return { stylesPage.get(), filePage.get(), settingsPage.get(), chordsPage.get(), effectsPage.get() };
+    return { stylesPage.get(), filePage.get(), settingsPage.get(), chordsPage.get(), effectsPage.get(), voicesPage.get() };
 }
 
 //==============================================================================
@@ -312,6 +314,7 @@ void MainComponent::updateStageScreen()
         case StagePage::settings: content.mode = StageWiringText::settingsMode; break;
         case StagePage::chords:   content.mode = StageWiringText::chordsMode;   break;
         case StagePage::effects:  content.mode = StageWiringText::effectsMode;  break;
+        case StagePage::voices:   content.mode = StageWiringText::voicesMode;   break;
         default:                  content.mode = StageWiringText::playMode;     break;
     }
     content.variation     = stageLitSection.toUpperCase();
@@ -336,6 +339,7 @@ void MainComponent::refreshStage()
     stagePanel->setRecording (recordPlayer.getIsRecording());
     stagePanel->setSyncStart (propertiesFile != nullptr && propertiesFile->getBoolValue (SettingsFileKeys::synchroStart, false));
     stagePanel->setPartLeds (leftHandInstrumentToggle.getToggleState(), rightHandInstrumentToggle.getToggleState());
+    syncVoicesPage();   // its title row shows the same two toggles
 
     auto page = pageRouter.open();
     stagePanel->setPageLed (page);
@@ -456,11 +460,6 @@ void MainComponent::openStagePage (StagePage page)
             homeButtonOnClick();
             return;
 
-        case StagePage::voices:
-            closeStagePage();
-            showInstrumentSelector();
-            break;
-
         case StagePage::effects:
             if (pageRouter.toggle (page) == StagePage::none)
                 closeStagePage();
@@ -477,6 +476,7 @@ void MainComponent::openStagePage (StagePage page)
         case StagePage::file:
         case StagePage::settings:
         case StagePage::chords:
+        case StagePage::voices:
             if (pageRouter.toggle (page) == StagePage::none)
                 closeStagePage();
             else
@@ -484,6 +484,8 @@ void MainComponent::openStagePage (StagePage page)
                 showStagePage (page);
                 if (page == StagePage::settings && midiWindow)
                     midiWindow->pageShown();   // fresh device lists, polled while the page is open (as the window did)
+                if (page == StagePage::voices)
+                    voicesPageShown();
             }
             break;
 
@@ -500,10 +502,11 @@ void MainComponent::showStagePage (StagePage page)
                           : page == StagePage::file   ? filePage.get()
                           : page == StagePage::chords ? chordsPage.get()
                           : page == StagePage::effects ? effectsPage.get()
+                          : page == StagePage::voices ? voicesPage.get()
                                                       : settingsPage.get();
     const auto frames = stagePageFrames();
     if (midiWindow && settingsPage && settingsPage->isVisible() && shown != settingsPage.get())
-        midiWindow->pageHidden();   // another page replaces Settings: stop polling, close the SFZ library panel
+        midiWindow->pageHidden();   // another page replaces Settings: stop polling the devices
     const bool anyPageWasOpen = std::any_of (frames.begin(), frames.end(),
                                              [] (const StagePageFrame* frame) { return frame != nullptr && frame->isVisible(); });
 

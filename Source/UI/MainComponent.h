@@ -18,7 +18,7 @@
 #include "KeyboardUI.h"
 #include "NoteLayer.h"
 #include "keyListener.h"
-#include "InstrumentTreeItem.h"
+#include "UI/Voices/VoicesInstrumentPanel.h"
 #include "MidiRecordPlayer.h"
 #include "displayGUI.h"
 #include "addDeviceWindow.h"
@@ -315,12 +315,8 @@ private:
     void updateKeysButtonOnClick();
 
     // Instrument/UI helpers
-    juce::Image getImageForInstruments(const std::string& type);
-    void buildTree();
-    InstrumentTreeItem* createInstrumentItem(const juce::Image& img, const juce::String& name, int program);
     bool openingDevicesForPlay();
     void showColourSelector();
-    void showInstrumentSelector();
     void saveRecordingToFile(double tempo = ArrangerStyleDefaults::tempoBpm);
     void playRecordingFromFile(double tempo = ArrangerStyleDefaults::tempoBpm);
 
@@ -456,7 +452,6 @@ private:
     KnobLookAndFeel customKnobLookAndFeel;
 
     juce::ColourSelector* colourSelector; ///< Colour selector pointer
-    std::unique_ptr<juce::TreeView> treeView = nullptr; ///< Instrument tree
 
     // UI windows
     std::unique_ptr<MIDIWindow> midiWindow = nullptr;
@@ -497,9 +492,9 @@ private:
     headerPanel headerPanel;   ///< no longer shown: its controls moved to the Stage panel and pages
 
     std::unique_ptr<StagePanel> stagePanel;
-    std::unique_ptr<StagePageFrame> stylesPage, filePage, settingsPage, chordsPage, effectsPage;
+    std::unique_ptr<StagePageFrame> stylesPage, filePage, settingsPage, chordsPage, effectsPage, voicesPage;
     std::unique_ptr<ChordBrowserComponent> chordsBrowser;   ///< today's chord helper, hosted by the Chords page
-    static constexpr int stagePageCount = 5;   ///< Styles, Recorder, Settings, Chords, Effects
+    static constexpr int stagePageCount = 6;   ///< Styles, Recorder, Settings, Chords, Effects, Voices
     std::array<StagePageFrame*, stagePageCount> stagePageFrames() const;
     void syncStylesPage();
     // Settings page (board StageSettings): the MIDI / Arranger / Chords content is midiWindow (a component now);
@@ -511,6 +506,17 @@ private:
     void createSettingsContent();
     void setParticleStyle (int styleId, bool save);
     int particleStyleId = ParticleStyles::dust;   ///< applied again when Play creates the note layer
+    // Voices page (board StageVoices, MainComponentVoices.cpp): the lit hands' instrument, Display's range fields,
+    // the SFZ library; the title row's Left hand / Right hand are the Part LEDs' two toggles.
+    std::unique_ptr<VoicesInstrumentPanel> voicesPanel;
+    SilkLabel voicesEditingLabel { {}, SilkLabel::Tone::dim };
+    SegButton voicesLeftHand  { {}, SegButton::Style::seg, true };
+    SegButton voicesRightHand { {}, SegButton::Style::seg, true };
+    void voicesPageInit();
+    void voicesPageShown();
+    void syncVoicesPage();
+    /** The instrument picked on the Voices page, for every lit hand; with none lit, a hint and no change. */
+    void chooseHandInstrument (int programNumber);
     PageRouter pageRouter;
     StageRegions stageRegions;
     ArrangerChord stageChord;

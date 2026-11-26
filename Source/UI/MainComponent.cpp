@@ -55,8 +55,6 @@ namespace
         constexpr int   chordHelperRightOffset = 205;
         constexpr int   saveButtonWidth        = 140;
         constexpr int   playRecordingX         = 305;
-        constexpr int   sfzLibraryWidth        = 500;
-        constexpr int   sfzLibraryHeight       = 400;
         constexpr int   loginPanelSize         = 400;
     }
 }
@@ -159,9 +157,8 @@ MainComponent::MainComponent()
 
 
     sfzManager.load(IOHelper::getFile(AppDataNames::sfzLibraryFile));
-    sfzLibraryUI = std::make_unique<SFZLibraryUI>(sfzManager);
-    addAndMakeVisible(*sfzLibraryUI);
-    sfzLibraryUI->setVisible(false);
+    if (sfzLibraryUI)
+        sfzLibraryUI->refresh();   // the Voices page's library list (created with the pages, before the load)
 
     startTimer(deviceCheckIntervalMs);
 
@@ -189,14 +186,6 @@ MainComponent::~MainComponent()
         this->display->stoppingPlayer();
         this->MIDIDevice.deviceCloseAudioOUT();
 	}
-    if (treeView != nullptr && treeView->getRootItem() != nullptr)
-    {
-        //DBG("Deleting root item dest main: " << treeView->getRootItem()->getUniqueName());
-        treeView->deleteRootItem();
-        treeView->deleteRootItem();
-    }
-    else;
-        //DBG("No root item to delete destructor main");
     removeKeyListener(this);
     if(&keyListener)
         removeKeyListener(&this->keyListener);
@@ -386,8 +375,6 @@ void MainComponent::resized()
     saveRecordingButton.setBounds(startRecording.getX()-saveButtonWidth-headerMargin, headerMargin, saveButtonWidth, headerButtonHeight);
     playRecordingFileButton.setBounds(playRecordingX, headerMargin, headerButtonWidth, headerButtonHeight);
 
-    if (sfzLibraryUI)
-        sfzLibraryUI->setBounds(getLocalBounds().withSizeKeepingCentre(sfzLibraryWidth, sfzLibraryHeight));
 
 
 

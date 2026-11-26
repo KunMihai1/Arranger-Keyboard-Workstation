@@ -25,6 +25,10 @@
               file="../tests/unit/test_effects_page.cpp"/>
         <FILE id="setPgT" name="test_settings_page.cpp" compile="1" resource="0"
               file="../tests/unit/test_settings_page.cpp"/>
+        <FILE id="instCT" name="test_instrument_catalog.cpp" compile="1" resource="0"
+              file="../tests/unit/test_instrument_catalog.cpp"/>
+        <FILE id="voicPT" name="test_voices_page.cpp" compile="1" resource="0"
+              file="../tests/unit/test_voices_page.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"
@@ -418,6 +422,18 @@
                 file="../Source/UI/Stage/StageWidgets.h"/>
           <FILE id="stgPwC" name="StagePageWidgets.cpp" compile="1" resource="0"
                 file="../Source/UI/Stage/StagePageWidgets.cpp"/>
+          <FILE id="vcCatH" name="InstrumentCatalog.h" compile="0" resource="0"
+                file="../Source/UI/Voices/InstrumentCatalog.h"/>
+          <FILE id="vcCatC" name="InstrumentCatalog.cpp" compile="1" resource="0"
+                file="../Source/UI/Voices/InstrumentCatalog.cpp"/>
+          <FILE id="vcLayH" name="VoicesPageLayout.h" compile="0" resource="0"
+                file="../Source/UI/Voices/VoicesPageLayout.h"/>
+          <FILE id="vcLayC" name="VoicesPageLayout.cpp" compile="1" resource="0"
+                file="../Source/UI/Voices/VoicesPageLayout.cpp"/>
+          <FILE id="vcPanH" name="VoicesInstrumentPanel.h" compile="0" resource="0"
+                file="../Source/UI/Voices/VoicesInstrumentPanel.h"/>
+          <FILE id="vcPanC" name="VoicesInstrumentPanel.cpp" compile="1" resource="0"
+                file="../Source/UI/Voices/VoicesInstrumentPanel.cpp"/>
           <FILE id="stgPwH" name="StagePageWidgets.h" compile="0" resource="0"
                 file="../Source/UI/Stage/StagePageWidgets.h"/>
           <FILE id="stgSrC" name="StageScreen.cpp" compile="1" resource="0"
@@ -443,6 +459,7 @@
         <FILE id="sploGM" name="MainComponentInit.cpp" compile="1" resource="0" file="../Source/UI/MainComponentInit.cpp"/>
         <FILE id="splbJm" name="MainComponentOverlays.cpp" compile="1" resource="0" file="../Source/UI/MainComponentOverlays.cpp"/>
         <FILE id="mcStge" name="MainComponentStage.cpp" compile="1" resource="0" file="../Source/UI/MainComponentStage.cpp"/>
+        <FILE id="mcVoic" name="MainComponentVoices.cpp" compile="1" resource="0" file="../Source/UI/MainComponentVoices.cpp"/>
         <FILE id="splWdg" name="MainComponentWidgets.cpp" compile="1" resource="0" file="../Source/UI/MainComponentWidgets.cpp"/>
         <FILE id="splTPS" name="MainComponentPlayback.cpp" compile="1" resource="0" file="../Source/UI/MainComponentPlayback.cpp"/>
         <FILE id="DXD47A" name="SoundEffectWindowComponent.cpp" compile="1"
@@ -495,10 +512,6 @@
               file="../Source/UI/temporaryNotificationUI.cpp"/>
         <FILE id="t6Fzqa" name="temporaryNotificationUI.h" compile="0" resource="0"
               file="../Source/UI/temporaryNotificationUI.h"/>
-        <FILE id="T77ubi" name="InstrumentTreeItem.cpp" compile="1" resource="0"
-              file="../Source/UI/InstrumentTreeItem.cpp"/>
-        <FILE id="YlXHVG" name="InstrumentTreeItem.h" compile="0" resource="0"
-              file="../Source/UI/InstrumentTreeItem.h"/>
         <FILE id="iqvpAW" name="NoteLayer.cpp" compile="1" resource="0" file="../Source/UI/NoteLayer.cpp"/>
         <FILE id="nlPart" name="NoteLayerParticles.cpp" compile="1" resource="0" file="../Source/UI/NoteLayerParticles.cpp"/>
         <FILE id="nlName" name="NoteLayerNames.h" compile="0" resource="0" file="../Source/UI/NoteLayerNames.h"/>

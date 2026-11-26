@@ -339,8 +339,8 @@ public:
             expect (views.show (StyleView::tracks) == StyleView::tracks);
             expect (views.back() == StyleView::style);
             expect (views.back() == StyleView::style);
-            views.show (StyleView::notes);
-            expect (views.show (StyleView::settings) == StyleView::settings);
+            views.show (StyleView::tracks);
+            expect (views.show (StyleView::notes) == StyleView::notes);
             expect (views.back() == StyleView::style);
         }
 

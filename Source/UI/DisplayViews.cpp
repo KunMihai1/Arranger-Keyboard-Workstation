@@ -5,8 +5,8 @@
 
     The Style page's views (board StageRevised openPage=styles, PageTracks,
     PageNotes): the style itself (styles list + track strips), and the pages
-    opened from it - the track picker, the notes page and the style settings -
-    shown one at a time in the same page (StyleViewRouter). Split from
+    opened from it - the track picker and the notes page - shown one at a time
+    in the same page (StyleViewRouter). "Style settings..." opens the Voices page. Split from
     Display.cpp to keep both under the file cap (ADR-003).
 
   ==============================================================================
@@ -76,7 +76,6 @@ void Display::destroySubView()
         trackListComp->removeListener (this);
         trackListComp.reset();
     }
-    playBackSettings.reset();
     notesContainer.reset();
 }
 
@@ -96,8 +95,6 @@ void Display::layoutViews()
 
     if (trackListComp)
         trackListComp->setBounds (area);
-    if (playBackSettings)
-        playBackSettings->setBounds (area);
     if (notesContainer)
         notesContainer->setBounds (area);
     repaint();
@@ -121,7 +118,6 @@ juce::String Display::getViewTitle() const
         case StyleView::tracks:
             return StylePageText::tracksTitle + juce::String::fromUTF8 (StylePageText::slotSeparatorUtf8)
                  + juce::String (currentStyleComponent ? currentStyleComponent->getRequestingSlot() : int {});
-        case StyleView::settings: return StylePageText::settingsTitle;
         case StyleView::notes:    return notesTitle;
         case StyleView::style:    break;
     }
@@ -169,27 +165,7 @@ void Display::viewChanged()
         onViewChanged();
 }
 
-void Display::openStyleSettings()
+PlayBackSettingsComponent& Display::getPlaybackSettings()
 {
-    if (currentStyleComponent == nullptr)
-        return;
-
-    destroySubView();
-    playBackSettings = std::make_unique<PlayBackSettingsComponent>(minNote, maxNote, this->settings);
-    playBackSettings->getStyleID = [this]() { return this->getStyleID(); };
-
-    playBackSettings->onChangingSettings = [this](PlayBackSettings)
-    {
-        // Save settings using PropertiesFile
-        PlaybackSettingsIOHelper::savePlaybackSettings(propertiesFile, this->settings, minNote, maxNote, this->getStyleID());
-        displayListeners.call(&DisplayListener::playBackSettingsChanged, this->settings);
-    };
-
-    playBackSettings->onChangingTranspose = [this](int transposeValue)
-    {
-        displayListeners.call(&DisplayListener::playBackSettingsTransposeChanged, transposeValue);
-    };
-
-    addAndMakeVisible (playBackSettings.get());
-    showView (StyleView::settings);
+    return *playBackSettings;
 }

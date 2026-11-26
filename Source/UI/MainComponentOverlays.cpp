@@ -217,32 +217,11 @@ void MainComponent::setOverlayMenuVisible(bool show)
 void MainComponent::createSettingsContent()
 {
     // The Settings page's content (it was the MIDI Settings window): created once, with every callback the window got.
-    midiWindow = std::make_unique<MIDIWindow>(this->MIDIDevice, devicesIN, devicesOUT, devicesAudioOUT, propertiesFile, &sfzManager);
+    midiWindow = std::make_unique<MIDIWindow>(this->MIDIDevice, devicesIN, devicesOUT, devicesAudioOUT, propertiesFile);
 
         midiWindow->isMidiDeviceOpen = [this]()
         {
             return !playButton.isVisible();
-        };
-
-        midiWindow->getCurrentStyleId = [this]() -> juce::String
-        {
-            if (display)
-                return display->getStyleID();
-            return {};
-        };
-
-        midiWindow->getCurrentStyleName = [this]() -> juce::String
-        {
-            if (display)
-                return display->getStyleName();
-            return {};
-        };
-
-        midiWindow->onSfzLibraryChanged = [this]()
-        {
-            if (audioHandler == nullptr || !MIDIDevice.isOpenAudioOUT())
-                return;
-            loadSfzForCurrentStyle();
         };
 
         midiWindow->onArrangerModeChanged = [this](bool enabled)

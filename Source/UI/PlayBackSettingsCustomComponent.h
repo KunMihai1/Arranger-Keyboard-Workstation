@@ -5,6 +5,11 @@
     Created: 10 Oct 2025 10:16:25pm
     Author:  Kisuke
 
+    The Voices page's "Range, split & transpose" column (board StageRevised
+    openPage=voices): the style's playing range, the two hands' split and the
+    transpose, as LCD fields. Display owns it (per-style settings live there);
+    the Voices page shows it.
+
   ==============================================================================
 */
 
@@ -12,6 +17,7 @@
 #include <JuceHeader.h>
 #include "HelperFunctions.h"
 #include "PersistedKeys.h"
+#include "UI/Stage/StagePageWidgets.h"
 
 /**
  * @struct PlayBackSettings
@@ -30,16 +36,22 @@ struct PlayBackSettings
     juce::String PID;        /**< USB Product ID (optional) */
 };
 
+/** The transpose field's choices: -12 ... +12 semitones, one item each. */
+namespace TransposeField
+{
+    inline constexpr int maxSemitones = 12;
+    juce::String itemText (int semitones);   ///< "0 semitones", "+3 semitones", "-12 semitones"
+    int itemId (int semitones);
+    int semitonesFor (int itemId);
+}
+
 /**
  * @class PlayBackSettingsComponent
- * @brief Custom JUCE component for configuring playback note ranges and hand intervals.
+ * @brief The playback range, the hands' split and the transpose of the open style.
  *
- * This component provides ComboBoxes and Labels for selecting:
- * - Start and end note of playback.
- * - Left and right hand boundaries.
- *
- * It also supports updating a provided PlayBackSettings struct and saving the settings
- * to a JSON file.
+ * A change made in a field updates the PlayBackSettings struct it was given and reports it (onChangingSettings,
+ * which saves it per style); showing settings that changed elsewhere (another style opened, an octave shift)
+ * only updates the fields.
  */
 class PlayBackSettingsComponent : public juce::Component, private juce::ComboBox::Listener
 {
@@ -60,9 +72,14 @@ public:
     PlayBackSettingsComponent(int lowestNote, int highestNote, PlayBackSettings& settings);
 
     /** Destructor */
-    ~PlayBackSettingsComponent();
+    ~PlayBackSettingsComponent() override;
 
-    /** @brief Lays out the child ComboBoxes and Labels */
+    void setScale (float newScale);
+
+    /** No style open: the fields are disabled (they save per style). */
+    void setStyleOpen (bool open);
+
+    void paint (juce::Graphics& g) override;
     void resized() override;
 
     /**
@@ -71,43 +88,33 @@ public:
      */
     void comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged) override;
 
-    /** @brief Initializes left and right hand interval ComboBoxes */
-    void handIntervalsInit();
-
-    /** @brief Initializes start and end note ComboBoxes */
-    void startStopInit();
-
-    void transposeSliderInit();
+    /** Shows the settings struct's current values without reporting them (they were loaded or shifted elsewhere). */
+    void showSettings();
 
     /**
-     * @brief Updates the component with a new set of settings.
-     * @param newSettings The new PlayBackSettings values to apply.
-     */
-    void setNewSettings(PlayBackSettings& newSettings);
-
-    /**
-     * @brief Updates the available lowest and highest note range.
+     * @brief Updates the available lowest and highest note range (the fields' choices follow).
      * @param lowest The lowest MIDI note to allow.
      * @param highest The highest MIDI note to allow.
      */
     void setLowestHighest(int lowest, int highest);
 
+    int getTransposeSemitones() const;
+
 private:
+    void refreshFields();
+
     int lowestNote;               /**< Lowest selectable MIDI note */
     int highestNote;              /**< Highest selectable MIDI note */
     PlayBackSettings& settings;   /**< Reference to external settings struct */
+    float scale { StageMetrics::referenceScale };
 
-    juce::ComboBox startNoteBox;  /**< ComboBox to select start note */
-    juce::ComboBox endNoteBox;    /**< ComboBox to select end note */
-    juce::Label startNoteLabel;   /**< Label for start note ComboBox */
-    juce::Label endNoteLabel;     /**< Label for end note ComboBox */
+    StageField startNoteBox;      /**< start note */
+    StageField endNoteBox;        /**< end note */
+    StageField leftHandBoundBox;  /**< the left hand's highest note */
+    StageField rightHandBoundBox; /**< the right hand's lowest note */
+    StageField transposeField;
 
-    juce::Label leftHandBoundLabel;   /**< Label for left hand ComboBox */
-    juce::Label rightHandBoundLabel;  /**< Label for right hand ComboBox */
+    SilkLabel rangeLabel, leftHandBoundLabel, rightHandBoundLabel, transposeLabel;
 
-    juce::ComboBox leftHandBoundBox;  /**< ComboBox to select left hand range */
-    juce::ComboBox rightHandBoundBox; /**< ComboBox to select right hand range */
-
-    juce::Slider transposeSlider;
-    
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PlayBackSettingsComponent)
 };

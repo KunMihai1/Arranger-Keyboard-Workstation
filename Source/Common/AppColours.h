@@ -104,6 +104,7 @@ namespace StagePalette
     static const juce::Colour screenBezel { 0xff101112 };
     static const juce::Colour lcd         { 0xffa7b394 };
     static const juce::Colour lcdInk      { 0xff1b2216 };
+    static const juce::Colour lcdInputInk { 0xff3b4630 };   // .lcd-input: its text, a shade lighter than the lists'
 
     // --- Beat lamps ---
     static const juce::Colour lampOff            { 0xff2b2c2f };
