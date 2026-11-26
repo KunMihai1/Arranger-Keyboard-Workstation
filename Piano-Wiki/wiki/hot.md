@@ -11,9 +11,9 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-26. UI polish fixes merged (PR #67). **Phase 4d, the Voices page** on `feat/ui-voices-page`: instrument
-(8 groups / 33 programs, search), range / split / transpose ("Style settings…" opens the page) and the SFZ library
-(moved from Settings) on one page. Next page: Chords. `docs/superpowers/` is **local only** (owner). Detail in [[log]].
+2026-11-26. Voices page merged (PR #68). **Phase 4e, the Chord helper page** on `feat/ui-chords-page` (voicings
+drawn on mini keyboards; pages now hold the GL note layer hidden — a note used to bring it back over the page).
+Next page: Recorder. Open (owner): Styles LED stays lit; strip instrument ignores a new track; picker forgets the folder. `docs/superpowers/` is **local only** (owner). Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -30,7 +30,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 1912, arranger 770, integration 130 (+7 skipped), display 8**.
+  Current: **unit 2772, arranger 770, integration 130 (+7 skipped), display 10**.
 - Visual checks: screenshot/click the app's window by process id (a VS panel can share its title); boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
@@ -38,15 +38,15 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - Projucer detaches: `Start-Process -Wait`; quote `"Arranger Workstation.jucer"` (space in name).
 - Header layout change → `/t:Rebuild`. New `Source/` file → add to **both** `.jucer`s.
 - Git Bash `sed -i` drops CRLF in `.jucer` files — edit them with Python.
-- **Precompiled header**, only the JUCE modules in use, 64-bit tools and one JUCE `/MP` batch (root
-  `Directory.Build.*`): one-file rebuild ~2.6 s, clean ~30 s. Editing `Source/PrecompiledHeader.h` needs a Projucer re-save. [[Dependencies Index]]
+- Precompiled header + root `Directory.Build.*`: one-file rebuild ~2.6 s, clean ~30 s; editing
+  `Source/PrecompiledHeader.h` needs a Projucer re-save. [[Dependencies Index]]
 - CI caches compiled JUCE objects (filled by runs on `main`; key hashes `ci/JuceLibraryCode`).
 
 ## Active Threads / Next
 Full task list with states: [[Owner Backlog]].
 - 🟡 **~100 `juce::AlertWindow`s left** (0.5–1 s each in Debug, balanced text layout): move to `StageDialog`.
 - 🟡 **UI redesign** (spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2): panel and
-  pages Style, Effects, Settings, Voices done. Owner: same look on every resolution; pages centred like the
+  pages Style, Effects, Settings, Voices, Chord helper done. Owner: same look on every resolution; pages centred like the
   panel; agent checks the running app **1:1** against the boards before finishing.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.

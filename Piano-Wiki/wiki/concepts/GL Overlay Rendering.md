@@ -2,7 +2,7 @@
 type: concept
 title: "GL Overlay Rendering"
 created: 2026-06-07
-updated: 2026-11-21
+updated: 2026-11-26
 tags:
   - concept
   - ui
@@ -30,6 +30,7 @@ Why on-screen overlays (loading label, ESC menu) need special handling in this a
 2. **Play-button overlay**: `playButtonOnClick()` blocks the message thread (opens devices + loads SFZ). You can't force-present a frame while blocked, so the work is **deferred until after the overlay actually paints** — set a `pendingPlayInit` flag + `repaint()`, and kick the blocking work from `paintOverChildren` via `callAsync` once it has drawn. Deterministic; no arbitrary delay.
 3. **ESC menu** (`OverlayComponent`, now an **in-app child**, not `addToDesktop`): shown via `setOverlayMenuVisible`, which hides the note layer + keyboard so the menu paints on top, and restores them on close. Being in-app means a crash can't leave a stuck OS window. On close it also calls `NoteLayer::resetState()` so you don't return to stale frozen notes.
 4. **Arranger authoring overlays** (style browser/editor, presented by `CurrentStyleComponent`): same problem — they punched through in the middle, showing the timeline as two strips. Fixed via the `onAuthoringOverlayVisible` callback chain → `MainComponent::setArrangerOverlaySceneHidden`, which hides the note layer while any authoring overlay is up (re-entrancy-guarded since browser→editor presents twice).
+5. **Stage pages** (2026-11-26): opening a page hides the note layer **and holds it hidden** (`NoteLayer::setHeldHidden(true)`; `closeStagePage` releases it). The layer shows itself on a note while the keyboard is visible (`handleNoteOn`), and pages leave the keyboard visible, so before the hold any note played on a page — a chord clicked in the Chord helper, a PC key — put the GL layer back over the page. The Esc menu hides the keyboard too, so it never hit this.
 
 ## Rule of thumb
 Any overlay that must appear **over the live scene** either (a) hides the GL `NoteLayer` for its duration, or (b) is drawn inside the GL layer. Don't rely on `setAlwaysOnTop` or `performAnyPendingRepaintsNow` alone — they don't beat the GL child surface, and forcing a paint without yielding to the loop won't present it.
