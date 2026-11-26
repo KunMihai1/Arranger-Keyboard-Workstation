@@ -557,6 +557,15 @@ namespace StageLcd
         g.fillRoundedRectangle (area.withHeight (shade), corner);
     }
 
+    juce::Rectangle<float> rowLeftTextArea (juce::Rectangle<int> row, float scale, const juce::String& rightText)
+    {
+        auto text = row.toFloat().reduced (static_cast<float> (StageMetrics::lcdRowPaddingSide) * scale, float {});
+        if (rightText.isNotEmpty())
+            text.removeFromRight (juce::GlyphArrangement::getStringWidth (rowFont (scale), rightText)
+                                  + static_cast<float> (StageMetrics::lcdRowTextGap) * scale);
+        return text;
+    }
+
     void paintRow (juce::Graphics& g, juce::Rectangle<int> row, float scale,
                    const juce::String& leftText, const juce::String& rightText, bool selected)
     {
@@ -566,7 +575,7 @@ namespace StageLcd
         const auto text = row.toFloat().reduced (static_cast<float> (StageMetrics::lcdRowPaddingSide) * scale, float {});
         g.setColour (textColour (selected));
         g.setFont (rowFont (scale));
-        g.drawText (leftText, text, juce::Justification::centredLeft, true);
+        g.drawText (leftText, rowLeftTextArea (row, scale, rightText), juce::Justification::centredLeft, true);
         if (rightText.isNotEmpty())
             g.drawText (rightText, text, juce::Justification::centredRight, false);
     }

@@ -461,24 +461,37 @@ void Track::setNameLabel(const juce::String& name)
     refreshInstrumentCaption();
 }
 
+void Track::requestTrackSelection()
+{
+    if (! onRequestTrackSelection)
+        return;
+    onRequestTrackSelection([safeThis = juce::Component::SafePointer<Track>(this)](const ChosenTrack& chosen)
+        {
+            if (safeThis == nullptr)
+                return;
+            safeThis->setNameLabel(chosen.name);
+            safeThis->setUUID(chosen.uuid);
+            safeThis->setTypeOfTrack(chosen.type);
+            const bool percussion = chosen.type.trim() == TrackTypeNames::percussion;
+            if (percussion)
+                safeThis->channel = drumChannel;
+
+            // The picked track's own instrument, not the previous track's: the strip's instrument is what plays
+            // (and is written back to the track on Start), so a leftover one would replace the new track's sound.
+            const int instrument = chosen.instrument == TrackEntryDefaults::notSet ? noInstrument : chosen.instrument;
+            safeThis->setInstrumentNumber(instrument, false);
+            if (! percussion && safeThis->onInstrumentChosen)
+                safeThis->onInstrumentChosen(instrument);   // the SFZ engine reloads the channel (drums keep theirs)
+        });
+}
+
 void Track::mouseDown(const juce::MouseEvent& event)
 {
     if (event.eventComponent == &nameLabel)
     {
         if (event.mods.isLeftButtonDown())
         {
-            if (onRequestTrackSelection)
-            {
-                onRequestTrackSelection([this](const juce::String& selectedTrack, const juce::Uuid& uuid, const juce::String& type)
-                    {
-                        setNameLabel(selectedTrack);
-                        setUUID(uuid);
-                        setTypeOfTrack(type);
-                        if (type.trim() == TrackTypeNames::percussion)
-                            this->channel = drumChannel;
-                    }
-                );
-            }
+            requestTrackSelection();
         }
         else if(event.mods.isRightButtonDown()){
             juce::PopupMenu menu;

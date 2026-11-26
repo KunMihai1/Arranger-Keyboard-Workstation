@@ -135,7 +135,7 @@ public:
      * @brief Shows a list of tracks to select from and returns the selected track via callback
      * @param onTrackSelected Callback when a track is selected
      */
-    void showListOfTracksToSelectFrom(std::function<void(const juce::String&, const juce::Uuid&, const juce::String& type)> onTrackSelected);
+    void showListOfTracksToSelectFrom(TrackChosenCallback onTrackSelected);
 
     /** @brief Returns a list of available tracks from a folder */
     std::vector<TrackEntry> getAvailableTracksFromFolder(const juce::File& folder);
@@ -308,6 +308,7 @@ private:
     bool arrangerCountIn = false;           ///< Remembered Count-In, applied when a style component is created.
 
     std::unique_ptr<TrackListComponent> trackListComp; ///< Track selection component
+    juce::String lastTrackFolder;                       ///< the track picker's last opened folder (reopened next time)
     juce::var allStylesJsonVar; ///< Root JSON object storing all styles
     std::unordered_map<juce::Uuid, TrackEntry*> mapUuidToTrack; ///< Map of track UUIDs to entries
 

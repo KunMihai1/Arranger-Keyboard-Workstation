@@ -149,7 +149,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
         std::weak_ptr<std::unordered_map<juce::String, std::unordered_map<juce::String,StyleSection>>> weakSectionsMap = sectionsPerStyleMap;
 
         currentStyleComponent = std::make_unique<CurrentStyleComponent>(name, mapUuidToTrack, outputDevice,weakSectionsMap);
-        currentStyleComponent->onRequestTrackSelectionFromTrack = [this](std::function<void(const juce::String&, const juce::Uuid& uuid, const juce::String& type)> trackChosenCallback)
+        currentStyleComponent->onRequestTrackSelectionFromTrack = [this](TrackChosenCallback trackChosenCallback)
         {
             showListOfTracksToSelectFrom(trackChosenCallback);
         };
@@ -282,7 +282,7 @@ void Display::showCurrentStyleTab(const juce::String& name)
     currentStyleComponent->applyChangesForAllTracksCurrentStyle();
 }
 
-void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String&, const juce::Uuid& uuid, const juce::String& type)> onTrackSelected)
+void Display::showListOfTracksToSelectFrom(TrackChosenCallback onTrackSelected)
 {
     destroySubView();   // one sub-page at a time
     trackListComp = std::make_unique<TrackListComponent>(availableTracksFromFolder, groupedTracks, groupedTrackKeys,
@@ -291,7 +291,7 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
             auto& track = (*availableTracksFromFolder)[index];
             juce::String typeString = TrackTypeConversion::toString(track.type);
 
-            onTrackSelected(track.getDisplayName(), track.getUniqueID(), typeString);
+            onTrackSelected({ track.getDisplayName(), track.getUniqueID(), typeString, track.instrumentAssociated });
 
             // No map update here: `track` lives in the picker's copy of the open folder, which the
             // next folder open overwrites. The map already points at the library entry
@@ -349,6 +349,10 @@ void Display::showListOfTracksToSelectFrom(std::function<void(const juce::String
 
     trackListComp->setSlotNumber(currentStyleComponent ? currentStyleComponent->getRequestingSlot() : int {});
     trackListComp->setScale(scale);
+    // Owner: open the folder used last instead of the folder list each time (this session; a gone folder is forgotten).
+    trackListComp->onFolderOpened = [this](const juce::String& folder) { lastTrackFolder = folder; };
+    if (lastTrackFolder.isNotEmpty() && ! trackListComp->openFolderNamed(lastTrackFolder))
+        lastTrackFolder = {};
     addAndMakeVisible(trackListComp.get());
     showView(StyleView::tracks);
 }

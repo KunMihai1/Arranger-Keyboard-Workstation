@@ -37,6 +37,18 @@ namespace TrackEntryDefaults
     constexpr int    keepCurrent = -1;       // playback settings: leave this value unchanged
 }
 
+/** A track picked in the track picker for a style strip: what the strip takes from it. */
+struct ChosenTrack
+{
+    juce::String name;
+    juce::Uuid uuid;
+    juce::String type;
+    int instrument = TrackEntryDefaults::notSet;   ///< the track's own instrument (as recorded, or last chosen for it)
+};
+
+/** Called once the user picks a track for the strip that asked. */
+using TrackChosenCallback = std::function<void(const ChosenTrack&)>;
+
 /**
  * @struct MidiChangeInfo
  * @brief Stores information about a single MIDI note change.

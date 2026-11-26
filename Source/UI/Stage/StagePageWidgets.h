@@ -213,6 +213,10 @@ namespace StageLcd
     juce::Colour textColour (bool selected);
     juce::Font rowFont (float scale);
 
+    /** Where a row's left text goes: the padded row, minus the right text and a gap when there is one (a long name
+        is cut with an ellipsis instead of running under the right text). */
+    juce::Rectangle<float> rowLeftTextArea (juce::Rectangle<int> row, float scale, const juce::String& rightText);
+
     /** Where a section heading's rule goes: after the title (+ gap), up to the right edge or the dim text. */
     juce::Rectangle<float> headingRule (juce::Rectangle<float> area, float scale,
                                         const juce::String& title, const juce::String& dimText);

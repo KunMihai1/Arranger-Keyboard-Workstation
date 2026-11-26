@@ -17,6 +17,10 @@ namespace TrackPickerTestValues
     const juce::String renameDialog   = "Rename opens an in-app dialog holding the selected track's name";
     const juce::String folderDialogs  = "Add folder / Rename open in-app dialogs; with no selection Rename only tells the screen";
     const juce::String useInSlot      = "the use button names the slot being filled";
+    const juce::String reportsFolder  = "opening a folder reports its name; Back reports none";
+    const juce::String reopensFolder  = "a new picker opens the remembered folder; a folder that is gone leaves the folder list";
+    const juce::String goneFolder     = "Gone";
+    const juce::String notReported    = "(not reported)";
 
     const juce::String ballads   = "Ballads";
     const juce::String folderKey = "Folder";
@@ -73,6 +77,17 @@ public:
         track.uuid = juce::Uuid();
         track.file = file;
         return track;
+    }
+
+    static void fillBallads (Library& lib)
+    {
+        using namespace TrackPickerTestValues;
+        std::deque<TrackEntry> tracks;
+        for (int melodic {}; melodic < melodicCount; ++melodic)
+            tracks.push_back (entry (alpha + juce::String (melodic), TrackType::Melodic, {}));
+        tracks.push_back (entry (drums, TrackType::Percussion, {}));
+        (*lib.folders)[ballads] = tracks;
+        lib.keys->push_back (ballads);
     }
 
     static void openFolder (TrackListComponent& list, int row)
@@ -180,6 +195,32 @@ public:
             if (dialog != nullptr)
                 dialog->cancel();
             expectEquals (lib.keys->size(), oneFolder);   // cancelled: no folder added
+        }
+
+        beginTest (reportsFolder);
+        {
+            Library lib;
+            fillBallads (lib);
+            TrackListComponent list (lib.openFolder, lib.folders, lib.keys, [] (int) {});
+            juce::String reported = notReported;
+            list.onFolderOpened = [&reported] (const juce::String& folder) { reported = folder; };
+            openFolder (list, folderRow);
+            expectEquals (reported, ballads);
+            list.backToFolderView();
+            expect (reported.isEmpty());
+        }
+
+        beginTest (reopensFolder);
+        {
+            Library lib;
+            fillBallads (lib);
+            TrackListComponent list (lib.openFolder, lib.folders, lib.keys, [] (int) {});
+            expect (list.openFolderNamed (ballads));
+            expectEquals (list.getNumRows(), totalCount);      // the folder's tracks, not the folder list
+
+            TrackListComponent other (lib.openFolder, lib.folders, lib.keys, [] (int) {});
+            expect (! other.openFolderNamed (goneFolder));
+            expectEquals (other.getNumRows(), static_cast<int> (oneFolder));
         }
 
         beginTest (useInSlot);

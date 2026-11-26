@@ -13,6 +13,21 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-27 — Owner bug reports: tracks, picker folder, Quick FX, labels (`fix/track-picker-instrument`)
+- Chord helper merged (PR #69); it also fixed the owner's "Styles LED stays red": a chord played on a page put
+  the GL note layer over the page.
+- A track picked for a strip kept the old track's instrument (and Start wrote it into the new track's library
+  entry): the picker now hands over `ChosenTrack` (with the track's instrument). The picker reopens the folder used
+  last (session). Quick FX follows Effects-page volume / reverb and the page opens on the lit part's instrument.
+  "RIGH" (LED-toggle width rounded below its text at 42 of 322 cases) and SFZ rows whose name ran under the
+  instrument (`StageLcd::rowLeftTextArea`) fixed. All test-first.
+- Reviews (Sonnet, two): "As recorded" picks reload the SFZ, drum picks don't. Noted: a drum strip re-picked
+  melodic keeps channel 10 until reload (as before).
+- Incident: live checks restored `%APPDATA%\Arranger Workstation` from a 2026-11-25 backup while the owner used the
+  app; their newer track library was likely lost (old `Piano Synth2` copy kept, owner re-creates). Agent rule: never
+  mirror app data or close the owner's app.
+- Unit 2790 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 10 / 0; names 0.
+
 ## 2026-11-26 — UI redesign phase 4e: Chord helper page (`feat/ui-chords-page`)
 - Voices page merged (PR #68). `ChordBrowserComponent` restyled to `PageChords`: `StageLcdInput` search, LCD list
   (23 px rows, notes right), chosen chord name + notes, three voicings drawn on mini keyboards (pure

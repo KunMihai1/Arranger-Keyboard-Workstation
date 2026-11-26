@@ -192,6 +192,7 @@ namespace StageMetrics
     inline constexpr int   lcdListPadding     = 4;     // top and bottom
     inline constexpr int   lcdInsetShadow     = 3;     // inset 0 1px 3px
     inline constexpr int   lcdRowHeight       = 21;    // 14 px mono line + padding 3 / 3
+    inline constexpr int   lcdRowTextGap      = 10;    // a row's left text to its right text
     inline constexpr int   lcdRowPaddingSide  = 10;
     inline constexpr float lcdListTextSize    = 14.0f;
     inline constexpr int   headingGap         = 10;    // section heading: title, rule, dim text

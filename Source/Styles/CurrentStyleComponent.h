@@ -66,7 +66,7 @@ public:
      *
      * Passes a callback which will be called with the chosen track name, UUID, and type.
      */
-    std::function<void(std::function<void(const juce::String&, const juce::Uuid&, const juce::String&)>)> onRequestTrackSelectionFromTrack;
+    std::function<void(TrackChosenCallback)> onRequestTrackSelectionFromTrack;
 
     /** @brief Callback to trigger track file updates after changes. */
     std::function<void()> updateTrackFile;

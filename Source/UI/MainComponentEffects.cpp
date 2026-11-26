@@ -213,7 +213,14 @@ void MainComponent::setCallBacksForEffectWindow()
 {
     std::function<void(int, int)> saveCallback = [this](int ccNumber, int value)
     {
-        applyAndSaveEffect(ccNumber, value, this->effectsContent->getSelectedChannel());
+        const int channel = this->effectsContent->getSelectedChannel();
+        applyAndSaveEffect(ccNumber, value, channel);
+
+        // The panel's Quick FX knobs show the same stored volume / reverb for the lit part: follow a change made
+        // here (they were only re-read on the next page change).
+        const bool quickFxValue = ccNumber == EffectControllers::volume || ccNumber == EffectControllers::reverb;
+        if (quickFxValue && stagePanel != nullptr && channel == selectedPartChannel())
+            stagePanel->setQuickKnobValues(MIDIDevice.getVolume(channel), MIDIDevice.getReverb(channel));
     };
 
 

@@ -9,6 +9,12 @@ namespace StageWidgetsTestValues
     const juce::String testCategory = "Unit";
 
     const juce::String ledState      = "a rubber button's LED starts off and follows setLedOn";
+    const juce::String toggleLabelFits = "an LED toggle's label area holds its whole text at every scale (\"RIGH\" at some window sizes)";
+    const juce::String leftPart  = "Left";
+    const juce::String rightPart = "Right";
+    constexpr float smallestScale = 0.4f;
+    constexpr float largestScale  = 2.0f;
+    constexpr float scaleStep     = 0.01f;
     const juce::String styleKept     = "a rubber button keeps its style, LED colour and label";
     const juce::String capOnlyClicks = "only the cap of a key button takes clicks, not its label";
     const juce::String keyGeometry   = "a key button's cap is centred, LED left of it, label under it";
@@ -284,6 +290,23 @@ public:
             expect (knob.isRotary());
             expect (knob.getTextBoxPosition() == juce::Slider::NoTextBox);
             expect (knob.getSize() == StageKnob::Size::effects);
+        }
+
+        beginTest (toggleLabelFits);
+        {
+            int clippedScales {};
+            for (const auto& partName : { leftPart, rightPart })
+            {
+                RubberButton toggle { partName, RubberButton::Style::ledToggle, RubberButton::LedColour::red };
+                for (auto scale = smallestScale; scale <= largestScale; scale += scaleStep)
+                {
+                    toggle.setScale (scale);
+                    toggle.setBounds (toggle.boundsForBoardBox ({ int {}, int {}, toggle.getPreferredWidth(), toggle.getPreferredHeight() }));
+                    if (toggle.getLabelBounds().getWidth() < juce::GlyphArrangement::getStringWidth (toggle.getLabelFont(), partName.toUpperCase()))
+                        ++clippedScales;
+                }
+            }
+            expectEquals (clippedScales, int {});
         }
     }
 };
