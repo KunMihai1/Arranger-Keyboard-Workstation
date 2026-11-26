@@ -15,9 +15,6 @@
 struct Chord
 {
     juce::String name;
-    juce::Image imgRoot, imgInv1, imgInv2;
-
-    bool imagesLoaded = false;
 };
 
 /**
@@ -48,5 +45,4 @@ class ChordHelper
 public:
     static std::vector<int> getNotesForChord(const Chord& chord);
 
-    static void loadChordNeeded(Chord& chord);
 };

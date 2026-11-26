@@ -19,8 +19,6 @@ namespace HelperFunctionsTestValues
     const juce::String invalidRootReturnsEmpty = "Invalid root returns empty";
     const juce::String case7thChord = "7th chord";
     const juce::String getNotesForChordUnknownRootReturnsEmptyForEvery = "getNotesForChord - unknown root returns empty for every quality";
-    const juce::String loadChordNeededAMatchedNameSetsImagesLoadedAnd = "loadChordNeeded - a matched name sets imagesLoaded and is idempotent";
-    const juce::String loadChordNeededUnknownChordStillMarksLoadedBut = "loadChordNeeded - unknown chord still marks loaded but assigns no image";
 
     const juce::String chordHelperTestName = "ChordHelper";
     constexpr int middleC = 60;
@@ -43,7 +41,6 @@ namespace HelperFunctionsTestValues
     const juce::String fSharpMinor = "F# Minor";
     const juce::String unknownRootChord = "X Major";
     const juce::String cSeventh = "C7";
-    const juce::String unmatchedChord = "Z Wonky";
     const juce::String notANoteRoot = "H ";
     const juce::StringArray qualityNames { "Major", "Minor", "Diminished", "Augmented" };
     const std::vector<int> cMajorNotes { 60, 64, 67 };
@@ -160,29 +157,6 @@ public:
                 Chord chord; chord.name = notANoteRoot + quality;   // H is not a note
                 expect(ChordHelper::getNotesForChord(chord).empty());
             }
-        }
-
-        // NOTE: we deliberately do NOT assert imgRoot.isValid() across all 48 names — that decodes
-        // PNGs (JUCE's job) from compile-time-guaranteed BinaryData symbols, so it tests the framework,
-        // not our code. We only test OUR control flow: the matched-branch flag, the early-return guard,
-        // and the unknown-name fallback.
-
-        beginTest(loadChordNeededAMatchedNameSetsImagesLoadedAnd);
-        {
-            Chord chord; chord.name = cMajor;
-            expect(! chord.imagesLoaded);
-            ChordHelper::loadChordNeeded(chord);
-            expect(chord.imagesLoaded);
-            ChordHelper::loadChordNeeded(chord);     // already loaded -> early-return guard, no change
-            expect(chord.imagesLoaded);
-        }
-
-        beginTest(loadChordNeededUnknownChordStillMarksLoadedBut);
-        {
-            Chord chord; chord.name = unmatchedChord;    // no branch matches
-            ChordHelper::loadChordNeeded(chord);
-            expect(chord.imagesLoaded);              // flag is still set (our fallback path)
-            expect(! chord.imgRoot.isValid());       // ...and no image was assigned
         }
     }
 

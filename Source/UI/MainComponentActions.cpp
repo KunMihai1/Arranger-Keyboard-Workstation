@@ -94,7 +94,6 @@ void MainComponent::toggleHPanel()
     toggleHandInstrumentToggle();
     toggleAnnotation();
     toggleSections();
-    toggleChordHelperButton();
 
     layoutStage();
     refreshStage();
@@ -212,13 +211,6 @@ void MainComponent::toggleAnnotation()
     if (noteNumbersAnnotation.isVisible())
         noteNumbersAnnotation.setVisible(false);
     else noteNumbersAnnotation.setVisible(true);
-}
-
-void MainComponent::toggleChordHelperButton()
-{
-    if (chordHelperButton.isVisible())
-        chordHelperButton.setVisible(false);
-    else chordHelperButton.setVisible(true);
 }
 
 void MainComponent::toggleForPlaying()

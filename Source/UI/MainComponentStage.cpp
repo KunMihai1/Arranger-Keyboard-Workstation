@@ -52,7 +52,7 @@ namespace
         const juce::String stylesTitle      = "Styles";
         const juce::String recorderTitle    = "Recorder";
         const juce::String settingsTitle    = "Settings";
-        const juce::String chordsTitle      = "Chords";
+        const juce::String chordsTitle      = "Chord helper";
     }
 
     constexpr int beatUnit = 4;   // styles carry no other time-signature denominator today (BeatBar's default)
@@ -210,14 +210,19 @@ void MainComponent::stagePagesInit()
         particleStyleLabel.setScale (scale);
     };
 
-    // Chords: today's chord helper (search, list, preview; a click plays the chord). It used to open in
-    // a call-out box that covered the panel and kept Esc to its search box, so it lives on a page now.
+    // Chords (board PageChords): the chord helper - search, the chord list, the chosen chord's voicings on
+    // mini keyboards; a click shows and plays the chord.
     chordsPage = makePage (StageWiringText::chordsTitle);
+    chordsPage->setRowGap (StageMetrics::subPageRowGap);
     chordsBrowser = std::make_unique<ChordBrowserComponent> (myChordLibrary);
     chordsBrowser->onChordChosen = [this] (const Chord& chord) { playChordOnClick (chord); };
     chordsBrowser->onEscape = [this] { closeStagePage(); refreshStage(); };
     chordsPage->addAndMakeVisible (*chordsBrowser);
-    chordsPage->onLayoutContent = [this] (juce::Rectangle<int> area, float) { chordsBrowser->setBounds (area); };
+    chordsPage->onLayoutContent = [this] (juce::Rectangle<int> area, float scale)
+    {
+        chordsBrowser->setScale (scale);
+        chordsBrowser->setBounds (area);
+    };
 
     // Effects (board StageEffects): the effect knobs on a page (they used to be the Sound Effects window).
     effectsPage = makePage (StageWiringText::effectsTitle);
@@ -527,7 +532,10 @@ void MainComponent::showStagePage (StagePage page)
     if (! anyPageWasOpen)
         noteLayerVisibleBeforePage = noteLayer && noteLayer->isVisible();
     if (noteLayer)
+    {
+        noteLayer->setHeldHidden (true);   // a note played while the page is open must not bring it back on top
         noteLayer->setVisible (false);
+    }
 
     shown->toFront (false);
 }
@@ -547,6 +555,8 @@ void MainComponent::closeStagePage()
             frame->setVisible (false);
         }
 
+    if (noteLayer)
+        noteLayer->setHeldHidden (false);
     if (anyPageWasOpen && noteLayer)
     {
         noteLayer->resetState();   // don't come back to frozen notes

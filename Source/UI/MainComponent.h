@@ -42,7 +42,6 @@ namespace MainComponentText
     inline const juce::String selectInstrument  = "Select instrument";
     inline const juce::String saveRecording     = "Save recording";
     inline const juce::String playRecordingFile = "Play recording file";
-    inline const juce::String chordHelper       = "Chord helper";
     inline const juce::String updateKeyCount    = "Update number of keys";
     inline const juce::String record            = "Record";
     inline const juce::String stop              = "Stop";
@@ -280,7 +279,6 @@ private:
     void toggleDevicesCBUpdate();
     void toggleSections();
     void toggleAnnotation();
-    void toggleChordHelperButton();
 
 
     // Initialization functions
@@ -305,7 +303,6 @@ private:
     void devicesCBUpdateInit();
     void sectionsInit();
     void annotationInit();
-    void chordHelperButtonInit();
    
 
     // Button click callbacks
@@ -436,7 +433,6 @@ private:
     juce::TextButton playRecordingFileButton{ MainComponentText::playRecordingFile };
     juce::ToggleButton leftHandInstrumentToggle, rightHandInstrumentToggle;
     RowToggle noteNumbersAnnotation { {} };                           ///< Settings page, Display: Note names on keys
-    juce::TextButton chordHelperButton{ MainComponentText::chordHelper };
     std::unique_ptr<StyleSectionComponent> introsEndings, variationsFills;
 
 

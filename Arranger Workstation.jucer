@@ -341,6 +341,10 @@
         <FILE id="C9tx49" name="chordBrowser.cpp" compile="1" resource="0"
               file="Source/UI/chordBrowser.cpp"/>
         <FILE id="QbNjqy" name="chordBrowser.h" compile="0" resource="0" file="Source/UI/chordBrowser.h"/>
+        <FILE id="chHmH" name="ChordHelperModel.h" compile="0" resource="0"
+              file="Source/UI/Chords/ChordHelperModel.h"/>
+        <FILE id="chHmC" name="ChordHelperModel.cpp" compile="1" resource="0"
+              file="Source/UI/Chords/ChordHelperModel.cpp"/>
         <FILE id="olzhBP" name="OverlayComponent.cpp" compile="1" resource="0"
               file="Source/UI/OverlayComponent.cpp"/>
         <FILE id="Fbo82v" name="OverlayComponent.h" compile="0" resource="0"

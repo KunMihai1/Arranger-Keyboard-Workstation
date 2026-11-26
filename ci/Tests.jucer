@@ -37,6 +37,8 @@
               file="../tests/unit/test_instrument_catalog.cpp"/>
         <FILE id="voicPT" name="test_voices_page.cpp" compile="1" resource="0"
               file="../tests/unit/test_voices_page.cpp"/>
+        <FILE id="chHmT" name="test_chord_helper_model.cpp" compile="1" resource="0"
+              file="../tests/unit/test_chord_helper_model.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"
@@ -483,6 +485,10 @@
         <FILE id="C9tx49" name="chordBrowser.cpp" compile="1" resource="0"
               file="../Source/UI/chordBrowser.cpp"/>
         <FILE id="QbNjqy" name="chordBrowser.h" compile="0" resource="0" file="../Source/UI/chordBrowser.h"/>
+        <FILE id="chHmH" name="ChordHelperModel.h" compile="0" resource="0"
+              file="../Source/UI/Chords/ChordHelperModel.h"/>
+        <FILE id="chHmC" name="ChordHelperModel.cpp" compile="1" resource="0"
+              file="../Source/UI/Chords/ChordHelperModel.cpp"/>
         <FILE id="olzhBP" name="OverlayComponent.cpp" compile="1" resource="0"
               file="../Source/UI/OverlayComponent.cpp"/>
         <FILE id="Fbo82v" name="OverlayComponent.h" compile="0" resource="0"

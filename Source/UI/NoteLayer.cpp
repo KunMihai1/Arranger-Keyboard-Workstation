@@ -132,9 +132,14 @@ void NoteLayer::noteOnReceived(int midiNote)
         });
 }
 
+void NoteLayer::setHeldHidden(bool shouldStayHidden)
+{
+    heldHidden = shouldStayHidden;
+}
+
 void NoteLayer::handleNoteOn(int midiNote)
 {
-    if (!isVisible() && keyBoardUI.isVisible())
+    if (!isVisible() && !heldHidden && keyBoardUI.isVisible())
         setVisible(true);
 
     const auto key = keyBoardUI.keys.find(midiNote);
