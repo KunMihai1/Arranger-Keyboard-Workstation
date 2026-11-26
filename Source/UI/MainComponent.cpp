@@ -462,8 +462,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component*)
             this->keyListener.resetState();
             this->keyboard.setIsDrawn(false);
             this->keyboard.resetStateActiveNotes();
-            this->display->set_min_max(startNote - semitonesPerOctave, finishNote - semitonesPerOctave);
-            this->display->setNewSettingsHelperFunction(-semitonesPerOctave);
+            this->display->set_min_max(startNote - semitonesPerOctave, finishNote - semitonesPerOctave, true);
+            this->display->keyboardShifted();
         }
     }
     else if (key.getKeyCode() == octaveUpKey)
@@ -480,8 +480,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component*)
             this->keyListener.resetState();
             this->keyboard.setIsDrawn(false);
             this->keyboard.resetStateActiveNotes();
-            this->display->set_min_max(startNote + semitonesPerOctave, finishNote + semitonesPerOctave);
-            this->display->setNewSettingsHelperFunction(semitonesPerOctave);
+            this->display->set_min_max(startNote + semitonesPerOctave, finishNote + semitonesPerOctave, true);
+            this->display->keyboardShifted();
         }
     }
     return false;

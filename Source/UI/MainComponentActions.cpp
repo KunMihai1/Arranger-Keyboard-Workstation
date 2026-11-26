@@ -412,12 +412,12 @@ void MainComponent::playButtonOnClick()
         if (this->keyListener.getIsKeyboardInput())
         {
             this->keyboard.set_min_and_max(keyListener.getStartNoteKeyboardInput(), keyListener.getFinishNoteKeyboardInput());
-            this->display->set_min_max(keyListener.getStartNoteKeyboardInput(), keyListener.getFinishNoteKeyboardInput());
+            this->display->set_min_max(keyListener.getStartNoteKeyboardInput(), keyListener.getFinishNoteKeyboardInput(), true);
         }
         else
         {
             this->keyboard.set_min_and_max(MIDIDevice.get_minNote(), MIDIDevice.get_maxNote());
-            this->display->set_min_max(MIDIDevice.get_minNote(), MIDIDevice.get_maxNote());
+            this->display->set_min_max(MIDIDevice.get_minNote(), MIDIDevice.get_maxNote(), false);
         }
         
         this->midiHandler.set_start_end_notes(this->display->getStartNote(), this->display->getEndNote());

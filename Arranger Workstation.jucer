@@ -353,6 +353,8 @@
               resource="0" file="Source/UI/PlayBackSettingsCustomComponent.cpp"/>
         <FILE id="K0OsRB" name="PlayBackSettingsCustomComponent.h" compile="0"
               resource="0" file="Source/UI/PlayBackSettingsCustomComponent.h"/>
+        <FILE id="plRngH" name="PlaybackRange.h" compile="0" resource="0" file="Source/UI/PlaybackRange.h"/>
+        <FILE id="plRngC" name="PlaybackRange.cpp" compile="1" resource="0" file="Source/UI/PlaybackRange.cpp"/>
         <FILE id="K2Xsjg" name="SelectableLabel.cpp" compile="1" resource="0"
               file="Source/UI/SelectableLabel.cpp"/>
         <FILE id="cazbKc" name="SelectableLabel.h" compile="0" resource="0"

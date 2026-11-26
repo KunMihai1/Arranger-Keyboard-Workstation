@@ -1,5 +1,6 @@
 #include "displayGUI.h"
 #include "CustomTableContainer.h"
+#include "PlaybackRange.h"
 
 namespace
 {
@@ -21,8 +22,10 @@ Display::Display(std::weak_ptr<juce::MidiOutput> outputDev, juce::PropertiesFile
     playBackSettings->getStyleID = [this]() { return this->getStyleID(); };
     playBackSettings->onChangingSettings = [this](PlayBackSettings)
     {
-        // Save settings using PropertiesFile
-        PlaybackSettingsIOHelper::savePlaybackSettings(propertiesFile, this->settings, minNote, maxNote, this->getStyleID());
+        // The field shows the note as it applies now (the PC keyboard may be shifted): save it moved home.
+        savedSettings = PlaybackRange::savedAfterEdit(savedSettings, this->settings, keyboardShift());
+        PlaybackSettingsIOHelper::savePlaybackSettings(propertiesFile, savedSettings, this->getStyleID());
+        showRangeSettings();
         displayListeners.call(&DisplayListener::playBackSettingsChanged, this->settings);
     };
     playBackSettings->onChangingTranspose = [this](int transposeValue)
@@ -478,8 +481,9 @@ void Display::updateUIbeforeAnyLoadingCase()
     //    mapNameToTrack = trackListComp->buildTrackNameMap();
 }
 
-void Display::set_min_max(int min, int max)
+void Display::set_min_max(int min, int max, bool pcKeyboard)
 {
+    pcKeyboardInput = pcKeyboard;
     if (min < lowestPianoNote)
         this->minNote = lowestPianoNote;
     else this->minNote = min;
@@ -487,13 +491,27 @@ void Display::set_min_max(int min, int max)
     if (max > highestPianoNote)
         this->maxNote = highestPianoNote;
     else this->maxNote = max;
+    settings = PlaybackRange::shown(savedSettings, keyboardShift());   // the range follows the keyboard's octave
     playBackSettings->setLowestHighest(minNote, maxNote);
+}
+
+int Display::keyboardShift() const
+{
+    return PlaybackRange::octaveShift(minNote, pcKeyboardInput);
+}
+
+void Display::showRangeSettings()
+{
+    settings = PlaybackRange::shown(savedSettings, keyboardShift());
+    playBackSettings->showSettings();
 }
 
 void Display::set_VID_PID(const juce::String& VID, const juce::String& PID)
 {
     this->settings.VID = VID;
     this->settings.PID = PID;
+    this->savedSettings.VID = VID;
+    this->savedSettings.PID = PID;
 }
 
 juce::String Display::getVID()
@@ -508,9 +526,8 @@ juce::String Display::getPID()
 
 void Display::readPlaybackSettingsFromProperties()
 {
-    PlayBackSettings settingsLoaded = PlaybackSettingsIOHelper::loadPlaybackSettings(propertiesFile, this->settings.VID, this->settings.PID, this->getStyleID());
-    this->settings = settingsLoaded;
-    playBackSettings->showSettings();
+    savedSettings = PlaybackSettingsIOHelper::loadPlaybackSettings(propertiesFile, this->settings.VID, this->settings.PID, this->getStyleID());
+    showRangeSettings();   // shown at the keyboard's current octave
 }
 
 void Display::homeButtonInteraction()
@@ -552,33 +569,9 @@ void Display::removeListener(DisplayListener* listener)
     displayListeners.remove(listener);
 }
 
-void Display::setNewSettingsHelperFunction(int value)
+void Display::keyboardShifted()
 {
-    if(settings.startNote!=PlaybackSettingsKeys::notSet)
-        settings.startNote += value;
-
-    if(settings.endNote!=PlaybackSettingsKeys::notSet)
-        settings.endNote += value;
-
-    if(settings.leftHandBound!=PlaybackSettingsKeys::notSet)
-        settings.leftHandBound += value;
-
-    if(settings.rightHandBound!=PlaybackSettingsKeys::notSet)
-        settings.rightHandBound += value;
-
-    if (settings.startNote < lowestPianoNote && settings.startNote!=PlaybackSettingsKeys::notSet)
-        settings.startNote = lowestPianoNote;
-
-    if (settings.endNote > highestPianoNote && settings.endNote!=PlaybackSettingsKeys::notSet)
-        settings.endNote = highestPianoNote;
-
-    if (settings.leftHandBound < lowestPianoNote)
-        settings.leftHandBound = lowestPianoNote;
-
-    if (settings.rightHandBound > highestPianoNote)
-        settings.rightHandBound = highestPianoNote;
-
-    playBackSettings->showSettings();
+    showRangeSettings();
     displayListeners.call(&DisplayListener::playBackSettingsChanged, this->settings);
 }
 

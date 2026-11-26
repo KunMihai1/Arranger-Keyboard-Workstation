@@ -39,6 +39,8 @@
               file="../tests/unit/test_voices_page.cpp"/>
         <FILE id="chHmT" name="test_chord_helper_model.cpp" compile="1" resource="0"
               file="../tests/unit/test_chord_helper_model.cpp"/>
+        <FILE id="plRngT" name="test_playback_range.cpp" compile="1" resource="0"
+              file="../tests/unit/test_playback_range.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"
@@ -497,6 +499,8 @@
               resource="0" file="../Source/UI/PlayBackSettingsCustomComponent.cpp"/>
         <FILE id="K0OsRB" name="PlayBackSettingsCustomComponent.h" compile="0"
               resource="0" file="../Source/UI/PlayBackSettingsCustomComponent.h"/>
+        <FILE id="plRngH" name="PlaybackRange.h" compile="0" resource="0" file="../Source/UI/PlaybackRange.h"/>
+        <FILE id="plRngC" name="PlaybackRange.cpp" compile="1" resource="0" file="../Source/UI/PlaybackRange.cpp"/>
         <FILE id="K2Xsjg" name="SelectableLabel.cpp" compile="1" resource="0"
               file="../Source/UI/SelectableLabel.cpp"/>
         <FILE id="cazbKc" name="SelectableLabel.h" compile="0" resource="0"
