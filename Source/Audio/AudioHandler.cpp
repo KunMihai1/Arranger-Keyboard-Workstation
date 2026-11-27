@@ -78,8 +78,7 @@ namespace EffectSettings
     constexpr double shortestDelaySeconds = 0.05;     // CC94 sets the time from here...
     constexpr double delayTimeRangeSeconds = 0.35;    // ...up to 0.4 s
     constexpr float  delayMaxMix          = 0.8f;
-    constexpr int    shortestDelaySamples = 1;        // the read head stays at least one sample behind
-    constexpr float  silentSample         = 0.0f;
+    constexpr double delayGlidePerSample  = 0.5;      // the echo bends an octave at most and never plays backwards
 
     constexpr float tremoloRateHz         = 5.0f;
     constexpr float fullLevel             = 1.0f;
@@ -150,10 +149,8 @@ void ChannelDSP::prepare(double newSampleRate, int blockSize)
     chorus.setMix(chorusMixOff);
 
     const int maxDelaySamples = static_cast<int>(newSampleRate * longestDelaySeconds);
-    delayLineL.assign(maxDelaySamples, silentSample);
-    delayLineR.assign(maxDelaySamples, silentSample);
-    delayWritePos      = {};
-    delayReadOffset    = static_cast<int>(newSampleRate * initialDelaySeconds);
+    delayLineL.prepare(maxDelaySamples);
+    delayLineR.prepare(maxDelaySamples);
     tremoloPhase       = {};
     tremoloPhaseInc    = juce::MathConstants<float>::twoPi * tremoloRateHz / static_cast<float>(newSampleRate);
     randomModSmoothed  = {};
@@ -192,6 +189,7 @@ void ChannelDSP::prepare(double newSampleRate, int blockSize)
     tremoloDepth        .snap(noModulation);
     randomModDepth      .snap(noModulation);
     delayMix            .snap(noModulation);
+    delayTimeSamples = delayTimeTarget = newSampleRate * initialDelaySeconds;
 
     for (auto& adaa : distortionAdaa)
         adaa.reset();
@@ -254,15 +252,8 @@ void ChannelDSP::updateCC(int ccNumber, int value)
 
         case ControllerNumber::delay: // mix + time
             delayMix.target = norm * delayMaxMix;
-            if (!delayLineL.empty())
-            {
-                // NOTE: the read offset still jumps. Changing a delay length
-                // instantly moves the read head, which is a pitch discontinuity -
-                // it clicks. Smoothing it properly requires fractional
-                // interpolation on the read position, which is a separate change.
-                int offset = static_cast<int>(sampleRate * (shortestDelaySeconds + norm * delayTimeRangeSeconds));
-                delayReadOffset = juce::jlimit(shortestDelaySamples, static_cast<int>(delayLineL.size()) - shortestDelaySamples, offset);
-            }
+            // The time glides there (process) and the lines are read between samples: no jump of the read head.
+            delayTimeTarget = sampleRate * (shortestDelaySeconds + norm * delayTimeRangeSeconds);
             break;
 
         case ControllerNumber::randomMod: // depth
@@ -391,35 +382,21 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
     // replayed up to half a second of stale audio at full mix. A delay line is a
     // record of recent history; it has to stay a record whether or not anyone is
     // currently listening to it.
-    if (!delayLineL.empty())
+    if (delayLineL.isPrepared())
     {
-        const int delaySize = static_cast<int>(delayLineL.size());
-
         for (int sampleIndex {}; sampleIndex < numSamples; ++sampleIndex)
         {
-            int readPos = delayWritePos - delayReadOffset;
-            if (readPos < int {})
-                readPos += delaySize;
+            delayLineL.write(left[sampleIndex]);
+            delayLineR.write(right[sampleIndex]);
 
-            // Read before write. The two positions cannot coincide while the read
-            // offset is at least one, but reading first is the habit that keeps a
-            // feedback path computable if one is ever added here.
-            const float delayedL = delayLineL[readPos];
-            const float delayedR = delayLineR[readPos];
-
-            delayLineL[delayWritePos] = left[sampleIndex];
-            delayLineR[delayWritePos] = right[sampleIndex];
+            // `time` samples behind the sample just written; between samples when the time is gliding.
+            delayTimeSamples += juce::jlimit(-delayGlidePerSample, delayGlidePerSample, delayTimeTarget - delayTimeSamples);
+            const float delayedL = delayLineL.read(delayTimeSamples);
+            const float delayedR = delayLineR.read(delayTimeSamples);
 
             const float mix = delayMix.nextValue();
             left[sampleIndex]  += mix * delayedL;
             right[sampleIndex] += mix * delayedR;
-
-            // Compare-and-wrap rather than %. Modulo is an integer division, and
-            // this loop now runs on every channel on every block rather than only
-            // when the delay is audible, so the two divisions it removes pay for
-            // most of the cost the unconditional write adds.
-            if (++delayWritePos >= delaySize)
-                delayWritePos = {};
         }
     }
 

@@ -162,7 +162,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   Spec: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
 - ⬜ Test isolation: the single-process run (`Project Tests.exe`, no flag) now completes but 4 `NoteLayer` GL pixel
   checks fail there only (they pass in `--display-tests`); likely a window left by an earlier test (found 2026-11-24).
-- ⬜ Delay read offset still jumps on CC94 changes (needs a fractional read; `DelayLine` in `va-effects`).
+- ✅ (`fix/delay-fractional-read`, 2026-11-28) Delay read offset jumped on CC94 changes: now `FractionalDelayLine`
+  (Lagrange-3, ported from `va-effects`) and a linear glide of at most half a sample per sample (bends ≤ an octave).
 - ⬜ Swap `juce::dsp::Chorus` (CC93) for the BBD model from `va-effects`.
 - ⬜ 🔒 Missing-SFZ popup never smoke-tested; Phase 7a manual sign-off 0/9.
 - ✅ Prune merged branches (2026-11-28: 41 merged branches deleted on GitHub, the local ones and a stale agent

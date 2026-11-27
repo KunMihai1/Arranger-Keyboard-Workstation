@@ -57,6 +57,8 @@
               file="../tests/unit/test_dust_field.cpp"/>
         <FILE id="pnlFnT" name="test_panel_finish.cpp" compile="1" resource="0"
               file="../tests/unit/test_panel_finish.cpp"/>
+        <FILE id="dlyTmT" name="test_delay_time.cpp" compile="1" resource="0"
+              file="../tests/unit/test_delay_time.cpp"/>
         <FILE id="stgAlT" name="test_stage_alert.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_alert.cpp"/>
         <FILE id="audRtT" name="test_audio_thread_realtime.cpp" compile="1" resource="0"
@@ -733,6 +735,8 @@
               file="../Source/Audio/MidiChannelSplitter.cpp"/>
         <FILE id="mcSplH" name="MidiChannelSplitter.h" compile="0" resource="0"
               file="../Source/Audio/MidiChannelSplitter.h"/>
+        <FILE id="frcDlH" name="FractionalDelayLine.h" compile="0" resource="0"
+              file="../Source/Audio/FractionalDelayLine.h"/>
         <FILE id="audioC" name="AudioHandler.cpp" compile="1" resource="0"
               file="../Source/Audio/AudioHandler.cpp"/>
         <FILE id="T3o6UR" name="SFZlibrary.h" compile="0" resource="0" file="../Source/Audio/SFZlibrary.h"/>

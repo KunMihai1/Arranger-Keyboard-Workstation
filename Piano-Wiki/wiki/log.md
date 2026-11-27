@@ -13,6 +13,16 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-28 — CC94 delay time glides (`fix/delay-fractional-read`)
+- The delay read whole samples and moved its read head at once when CC94 changed the time: the echo stepped (a click;
+  a new test measured a 0.231 step on a 0.5 sine, threshold 0.05).
+- `FractionalDelayLine` (header-only port of `va-effects`' `DelayLine`, Lagrange-3: measured there below -200 dB
+  under modulation, where linear pumps the treble and allpass mistunes). `ChannelDSP` writes then reads at
+  `delayTimeSamples`, which glides to the CC target at most 0.5 sample per sample (double; lands exactly).
+- Sonnet review: no correctness bugs; fixed the float smoother stalling short of the target and the first glide reading
+  backwards (exponential 150 ms started at 1.1-2.3 samples per sample), and made the test's guard run the real line.
+- unit 5948 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped).
+
 ## 2026-11-28 — Every AlertWindow → StageAlert (`feat/stage-alerts`)
 - `StageAlert` (new): `showMessage` (OK only; Enter / Esc / click outside = OK), `showQuestion`, `showChoice` (a second
   action, for the notes table's Change All / Change selected), `showInput`. One at a time app-wide (a replaced one is
