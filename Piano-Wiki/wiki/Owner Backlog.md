@@ -112,8 +112,14 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   (screen asleep: Welcome / Ready, controls inactive), the page area holds the LCD-field login form or Home's
   Settings · Play · Exit keys, the keys are drawn underneath. The forest picture and its Play text are gone (asked the
   owner 2026-11-27 whether to keep the photo instead — no answer; spec decision followed, easy to revert).
-- ⬜ Next: real sign-in — Login still always succeeds (`handleLogin` returns early), then remembered email · Not you? ·
-  Log out · Remember me (needs the auth proxy to accept refresh tokens) · Forgot password (needs a reset endpoint).
+- ✅ **Sign-in part 2** (`feat/ui-sign-in`): remembered email (`LastEmail`) with *Not you?*, Home "Signed in as … ·
+  Log out", no "logged in" box, escaped backend JSON (`BackendJson`), sign-up reads its reply (it never did).
+- ⬜ **Owner: the Supabase backend is unreachable** — `ecmlftmkoqszdwjugqtn.supabase.co` does not resolve (DNS
+  non-existent domain, 2026-11-28; paused or deleted?). Owner decision 2026-11-28: Login keeps letting the typed email
+  in until it is back; then set `checkAccountWithServer = true` (`LoginComponent.cpp`) — the server path is built and
+  its replies unit-tested, but a real login was never seen working.
+- ⬜ Remember me (needs the auth proxy to accept `grant_type=refresh_token`, outside the repo) · Forgot password?
+  (needs a reset endpoint) — both wait on the backend.
 - ✅ **Bug found 2026-11-27 — track library reloads tracks from the wrong file** (PR #77). A folder stored one
   `filePath` (the first MIDI file added) and each track only `trackIndex`, so tracks from other files came back as
   that first file's. Each track now saves its own `filePath` (old saves fall back to the folder's; they can't be
