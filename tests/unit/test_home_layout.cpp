@@ -15,6 +15,8 @@ namespace HomeLayoutTestValues
     const juce::String samePlace       = "on any window shape the Play text sits on the same spot of the picture";
     const juce::String textFits        = "the Play text is never taller than the room the button gives it";
     const juce::String insideWindow    = "on a tall narrow window the button stays inside the window";
+    const juce::String missingPicture  = "without a picture the layout falls back to the window instead of dividing by zero";
+    const juce::String playText        = "Play";
 
     constexpr float artworkWidth  = 1920.0f;
     constexpr float artworkHeight = 1080.0f;
@@ -23,9 +25,15 @@ namespace HomeLayoutTestValues
     constexpr float oldCentreX    = 0.35625f;    // the old box: 0.325 + 1/32 of the window
     constexpr float oldCentreY    = 0.68283f;    // 0.662 + 1/48
     constexpr float onePixel      = 1.0f;
-    constexpr float fittingIndent = 4.0f;        // LookAndFeel_V4::drawButtonText: min (4, 0.3 * height) above and below
+    constexpr int   fittingIndent = 4;           // LookAndFeel_V2::drawButtonText: min (4, 0.3 * height) above and below
     constexpr float indentShare   = 0.3f;
-    constexpr float twice         = 2.0f;
+    constexpr int   twice         = 2;
+    constexpr float indentFontShare = 0.6f;      // and min (0.6 * font height, 2 + corner / 2) at each side
+    constexpr int   cornerIndent  = 2;
+    constexpr int   cornerShare   = 2;
+    constexpr float noPicture     = 0.0f;
+    constexpr int   firstGlyph    = 0;
+    constexpr int   allGlyphs     = -1;          // GlyphArrangement: to the last glyph
     constexpr int   smallestHeight = 300;
     constexpr int   largestHeight  = 2160;
     constexpr int   heightStep     = 7;
@@ -68,11 +76,26 @@ public:
         beginTest (textFits);
         for (int height = smallestHeight; height <= largestHeight; height += heightStep)
         {
+            // The room JUCE's drawButtonText leaves, measured on a real button, against the real glyphs of "Play".
             const juce::Rectangle<int> window (height * wideAspectWidth / wideAspectHeight, height);
             const auto play = HomeLayout::playButton (window, artworkWidth, artworkHeight);
-            const auto boxHeight = static_cast<float> (play.getHeight());
-            const auto room = boxHeight - twice * juce::jmin (fittingIndent, boxHeight * indentShare);
-            expect (HomeLayout::playTextHeight (play.getHeight()) <= room);
+            juce::TextButton button;
+            button.setSize (play.getWidth(), play.getHeight());
+            const auto font = juce::Font (juce::FontOptions (HomeLayout::playTextHeight (play.getHeight()), juce::Font::bold));
+            const auto yIndent = juce::jmin (fittingIndent, button.proportionOfHeight (indentShare));
+            const auto cornerSize = juce::jmin (button.getHeight(), button.getWidth()) / cornerShare;
+            const auto sideIndent = juce::jmin (juce::roundToInt (font.getHeight() * indentFontShare), cornerIndent + cornerSize / cornerShare);
+            juce::GlyphArrangement glyphs;
+            glyphs.addLineOfText (font, playText, {}, {});
+            expect (font.getHeight() <= static_cast<float> (button.getHeight() - twice * yIndent));
+            expect (glyphs.getBoundingBox (firstGlyph, allGlyphs, true).getWidth() <= static_cast<float> (button.getWidth() - twice * sideIndent));
+        }
+
+        beginTest (missingPicture);
+        {
+            const juce::Rectangle<int> window (fullHdWidth, fullHdHeight);
+            expect (HomeLayout::coverRect (window.toFloat(), noPicture, noPicture) == window.toFloat());
+            expect (window.contains (HomeLayout::playButton (window, noPicture, noPicture)));
         }
 
         beginTest (insideWindow);

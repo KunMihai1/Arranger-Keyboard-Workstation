@@ -23,6 +23,8 @@ namespace HomeLayout
 {
     juce::Rectangle<float> coverRect (juce::Rectangle<float> bounds, float imageWidth, float imageHeight)
     {
+        if (imageWidth <= float {} || imageHeight <= float {})
+            return bounds;   // no picture (it failed to load): lay out on the window rather than divide by zero
         const auto scale = juce::jmax (bounds.getWidth() / imageWidth, bounds.getHeight() / imageHeight);
         const auto width = imageWidth * scale;
         const auto height = imageHeight * scale;
