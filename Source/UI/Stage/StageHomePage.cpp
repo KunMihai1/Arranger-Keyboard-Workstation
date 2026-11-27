@@ -12,6 +12,8 @@ namespace
         const juce::String play         = "Play";
         const juce::String exit         = "Exit";
         const juce::String startPlaying = "Start playing";
+        const juce::String signedInAs   = "Signed in as ";
+        const juce::String logOut       = "Log out";
     }
 
     // Board PageHome .big / .big-lit
@@ -33,6 +35,13 @@ namespace
 
     constexpr float labelSize    = 11.0f;   // "Start playing"
     constexpr float labelSpacing = 0.14f;
+
+    // Board PageHome: the signed-in row (.silk, text-transform none, .06em, dim) and its .small Log out button.
+    constexpr float signedInSpacing = 0.06f;
+    constexpr int   signedInGap     = 12;
+    constexpr int   logOutHeight    = 24;
+    constexpr int   logOutPadding   = 12;
+    constexpr int   signedInLines   = 1;   // a long email shrinks, then ends in an ellipsis
 }
 
 //==============================================================================
@@ -83,8 +92,13 @@ void StageBigKey::paintButton (juce::Graphics& g, bool, bool isDown)
 }
 
 //==============================================================================
-StageHomePage::StageHomePage() : settingsKey (Text::settings, false), playKey (Text::play, true), exitKey (Text::exit, false)
+StageHomePage::StageHomePage() : settingsKey (Text::settings, false), playKey (Text::play, true), exitKey (Text::exit, false),
+                                 logOutButton (Text::logOut, SegButton::Style::seg)
 {
+    logOutButton.setBoardHeight (logOutHeight);
+    logOutButton.setPaddingSide (logOutPadding);
+    logOutButton.onClick = [this] { if (onLogOut) onLogOut(); };
+    addAndMakeVisible (logOutButton);   // Home is only reached signed in, so Log out is always there
     settingsKey.onClick = [this] { if (onSettings) onSettings(); };
     playKey.onClick     = [this] { if (onPlay) onPlay(); };
     exitKey.onClick     = [this] { if (onExit) onExit(); };
@@ -98,6 +112,7 @@ void StageHomePage::setScale (float newScale)
     scale = newScale;
     for (auto* key : { &settingsKey, &playKey, &exitKey })
         key->setScale (scale);
+    logOutButton.setScale (scale);
     resized();
     repaint();
 }
@@ -110,6 +125,15 @@ void StageHomePage::resized()
     settingsKey.setBounds (layout.settingsKey.withTrimmedBottom (-drop).toNearestInt());
     playKey.setBounds (layout.playKey.withTrimmedBottom (-drop).toNearestInt());
     exitKey.setBounds (layout.exitKey.withTrimmedBottom (-drop).toNearestInt());
+
+    logOutButton.setBounds (layout.signedInRow.withLeft (layout.signedInRow.getRight() - logOutButton.getExactWidth()).toNearestInt());
+}
+
+void StageHomePage::setSignedInAs (const juce::String& email)
+{
+    signedInEmail = email;
+    resized();
+    repaint();
 }
 
 void StageHomePage::paint (juce::Graphics& g)
@@ -126,4 +150,12 @@ void StageHomePage::paint (juce::Graphics& g)
     g.setColour (StagePalette::silkscreenText);
     g.setFont (StageFonts::silkscreen (labelSize * scale, KeyLook::semiBold, labelSpacing));
     g.drawText (Text::startPlaying.toUpperCase(), layout.playLabel, juce::Justification::centred, false);
+
+    if (signedInEmail.isNotEmpty())
+    {
+        const auto textArea = layout.signedInRow.withTrimmedRight (logOutButton.getExactWidth() + static_cast<float> (signedInGap) * scale);
+        g.setColour (StagePalette::silkscreenDimText);
+        g.setFont (StageFonts::silkscreen (labelSize * scale, KeyLook::semiBold, signedInSpacing));
+        g.drawFittedText (Text::signedInAs + signedInEmail, textArea.toNearestInt(), juce::Justification::centredRight, signedInLines);
+    }
 }

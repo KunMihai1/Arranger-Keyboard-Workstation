@@ -519,6 +519,9 @@ private:
     void frontScreensInit();
     void showFrontScreen (FrontScreen screen);
     void layoutFrontScreens();
+    void signedIn (const juce::String& email);   ///< Log in succeeded: remember the email, Home shows the account
+    void logOut();                               ///< Home's Log out: back to Log in, the email still filled in
+    void forgetRememberedEmail();                ///< Log in's "Not you?"
     /** The screen's content on Log in / Home (asleep: "Welcome" / "Ready", lamps dark); false in the play view. */
     bool frontScreenContent (StageScreen::Content& content) const;
     int particleStyleId = ParticleStyles::dust;   ///< applied again when Play creates the note layer

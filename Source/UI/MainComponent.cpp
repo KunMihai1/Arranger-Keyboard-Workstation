@@ -609,7 +609,7 @@ void MainComponent::loginWindowInitialize()
     loginWindow = std::make_unique<LoginComponent>(client);
     addChildComponent(loginWindow.get());   // laid out in the page area by layoutFrontScreens()
 
-    loginWindow->onSuccessfullLogin = [this]()
+    loginWindow->onSuccessfullLogin = [this] (const juce::String& email)
     {
         /*
         playtimeTracker = std::make_unique<PlaytimeTracker>([this](int secondsToIncreaseWith)
@@ -623,7 +623,8 @@ void MainComponent::loginWindowInitialize()
                     }).detach();
             },300);
         */
-        showFrontScreen(FrontScreen::home);
+        signedIn (email);
     };
+    loginWindow->onForgetEmail = [this] { forgetRememberedEmail(); };
 
 }

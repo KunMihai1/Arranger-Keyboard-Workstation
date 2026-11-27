@@ -9,6 +9,7 @@
 */
 
 #include "SupabaseClient.h"
+#include "BackendJson.h"
 
 namespace
 {
@@ -23,25 +24,6 @@ namespace
     const juce::String headerLineEnd       = "\r\n";
     const juce::String connectionFailedBody = "{\"error\":\"connection failed\"}";
     constexpr int      connectionTimeoutMs = 5000;
-
-    // Request bodies are written by hand; each piece below is the JSON text between two values.
-    namespace JsonText
-    {
-        const juce::String emailStart        = "{\"email\":\"";
-        const juce::String passwordField     = "\",\"password\":\"";
-        const juce::String stringObjectEnd   = "\"}";
-        const juce::String signupNameField   = "\",\"data\":{\"name\":\"";
-        const juce::String signupEnd         = "\"}}";
-        const juce::String userIdStart       = "{\"user_id\":\"";
-        const juce::String pidField          = "\",\"pid\":\"";
-        const juce::String vidField          = "\",\"vid\":\"";
-        const juce::String secondsField      = "\",\"seconds\":";
-        const juce::String vendorIdField     = "\",\"vendor_id\":\"";
-        const juce::String productIdField    = "\",\"product_id\":\"";
-        const juce::String deviceNameField   = "\",\"device_name\":\"";
-        const juce::String keyCountField     = "\",\"nr_keys\":";
-        const juce::String objectEnd         = "}";
-    }
 }
 
 SupabaseClient::SupabaseClient()
@@ -54,8 +36,7 @@ HttpResult SupabaseClient::login(const juce::String& email,
 {
     HttpResult result;
 
-    juce::String body = JsonText::emailStart + email +
-        JsonText::passwordField + password + JsonText::stringObjectEnd;
+    const auto body = BackendJson::loginBody (email, password);   // escaped: a quote in a password stays text
     
     auto postUrl = juce::URL(loginUrl)
         .withPOSTData(body);
@@ -84,9 +65,7 @@ HttpResult SupabaseClient::signup(const juce::String& email,
 {
     HttpResult result;
 
-    juce::String body = JsonText::emailStart + email +
-        JsonText::passwordField + password +
-        JsonText::signupNameField + username + JsonText::signupEnd;
+    const auto body = BackendJson::signupBody (email, password, username);
     auto postUrl = juce::URL(signupUrl)
         .withPOSTData(body);
     juce::String extraHeaders;
@@ -103,6 +82,7 @@ HttpResult SupabaseClient::signup(const juce::String& email,
         result.body = connectionFailedBody;
         return result;
     };
+    result.body = stream->readEntireStreamAsString();   // the reply says whether the account was made
     return result;
 }
 
@@ -117,9 +97,7 @@ HttpResult SupabaseClient::incrementPlaytime(int seconds, const juce::String& VI
 
     HttpResult result;
 
-    juce::String body = JsonText::userIdStart + id + JsonText::pidField + PID
-        + JsonText::vidField + VID
-        + JsonText::secondsField + juce::String(seconds) + JsonText::objectEnd;
+    const auto body = BackendJson::playtimeBody (id, PID, VID, seconds);
 
     auto postUrl = juce::URL(playtimeUrl)
         .withPOSTData(body);
@@ -172,11 +150,7 @@ HttpResult SupabaseClient::addOrUpdateDevice(const juce::String& VID, const juce
 
     HttpResult result;
 
-    juce::String body = JsonText::userIdStart + id +
-        JsonText::vendorIdField + VID +
-        JsonText::productIdField + PID +
-        JsonText::deviceNameField + deviceName +
-        JsonText::keyCountField + juce::String(nrKeys) + JsonText::objectEnd;
+    const auto body = BackendJson::deviceBody (id, VID, PID, deviceName, nrKeys);   // a device name may hold quotes
 
     
     auto postUrl = juce::URL(deviceUrl)
