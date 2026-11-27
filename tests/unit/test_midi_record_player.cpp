@@ -22,6 +22,9 @@ namespace MidiRecordPlayerTestValues
     const juce::String captureOnlyWhileRecording = "capture - handleIncomingMessage records (remapped) only while recording";
     const juce::String serializationRoundTrip   = "serialization round-trips through in-memory streams (no disk)";
     const juce::String garbageInputFails        = "readRecordingFromStream - garbage input fails cleanly with an error message";
+    const juce::String notesCounted             = "the Recorder page's count: note-ons only, not the program changes recorded at the start";
+    const juce::String lengthOfRecording        = "the recording's length: to Stop, at least to its last event; running while recording";
+    const juce::String filePlayingReported      = "file playback is reported while it plays";
 
     const juce::String wrongChannelMessage   = "a parsed note was on the wrong channel";
     const juce::String notesLostMessage      = "note numbers did not survive the round-trip";
@@ -55,6 +58,9 @@ namespace MidiRecordPlayerTestValues
     constexpr double halfSecond       = 0.5;
     constexpr double oneSecond        = 1.0;
     constexpr double tempo            = 120.0;
+    constexpr int    recordedPrograms = 2;     // startRecording's presets: one program change per hand
+    constexpr int    takeMs           = 30;    // a short take, long enough to measure
+    constexpr double takeSeconds      = 0.03;
 }
 
 using namespace MidiRecordPlayerTestValues;
@@ -201,6 +207,50 @@ public:
             expect(noteOffs >= atLeastOneNoteOff);
             expect(chOk, wrongChannelMessage);
             expect(has60 && has64, notesLostMessage);
+        }
+
+        beginTest(notesCounted);
+        {
+            MidiRecordPlayer player;
+            auto& events = player.getAllRecordedEvents();
+            for (int hand {}; hand < recordedPrograms; ++hand)
+                events.push_back(RecordedEvent{ juce::MidiMessage::programChange (styleChannel, programNumber), recordingStart });
+            events.push_back(RecordedEvent{ juce::MidiMessage::noteOn (styleChannel, middleC, velocity), halfSecond });
+            events.push_back(RecordedEvent{ juce::MidiMessage::noteOff (styleChannel, middleC), oneSecond });
+            events.push_back(RecordedEvent{ juce::MidiMessage::noteOn (styleChannel, noteE4, velocity), oneSecond });
+            expectEquals(player.getRecordedNoteCount(), twoNoteOns);
+        }
+
+        beginTest(lengthOfRecording);
+        {
+            MidiRecordPlayer player;
+            player.applyPresetFunction = [] {};
+            expectEquals(player.getRecordedSeconds(), recordingStart);
+            player.startRecording();
+            const auto atStart = player.getRecordedSeconds();
+            juce::Thread::sleep(takeMs);
+            expect(player.getRecordedSeconds() >= atStart + takeSeconds);   // it runs while recording
+            player.stopRecording();
+            const auto lengthAtStop = player.getRecordedSeconds();
+            expect(lengthAtStop >= takeSeconds);                            // start to Stop
+            expectEquals(player.getRecordedSeconds(), lengthAtStop);       // stopped: it no longer runs
+
+            player.startRecording();                                        // a new take starts from zero
+            player.stopRecording();
+            expect(player.getRecordedSeconds() < lengthAtStop);
+
+            player.getAllRecordedEvents().push_back(RecordedEvent{ juce::MidiMessage::noteOn (styleChannel, middleC, velocity), oneSecond });
+            expect(player.getRecordedSeconds() >= oneSecond);
+        }
+
+        beginTest(filePlayingReported);
+        {
+            MidiRecordPlayer player;
+            expect(! player.getIsPlayingFile());
+            player.startRecordingFilePlaying();
+            expect(player.getIsPlayingFile());
+            player.stopRecordingFilePlaying();
+            expect(! player.getIsPlayingFile());
         }
 
         beginTest(garbageInputFails);

@@ -31,6 +31,7 @@
 #include "Stage/StagePanel.h"
 #include "Stage/StagePageFrame.h"
 #include "Stage/StageScale.h"
+#include "Recorder/RecorderContent.h"
 
 namespace MainComponentText
 {
@@ -490,6 +491,8 @@ private:
 
     std::unique_ptr<StagePanel> stagePanel;
     std::unique_ptr<StagePageFrame> stylesPage, filePage, settingsPage, chordsPage, effectsPage, voicesPage;
+    std::unique_ptr<RecorderContent> recorderContent;   ///< the Recorder page (board PageFile)
+    juce::String lastMidiFileName;                      ///< the MIDI file played last, shown on the Recorder page
     std::unique_ptr<ChordBrowserComponent> chordsBrowser;   ///< today's chord helper, hosted by the Chords page
     static constexpr int stagePageCount = 6;   ///< Styles, Recorder, Settings, Chords, Effects, Voices
     std::array<StagePageFrame*, stagePageCount> stagePageFrames() const;

@@ -43,6 +43,7 @@
         <FILE id="plRngT" name="test_playback_range.cpp" compile="1" resource="0"
               file="../tests/unit/test_playback_range.cpp"/>
         <FILE id="hmLayT" name="test_home_layout.cpp" compile="1" resource="0" file="../tests/unit/test_home_layout.cpp"/>
+        <FILE id="recMdT" name="test_recorder_model.cpp" compile="1" resource="0" file="../tests/unit/test_recorder_model.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"
@@ -505,6 +506,10 @@
         <FILE id="plRngC" name="PlaybackRange.cpp" compile="1" resource="0" file="../Source/UI/PlaybackRange.cpp"/>
         <FILE id="hmLayH" name="HomeLayout.h" compile="0" resource="0" file="../Source/UI/HomeLayout.h"/>
         <FILE id="hmLayC" name="HomeLayout.cpp" compile="1" resource="0" file="../Source/UI/HomeLayout.cpp"/>
+        <FILE id="recMdH" name="RecorderModel.h" compile="0" resource="0" file="../Source/UI/Recorder/RecorderModel.h"/>
+        <FILE id="recMdC" name="RecorderModel.cpp" compile="1" resource="0" file="../Source/UI/Recorder/RecorderModel.cpp"/>
+        <FILE id="recCnH" name="RecorderContent.h" compile="0" resource="0" file="../Source/UI/Recorder/RecorderContent.h"/>
+        <FILE id="recCnC" name="RecorderContent.cpp" compile="1" resource="0" file="../Source/UI/Recorder/RecorderContent.cpp"/>
         <FILE id="K2Xsjg" name="SelectableLabel.cpp" compile="1" resource="0"
               file="../Source/UI/SelectableLabel.cpp"/>
         <FILE id="cazbKc" name="SelectableLabel.h" compile="0" resource="0"

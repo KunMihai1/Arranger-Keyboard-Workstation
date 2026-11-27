@@ -292,7 +292,7 @@ void MainComponent::saveRecordingToFile(double tempo)
 void MainComponent::playRecordingFromFile(double tempo)
 {
     fileChooser = std::make_unique<juce::FileChooser>(Text::playFromFileTitle, juce::File::getCurrentWorkingDirectory(), Text::midiFilePattern);
-    fileChooser->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
+    fileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,   // pick a file to play: Open, not Save
         [this, tempo](const juce::FileChooser& fc)
         {
             auto file = fc.getResult();
@@ -302,7 +302,10 @@ void MainComponent::playRecordingFromFile(double tempo)
                 if (!recordPlayer.parseRecordingFromFile(file, errorMsg))
                     juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::playFailedTitle, errorMsg);
                 else
+                {
+                    lastMidiFileName = file.getFileName();
                     recordPlayer.startRecordingFilePlaying();
+                }
             }
             fileChooser.reset();
         });

@@ -134,6 +134,7 @@ void MainComponent::recordButtonsInit()
 
     startRecording.onClick = [this] {
         recordPlayer.startRecording();
+        lastMidiFileName.clear();   // startRecording empties the loaded file too
         recordPlayer.handleIncomingMessage(juce::MidiMessage::programChange(HandChannels::leftHand, midiHandler.getProgramNumberLeftHand()));
         recordPlayer.handleIncomingMessage(juce::MidiMessage::programChange(HandChannels::rightHand, midiHandler.getProgramNumberRightHand()));
 

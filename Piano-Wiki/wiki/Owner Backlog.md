@@ -95,7 +95,9 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   the keys stay dimmed under it (note layer held hidden as on a page).
 - ✅ **"Play" text on the piano photo is trimmed** (owner, 2026-11-27) and must sit in the same place at every
   window width / height — PR #73 (`HomeLayout`).
-- ⬜ Next pages (spec order): Recorder, Sections v2; then keys, Dust, finishes, sign-in.
+- ✅ **Recorder page** (board PageFile, 2026-11-27): length / notes / REC lamp, Play / Stop / Save as MIDI…, MIDI
+  file status with Play / Stop. Fixed on the way: Play a MIDI file opened a Save dialog; a playing file had no Stop.
+- ⬜ Next pages (spec order): Sections v2; then keys, Dust, finishes, sign-in.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
   centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.

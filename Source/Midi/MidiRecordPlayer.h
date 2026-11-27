@@ -101,6 +101,17 @@ public:
     /** @brief Returns true if currently playing */
     bool getIsPlaying();
 
+    /** @brief Returns true while a MIDI file plays */
+    bool getIsPlayingFile();
+
+    /** @brief Notes in the recording (note-ons; the program changes recorded at its start do not count).
+        Takes the lock: safe from the message thread while the MIDI thread records. */
+    int getRecordedNoteCount();
+
+    /** @brief The recording's length in seconds: the time so far while recording, otherwise from its start to
+        Stop (at least to its last event). */
+    double getRecordedSeconds();
+
     /** @brief Saves the recorded sequence to a MIDI file */
     bool saveRecordingToFile(const juce::File& fileToSaveTo, juce::String& errorMsg, double tempo = RecordingDefaults::tempoBpm);
 
@@ -147,6 +158,7 @@ private:
     bool isPlayingFile = false;                  /**< File playback state flag */
 
     double recordStartTime {};                  /**< Time when recording started */
+    double lengthAtStop {};                     /**< The recording's length when Stop was pressed */
     double playBackStartTime {};               /**< Time when playback started */
     int nextEventIndex {};                      /**< Next event index during playback */
     int nextEventFileIndex {};                  /**< Next event index for file playback */
