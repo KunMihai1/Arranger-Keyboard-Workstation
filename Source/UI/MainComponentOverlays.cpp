@@ -207,7 +207,7 @@ void MainComponent::createSettingsContent()
 
         midiWindow->isMidiDeviceOpen = [this]()
         {
-            return !playButton.isVisible();
+            return inPlayView;
         };
 
         midiWindow->onArrangerModeChanged = [this](bool enabled)

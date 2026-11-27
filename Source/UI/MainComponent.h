@@ -29,6 +29,7 @@
 #include "LoginComponent.h"
 #include "PlaytimeTracker.h"
 #include "Stage/StagePanel.h"
+#include "Stage/StageHomePage.h"
 #include "Stage/StagePageFrame.h"
 #include "Stage/StageScale.h"
 #include "Recorder/RecorderContent.h"
@@ -451,6 +452,7 @@ private:
     // UI windows
     std::unique_ptr<MIDIWindow> midiWindow = nullptr;
     KeyboardUI keyboard{ midiHandler };
+    KeyboardUI frontKeys{ midiHandler };   ///< the keys under Log in / Home: drawn, not played (MainComponentFront.cpp)
     std::unique_ptr<NoteLayer> noteLayer;
     bool keyboardInitialized = false; ///< True if keyboard is initialized
     bool usingKeyboardInput = false;  ///< True if using keyboard input
@@ -509,6 +511,16 @@ private:
     juce::Image slipFinish;   ///< the key slip in the finish, drawn for the slip's size and scale
     float slipFinishScale {};
     void setPanelFinish (PanelFinish::Id finish, bool save);
+    // Log in / Home on the instrument (boards StageLogin / StageHome, MainComponentFront.cpp).
+    enum class FrontScreen { login, home, none };
+    FrontScreen frontScreen = FrontScreen::login;
+    std::unique_ptr<StageHomePage> homePage;
+    bool inPlayView = false;   ///< Play has opened the devices (was: the Play text on the picture is hidden)
+    void frontScreensInit();
+    void showFrontScreen (FrontScreen screen);
+    void layoutFrontScreens();
+    /** The screen's content on Log in / Home (asleep: "Welcome" / "Ready", lamps dark); false in the play view. */
+    bool frontScreenContent (StageScreen::Content& content) const;
     int particleStyleId = ParticleStyles::dust;   ///< applied again when Play creates the note layer
     // Voices page (board StageVoices, MainComponentVoices.cpp): the lit hands' instrument, Display's range fields,
     // the SFZ library; the title row's Left hand / Right hand are the Part LEDs' two toggles.

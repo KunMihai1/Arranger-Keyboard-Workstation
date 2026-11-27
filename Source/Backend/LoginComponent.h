@@ -12,38 +12,26 @@
 
 #include "JuceHeader.h"
 #include "SupabaseClient.h"
+#include "Stage/StagePageWidgets.h"
 
-class PasswordField : public juce::Component
-{
-public:
-
-    PasswordField();
-
-    void resized() override;
-
-    juce::TextEditor& getTextEditor();
-
-private:
-    juce::TextEditor passwordTE;
-    std::unique_ptr<juce::DrawableButton> eyeButton;
-    std::unique_ptr<juce::Drawable> eyeVisibleDrawable, eyeInvisibleDrawable;
-    bool visible = false;
-};
-
+/*  Log in / Sign up on the instrument (boards StageLogin / PageLogin, owner decision 2026-11-23): it fills the page
+    area under the panel. Left: the app's name and a line of text; right: the form with LCD fields and seg buttons.
+    What the buttons do (the account calls) is unchanged. */
 class LoginComponent : public juce::Component
 {
 public:
-    
+
     std::function<void()> onSuccessfullLogin;
 
     LoginComponent(std::shared_ptr<SupabaseClient> client);
 
+    ~LoginComponent() override;
+
+    void setScale (float newScale);
+
     void paint(juce::Graphics& g) override;
 
-
     void resized() override;
-
-    ~LoginComponent();
 
 private:
 
@@ -53,12 +41,14 @@ private:
     void handleDoneSignup();
     void handleBack();
 
-    void toLoginVisbility();
-    void toSignupVisibility();
+    void setSignUpMode (bool shouldSignUp);
+    void togglePasswordShown();
 
-    std::unique_ptr<juce::Label> emailLabel, passwordLabel, UsernameLabel;
-    std::unique_ptr<juce::TextEditor> emailTE, UsernameTE;
-    std::unique_ptr<PasswordField> passwordField;
-    std::unique_ptr<juce::TextButton> loginTB, signupTB, forgotPassTB,doneTB,backTB;
+    SilkLabel usernameLabel, emailLabel, passwordLabel;
+    StageLcdInput usernameField, emailField, passwordField;
+    SegButton showButton, loginButton, signUpButton, forgotButton, createButton, backButton;
+    bool signUpMode = false;
+    bool passwordShown = false;
+    float scale { StageMetrics::referenceScale };
     std::shared_ptr<SupabaseClient> client;
 };

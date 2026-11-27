@@ -57,6 +57,8 @@
               file="../tests/unit/test_dust_field.cpp"/>
         <FILE id="pnlFnT" name="test_panel_finish.cpp" compile="1" resource="0"
               file="../tests/unit/test_panel_finish.cpp"/>
+        <FILE id="frnLyT" name="test_front_screens_layout.cpp" compile="1" resource="0"
+              file="../tests/unit/test_front_screens_layout.cpp"/>
         <FILE id="stgWdT" name="test_stage_widgets.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_widgets.cpp"/>
         <FILE id="stgMdT" name="test_stage_models.cpp" compile="1" resource="0"
@@ -438,6 +440,10 @@
           <FILE id="frcNsC" name="FractalNoise.cpp" compile="1" resource="0" file="../Source/UI/Stage/FractalNoise.cpp"/>
           <FILE id="pnlFnH" name="PanelFinish.h" compile="0" resource="0" file="../Source/UI/Stage/PanelFinish.h"/>
           <FILE id="pnlFnC" name="PanelFinish.cpp" compile="1" resource="0" file="../Source/UI/Stage/PanelFinish.cpp"/>
+          <FILE id="frnLyH" name="FrontScreensLayout.h" compile="0" resource="0" file="../Source/UI/Stage/FrontScreensLayout.h"/>
+          <FILE id="frnLyC" name="FrontScreensLayout.cpp" compile="1" resource="0" file="../Source/UI/Stage/FrontScreensLayout.cpp"/>
+          <FILE id="stgHmH" name="StageHomePage.h" compile="0" resource="0" file="../Source/UI/Stage/StageHomePage.h"/>
+          <FILE id="stgHmC" name="StageHomePage.cpp" compile="1" resource="0" file="../Source/UI/Stage/StageHomePage.cpp"/>
           <FILE id="stgScH" name="StageScale.h" compile="0" resource="0"
                 file="../Source/UI/Stage/StageScale.h"/>
           <FILE id="stgMtH" name="StageMetrics.h" compile="0" resource="0"
@@ -493,6 +499,7 @@
         <FILE id="sploGM" name="MainComponentInit.cpp" compile="1" resource="0" file="../Source/UI/MainComponentInit.cpp"/>
         <FILE id="splbJm" name="MainComponentOverlays.cpp" compile="1" resource="0" file="../Source/UI/MainComponentOverlays.cpp"/>
         <FILE id="mcStge" name="MainComponentStage.cpp" compile="1" resource="0" file="../Source/UI/MainComponentStage.cpp"/>
+        <FILE id="mcFrnt" name="MainComponentFront.cpp" compile="1" resource="0" file="../Source/UI/MainComponentFront.cpp"/>
         <FILE id="mcVoic" name="MainComponentVoices.cpp" compile="1" resource="0" file="../Source/UI/MainComponentVoices.cpp"/>
         <FILE id="splWdg" name="MainComponentWidgets.cpp" compile="1" resource="0" file="../Source/UI/MainComponentWidgets.cpp"/>
         <FILE id="splTPS" name="MainComponentPlayback.cpp" compile="1" resource="0" file="../Source/UI/MainComponentPlayback.cpp"/>
