@@ -17,7 +17,6 @@
 #include "AppColours.h"
 #include "UI/Sections/SectionsPageLayout.h"
 #include "UI/Sections/SectionEditModel.h"
-#include "UI/Stage/StageFonts.h"
 
 namespace
 {
@@ -27,15 +26,11 @@ namespace
     constexpr int   keyQualityWidth    = 84;
     constexpr int   fieldHeight        = 22;
     constexpr int   scrollBarThickness = 12;    // the lanes box is 206: 194 of lanes + the scroll bar
-    constexpr float busyTextSize       = 16.0f;
-    constexpr float busyDimAlpha       = 0.7f;
     constexpr int   pollHz             = 8;     // Preview's label / LED and the playing pad follow the engine
     constexpr int   zoomStep           = 1;
     constexpr int   halfView           = 2;
     constexpr int   viewTop            = 0;
     constexpr int   noScroll           = 0;
-    constexpr bool  semiBold           = true;
-    constexpr float busySpacing        = 0.12f;
     const juce::String nameSeparator   = " ";
     constexpr bool  includeSeparator   = false;
     constexpr bool  ignoreCase         = false;
@@ -98,13 +93,6 @@ void ArrangerStyleEditor::setUpPageControls()
     zoomOutBtn.onClick = [this] { stepZoom (-zoomStep); };
     zoomInBtn.onClick  = [this] { stepZoom (zoomStep); };
 
-    // Full-page "working" cover: eats clicks so nothing behind it runs while a save / update is on its thread.
-    busyOverlay.setJustificationType (juce::Justification::centred);
-    busyOverlay.setColour (juce::Label::textColourId, StagePalette::silkscreenText);
-    busyOverlay.setColour (juce::Label::backgroundColourId, juce::Colours::black.withAlpha (busyDimAlpha));
-    busyOverlay.setInterceptsMouseClicks (true, true);
-    addChildComponent (busyOverlay);   // hidden until setBusy(true)
-
     setScale (scale);
     startTimerHz (pollHz);
 }
@@ -136,7 +124,6 @@ void ArrangerStyleEditor::setScale (float newScale)
     nameEditor.setSize (scaled (nameFieldWidth, scale), scaled (fieldHeight, scale));
     keyRootBox.setSize (scaled (keyRootWidth, scale), scaled (fieldHeight, scale));
     keyQualityBox.setSize (scaled (keyQualityWidth, scale), scaled (fieldHeight, scale));
-    busyOverlay.setFont (StageFonts::silkscreen (busyTextSize * scale, semiBold, busySpacing));
 
     timeline.setScale (scale);
     laneHeaders.setScale (scale);
@@ -165,9 +152,6 @@ void ArrangerStyleEditor::resized()
     layoutTimeline();
     jumpPads.setBounds (rects.pads.withTrimmedLeft (scaled (headerWidth, scale)));   // the pads line up with the lanes
     inspector.setBounds (rects.rightColumn);
-
-    if (busyOverlay.isVisible())
-        busyOverlay.setBounds (getLocalBounds());
 }
 
 void ArrangerStyleEditor::layoutTimeline()

@@ -37,7 +37,7 @@ void SectionsView::showEditor (ArrangerStyleEditor* editorToShow)
     {
         addAndMakeVisible (editor);
         editor->setScale (scale);
-        editor->onBusyChanged = [this] (bool busy) { list.setEnabled (! busy); };   // a save in progress blocks the list too
+        editor->onBusyChanged = [this] (bool busy, const juce::String&) { list.setEnabled (! busy); };   // a save in progress blocks the list too
         list.toFront (false);   // the editor spans the page; the list keeps its corner of the left column
     }
     resized();

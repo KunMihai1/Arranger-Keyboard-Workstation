@@ -23,6 +23,7 @@ namespace
     }
 
     constexpr int   soloTrackIndex      = 1;      // comboBoxChangeIndex(): 0 = all tracks, 1 = solo
+    constexpr double beatsAtStart       = 0.0;    // the beat bar back at its first beat
 }
 
 void CurrentStyleComponent::mouseDown(const juce::MouseEvent& event)
@@ -246,4 +247,84 @@ void CurrentStyleComponent::triggerStopClick()
 void CurrentStyleComponent::triggerStartClick()
 {
     this->startPlayingTracks.triggerClick();
+}
+
+//==============================================================================
+// The Sections view (spec 2026-11-27 sections v2): the configurations list and the editor in the Style page.
+
+void CurrentStyleComponent::stopLivePlayback()
+{
+    // Authoring (list/editor) is a separate mode from live performance and shares the single
+    // ArrangerEngine. Stop any live playback before showing it so the editor's preview
+    // doesn't inherit/fight the live engine state (which made entering edit show a stale section
+    // and fire a queued Ending on close).
+    if (arrangerEngine && arrangerEngine->isPlaying())
+    {
+        arrangerEngine->stop();
+        isPlaying = false;
+        customBeatBar.setCurrentBeatsElapsed(beatsAtStart);
+        customBeatBar.repaint();
+    }
+}
+
+void CurrentStyleComponent::showStyleList(bool shouldShow)
+{
+    if (shouldShow)
+    {
+        stopLivePlayback();
+        arrangerStyleList.refresh();
+        arrangerStyleList.setActiveConfigName(hasActiveArrangerConfig ? activeArrangerConfigName : juce::String());
+        if (onShowSections) onShowSections();   // the Style page shows the Sections view (closing any other first)
+        sectionsOpen = true;                    // after: closing a previous view must not clear it
+    }
+    else
+    {
+        if (onLeaveSections) onLeaveSections();   // the host leaves the view, which closes it (closeSections)
+        closeSections();
+    }
+}
+
+void CurrentStyleComponent::dropEditor()
+{
+    if (! arrangerStyleEditor)
+        return;
+    if (arrangerEngine)
+        arrangerEngine->stop();
+    isPlaying = false;
+    customBeatBar.repaint();
+    sectionsView.showEditor(nullptr);   // before the editor goes: the view holds a pointer to it
+    arrangerStyleEditor.reset();
+    restoreEngineBeatBar();
+    // The editor's name field may have held the keyboard focus: give it back to the play surface so the PC
+    // keyboard plays again (the overlays did this when they closed).
+    if (onRequestPlayFocus) onRequestPlayFocus();
+}
+
+void CurrentStyleComponent::showEditorInSections()
+{
+    sectionsView.showEditor(arrangerStyleEditor.get());
+    // A save / Update tracks writes on its own thread: cover the whole app while it runs, as Load and Edit do, so
+    // nothing (Home, another page, the panel) can drop the editor before its result lands. The view gates the list.
+    auto gateList = arrangerStyleEditor->onBusyChanged;
+    arrangerStyleEditor->onBusyChanged = [this, gateList] (bool busy, const juce::String& text)
+    {
+        if (gateList) gateList(busy, text);
+        if (onBusy) onBusy(busy, text);
+    };
+    if (onSectionsActionsChanged) onSectionsActionsChanged();
+}
+
+bool CurrentStyleComponent::sectionsExitStep()
+{
+    if (! arrangerStyleEditor)
+        return false;
+    if (! arrangerStyleEditor->isBusy())   // a save / update in progress blocks Exit, as it blocked Close
+        closeStyleEditor();
+    return true;
+}
+
+void CurrentStyleComponent::closeSections()
+{
+    dropEditor();
+    sectionsOpen = false;
 }

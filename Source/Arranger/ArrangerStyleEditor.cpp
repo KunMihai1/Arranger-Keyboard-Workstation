@@ -289,18 +289,7 @@ void ArrangerStyleEditor::restIdlePlayhead()
 
 void ArrangerStyleEditor::setBusy (bool busy, const juce::String& text)
 {
-    if (busy)
-    {
-        busyOverlay.setText (text, juce::dontSendNotification);
-        busyOverlay.setBounds (getLocalBounds());
-        busyOverlay.setVisible (true);
-        busyOverlay.toFront (false);
-    }
-    else
-    {
-        busyOverlay.setVisible (false);
-    }
-
+    // The host covers the whole app with its loading overlay meanwhile (onBusyChanged), as for Load and Edit.
     // Gate the controls so nothing can be triggered (or the editor closed) mid-operation. The title row and the
     // configurations list sit outside this component: they are gated too (the host asks isBusy() before Exit).
     busyNow = busy;
@@ -311,7 +300,7 @@ void ArrangerStyleEditor::setBusy (bool busy, const juce::String& text)
         control->setEnabled (! busy);
     updateTracksBtn.setEnabled (! busy && loadedFile.existsAsFile());
     if (onBusyChanged)
-        onBusyChanged (busy);
+        onBusyChanged (busy, busy ? text : juce::String());
 }
 
 void ArrangerStyleEditor::addSectionOfType (ArrangerSectionType type)

@@ -50,7 +50,7 @@ public:
     /** The title-row controls changed size (Preview ↔ Stop): the page lays its title row out again. */
     std::function<void()> onTitleActionsChanged;
     /** A save or Update tracks started (true) or finished: the host gates what lies outside the editor. */
-    std::function<void (bool busy)> onBusyChanged;
+    std::function<void (bool busy, const juce::String& text)> onBusyChanged;   // the host covers the app meanwhile
     bool isBusy() const { return busyNow; }
 
     explicit ArrangerStyleEditor (ArrangerEngine& engineToPreviewWith);
@@ -132,7 +132,6 @@ private:
                   addEndingBtn { StyleEditorText::addEnding, SegButton::Style::seg };
     void populateKeyControls();        // fill the combos and select the current originalRoot/quality
 
-    juce::Label busyOverlay;   // full-page dim + centered label shown while save/update runs off-thread
     bool busyNow = false;
     float scale { StageMetrics::referenceScale };
     bool previewShown = false;  // what Preview shows (Preview / Stop), to re-lay the title row on a change
