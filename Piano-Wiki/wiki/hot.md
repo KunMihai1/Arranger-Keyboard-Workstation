@@ -11,10 +11,9 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-27. Merged Recorder (#75), Sections v2 (#76); PR #77 fixes the track library (file per track) and the
-flaky `sparksAreVisible`. **Owner (2026-11-27): continue without stopping** — keys, Dust, finishes, sign-in;
-agent commits / pushes / merges. Owner sometimes uses this machine's screen: screenshot first. Injected keys
-don't play notes. `docs/superpowers/` is **local only**. Detail in [[log]].
+2026-11-27. Merged Recorder (#75), Sections v2 (#76), track library + sparks test (#77); realistic keys
+(`feat/ui-keys`). **Owner (2026-11-27): continue without stopping** — Dust, finishes, sign-in;
+agent commits / pushes / merges. Screen shared: screenshot first. `docs/superpowers/` is **local only**. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -31,7 +30,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 5244, arranger 770, integration 130 (+7 skipped), display 12**.
+  Current: **unit 5510, arranger 770, integration 130 (+7 skipped), display 12**.
 - Visual checks: screenshot/click the app's window by process id (a VS panel can share its title); boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
@@ -47,7 +46,8 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 Full task list with states: [[Owner Backlog]].
 - 🟡 **~100 `juce::AlertWindow`s left** (0.5–1 s each in Debug, balanced text layout): move to `StageDialog`.
 - 🟡 **UI redesign** (spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2): panel and
-  pages Style, Effects, Settings, Voices, Chord helper, Esc menu, Recorder, Sections done. Owner: same look on every resolution; pages centred like the
+  pages Style, Effects, Settings, Voices, Chord helper, Esc menu, Recorder, Sections, keys done. Open: Home
+  board look or Play on the photo (#73)? Owner: same look on every resolution; pages centred like the
   panel; agent checks the running app **1:1** against the boards before finishing.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.

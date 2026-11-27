@@ -100,7 +100,10 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - ✅ **Sections v2** (board PageSections, 2026-11-27; owner: "make sure you don't lose any logic"): list + editor
   are the Style page's Sections view instead of two overlays; lanes with every note by pitch, transpose button per
   lane, zoom, jump pads, Selected-section inspector. All 29 inventory items of the spec checked live.
-- ⬜ Next pages (spec order): keys, Dust, finishes, sign-in.
+- ✅ **Realistic keys** (board StageRevised, 2026-11-27): ivory / ebony keys with lip, rounded fronts, gaps on a dark
+  bed, black-key shadow; a pressed key looks pushed down (no more green). Checked 1:1 against the board live.
+- ⬜ Next pages (spec order): Dust, finishes, sign-in. Open question to the owner: Home with the board's instrument
+  look (Settings · Play · Exit keys) or keep Play on the piano photo (PR #73).
 - ✅ **Bug found 2026-11-27 — track library reloads tracks from the wrong file** (PR #77). A folder stored one
   `filePath` (the first MIDI file added) and each track only `trackIndex`, so tracks from other files came back as
   that first file's. Each track now saves its own `filePath` (old saves fall back to the folder's; they can't be
