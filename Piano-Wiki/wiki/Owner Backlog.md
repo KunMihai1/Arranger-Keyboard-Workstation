@@ -97,7 +97,17 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   window width / height — PR #73 (`HomeLayout`).
 - ✅ **Recorder page** (board PageFile, 2026-11-27): length / notes / REC lamp, Play / Stop / Save as MIDI…, MIDI
   file status with Play / Stop. Fixed on the way: Play a MIDI file opened a Save dialog; a playing file had no Stop.
-- ⬜ Next pages (spec order): Sections v2; then keys, Dust, finishes, sign-in.
+- ✅ **Sections v2** (board PageSections, 2026-11-27; owner: "make sure you don't lose any logic"): list + editor
+  are the Style page's Sections view instead of two overlays; lanes with every note by pitch, transpose button per
+  lane, zoom, jump pads, Selected-section inspector. All 29 inventory items of the spec checked live.
+- ⬜ Next pages (spec order): keys, Dust, finishes, sign-in.
+- ⬜ **Bug found 2026-11-27 — track library reloads tracks from the wrong file.** A folder stores one `filePath`
+  (the first MIDI file added) and each track only `trackIndex`; tracks added to the same folder from other files
+  come back after a restart as that first file's track (`myTracks.json`: three files → three copies of the first).
+  Not fixed (outside the Sections page); needs a per-track source path.
+- ⬜ **Flaky display test `sparksAreVisible`** (seen 2026-11-27): lit pixels above the key with sparks vs a fixed
+  margin; failed 2 of 6 runs just under it (1398 vs > 1422, 1420 vs > 1525), passed on rerun. Random particles
+  measured on the real screen; needs a steadier measure (seeded spawn or several taps).
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
   centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.

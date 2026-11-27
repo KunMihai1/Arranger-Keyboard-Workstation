@@ -1,7 +1,7 @@
 ---
 type: meta
 title: "Hot Cache"
-updated: 2026-11-27T09:00:00
+updated: 2026-11-27T18:00:00
 tags:
   - meta
   - hot
@@ -11,10 +11,10 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-27. Merged #69–#74 (Chord helper, owner fixes, split, Sparks + **Light wisps**, "Play" text, Esc menu);
-**Recorder page** on `feat/ui-recorder-page`. **Next page: Sections v2**, then keys, Dust, finishes, sign-in.
-Owner sometimes uses this machine's screen: screenshot first. Injected keys don't play notes: check the note
-layer through the display harness. `docs/superpowers/` is **local only**. Detail in [[log]].
+2026-11-27. Merged Recorder (#75); **Sections v2** on `feat/ui-sections-lanes`: list + editor as the Style page's
+Sections view (lanes with notes by pitch, inspector, jump pads). **Owner: pause after this merge.** Next pages
+then: keys, Dust, finishes, sign-in. Owner sometimes uses this machine's screen: screenshot first. Injected keys
+don't play notes. `docs/superpowers/` is **local only**. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -31,7 +31,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 4679, arranger 770, integration 130 (+7 skipped), display 12**.
+  Current: **unit 5235, arranger 770, integration 130 (+7 skipped), display 12** (`sparksAreVisible` flaky).
 - Visual checks: screenshot/click the app's window by process id (a VS panel can share its title); boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
@@ -47,10 +47,11 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 Full task list with states: [[Owner Backlog]].
 - 🟡 **~100 `juce::AlertWindow`s left** (0.5–1 s each in Debug, balanced text layout): move to `StageDialog`.
 - 🟡 **UI redesign** (spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2): panel and
-  pages Style, Effects, Settings, Voices, Chord helper, Esc menu, Recorder done. Owner: same look on every resolution; pages centred like the
+  pages Style, Effects, Settings, Voices, Chord helper, Esc menu, Recorder, Sections done. Owner: same look on every resolution; pages centred like the
   panel; agent checks the running app **1:1** against the boards before finishing.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.
 - 🟡 **Swap `juce::dsp::Chorus` (CC93) for the BBD model** from `va-effects`; budget = 16 `ChannelDSP`s.
 - 🟡 **Missing-SFZ popup (`b5765e9`) never smoke-tested**; **Phase 7a manual sign-off 0/9**.
+- 🟡 **Track library bug**: tracks from a folder's 2nd+ MIDI file reload as the first file's (see [[Owner Backlog]]).
 - 🟢 OpenGL crash parked (unreproducible); tripwire logs to `Desktop/piano_gl_errors.log`.

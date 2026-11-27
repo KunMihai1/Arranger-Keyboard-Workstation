@@ -50,6 +50,8 @@ public:
     juce::Rectangle<int> getContentBounds() const;
     juce::Rectangle<float> getTitleBounds() const;
     juce::Rectangle<float> getSubtitleBounds() const;
+    /** The rule from the subtitle to the actions; empty when there is no room for a real line. */
+    juce::Rectangle<float> getRuleBounds() const;
 
     /** Lays the page's children out in the content area at the given scale. */
     std::function<void (juce::Rectangle<int> contentArea, float scale)> onLayoutContent;

@@ -198,12 +198,21 @@ void StagePageFrame::paint (juce::Graphics& g)
         g.drawText (subtitle.toUpperCase(), subtitleBounds, juce::Justification::centredLeft, false);
     }
 
-    const auto row      = titleRow();
-    const auto ruleLeft = subtitleBounds.getRight() + scaled (rowGap);
-    const auto right    = ruleRight();
-    if (right > ruleLeft)
+    const auto rule = getRuleBounds();
+    if (! rule.isEmpty())
     {
         g.setColour (StagePalette::ruleLine);
-        g.fillRect (juce::Rectangle<float> (ruleLeft, row.getCentreY() - scaled (ruleWidth) / halves, right - ruleLeft, scaled (ruleWidth)));
+        g.fillRect (rule);
     }
+}
+
+juce::Rectangle<float> StagePageFrame::getRuleBounds() const
+{
+    using namespace StageMetrics;
+    const auto row      = titleRow();
+    const auto ruleLeft = getSubtitleBounds().getRight() + scaled (rowGap);
+    const auto right    = ruleRight();
+    if (right - ruleLeft < scaled (minimumRuleLength))
+        return {};
+    return { ruleLeft, row.getCentreY() - scaled (ruleWidth) / halves, right - ruleLeft, scaled (ruleWidth) };
 }

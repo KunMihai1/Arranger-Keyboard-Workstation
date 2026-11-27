@@ -170,14 +170,20 @@ void SegButton::paintButton (juce::Graphics& g, bool isHighlighted, bool isDown)
         return;
     }
 
-    // .seg: the text starts after the padding (and LED). A button wider than its text (e.g. the full-width
-    // "Open folder") centres it. The area runs to the border, so rounding never drops the last letter.
+    // .seg: without an LED the text is centred, so a button at its own width (equal padding both sides) and one
+    // stretched to share a row (New / Edit / Load / Del, the full-width "Open folder") both look right. With an
+    // LED it starts after the LED, centred in what is left once the button is clearly wider than its text.
+    // The area runs to the border, so rounding never drops the last letter.
     const auto textStart = scaled (segBorder + paddingSide) + (hasLed ? scaled (ledDiameter + segLedGap) : float {});
-    auto textArea = face.withTrimmedLeft (textStart).withTrimmedRight (scaled (segBorder));
-    const bool widerThanText = getWidth() > getPreferredWidth() + juce::roundToInt (scaled (segPaddingSide));
-    if (widerThanText)
-        textArea = face.withTrimmedLeft (hasLed ? textStart : float {}).reduced (scaled (segBorder), float {});
-    g.drawText (shownText(), textArea, widerThanText ? juce::Justification::centred : juce::Justification::centredLeft, false);
+    auto textArea = face.reduced (scaled (segBorder), float {});
+    bool centred = ! hasLed;
+    if (hasLed)
+    {
+        centred = getWidth() > getPreferredWidth() + juce::roundToInt (scaled (segPaddingSide));
+        textArea = centred ? textArea.withTrimmedLeft (textStart - scaled (segBorder))
+                           : face.withTrimmedLeft (textStart).withTrimmedRight (scaled (segBorder));
+    }
+    g.drawText (shownText(), textArea, centred ? juce::Justification::centred : juce::Justification::centredLeft, false);
 }
 
 //==============================================================================

@@ -45,6 +45,8 @@ namespace
         const juce::String tracksMode       = "TRACKS";
         const juce::String notesMode        = "NOTES";
         const juce::String instrumentsMode  = "INSTRUMENT";
+        const juce::String sectionsMode     = "SECTIONS";
+        const juce::String closeSectionsFirst = "Close Sections to play the style";
         const juce::String noStyleTitle     = "No style";
         const juce::String noStyleOpen      = "Open a style first (Styles)";
         const juce::String choosePart       = "Choose a part: Left or Right";
@@ -339,6 +341,7 @@ void MainComponent::updateStageScreen()
             content.mode = view == StyleView::tracks ? StageWiringText::tracksMode
                          : view == StyleView::notes  ? StageWiringText::notesMode
                          : view == StyleView::instruments ? StageWiringText::instrumentsMode
+                         : view == StyleView::sections ? StageWiringText::sectionsMode
                                                      : StageWiringText::stylesMode;
         }
             break;
@@ -411,6 +414,11 @@ void MainComponent::syncSectionLedsFromGroups()
 
 void MainComponent::pressSectionFromPanel (const juce::String& sectionName)
 {
+    if (display != nullptr && display->isAuthoringSections())
+    {
+        showStageMessage (StageWiringText::closeSectionsFirst);   // the Sections page previews on the same engine
+        return;
+    }
     for (auto* sections : { introsEndings.get(), variationsFills.get() })
         if (sections != nullptr)
             for (auto* group : sections->getSectionGroups())
@@ -464,6 +472,11 @@ void MainComponent::startOrStopStyleFromPanel (bool start)
     if (display == nullptr || ! display->hasOpenStyle())
     {
         showStageMessage (StageWiringText::noStyleOpen);
+        return;
+    }
+    if (display->isAuthoringSections())
+    {
+        showStageMessage (StageWiringText::closeSectionsFirst);   // the Sections page previews on the same engine
         return;
     }
 

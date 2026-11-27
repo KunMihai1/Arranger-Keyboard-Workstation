@@ -204,11 +204,20 @@ void Display::showCurrentStyleTab(const juce::String& name)
         updateStyleInJson(name);
     };
 
-    currentStyleComponent->onAuthoringOverlayVisible = [this](bool visible)
+    currentStyleComponent->onShowSections = [this]()
     {
-        if (onArrangerOverlayVisible)
-            onArrangerOverlayVisible(visible);
+        destroySubView();   // one sub-page at a time
+        auto& sectionsView = currentStyleComponent->getSectionsView();
+        sectionsView.setScale (scale);
+        addAndMakeVisible (sectionsView);
+        showView (StyleView::sections);
     };
+    currentStyleComponent->onLeaveSections = [this]()
+    {
+        if (getView() == StyleView::sections)
+            leaveSubView();
+    };
+    currentStyleComponent->onSectionsActionsChanged = [this]() { viewChanged(); };
 
     currentStyleComponent->onRequestPlayFocus = [this]()
     {
@@ -532,7 +541,15 @@ void Display::readPlaybackSettingsFromProperties()
 
 void Display::homeButtonInteraction()
 {
-    // Home with a sub-page open (formerly: a temporary tab): back to the style, play mode All tracks.
+    // Home with a sub-page open (formerly: a temporary tab): back to the style, play mode All tracks. The Sections
+    // view only closes: its editor was an overlay Home could not reach, and All tracks would drop the active
+    // configuration.
+    if (getView() == StyleView::sections)
+    {
+        leaveSubView();
+        refreshTitleActions();
+        return;
+    }
     closeSubView();
     if (currentStyleComponent)
         currentStyleComponent->comboBoxChangeIndex(allTracksIndex);

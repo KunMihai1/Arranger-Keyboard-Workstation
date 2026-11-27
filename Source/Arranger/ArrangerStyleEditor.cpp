@@ -20,12 +20,6 @@ namespace
         const juce::String nameSeparator     = " ";   // "<type> <number>"
         const juce::String styleExtension    = ".style";
 
-        // Per-track NTT choices shown in the editor (display text, not the persisted names).
-        const juce::String nttNoTranspose = "No Transpose";
-        const juce::String nttParallel    = "Parallel";
-        const juce::String nttChord       = "Chord";
-        const juce::String nttFixed       = "Fixed";
-
         const juce::StringArray pitchClassNames { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
 
         const juce::String updateTracksTitle   = "Update tracks";
@@ -67,47 +61,11 @@ namespace
     constexpr bool   ignoreCase            = false;
     constexpr double noTempo               = 0.0;
 
-    // Look
-    constexpr int   timelineScrollBarThickness = 12;
-    constexpr int   nttScrollBarThickness      = 10;
-    constexpr float busyFontHeight             = 24.0f;
-    constexpr float busyDimAlpha               = 0.7f;
-    constexpr float minimumNameScale           = 0.7f;
-    constexpr int   borderThickness            = 2;
-
     // Auto-follow: scroll when the playhead comes this close to a viewport edge.
     constexpr int followEdgeMargin = 48;
     constexpr int halfViewDivisor  = 2;
     constexpr int viewTop          = 0;
     constexpr int noScroll         = 0;
-
-    // Per-track NTT cells (pixels)
-    constexpr int nttCellWidth        = 150;
-    constexpr int nttCellGap          = 8;
-    constexpr int nttNameHeight       = 18;
-    constexpr int nttComboHeight      = 24;
-    constexpr int nttCellPadding      = 4;
-    constexpr int nttScrollBarRoom    = 12;
-
-    // Editor layout (pixels)
-    constexpr int editorMargin        = 8;
-    constexpr int topRowHeight        = 30;
-    constexpr int nameLabelWidth      = 50;
-    constexpr int nameEditorWidth     = 180;
-    constexpr int noInsetX            = 0;
-    constexpr int fieldInsetY         = 2;
-    constexpr int afterNameGap        = 8;
-    constexpr int buttonWidth         = 84;
-    constexpr int buttonInset         = 2;
-    constexpr int rowGap              = 6;
-    constexpr int keyRowHeight        = 26;
-    constexpr int keyLabelWidth       = 90;
-    constexpr int keyRootWidth        = 60;
-    constexpr int keyQualityWidth     = 90;
-    constexpr int nttStripHeight      = 78;
-    constexpr int nttHeaderHeight     = 20;
-    constexpr int minimumTimelineHeight = 40;
-    constexpr int timelineScrollBarRoom = 14;
 
     std::vector<TimedBeatEvent> pitchedEvents (const std::vector<SourceTrackFile>& tracks)
     {
@@ -125,69 +83,36 @@ ArrangerStyleEditor::ArrangerStyleEditor (ArrangerEngine& engineToPreviewWith) :
 {
     timelineViewport.setViewedComponent (&timeline, false);
     timelineViewport.setScrollBarsShown (false, true);   // horizontal only
-    timelineViewport.setScrollBarThickness (timelineScrollBarThickness);
     timelineViewport.getHorizontalScrollBar().addListener (this);  // detect manual scroll
     addAndMakeVisible (timelineViewport);
-    addAndMakeVisible (nameLabel);
-    addAndMakeVisible (nameEditor);
-    nameLabel.setColour (juce::Label::textColourId, juce::Colours::white);
     nameEditor.setText (Text::defaultConfigName, juce::dontSendNotification);
-    for (auto* button : { &addIntroBtn, &addVariationBtn, &addFillBtn, &addBreakBtn, &addEndingBtn,
-                          &removeBtn, &previewBtn, &stopBtn, &updateTracksBtn, &saveBtn, &closeBtn })
-        addAndMakeVisible (button);
 
-    updateTracksBtn.setEnabled (false);   // only meaningful when editing an existing saved config
+    setUpPageControls();   // the page's controls and their look (ArrangerStyleEditorPage.cpp)
 
-    addAndMakeVisible (keyLabel);
-    addAndMakeVisible (keyRootBox);
-    addAndMakeVisible (keyQualityBox);
-    keyLabel.setColour (juce::Label::textColourId, juce::Colours::white);
     populateKeyControls();
     keyRootBox.onChange    = [this] { originalRoot = keyRootBox.getSelectedId() - comboIdOffset; rebuildPreview(); };
     keyQualityBox.onChange = [this] { originalQuality = (ChordQuality) keyQualityBox.getSelectedId(); rebuildPreview(); };
-
-    // Phase 7a: per-track NTT selector strip (scrolls horizontally if there are many tracks).
-    nttHeaderLabel.setColour (juce::Label::textColourId, juce::Colours::white);
-    addAndMakeVisible (nttHeaderLabel);
-    nttTrackViewport.setViewedComponent (&nttTrackContent, false);
-    nttTrackViewport.setScrollBarsShown (false, true);   // horizontal only
-    nttTrackViewport.setScrollBarThickness (nttScrollBarThickness);
-    addAndMakeVisible (nttTrackViewport);
-
-    // Full-screen "working" overlay, styled like the app's "Preparing style..." overlay. Eats mouse
-    // clicks so nothing behind it can be triggered while a save/update runs on the background thread.
-    busyOverlay.setJustificationType (juce::Justification::centred);
-    busyOverlay.setFont (juce::Font (busyFontHeight, juce::Font::bold));
-    busyOverlay.setColour (juce::Label::textColourId, juce::Colours::white);
-    busyOverlay.setColour (juce::Label::backgroundColourId, juce::Colours::black.withAlpha (busyDimAlpha));
-    busyOverlay.setInterceptsMouseClicks (true, true);
-    addChildComponent (busyOverlay);   // hidden until setBusy(true)
 
     timeline.onWindowsChanged = [this] (const std::vector<SectionWindow>& editedWindows)
     {
         windows = editedWindows;
         rebuildPreview();
         restIdlePlayhead();   // when not previewing, keep the arrow parked at the first section's start
+        refreshSelection();
     };
 
     // Clicking a region while previewing switches to that section at the next bar line.
-    timeline.onSectionSelected = [this] (int sectionIndex)
-    {
-        if (engine.isPlaying() && sectionIndex >= int {} && sectionIndex < (int) windows.size())
-            engine.queueSection (windows[(size_t) sectionIndex].type, windows[(size_t) sectionIndex].name);
-    };
+    timeline.onSectionSelected = [this] (int sectionIndex) { selectSection (sectionIndex); };
 
     addIntroBtn.onClick     = [this] { addSectionOfType (ArrangerSectionType::Intro); };
     addVariationBtn.onClick = [this] { addSectionOfType (ArrangerSectionType::Variation); };
     addFillBtn.onClick      = [this] { addSectionOfType (ArrangerSectionType::Fill); };
     addBreakBtn.onClick     = [this] { addSectionOfType (ArrangerSectionType::Break); };
     addEndingBtn.onClick    = [this] { addSectionOfType (ArrangerSectionType::Ending); };
-    removeBtn.onClick       = [this] { removeSelectedSection(); };
-    previewBtn.onClick   = [this] { followPlayhead = true; rebuildPreview(); engine.setBpm (referenceBpm); engine.start (false); };  // preview always starts now (no Synchro/Count-In)
-    stopBtn.onClick      = [this] { engine.stop(); };
+    inspector.onRemove      = [this] { removeSelectedSection(); };
+    previewBtn.onClick      = [this] { togglePreview(); };
     updateTracksBtn.onClick = [this] { updateTracksFromRecording(); };
-    saveBtn.onClick      = [this] { requestSave(); };
-    closeBtn.onClick = [this] { engine.stop(); if (onClose) onClose(); };
+    saveBtn.onClick         = [this] { requestSave(); };
 
     engine.onElapsedBeats = [this] (double /*globalBeats*/)   // always marshalled to the message thread
     {
@@ -255,7 +180,7 @@ void ArrangerStyleEditor::loadRecording (const std::vector<TrackEntry>& tracks, 
     updateTracksBtn.setEnabled (false);   // brand-new config: nothing on disk to update yet
 
     sourceTracks = ArrangerSourceBuilder::fromTrackEntries (tracks, referenceBpm);
-    rebuildTrackNttList();       // Phase 7a: per-track NTT cells for the fresh tracks
+    refreshLanes();              // lane headers (transpose mode) + the lanes' notes
     autoDetectOriginalChord();   // guess the recorded key from the fresh recording
     populateKeyControls();
     windows = ArrangerDefaults::defaultWindowsForBars (ArrangerStyleDefaults::minimumLengthBars);
@@ -267,6 +192,7 @@ void ArrangerStyleEditor::loadRecording (const std::vector<TrackEntry>& tracks, 
     layoutTimeline();
     rebuildPreview();
     restIdlePlayhead();   // park the arrow at the first section's start, not bar 1
+    refreshSelection();
 }
 
 void ArrangerStyleEditor::loadFromFile (const ArrangerStyleFile& styleFile)
@@ -279,7 +205,7 @@ void ArrangerStyleEditor::loadFromFile (const ArrangerStyleFile& styleFile)
     originalRoot = styleFile.originalRoot; originalQuality = styleFile.originalQuality;   // keep the saved recorded key
     populateKeyControls();
     sourceTracks = styleFile.sourceTracks;
-    rebuildTrackNttList();       // Phase 7a: per-track NTT cells from the loaded style
+    refreshLanes();              // lane headers (transpose mode) + the lanes' notes
     windows = styleFile.sections;
     if (windows.empty())
         windows = ArrangerDefaults::defaultWindowsForBars (ArrangerStyleDefaults::minimumLengthBars);
@@ -291,6 +217,7 @@ void ArrangerStyleEditor::loadFromFile (const ArrangerStyleFile& styleFile)
     layoutTimeline();
     rebuildPreview();
     restIdlePlayhead();   // park the arrow at the first section's start, not bar 1
+    refreshSelection();
 }
 
 ArrangerStyleFile ArrangerStyleEditor::toStyleFile() const
@@ -328,62 +255,6 @@ void ArrangerStyleEditor::populateKeyControls()
     keyQualityBox.setSelectedId ((int) originalQuality, juce::dontSendNotification);
 }
 
-void ArrangerStyleEditor::rebuildTrackNttList()
-{
-    nttTrackCombos.clear();
-    nttTrackNameLabels.clear();
-
-    for (int trackIndex {}; trackIndex < (int) sourceTracks.size(); ++trackIndex)
-    {
-        const auto& sourceTrack = sourceTracks[(size_t) trackIndex];
-
-        auto* trackNameLabel = new juce::Label ({}, sourceTrack.name.isNotEmpty()
-                                                     ? sourceTrack.name
-                                                     : (Text::trackPrefix + juce::String (trackIndex + numberStep)));
-        trackNameLabel->setColour (juce::Label::textColourId, juce::Colours::white);
-        trackNameLabel->setJustificationType (juce::Justification::centredLeft);
-        trackNameLabel->setMinimumHorizontalScale (minimumNameScale);
-        nttTrackContent.addAndMakeVisible (trackNameLabel);
-        nttTrackNameLabels.add (trackNameLabel);
-
-        auto* combo = new juce::ComboBox();
-        combo->addItem (Text::nttNoTranspose, (int) NttType::NoTranspose + comboIdOffset);   // id = NttType + 1
-        combo->addItem (Text::nttParallel,    (int) NttType::Parallel    + comboIdOffset);
-        combo->addItem (Text::nttChord,       (int) NttType::Chord       + comboIdOffset);
-        combo->addItem (Text::nttFixed,       (int) NttType::Fixed       + comboIdOffset);
-        combo->setSelectedId ((int) sourceTrack.nttType + comboIdOffset, juce::dontSendNotification);
-        combo->onChange = [this, combo, trackIndex]
-        {
-            if (trackIndex < (int) sourceTracks.size())
-            {
-                sourceTracks[(size_t) trackIndex].nttType = (NttType) (combo->getSelectedId() - comboIdOffset);
-                rebuildPreview();   // keep the live preview in sync, like a region/key edit
-            }
-        };
-        nttTrackContent.addAndMakeVisible (combo);
-        nttTrackCombos.add (combo);
-    }
-
-    layoutTrackNttCells();
-}
-
-void ArrangerStyleEditor::layoutTrackNttCells()
-{
-    const int rowHeight = nttNameHeight + nttComboHeight + nttCellPadding;
-    const int cellCount = nttTrackCombos.size();
-
-    nttTrackContent.setSize (juce::jmax (nttTrackViewport.getWidth(), cellCount * (nttCellWidth + nttCellGap) + nttCellGap),
-                             juce::jmax (rowHeight, nttTrackViewport.getHeight() - nttScrollBarRoom));
-
-    int cellX = nttCellGap;
-    for (int cellIndex {}; cellIndex < cellCount; ++cellIndex)
-    {
-        if (auto* trackNameLabel = nttTrackNameLabels[cellIndex]) trackNameLabel->setBounds (cellX, nttCellPadding, nttCellWidth, nttNameHeight);
-        if (auto* combo = nttTrackCombos[cellIndex])              combo->setBounds (cellX, nttCellPadding + nttNameHeight, nttCellWidth, nttComboHeight);
-        cellX += nttCellWidth + nttCellGap;
-    }
-}
-
 ArrangerStyle ArrangerStyleEditor::buildStyle() const
 {
     ArrangerStyle style = ArrangerPatternBuilder::buildStyleFromWindows (
@@ -418,23 +289,18 @@ void ArrangerStyleEditor::restIdlePlayhead()
 
 void ArrangerStyleEditor::setBusy (bool busy, const juce::String& text)
 {
-    if (busy)
-    {
-        busyOverlay.setText (text, juce::dontSendNotification);
-        busyOverlay.setBounds (getLocalBounds());
-        busyOverlay.setVisible (true);
-        busyOverlay.toFront (false);
-    }
-    else
-    {
-        busyOverlay.setVisible (false);
-    }
-
-    // Gate the controls so nothing can be triggered (or the editor closed) mid-operation.
+    // The host covers the whole app with its loading overlay meanwhile (onBusyChanged), as for Load and Edit.
+    // Gate the controls so nothing can be triggered (or the editor closed) mid-operation. The title row and the
+    // configurations list sit outside this component: they are gated too (the host asks isBusy() before Exit).
+    busyNow = busy;
     for (auto* button : { &addIntroBtn, &addVariationBtn, &addFillBtn, &addBreakBtn, &addEndingBtn,
-                          &removeBtn, &previewBtn, &stopBtn, &saveBtn, &closeBtn })
+                          &previewBtn, &saveBtn, &zoomOutBtn, &zoomInBtn })
         button->setEnabled (! busy);
+    for (auto* control : std::initializer_list<juce::Component*> { &nameEditor, &keyRootBox, &keyQualityBox, &inspector, &laneHeaders, &jumpPads })
+        control->setEnabled (! busy);
     updateTracksBtn.setEnabled (! busy && loadedFile.existsAsFile());
+    if (onBusyChanged)
+        onBusyChanged (busy, busy ? text : juce::String());
 }
 
 void ArrangerStyleEditor::addSectionOfType (ArrangerSectionType type)
@@ -462,6 +328,7 @@ void ArrangerStyleEditor::addSectionOfType (ArrangerSectionType type)
     windows.push_back (window);
     timeline.setWindows (windows);
     rebuildPreview();
+    refreshSelection();
 }
 
 void ArrangerStyleEditor::updateTracksFromRecording()
@@ -527,7 +394,7 @@ void ArrangerStyleEditor::updateTracksFromRecording()
                         return;
                     }
                     safe->sourceTracks = std::move (*applied);
-                    safe->rebuildTrackNttList();   // Phase 7a: refresh per-track NTT cells for the new tracks
+                    safe->refreshLanes();          // lane headers (transpose mode) + the lanes' notes
                     safe->originalRoot = file->originalRoot;        // keep the re-detected key
                     safe->originalQuality = file->originalQuality;
                     safe->populateKeyControls();
@@ -573,6 +440,7 @@ void ArrangerStyleEditor::removeSelectedSection()
     timeline.setWindows (windows);   // also clears the now-stale selection
     layoutTimeline();
     rebuildPreview();
+    refreshSelection();
 }
 
 void ArrangerStyleEditor::requestSave()
@@ -640,61 +508,10 @@ void ArrangerStyleEditor::finishSave (const juce::File& target)
     });
 }
 
-void ArrangerStyleEditor::paint (juce::Graphics& g)
-{
-    g.fillAll (AppColours::styleEditorBackground);
-    g.setColour (AppColours::styleEditorBorder);
-    g.drawRect (getLocalBounds(), borderThickness);
-}
-
-void ArrangerStyleEditor::resized()
-{
-    auto area = getLocalBounds().reduced (editorMargin);
-
-    auto top = area.removeFromTop (topRowHeight);
-    nameLabel.setBounds (top.removeFromLeft (nameLabelWidth));
-    nameEditor.setBounds (top.removeFromLeft (nameEditorWidth).reduced (noInsetX, fieldInsetY));
-    top.removeFromLeft (afterNameGap);
-    for (auto* button : { &addIntroBtn, &addVariationBtn, &addFillBtn, &addBreakBtn, &addEndingBtn,
-                          &removeBtn, &previewBtn, &stopBtn, &updateTracksBtn, &saveBtn, &closeBtn })
-        button->setBounds (top.removeFromLeft (buttonWidth).reduced (buttonInset));
-
-    area.removeFromTop (rowGap);
-    auto keyRow = area.removeFromTop (keyRowHeight);                    // second row: recorded-key picker
-    keyLabel.setBounds (keyRow.removeFromLeft (keyLabelWidth));
-    keyRootBox.setBounds (keyRow.removeFromLeft (keyRootWidth).reduced (noInsetX, fieldInsetY));
-    keyRow.removeFromLeft (rowGap);
-    keyQualityBox.setBounds (keyRow.removeFromLeft (keyQualityWidth).reduced (noInsetX, fieldInsetY));
-
-    // Phase 7a: per-track NTT strip along the bottom (header row + a horizontally-scrolling cell row),
-    // so the timeline keeps its full width and only gives up a little height.
-    {
-        auto strip = area.removeFromBottom (nttStripHeight);
-        nttHeaderLabel.setBounds (strip.removeFromTop (nttHeaderHeight));
-        nttTrackViewport.setBounds (strip);
-        layoutTrackNttCells();
-    }
-
-    area.removeFromBottom (rowGap);
-    timelineViewport.setBounds (area);
-    layoutTimeline();
-
-    if (busyOverlay.isVisible())
-        busyOverlay.setBounds (getLocalBounds());
-}
-
 void ArrangerStyleEditor::scrollBarMoved (juce::ScrollBar*, double)
 {
     // A scroll the user initiated (not our auto-follow) suspends following so they can navigate
     // freely to a far section. Pressing Preview re-arms it.
     if (! programmaticScroll)
         followPlayhead = false;
-}
-
-void ArrangerStyleEditor::layoutTimeline()
-{
-    const int timelineHeight = juce::jmax (minimumTimelineHeight, timelineViewport.getHeight() - timelineScrollBarRoom); // leave room for the scrollbar
-    // Fill the viewport when there are few bars; grow + scroll when there are many.
-    const int timelineWidth = juce::jmax (timeline.getPreferredWidth(), timelineViewport.getWidth());
-    timeline.setSize (timelineWidth, timelineHeight);
 }

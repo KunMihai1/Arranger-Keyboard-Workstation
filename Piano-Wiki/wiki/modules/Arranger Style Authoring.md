@@ -1,7 +1,7 @@
 ---
 type: module
 title: "Arranger Style Authoring"
-path: "Source/Arranger/ArrangerStyleEditor.* · ArrangerStyleListComponent.* · ArrangerTimelineComponent.* · ArrangerDefaults.* · Source/Styles/CurrentStyleComponent.*"
+path: "Source/Arranger/ArrangerStyleEditor*.* · ArrangerStyleListComponent.* · ArrangerTimelineComponent.* · ArrangerDefaults.* · Source/UI/Sections/* · Source/Styles/CurrentStyleComponent.*"
 status: active
 language: cpp
 purpose: "Author, store, browse, and live-trigger self-contained .style configurations (sections carved out of one recording)"
@@ -10,7 +10,7 @@ depends_on:
   - "[[ArrangerSectionSequencer]]"
   - "[[ArrangerModel]]"
 created: 2026-06-07
-updated: 2026-06-25
+updated: 2026-11-27
 tags:
   - module
   - arranger
@@ -29,8 +29,21 @@ How a user creates and uses a self-contained arranger **configuration** (`.style
 > [!key-insight] A "config" is windows into ONE recording
 > You record a performance once; the editor carves it into named **sections** (bar-windows). A Variation/Intro/Fill/Break/Ending is just a window of type X over the same `sourceTracks`. There is no per-section re-recording (that would be the bigger "separate grooves" rewrite, deferred).
 
+> [!note] Sections v2 (2026-11-27, board PageSections)
+> The list and the editor are no longer full-window overlays: they are the Style page's **Sections view**
+> (`StyleView::sections`, `Source/UI/Sections/SectionsView`), shown by `Display` from the Style page's
+> **Sections…** button. Left column: **Configurations** LCD list (● = active; New · Edit · Load · Del) and
+> **Add section** (+ Intro … + Ending). Centre: lane headers (track, transpose button cycling None → Parallel →
+> Chord → Fixed, replacing the NTT strip), the lanes (`ArrangerTimelineComponent`: ruler, every recorded note as
+> a bar by pitch, the windows) and **Jump** pads. Right: **Selected section** (`SectionInspector`: type / start /
+> length ◂▸, When it ends Loop / Go on / Stop, Play this, Remove; edits go through `SectionEditModel` and the
+> same path as a drag). Title row: name, recorded key, Zoom − / +, Preview/Stop, Update tracks, Save, Exit.
+> **Exit / Esc** close the editor first, then the view; Home / another style close both (preview stopped, play
+> mode untouched). While the view is open, panel Start and section buttons say "Close Sections to play the
+> style" (the preview uses the same engine). All logic below still lives in `CurrentStyleComponent` and the editor.
+
 ## Pieces
-- **`ArrangerStyleEditor`** — full-screen authoring overlay. Seeds from the live recording (`loadRecording`) or an existing file (`loadFromFile`). Holds `sourceTracks` + `windows` (sections). Live preview via a shared [[Arranger Engine]].
+- **`ArrangerStyleEditor`** — the editor (was a full-screen overlay; now hosted by `SectionsView`; page layout in `ArrangerStyleEditorPage.cpp`). Seeds from the live recording (`loadRecording`) or an existing file (`loadFromFile`). Holds `sourceTracks` + `windows` (sections). Live preview via a shared [[Arranger Engine]].
 - **`ArrangerTimelineComponent`** — bar ruler with draggable/resizable colored section regions; tracks a `selectedIndex`; emits `onWindowsChanged` / `onSectionSelected`. Implements `TooltipClient` → hovering a region shows its name + bar range (e.g. `Intro 1 (bars 1-2)`).
 - **`ArrangerStyleListComponent`** — browser of saved `*.style` files: New / Edit / **Delete** / Load / Close, marks the **active** config with a ✓ + green wash.
 - **`CurrentStyleComponent`** — host: owns the engine, the dropdown, the browser/editor overlays, and the per-style active-config state.
@@ -67,7 +80,7 @@ In arranger mode the live `Var/Fill/Break/Intro/Ending` buttons are **driven by 
 - **Auto Fill toggle persists app-wide**: `MainComponent` writes/reads `ArrangerAutoFillEnabled` in the app properties and re-ticks the toggle on startup (not per style).
 
 ## Editor ↔ live playback are separate modes
-Editor preview and live performance share the **one** [[Arranger Engine]]. To stop them fighting, `CurrentStyleComponent::presentOverlay` **stops any live playback before showing the browser/editor** (and resets the beat bar). So entering edit is a clean break — it no longer inherits a stale section or fires a queued Ending on close. (Trade-off: opening the editor cuts off live playback; a truly background-playing live engine would need a *separate* preview engine — deferred.)
+Editor preview and live performance share the **one** [[Arranger Engine]]. To stop them fighting, `CurrentStyleComponent::stopLivePlayback` (was `presentOverlay`) **stops any live playback before showing the Sections view** (and resets the beat bar). So entering edit is a clean break — it no longer inherits a stale section or fires a queued Ending on close. (Trade-off: opening the editor cuts off live playback; a truly background-playing live engine would need a *separate* preview engine — deferred.)
 
 ## Start-section selection (pre-play)
 You are **not** forced to start on Variation 1; pick any section before pressing Start.
@@ -79,8 +92,8 @@ You are **not** forced to start on Variation 1; pick any section before pressing
 
 ## Off-thread save / load / update (no UI freeze)
 Serializing/parsing a `.style` is heavy (hex-encode every MIDI event + disk I/O on a ~600 KB file), so these run on a background thread (`juce::Thread::launch`) with the heavy data work off the message thread and only `engine.setStyle` + UI updates marshalled back via `MessageManager::callAsync` (guarded by `Component::SafePointer` so a closed editor no-ops). Pattern: **show overlay → heavy work (bg) → apply + hide (msg)**; the `callAsync` IS the "done" signal.
-- **Save** & **Update Tracks** (in-editor): an internal full-screen dim+label overlay (`ArrangerStyleEditor::setBusy`, styled like the app's "Preparing style…"), buttons disabled meanwhile.
-- **Load** (browser **Load** + **Edit**, parsed before the editor exists): the app overlay via `CurrentStyleComponent::onBusy` → `Display::onArrangerBusy` → `MainComponent::setLoadingOverlayVisible`. (Needed because the editor is parented to the top-level window *above* `MainComponent`, so MainComponent's own overlay can't cover it — hence the editor's internal one for in-editor ops.)
+- **Save** & **Update Tracks** (in-editor): `ArrangerStyleEditor::setBusy` disables the editor's controls and reports `onBusyChanged(busy, text)`; since Sections v2 the host shows the **app's** loading overlay with that text (as for Load / Edit), so Home, other pages and the panel cannot drop the editor mid-write (its result would be lost). The editor's own overlay is gone.
+- **Load** (browser **Load** + **Edit**, parsed before the editor exists): the app overlay via `CurrentStyleComponent::onBusy` → `Display::onArrangerBusy` → `MainComponent::setLoadingOverlayVisible`. (Before Sections v2 the editor sat *above* `MainComponent`, so it needed its own overlay for in-editor ops; now it is inside the page and the app overlay covers it.)
 - **No post-save re-parse:** `onSaved(file, builtStyle)` now hands the already-built `ArrangerStyle` back to the host (`applyActiveConfig`) instead of re-reading the file (the editor already holds decoded events), so saving doesn't re-freeze. Refactored: `configureEditorCallbacks()` + `applyActiveConfig()` shared by new/edit/load paths.
 
 ## Live volume wins (arranger Start)
@@ -93,6 +106,6 @@ The accompaniment transposes *from* the chord the recording was played in — so
 - **Bass part:** a source track whose display name contains *bass* is tagged `PartKind::Bass` (`ArrangerPatternBuilder` / `ArrangerSourceBuilder`), so it transposes and honours **bass inversion**; drums/perc stay `Fixed` (never transpose).
 
 ## Gotchas
-- The editor/browser are full-screen overlays parented to the top-level window, but the OpenGL note layer renders *through their middle* (it's a native surface above peer painting). `CurrentStyleComponent::presentOverlay` fires `onAuthoringOverlayVisible(true)` → `Display::onArrangerOverlayVisible` → `MainComponent::setArrangerOverlaySceneHidden(true)` to hide the note layer while an overlay is up (restored on `showStyleList(false)`). See [[GL Overlay Rendering]]. Symptom before the fix: the timeline appeared as two strips (ruler+region-tops up top, region-bottoms at the bottom) with a black band between.
+- (Before Sections v2) The editor/browser were full-screen overlays parented to the top-level window, and the OpenGL note layer renders *through their middle* (it's a native surface above peer painting). `CurrentStyleComponent::presentOverlay` fires `onAuthoringOverlayVisible(true)` → `Display::onArrangerOverlayVisible` → `MainComponent::setArrangerOverlaySceneHidden(true)` to hide the note layer while an overlay is up. That chain is gone: the Sections view is a page, and pages already keep the note layer hidden. See [[GL Overlay Rendering]]. Symptom before the fix: the timeline appeared as two strips (ruler+region-tops up top, region-bottoms at the bottom) with a black band between.
 - Auto Fill / matching only works if a `Fill N` (or any Fill) exists in the config; otherwise the switch is direct.
 - **Click-to-jump bug (fixed):** a bare click on a region used to fail to jump. Cause: sub-bar mouse jitter fired `mouseDrag`, which made `mouseUp` emit `onWindowsChanged` → `rebuildPreview` → `engine.setStyle` → `sequencer.reset()`, wiping the `pendingIndex` the click had just queued. Fix: `ArrangerTimelineComponent` only treats a gesture as an edit when a bar value **actually changes** (`windowsChangedByDrag`), so a plain click no longer rebuilds the style. Lesson: **any `setStyle`/`rebuildPreview` during playback resets the sequencer** — never trigger it on a click.

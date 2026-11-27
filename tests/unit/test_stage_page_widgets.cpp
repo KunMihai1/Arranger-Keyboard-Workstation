@@ -103,6 +103,13 @@ namespace StagePageWidgetsTestValues
     constexpr float labelScales[]   = { 1.0f, 1.25f, 1.5364f, 2.0f };
     constexpr int   roomyExtra      = 40;
     constexpr int   oneColumn       = 1;
+
+    const juce::String segTextCentred = "a seg button a little wider than its text (sharing a row) centres it (seen: LOAD against its right edge)";
+    const juce::String loadText       = "Load";
+    constexpr int   sharedRowExtras[] = { 3, 8, 11 };   // less than the padding that used to switch centring on
+    constexpr float inkBrightness     = 0.5f;
+    constexpr int   centreTolerance   = 1;
+    constexpr int   noInk             = -1;
 }
 
 class StagePageWidgetsTest : public juce::UnitTest
@@ -242,6 +249,31 @@ public:
                             same = tightImage.getPixelAt (column, row) == roomyImage.getPixelAt (column, row);
                     expect (same, text + juce::String (labelScale));
                 }
+        }
+
+        beginTest (segTextCentred);
+        for (const auto extra : sharedRowExtras)
+        {
+            SegButton button { loadText, SegButton::Style::seg };
+            button.setScale (referenceScale);
+            button.setSize (button.getPreferredWidth() + extra, boardSegHeight);
+            juce::Image image (juce::Image::ARGB, button.getWidth(), button.getHeight(), true, juce::SoftwareImageType());
+            {
+                juce::Graphics g (image);
+                button.paintEntireComponent (g, false);
+            }
+            int firstInk = noInk, lastInk = noInk;
+            for (int column {}; column < image.getWidth(); ++column)
+                for (int row {}; row < image.getHeight(); ++row)
+                    if (image.getPixelAt (column, row).getBrightness() > inkBrightness)
+                    {
+                        if (firstInk == noInk) firstInk = column;
+                        lastInk = column;
+                    }
+            const int leftGap  = firstInk;
+            const int rightGap = image.getWidth() - oneColumn - lastInk;
+            expect (firstInk != noInk);
+            expectLessOrEqual (std::abs (leftGap - rightGap), centreTolerance, juce::String (extra));
         }
 
         beginTest (faderCap);

@@ -192,8 +192,7 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
         if (arrangerModeEnabled) tempoSlider.setEnabled(true);   // unlock BPM after a self-stop (Ending)
     };
 
-    // Phase 3: arranger-style authoring overlay (opened from the play-settings dropdown).
-    addChildComponent(arrangerStyleList);
+    // The configurations list: shown by sectionsView (its parent), in the Style page's Sections view.
     arrangerStyleList.onCreateNew  = [this] { openStyleEditorNew(); };
     arrangerStyleList.onEditStyle  = [this] (const juce::File& styleFile) { openStyleEditorFromFile(styleFile); };
     arrangerStyleList.onLoadStyle  = [this] (const juce::File& styleFile) { loadStyleFileIntoEngine(styleFile); showStyleList(false); };
@@ -209,7 +208,6 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
             if (anyTrackChanged) anyTrackChanged();
         }
     };
-    arrangerStyleList.onClose      = [this] { showStyleList(false); };
 
     startPlayingTracks.onClick = [this]
     {
@@ -383,7 +381,7 @@ void CurrentStyleComponent::setArrangerModeEnabled(bool shouldEnable)
     if (! shouldEnable)
     {
         showStyleList(false);
-        arrangerStyleEditor.reset();
+        closeSections();
         restoreEngineBeatBar();
     }
     else
@@ -481,47 +479,6 @@ void CurrentStyleComponent::applyLiveTrackSettings(ArrangerStyle& style, const j
                 }
 }
 
-void CurrentStyleComponent::presentOverlay(juce::Component& overlay)
-{
-    // Authoring (browser/editor) is a separate mode from live performance and shares the single
-    // ArrangerEngine. Stop any live playback before showing the overlay so the editor's preview
-    // doesn't inherit/fight the live engine state (which made entering edit show a stale section
-    // and fire a queued Ending on close).
-    if (arrangerEngine && arrangerEngine->isPlaying())
-    {
-        arrangerEngine->stop();
-        isPlaying = false;
-        customBeatBar.setCurrentBeatsElapsed(beatsAtStart);
-        customBeatBar.repaint();
-    }
-
-    // Authoring overlays are full-screen; tell the host to hide the GL note layer (it renders on
-    // top of normal painting and would otherwise show through the middle of the overlay).
-    if (onAuthoringOverlayVisible) onAuthoringOverlayVisible(true);
-
-    auto* top = getTopLevelComponent();
-    if (top == nullptr)
-        top = this;
-    top->addAndMakeVisible(overlay);
-    overlay.setBounds(top->getLocalBounds());
-    overlay.toFront(true);
-}
-
-void CurrentStyleComponent::showStyleList(bool shouldShow)
-{
-    if (shouldShow)
-    {
-        arrangerStyleList.refresh();
-        arrangerStyleList.setActiveConfigName(hasActiveArrangerConfig ? activeArrangerConfigName : juce::String());
-        presentOverlay(arrangerStyleList);
-    }
-    else
-    {
-        arrangerStyleList.setVisible(false);
-        if (onAuthoringOverlayVisible) onAuthoringOverlayVisible(false);   // restore the note layer
-    }
-}
-
 void CurrentStyleComponent::openStyleEditorNew()
 {
     auto tracks = collectSelectedTracks();
@@ -532,9 +489,10 @@ void CurrentStyleComponent::openStyleEditorNew()
         return;
     }
 
+    dropEditor();   // editing another one: what Close did before opening it
     arrangerStyleEditor = std::make_unique<ArrangerStyleEditor>(*arrangerEngine);
     configureEditorCallbacks();
-    presentOverlay(*arrangerStyleEditor);
+    showEditorInSections();
     arrangerStyleEditor->loadRecording(tracks, currentTempo, ArrangerStyleDefaults::beatsPerBar, ArrangerStyleDefaults::beatUnit, juce::String()); // default generic config name
 }
 
@@ -543,7 +501,7 @@ void CurrentStyleComponent::configureEditorCallbacks()
     if (! arrangerStyleEditor)
         return;
 
-    arrangerStyleEditor->onClose = [this] { closeStyleEditor(); };
+    arrangerStyleEditor->onTitleActionsChanged = [this] { if (onSectionsActionsChanged) onSectionsActionsChanged(); };
     // Update Tracks pulls the app's current recording (instrument/volume synced from the sliders) as
     // raw entries; the editor builds + writes them on its own background thread.
     arrangerStyleEditor->onRequestCurrentTracks = [this] { return collectSelectedTracks(); };
@@ -594,9 +552,12 @@ void CurrentStyleComponent::openStyleEditorFromFile(const juce::File& styleFile)
                 juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::sectionConfigTitle, err);
                 return;
             }
+            if (! safe->sectionsOpen)
+                return;   // the Sections view was left while the file loaded
+            safe->dropEditor();
             safe->arrangerStyleEditor = std::make_unique<ArrangerStyleEditor>(*safe->arrangerEngine);
             safe->configureEditorCallbacks();
-            safe->presentOverlay(*safe->arrangerStyleEditor);
+            safe->showEditorInSections();
             safe->arrangerStyleEditor->loadFromFile(*sf);
             safe->arrangerStyleEditor->setSourceFile(styleFile);   // so Save renames this file instead of duplicating it
         });
@@ -651,15 +612,10 @@ void CurrentStyleComponent::loadStyleFileIntoEngine(const juce::File& styleFile)
 
 void CurrentStyleComponent::closeStyleEditor()
 {
-    if (arrangerEngine)
-        arrangerEngine->stop();
-    isPlaying = false;
-    customBeatBar.repaint();
-    arrangerStyleEditor.reset();
-    restoreEngineBeatBar();
+    dropEditor();
     arrangerStyleList.refresh();
     arrangerStyleList.setActiveConfigName(hasActiveArrangerConfig ? activeArrangerConfigName : juce::String());
-    presentOverlay(arrangerStyleList);   // return to the browser the editor was opened from
+    if (onSectionsActionsChanged) onSectionsActionsChanged();   // back to the list the editor was opened from
 }
 
 double CurrentStyleComponent::getTempo()

@@ -106,24 +106,6 @@ void MainComponent::setLoadingOverlayVisible(bool show, const juce::String& text
     repaint();
 }
 
-void MainComponent::setArrangerOverlaySceneHidden(bool hidden)
-{
-    if (hidden == sceneHiddenForArrangerOverlay)
-        return;                                  // guard re-entrancy (browser->editor presents twice)
-    sceneHiddenForArrangerOverlay = hidden;
-
-    if (hidden)
-    {
-        noteLayerVisibleBeforeArranger = (noteLayer && noteLayer->isVisible());
-        if (noteLayer) noteLayer->setVisible(false);   // would render through the full-screen overlay
-    }
-    else if (noteLayer)
-    {
-        noteLayer->setVisible(noteLayerVisibleBeforeArranger);
-        noteLayer->resetState();                 // don't return to stale frozen notes
-    }
-}
-
 void MainComponent::highlightArrangerSection(int sectionIndex, ArrangerSectionType type, const juce::String& name)
 {
     const juce::ScopeGuard mirrorOnPanel { [this] { syncSectionLedsFromGroups(); } };   // panel LEDs follow, on every path

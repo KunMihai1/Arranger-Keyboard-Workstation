@@ -44,6 +44,9 @@
               file="../tests/unit/test_playback_range.cpp"/>
         <FILE id="hmLayT" name="test_home_layout.cpp" compile="1" resource="0" file="../tests/unit/test_home_layout.cpp"/>
         <FILE id="recMdT" name="test_recorder_model.cpp" compile="1" resource="0" file="../tests/unit/test_recorder_model.cpp"/>
+        <FILE id="secLnT" name="test_section_lanes.cpp" compile="1" resource="0" file="../tests/unit/test_section_lanes.cpp"/>
+        <FILE id="secPlT" name="test_sections_page_layout.cpp" compile="1" resource="0" file="../tests/unit/test_sections_page_layout.cpp"/>
+        <FILE id="secEmT" name="test_section_edit_model.cpp" compile="1" resource="0" file="../tests/unit/test_section_edit_model.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"
@@ -510,6 +513,20 @@
         <FILE id="recMdC" name="RecorderModel.cpp" compile="1" resource="0" file="../Source/UI/Recorder/RecorderModel.cpp"/>
         <FILE id="recCnH" name="RecorderContent.h" compile="0" resource="0" file="../Source/UI/Recorder/RecorderContent.h"/>
         <FILE id="recCnC" name="RecorderContent.cpp" compile="1" resource="0" file="../Source/UI/Recorder/RecorderContent.cpp"/>
+        <FILE id="secLnH" name="SectionLanes.h" compile="0" resource="0" file="../Source/UI/Sections/SectionLanes.h"/>
+        <FILE id="secLnC" name="SectionLanes.cpp" compile="1" resource="0" file="../Source/UI/Sections/SectionLanes.cpp"/>
+        <FILE id="secHdH" name="SectionLaneHeaders.h" compile="0" resource="0" file="../Source/UI/Sections/SectionLaneHeaders.h"/>
+        <FILE id="secHdC" name="SectionLaneHeaders.cpp" compile="1" resource="0" file="../Source/UI/Sections/SectionLaneHeaders.cpp"/>
+        <FILE id="secPlH" name="SectionsPageLayout.h" compile="0" resource="0" file="../Source/UI/Sections/SectionsPageLayout.h"/>
+        <FILE id="secPlC" name="SectionsPageLayout.cpp" compile="1" resource="0" file="../Source/UI/Sections/SectionsPageLayout.cpp"/>
+        <FILE id="secEmH" name="SectionEditModel.h" compile="0" resource="0" file="../Source/UI/Sections/SectionEditModel.h"/>
+        <FILE id="secEmC" name="SectionEditModel.cpp" compile="1" resource="0" file="../Source/UI/Sections/SectionEditModel.cpp"/>
+        <FILE id="secInH" name="SectionInspector.h" compile="0" resource="0" file="../Source/UI/Sections/SectionInspector.h"/>
+        <FILE id="secInC" name="SectionInspector.cpp" compile="1" resource="0" file="../Source/UI/Sections/SectionInspector.cpp"/>
+        <FILE id="secJpH" name="SectionJumpPads.h" compile="0" resource="0" file="../Source/UI/Sections/SectionJumpPads.h"/>
+        <FILE id="secJpC" name="SectionJumpPads.cpp" compile="1" resource="0" file="../Source/UI/Sections/SectionJumpPads.cpp"/>
+        <FILE id="secVwH" name="SectionsView.h" compile="0" resource="0" file="../Source/UI/Sections/SectionsView.h"/>
+        <FILE id="secVwC" name="SectionsView.cpp" compile="1" resource="0" file="../Source/UI/Sections/SectionsView.cpp"/>
         <FILE id="K2Xsjg" name="SelectableLabel.cpp" compile="1" resource="0"
               file="../Source/UI/SelectableLabel.cpp"/>
         <FILE id="cazbKc" name="SelectableLabel.h" compile="0" resource="0"
@@ -743,6 +760,7 @@
               file="../Source/Arranger/ArrangerTimelineComponent.h"/>
         <FILE id="arrEd1" name="ArrangerStyleEditor.cpp" compile="1" resource="0"
               file="../Source/Arranger/ArrangerStyleEditor.cpp"/>
+        <FILE id="arStEP" name="ArrangerStyleEditorPage.cpp" compile="1" resource="0" file="../Source/Arranger/ArrangerStyleEditorPage.cpp"/>
         <FILE id="arrEd2" name="ArrangerStyleEditor.h" compile="0" resource="0"
               file="../Source/Arranger/ArrangerStyleEditor.h"/>
         <FILE id="arrLs1" name="ArrangerStyleListComponent.cpp" compile="1"

@@ -1,6 +1,6 @@
 #include "ArrangerStyleListComponent.h"
 #include "IOHelper.h"
-#include "AppColours.h"
+#include "UI/Sections/SectionsPageLayout.h"
 
 namespace
 {
@@ -10,59 +10,49 @@ namespace
     const juce::String confirmDelete      = "Delete";
     const juce::String cancelDelete       = "Cancel";
     constexpr int      deleteConfirmed    = 1;   // showOkCancelBox: 1 = Delete, 0 = Cancel
-
     const juce::String styleFilePattern   = "*.style";
     constexpr bool     searchSubfolders   = false;
+    const char* const  activeMarkUtf8     = "\xe2\x97\x8f";   // "●": the active configuration
+    constexpr int      buttonCount        = 4;
+    constexpr int      oneGapFewer        = 1;
+    constexpr bool     verticalOnly       = false;
+    constexpr bool     scrollsByWheel     = true;
 
-    const char* const  checkMarkUtf8      = "\xE2\x9C\x93";   // U+2713 check mark
-    const juce::String activeTag          = "active";
-
-    // Row layout (pixels)
-    constexpr int   rowPadding       = 6;
-    constexpr int   checkMarkWidth   = 14;
-    constexpr int   nameAfterCheckX  = 22;
-    constexpr int   activeTagWidth   = 48;
-    constexpr int   noWidth          = 0;
-    constexpr int   rowTop           = 0;
-    constexpr float maxTagFontHeight = 12.0f;
-    constexpr float tagFontInset     = 4.0f;
-
-    // Panel layout (pixels)
-    constexpr int panelMargin   = 6;
-    constexpr int titleHeight   = 20;
-    constexpr int sectionGap    = 4;
-    constexpr int buttonsHeight = 28;
-    constexpr int buttonCount   = 5;
-    constexpr int buttonInset   = 2;
+    int scaled (int boardPixels, float scale) { return juce::roundToInt (static_cast<float> (boardPixels) * scale); }
 }
 
 ArrangerStyleListComponent::ArrangerStyleListComponent()
 {
-    addAndMakeVisible (title);
-    title.setColour (juce::Label::textColourId, juce::Colours::white);
+    addAndMakeVisible (heading);
+    list.setColour (juce::ListBox::backgroundColourId, juce::Colours::transparentBlack);
+    list.setOutlineThickness (int {});
+    list.getViewport()->setScrollBarsShown (verticalOnly, verticalOnly, scrollsByWheel, verticalOnly);   // scrolls by wheel, as the LCD lists
+    list.setMouseCursor (juce::MouseCursor::PointingHandCursor);
     addAndMakeVisible (list);
-    addAndMakeVisible (newBtn);
-    addAndMakeVisible (editBtn);
-    addAndMakeVisible (deleteBtn);
-    addAndMakeVisible (loadBtn);
-    addAndMakeVisible (closeBtn);
+    for (auto* button : { &newBtn, &editBtn, &loadBtn, &deleteBtn })
+    {
+        button->setMouseClickGrabsKeyboardFocus (false);   // the PC keyboard keeps playing after a press
+        addAndMakeVisible (button);
+    }
 
-    closeBtn.onClick = [this] { if (onClose) onClose(); };
     newBtn.onClick  = [this] { if (onCreateNew) onCreateNew(); };
+
     editBtn.onClick = [this]
     {
         const int selectedRow = list.getSelectedRow();
         if (isRow (selectedRow) && onEditStyle) onEditStyle (files[selectedRow]);
     };
+
     deleteBtn.onClick = [this]
     {
         const int selectedRow = list.getSelectedRow();
         if (! isRow (selectedRow)) return;
         const auto file = files[selectedRow];
+
         juce::AlertWindow::showOkCancelBox (juce::AlertWindow::WarningIcon,
             deleteTitle,
             deleteQuestionStart + file.getFileNameWithoutExtension() + deleteQuestionEnd,
-            confirmDelete, cancelDelete, this,
+            confirmDelete, cancelDelete, getTopLevelComponent(),   // centred on the window, not the small list
             juce::ModalCallbackFunction::create ([this, file] (int result)
             {
                 if (result != deleteConfirmed) return;
@@ -71,22 +61,66 @@ ArrangerStyleListComponent::ArrangerStyleListComponent()
                 refresh();
             }));
     };
+
     loadBtn.onClick = [this]
     {
         const int selectedRow = list.getSelectedRow();
         if (isRow (selectedRow) && onLoadStyle) onLoadStyle (files[selectedRow]);
     };
+
+    setScale (scale);
     refresh();
+}
+
+ArrangerStyleListComponent::~ArrangerStyleListComponent()
+{
+    list.setModel (nullptr);
+}
+
+void ArrangerStyleListComponent::setScale (float newScale)
+{
+    scale = newScale;
+    heading.setScale (scale);
+    for (auto* button : { &newBtn, &editBtn, &loadBtn, &deleteBtn })
+        button->setScale (scale);
+    list.setRowHeight (scaled (StageMetrics::lcdRowHeight, scale));
+    resized();
+    repaint();
 }
 
 void ArrangerStyleListComponent::refresh()
 {
+    const auto selected = getSelectedFile();
     files.clear();
     auto folder = IOHelper::getArrangerStylesFolder();
     for (auto& styleFile : folder.findChildFiles (juce::File::findFiles, searchSubfolders, styleFilePattern))
         files.add (styleFile);
     list.updateContent();
+    selectFile (selected);   // keep the selection across a rescan (a save, a delete)
     repaint();
+}
+
+juce::File ArrangerStyleListComponent::getSelectedFile() const
+{
+    const int selectedRow = list.getSelectedRow();
+    return isRow (selectedRow) ? files[selectedRow] : juce::File();
+}
+
+void ArrangerStyleListComponent::selectFile (const juce::File& file)
+{
+    const int row = files.indexOf (file);
+    if (isRow (row))
+        list.selectRow (row);
+    else
+        list.deselectAllRows();
+}
+
+SegButton& ArrangerStyleListComponent::getButton (const juce::String& text)
+{
+    for (auto* button : { &newBtn, &editBtn, &loadBtn })
+        if (button->getButtonText() == text)
+            return *button;
+    return deleteBtn;
 }
 
 int ArrangerStyleListComponent::getNumRows() { return files.size(); }
@@ -95,42 +129,16 @@ void ArrangerStyleListComponent::setActiveConfigName (const juce::String& name)
 {
     if (activeName == name) return;
     activeName = name;
-    repaint();
+    list.repaint();
 }
 
 void ArrangerStyleListComponent::paintListBoxItem (int row, juce::Graphics& g, int rowWidth, int rowHeight, bool selected)
 {
     if (! isRow (row)) return;
-
     const auto rowName  = files[row].getFileNameWithoutExtension();
     const bool isActive = activeName.isNotEmpty() && rowName == activeName;
-
-    if (selected)
-        g.fillAll (AppColours::configSelectedRow);       // clear blue highlight for the selected row
-    else if (isActive)
-        g.fillAll (AppColours::configActiveRow);         // subtle green wash for the active configuration
-
-    const juce::Colour accent = selected ? juce::Colours::white : AppColours::configActiveMark;
-    const juce::Colour text   = selected ? juce::Colours::white : juce::Colours::lightgrey;
-
-    int nameX = rowPadding;
-    if (isActive)                                        // leading check mark, name indented to match
-    {
-        g.setColour (accent);
-        g.drawText (juce::String::fromUTF8 (checkMarkUtf8), rowPadding, rowTop, checkMarkWidth, rowHeight, juce::Justification::centredLeft);
-        nameX = nameAfterCheckX;
-    }
-
-    const int activeTagSpace = isActive ? activeTagWidth : noWidth;
-    g.setColour (text);
-    g.drawText (rowName, nameX, rowTop, rowWidth - nameX - rowPadding - activeTagSpace, rowHeight, juce::Justification::centredLeft);
-
-    if (isActive)                                        // trailing "active" tag
-    {
-        g.setColour (accent);
-        g.setFont (juce::jmin (maxTagFontHeight, (float) rowHeight - tagFontInset));
-        g.drawText (activeTag, rowWidth - rowPadding - activeTagSpace, rowTop, activeTagSpace, rowHeight, juce::Justification::centredRight);
-    }
+    StageLcd::paintRow (g, { rowWidth, rowHeight }, scale, rowName,
+                        isActive ? juce::String::fromUTF8 (activeMarkUtf8) : juce::String(), selected);
 }
 
 void ArrangerStyleListComponent::listBoxItemDoubleClicked (int row, const juce::MouseEvent&)
@@ -140,23 +148,27 @@ void ArrangerStyleListComponent::listBoxItemDoubleClicked (int row, const juce::
 
 void ArrangerStyleListComponent::paint (juce::Graphics& g)
 {
-    g.fillAll (AppColours::configListBackground);
+    StageLcd::paintPanel (g, list.getBounds().expanded (int {}, scaled (SectionsPageMetrics::listPaddingY, scale)).toFloat(), scale);
 }
 
 void ArrangerStyleListComponent::resized()
 {
-    auto area = getLocalBounds().reduced (panelMargin);
-    title.setBounds (area.removeFromTop (titleHeight));
-    area.removeFromTop (sectionGap);
+    // The page gives this component the left column from the heading down to the buttons (SectionsPageLayout).
+    using namespace SectionsPageMetrics;
+    auto area = getLocalBounds();
+    heading.setBounds (area.removeFromTop (scaled (headingHeight, scale)));
+    area.removeFromTop (scaled (itemGap, scale));
+    auto buttons = area.removeFromBottom (scaled (buttonHeight, scale));
+    area.removeFromBottom (scaled (itemGap, scale));
+    list.setBounds (area.reduced (int {}, scaled (listPaddingY, scale)));
 
-    auto bottom = area.removeFromBottom (buttonsHeight);
-    const int buttonWidth = bottom.getWidth() / buttonCount;
-    newBtn.setBounds    (bottom.removeFromLeft (buttonWidth).reduced (buttonInset));
-    editBtn.setBounds   (bottom.removeFromLeft (buttonWidth).reduced (buttonInset));
-    deleteBtn.setBounds (bottom.removeFromLeft (buttonWidth).reduced (buttonInset));
-    loadBtn.setBounds   (bottom.removeFromLeft (buttonWidth).reduced (buttonInset));
-    closeBtn.setBounds  (bottom.reduced (buttonInset));
-
-    area.removeFromBottom (sectionGap);
-    list.setBounds (area);
+    // Four buttons share the width exactly.
+    const int gap = scaled (buttonGap, scale);
+    const float width = static_cast<float> (buttons.getWidth() - (buttonCount - oneGapFewer) * gap) / static_cast<float> (buttonCount);
+    float left = static_cast<float> (buttons.getX());
+    for (auto* button : { &newBtn, &editBtn, &loadBtn, &deleteBtn })
+    {
+        button->setBounds (juce::Rectangle<float> (left, static_cast<float> (buttons.getY()), width, static_cast<float> (buttons.getHeight())).toNearestInt());
+        left += width + static_cast<float> (gap);
+    }
 }

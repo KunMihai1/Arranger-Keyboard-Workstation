@@ -39,6 +39,8 @@ void Display::setScale (float newScale)
         notesContainer->setScale (scale);
     if (instrumentPicker)
         instrumentPicker->setScale (scale);
+    if (currentStyleComponent)
+        currentStyleComponent->getSectionsView().setScale (scale);
     layoutViews();
     repaint();
 }
@@ -57,6 +59,12 @@ void Display::showView (StyleView view)
 
 void Display::closeSubView()
 {
+    // Sections: Exit / Esc close the editor first, back to the configurations list.
+    if (views.current() == StyleView::sections && currentStyleComponent != nullptr && currentStyleComponent->sectionsExitStep())
+    {
+        viewChanged();
+        return;
+    }
     destroySubView();
     views.back();
     layoutViews();
@@ -68,7 +76,19 @@ void Display::resetView()
 {
     if (views.current() == StyleView::style)
         return;
+    leaveSubView();
+}
+
+void Display::leaveSubView()
+{
+    if (views.current() == StyleView::sections && currentStyleComponent != nullptr)
+        currentStyleComponent->closeSections();   // no editor left: closeSubView goes straight back
     closeSubView();
+}
+
+bool Display::isAuthoringSections() const
+{
+    return currentStyleComponent != nullptr && currentStyleComponent->isAuthoringSections();
 }
 
 void Display::destroySubView()
@@ -80,6 +100,11 @@ void Display::destroySubView()
     }
     notesContainer.reset();
     instrumentPicker.reset();
+    if (currentStyleComponent != nullptr && getIndexOfChildComponent (&currentStyleComponent->getSectionsView()) >= int {})
+    {
+        removeChildComponent (&currentStyleComponent->getSectionsView());
+        currentStyleComponent->closeSections();
+    }
 }
 
 void Display::layoutViews()
@@ -102,6 +127,8 @@ void Display::layoutViews()
         notesContainer->setBounds (area);
     if (instrumentPicker)
         instrumentPicker->setBounds (area);
+    if (currentStyleComponent != nullptr && views.current() == StyleView::sections)
+        currentStyleComponent->getSectionsView().setBounds (area);
     repaint();
 }
 
@@ -126,6 +153,7 @@ juce::String Display::getViewTitle() const
         case StyleView::instruments:
             return StylePageText::instrumentsTitle + juce::String::fromUTF8 (StylePageText::slotSeparatorUtf8) + juce::String (instrumentSlot);
         case StyleView::notes:    return notesTitle;
+        case StyleView::sections: return StylePageText::sectionsTitle;
         case StyleView::style:    break;
     }
     return StylePageText::title;
@@ -133,6 +161,13 @@ juce::String Display::getViewTitle() const
 
 juce::String Display::getViewSubtitle() const
 {
+    if (views.current() == StyleView::sections && currentStyleComponent != nullptr)
+    {
+        // The hint is for the list; with the editor open its controls fill the title row: the style name only.
+        if (currentStyleComponent->getSectionsView().getEditor() != nullptr)
+            return currentStyleComponent->getName();
+        return currentStyleComponent->getName() + juce::String::fromUTF8 (StylePageText::sectionsSubtitleUtf8);
+    }
     return views.current() == StyleView::notes ? notesSubtitle : juce::String();
 }
 
@@ -176,6 +211,8 @@ std::vector<juce::Component*> Display::getTitleActions()
         return { &playLabel, &allTracksButton, &soloButton, &playDivider, &sectionsButton, &styleSettingsButton };
     if (views.current() == StyleView::tracks && trackListComp)
         return trackListComp->getTitleActions();
+    if (views.current() == StyleView::sections && currentStyleComponent)
+        return currentStyleComponent->getSectionsView().getTitleActions();
     return {};
 }
 
