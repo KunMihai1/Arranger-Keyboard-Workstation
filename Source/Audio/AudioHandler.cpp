@@ -67,12 +67,6 @@ namespace EffectSettings
     constexpr float reverbFullWidth       = 1.0f;
     constexpr float reverbMaxWet          = 0.85f;
 
-    constexpr float chorusRateHz          = 1.5f;
-    constexpr float chorusDepth           = 0.3f;
-    constexpr float chorusCentreDelayMs   = 15.0f;
-    constexpr float chorusFeedback        = 0.1f;
-    constexpr float chorusMixOff          = 0.0f;
-
     constexpr double longestDelaySeconds  = 0.5;
     constexpr double initialDelaySeconds  = 0.25;
     constexpr double shortestDelaySeconds = 0.05;     // CC94 sets the time from here...
@@ -141,12 +135,7 @@ void ChannelDSP::prepare(double newSampleRate, int blockSize)
     reverb.setSampleRate(newSampleRate);
     reverb.reset();
 
-    chorus.prepare(spec);
-    chorus.setRate(chorusRateHz);
-    chorus.setDepth(chorusDepth);
-    chorus.setCentreDelay(chorusCentreDelayMs);
-    chorus.setFeedback(chorusFeedback);
-    chorus.setMix(chorusMixOff);
+    chorus.prepare(newSampleRate);   // silent until CC93 opens it
 
     const int maxDelaySamples = static_cast<int>(newSampleRate * longestDelaySeconds);
     delayLineL.prepare(maxDelaySamples);
@@ -246,8 +235,7 @@ void ChannelDSP::updateCC(int ccNumber, int value)
             break;
 
         case ControllerNumber::chorus: // mix
-            chorusMix = norm;
-            chorus.setMix(norm);
+            chorus.setMix(norm);   // glides there inside the chorus
             break;
 
         case ControllerNumber::delay: // mix + time
@@ -344,13 +332,9 @@ void ChannelDSP::process(juce::AudioBuffer<float>& buffer, int numSamples)
     }
 
     // --- Chorus (CC93) ---
-    if (chorusMix > effectAudibleLevel)
-    {
-        juce::dsp::AudioBlock<float> block(buffer.getArrayOfWritePointers(),
-                                           (size_t)buffer.getNumChannels(),
-                                           (size_t)numSamples);
-        chorus.process(juce::dsp::ProcessContextReplacing<float>(block));
-    }
+    // Runs while heard or still gliding to silence (stopping at the threshold would cut the ramp: a click).
+    if (chorus.isActive())
+        chorus.process(left, right, numSamples);
 
     // --- Reverb (CC91) ---
     if (reverbMix > effectAudibleLevel)
@@ -505,6 +489,10 @@ void AudioHandler::audioDeviceIOCallbackWithContext (const float* const* inputCh
                                                      int numSamples, const juce::AudioIODeviceCallbackContext& context)
 {
     juce::ignoreUnused(inputChannelData, numInputChannels, context);
+    // Filters and level followers fed exact silence decay into denormals, which x86 computes far slower
+    // (measured: the chorus alone went from 111 to 152 ns per stereo sample on silence). JUCE's device
+    // layer does not flush them, so the callback does.
+    const juce::ScopedNoDenormals noDenormals;
 
     using namespace ChannelLayout;
     for (int outputIndex {}; outputIndex < numOutputChannels; ++outputIndex)
