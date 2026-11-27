@@ -60,6 +60,8 @@ namespace OverlayComponentTestValues
     constexpr int secondButton = 1;
     constexpr int thirdButton = 2;
     constexpr int doubled = 2;
+    constexpr int noCloses = 0;
+    constexpr int oneClose = 1;
     const juce::Point<int> outsideThePanel { 10, 10 };
 }
 
@@ -148,9 +150,9 @@ public:
             int closes {};
             overlay.onRequestClose = [&closes] { ++closes; };
             overlay.clickAt (escMenuLayout (overlay.getLocalBounds(), boardScale).panel.getCentre());
-            expectEquals (closes, noSize);
+            expectEquals (closes, noCloses);
             overlay.clickAt (outsideThePanel);
-            expectEquals (closes, (int) secondButton);
+            expectEquals (closes, oneClose);
         }
 
         // ---- Exit button ----

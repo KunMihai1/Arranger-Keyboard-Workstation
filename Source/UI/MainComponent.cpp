@@ -380,6 +380,8 @@ void MainComponent::resized()
         keyboard.setAlwaysOnTop(true);
         keyboard.setOpaque(true);
     }   
+    if (overlayWindow && overlayWindow->isVisible())
+        overlayWindow->toFront(false);   // the Esc menu stays over the keys brought forward above
 
     layoutStage();
 }

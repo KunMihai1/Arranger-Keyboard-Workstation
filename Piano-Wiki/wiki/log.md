@@ -13,6 +13,21 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-27 — Esc menu as a page panel (`feat/ui-esc-menu`)
+- Owner: "when pressing esc the old screen opens" (a dimmed window with plain JUCE buttons). Spec part 2 P.12:
+  `OverlayComponent` keeps its API and becomes StageDialog's panel (page gradient, rule, shadow, silkscreen MENU
+  heading) with Settings / Effects / Exit as 30 px seg buttons, laid out by a pure `escMenuLayout` at the app's
+  uniform scale (`StageRegions::scale`); a click outside the panel closes it like Esc.
+- The old menu hid the keyboard so a note could not show the GL note layer over it; now the layer is held hidden
+  (`setHeldHidden`, as pages do) and the keys stay dimmed under the menu.
+- Review (Sonnet): the menu kept its scale when the window was resized while open — `layoutStage` now rescales it
+  like the pages. Seen live after that: `MainComponent::resized` brings the keys forward (always on top) on every
+  resize, lifting them over the menu — the menu is raised back over them (the old menu hid the keys, so it never
+  showed). Hold ordering (menu → Settings / Effects page) verified correct.
+- Unit 4606 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 12 / 0; the layout tests could only
+  fail by not compiling (new API). Live: Esc → menu, Effects → page, Esc closes the page, Esc → menu, a click
+  outside closes it; menu opened on a 1100×650 window, then maximised: rescaled, still over the dimmed keys.
+
 ## 2026-11-27 — Calmer Sparks; Light wisps replace Smoke (`feat/particles-sparks-smoke`, PR #72)
 - Owner tried the first pass: sparks "tiny dots, barely", smoke "looks like fog". A browser preview of candidate
   effects (artifact) → picked **Light wisps** ("something that flows a bit and looks smoother") and said the
