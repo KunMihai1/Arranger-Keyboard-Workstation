@@ -42,7 +42,8 @@ namespace ParticleRecipe
     /** Moves and ages a particle by `seconds`. */
     void step (int style, NoteParticle& particle, float seconds, juce::Random& random);
 
-    /** How opaque the particle is now: its colour's alpha, fading with the life it has left. */
+    /** How opaque the particle is now: its colour's alpha, fading with the life it has left (Dust: alpha × life,
+        unclamped, as it always was). */
     float opacity (const NoteParticle& particle);
 
     /** Whether the style is drawn over the falling notes (Sparks, Smoke) or under them (Dust). */

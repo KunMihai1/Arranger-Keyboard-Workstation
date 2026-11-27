@@ -15,6 +15,7 @@ namespace ParticleRecipeTestValues
     const juce::String smokeVisible   = "smoke: starts at least half opaque, grows and thins out over seconds";
     const juce::String drawOrder      = "sparks and smoke are drawn over the falling notes; dust under them";
     const juce::String dustUnchanged  = "dust keeps its numbers: 40 per note, half-size points, not scaled";
+    const juce::String dustOpacity    = "dust opacity is its alpha times its life, also while life is above full (as before)";
 
     constexpr int   seed           = 2026;
     constexpr int   samples        = 200;
@@ -34,6 +35,10 @@ namespace ParticleRecipeTestValues
     constexpr float dustPointSize  = 5.0f;
     constexpr float noTime         = 0.0f;
     constexpr float sizeTolerance  = 0.001f;
+    constexpr float dustAlpha      = 0.5f;
+    constexpr float dustYoungLife  = 1.2f;      // Dust starts with up to 1.2 life
+    constexpr float dustYoungOpacity = 0.6f;
+    constexpr float alphaTolerance = 0.005f;    // a colour keeps its alpha in 8 bits (0.5 is stored as 128 / 255)
     const juce::Point<float> keyTop { 0.0f, -0.5f };
     const juce::Colour particleColour { 0xff6fd3ff };
 }
@@ -102,6 +107,14 @@ public:
             expectEquals (pointSize (ParticleStyles::dust, dustSize, windowScale), dustPointSize);
             expectEquals (trailPoints (ParticleStyles::dust), singlePoint);
             expect (! additive (ParticleStyles::dust));
+        }
+
+        beginTest (dustOpacity);
+        {
+            NoteParticle mote;
+            mote.colour = particleColour.withAlpha (dustAlpha);
+            mote.life = dustYoungLife;
+            expectWithinAbsoluteError (opacity (mote), dustYoungOpacity, alphaTolerance);
         }
     }
 

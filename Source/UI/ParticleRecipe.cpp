@@ -138,8 +138,10 @@ namespace ParticleRecipe
 
     float opacity (const NoteParticle& particle)
     {
-        const auto fade = particle.lifespan > float {} ? particle.life / particle.lifespan : particle.life;
-        return juce::jlimit (float {}, particle.colour.getFloatAlpha(), particle.colour.getFloatAlpha() * fade);
+        const auto alpha = particle.colour.getFloatAlpha();
+        if (particle.lifespan <= float {})
+            return alpha * particle.life;   // Dust's original rule: life starts up to 1.2, so it may pass its alpha
+        return juce::jlimit (float {}, alpha, alpha * particle.life / particle.lifespan);
     }
 
     bool drawnOverNotes (int style) { return style == ParticleStyles::sparks || style == ParticleStyles::smoke; }
