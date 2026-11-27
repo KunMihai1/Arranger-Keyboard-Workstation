@@ -85,6 +85,9 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   fixed (on `main` too): any note played while a page was open brought the GL note layer back over the page. Not
   done: the PNG chord diagrams are no longer used but stay in the project (owner's call to delete); the loading
   label hides the note layer without the page hold (same as before).
+- 🟡 **Sparks and Smoke** (owner, 2026-11-27: "the sparks can't even be seen … smoke is like in the background
+  transparent"; picked glowing sparks and visible wisps on top), `feat/particles-sparks-smoke`: pure
+  `ParticleRecipe`, unit-tested; Dust unchanged. Waiting on a look in the running app before the PR.
 - ⬜ Next pages (spec order): Recorder, Esc menu, Sections v2; then keys, Dust, finishes, sign-in.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and

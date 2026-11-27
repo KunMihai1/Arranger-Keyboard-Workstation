@@ -2,7 +2,7 @@
 type: meta
 title: "Operations Log"
 created: 2026-06-06
-updated: 2026-11-26
+updated: 2026-11-27
 tags:
   - meta
   - log
@@ -12,6 +12,19 @@ status: evergreen
 # Operations Log
 
 Append-only. Newest entries at the TOP. Never edit past entries.
+
+## 2026-11-27 — Sparks and Smoke you can see (`feat/particles-sparks-smoke`)
+- Split fix merged (PR #71). Owner: "the sparks can't even be seen … smoke is like in the background
+  transparent"; picked glowing sparks and visible wisps on top.
+- Cause: sparks were 1–4 px points (half the size, not scaled for the screen) living ~0.5–0.8 s; smoke had
+  0.15–0.35 alpha and was drawn under the notes. New pure `ParticleRecipe` (spawn / step / opacity / size / draw order per style); Sparks 18
+  per note, arc and fall, logical px × rendering scale, 3-point trail, additive glow; Smoke 10 puffs, ≥ 0.5 alpha,
+  rise and swell over ~2 s; both drawn over the notes. Dust keeps its numbers (tested).
+- Review (Sonnet): the recipe capped Dust's opacity at its alpha, but Dust starts with up to 1.2 life and its
+  old alpha × life wasn't capped (first third of a second ~20 % dimmer) — fixed, test failed first. Left for the
+  on-screen look: additive glow brightness over the UI; Smoke's largest puffs (~240 px) vs the driver's point size.
+- Unit 4221 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped). Display suite and the look in the app not
+  checked: the owner was using this machine's screen (display tests read real pixels).
 
 ## 2026-11-27 — Split moved by an octave with the PC keyboard (`fix/split-octave-shift`)
 - Track / Quick FX / label fixes merged (PR #70). Correction to the incident below it: the owner runs the app on a
