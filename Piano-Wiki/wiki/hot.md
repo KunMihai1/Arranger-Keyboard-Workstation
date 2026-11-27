@@ -1,7 +1,7 @@
 ---
 type: meta
 title: "Hot Cache"
-updated: 2026-11-26T23:00:00
+updated: 2026-11-27T09:00:00
 tags:
   - meta
   - hot
@@ -11,9 +11,11 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-26. Voices page merged (PR #68). **Phase 4e, the Chord helper page** on `feat/ui-chords-page` (voicings
-drawn on mini keyboards; pages now hold the GL note layer hidden — a note used to bring it back over the page).
-Next page: Recorder. Owner bug fixes on `fix/track-picker-instrument`; then split fix; next Sparks/Smoke. Owner tests on another PC. `docs/superpowers/` is **local only** (owner). Detail in [[log]].
+2026-11-27. Merged: Chord helper page (#69), owner bug fixes (#70), split octave fix (#71), calmer Sparks +
+**Light wisps** replacing Smoke (#72, pure `ParticleRecipe`, display checks), "Play" on the home picture (#73,
+`HomeLayout`). **Next: the Esc menu** restyled as a page panel (owner: "esc opens the old screen"), then Recorder.
+Owner sometimes uses this machine's screen: screenshot first. Injected keys don't play notes: check the note
+layer through the display harness. `docs/superpowers/` is **local only**. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -30,7 +32,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 2807, arranger 770, integration 130 (+7 skipped), display 10**.
+  Current: **unit 4221, arranger 770, integration 130 (+7 skipped), display 10**.
 - Visual checks: screenshot/click the app's window by process id (a VS panel can share its title); boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test

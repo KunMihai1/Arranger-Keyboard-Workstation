@@ -303,10 +303,18 @@ void NoteLayer::renderOpenGL()
 
     if (width > emptySize && height > emptySize)
     {
-        // Particles first, notes on top: the old juce::Graphics notes were composited over
-        // whatever renderOpenGL() drew, so this keeps the same layering.
-        drawParticles();
-        drawNotes(width, height);
+        // Dust under the notes (as the old juce::Graphics notes were composited over it); Sparks and Wisps
+        // over them, so they read as light in front of the notes, not haze behind them.
+        if (ParticleRecipe::drawnOverNotes(renderStyle))
+        {
+            drawNotes(width, height);
+            drawParticles();
+        }
+        else
+        {
+            drawParticles();
+            drawNotes(width, height);
+        }
     }
 
     // Keep drawing while anything moves (DwmFlush paces it), then go idle until the next command.

@@ -6,7 +6,8 @@
 #define GL_POINT_SPRITE 0x8861
 #endif
 
-// NoteLayer's particle system: shaders, simulation and drawing (split from NoteLayer.cpp, ADR-003).
+// NoteLayer's particle system: shaders, simulation and drawing (split from NoteLayer.cpp, ADR-003). How each style
+// looks and moves is ParticleRecipe (pure, unit-tested); this file stores, spawns, steps and draws them.
 
 using namespace juce::gl;
 using namespace NoteLayerNames;
@@ -20,65 +21,11 @@ namespace
 
     namespace Particles
     {
-        constexpr float  pointSizeScale = 0.5f;
-        constexpr float  centred        = 0.5f;    // nextFloat() - centred spreads evenly both ways
-        constexpr float  dead           = 0.0f;
-        constexpr size_t spawnLimit     = 1800;
-        constexpr float  ndcSpan        = 2.0f;    // pixels to normalised device coordinates (-1..1)
-        constexpr float  ndcEdge        = 1.0f;
-        constexpr float  aboveKey       = 0.05f;
-        constexpr float  noSpread       = 0.0f;
-    }
-
-    namespace Sparks
-    {
-        constexpr int   perNote = 25;
-        constexpr float gravity = 2.0f;
-        constexpr float fadeRate = 1.5f;
-        constexpr float spreadVelocity = 0.8f;
-        constexpr float riseVelocity = 1.5f;
-        constexpr float sizeMin = 2.0f;
-        constexpr float sizeSpan = 6.0f;
-        constexpr float lifeMin = 0.8f;
-        constexpr float lifeSpan = 0.4f;
-    }
-
-    namespace Dust
-    {
-        constexpr int   perNote = 40;
-        constexpr float jitter = 0.5f;
-        constexpr float dragPerTick = 0.95f;
-        constexpr float ticksPerSecond = 60.0f;
-        constexpr float fadeRate = 0.6f;
-        constexpr float spreadX = 0.08f;
-        constexpr float spreadY = 0.02f;
-        constexpr float spreadVelocity = 0.2f;
-        constexpr float riseSpan = 0.4f;
-        constexpr float riseMin = 0.1f;
-        constexpr float sizeMin = 3.0f;
-        constexpr float sizeSpan = 15.0f;
-        constexpr float alphaMin = 0.4f;
-        constexpr float alphaSpan = 0.6f;
-        constexpr float lifeMin = 0.8f;
-        constexpr float lifeSpan = 0.4f;
-    }
-
-    namespace Smoke
-    {
-        constexpr int   perNote = 15;
-        constexpr float jitter = 0.2f;
-        constexpr float growthRate = 30.0f;
-        constexpr float fadeRate = 0.4f;
-        constexpr float spreadX = 0.12f;
-        constexpr float spreadVelocity = 0.1f;
-        constexpr float riseSpan = 0.2f;
-        constexpr float riseMin = 0.05f;
-        constexpr float sizeMin = 20.0f;
-        constexpr float sizeSpan = 30.0f;
-        constexpr float alphaMin = 0.15f;
-        constexpr float alphaSpan = 0.2f;
-        constexpr float lifeMin = 1.0f;
-        constexpr float lifeSpan = 1.0f;
+        constexpr float  dead       = 0.0f;
+        constexpr size_t spawnLimit = 1800;
+        constexpr float  ndcSpan    = 2.0f;    // pixels to normalised device coordinates (-1..1)
+        constexpr float  ndcEdge    = 1.0f;
+        constexpr float  aboveKey   = 0.05f;
     }
 }
 
@@ -128,14 +75,22 @@ void NoteLayer::drawParticles()
         shader->setUniform(ShaderNames::time, timeSeconds);
 
     renderVerts.clear();
+    const auto renderingScale = (float) openGLContext.getRenderingScale();
+    const int trailPoints = ParticleRecipe::trailPoints(renderStyle);
 
     for (const auto& particle : particles)
     {
-        renderVerts.push_back({ particle.pos.x, particle.pos.y, particle.size*Particles::pointSizeScale,
-                          particle.colour.getFloatRed(),
-                          particle.colour.getFloatGreen(),
-                          particle.colour.getFloatBlue(),
-                          particle.colour.getFloatAlpha() * particle.life });
+        for (int trailIndex {}; trailIndex < trailPoints; ++trailIndex)
+        {
+            const auto point = ParticleRecipe::trailPoint(renderStyle, particle, trailIndex);
+            if (point.opacity <= Particles::dead)
+                break;   // past the start of its trail
+            renderVerts.push_back({ point.pos.x, point.pos.y, ParticleRecipe::pointSize(renderStyle, point.size, renderingScale),
+                                    particle.colour.getFloatRed(),
+                                    particle.colour.getFloatGreen(),
+                                    particle.colour.getFloatBlue(),
+                                    point.opacity });
+        }
     }
 
     auto& ext = openGLContext.extensions;
@@ -161,10 +116,12 @@ void NoteLayer::drawParticles()
     glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_POINT_SPRITE);
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // Sparks and wisps add light (a glow over the notes); Dust covers what is under it.
+    glBlendFunc(GL_SRC_ALPHA, ParticleRecipe::additive(renderStyle) ? GL_ONE : GL_ONE_MINUS_SRC_ALPHA);
 
     glDrawArrays(GL_POINTS, firstVertex, (GLsizei)renderVerts.size());
 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);   // the notes draw with normal blending
     if (positionAttr) ext.glDisableVertexAttribArray(positionAttr->attributeID);
     if (pointSizeAttr) ext.glDisableVertexAttribArray(pointSizeAttr->attributeID);
     if (colourAttr) ext.glDisableVertexAttribArray(colourAttr->attributeID);
@@ -184,6 +141,8 @@ std::pair<const char*, const char*> NoteLayer::sparksShader()
         "    vColour = colour;\n"
         "}\n";
 
+    // A glowing spark, the preview's profile (owner picked it there): a bright core over the inner quarter of the
+    // radius, white-hot while the spark is young (alpha = life left), then a halo fading evenly to the edge.
     const char* sparksFragment =
         "#ifdef GL_ES\n"
         "precision mediump float;\n"
@@ -191,10 +150,11 @@ std::pair<const char*, const char*> NoteLayer::sparksShader()
         "varying vec4 vColour;\n"
         "void main()\n"
         "{\n"
-        "    vec2 uv = gl_PointCoord.xy;\n"
-        "    float dist = distance(uv, vec2(0.5, 0.5));\n"
-        "    float alpha = 1.0 - smoothstep(0.4, 0.5, dist);\n"
-        "    gl_FragColor = vec4(vColour.rgb, alpha * vColour.a);\n"
+        "    float r = min(1.0, distance(gl_PointCoord.xy, vec2(0.5, 0.5)) * 2.0);\n"
+        "    float glow = r < 0.25 ? mix(1.0, 0.85, r / 0.25) : 0.85 * (1.0 - r) / 0.75;\n"
+        "    float core = 1.0 - smoothstep(0.0, 0.25, r);\n"
+        "    vec3 colour = mix(vColour.rgb, vec3(1.0, 0.98, 0.92), core * vColour.a);\n"
+        "    gl_FragColor = vec4(colour, glow * vColour.a);\n"
         "}\n";
 
     return {sparksVertex, sparksFragment};
@@ -232,9 +192,9 @@ std::pair<const char*, const char*> NoteLayer::dustShader()
     return {dustVertex, dustFragment};
 }
 
-std::pair<const char*, const char*> NoteLayer::smokeShader()
+std::pair<const char*, const char*> NoteLayer::wispsShader()
 {
-    const char* smokeVertex =
+    const char* wispsVertex =
         "attribute vec2 position;\n"
         "attribute float pointSize;\n"
         "attribute vec4 colour;\n"
@@ -246,21 +206,20 @@ std::pair<const char*, const char*> NoteLayer::smokeShader()
         "    vColour = colour;\n"
         "}\n";
 
-    const char* smokeFragment =
+    // One point of a wisp's trail: a soft round glow; the points overlap into a smooth line of light.
+    const char* wispsFragment =
         "#ifdef GL_ES\n"
         "precision mediump float;\n"
         "#endif\n"
         "varying vec4 vColour;\n"
         "void main()\n"
         "{\n"
-        "    vec2 uv = gl_PointCoord.xy;\n"
-        "    float dist = distance(uv, vec2(0.5, 0.5));\n"
-        "    float alpha = 1.0 - smoothstep(0.0, 0.5, dist);\n"
-        "    alpha = alpha * alpha;\n"
-        "    gl_FragColor = vec4(vColour.rgb, alpha * vColour.a);\n"
+        "    float dist = distance(gl_PointCoord.xy, vec2(0.5, 0.5));\n"
+        "    float glow = 1.0 - smoothstep(0.15, 0.5, dist);\n"
+        "    gl_FragColor = vec4(vColour.rgb, glow * vColour.a);\n"
         "}\n";
 
-    return {smokeVertex, smokeFragment};
+    return {wispsVertex, wispsFragment};
 }
 
 std::pair<const char*, const char*> NoteLayer::getShaderChoice(int styleId)
@@ -269,7 +228,7 @@ std::pair<const char*, const char*> NoteLayer::getShaderChoice(int styleId)
     {
     case ParticleStyles::sparks: return sparksShader();
     case ParticleStyles::dust: return dustShader();
-    case ParticleStyles::smoke: return smokeShader();
+    case ParticleStyles::wisps: return wispsShader();
     default:
         return {nullptr,nullptr};
     }
@@ -280,23 +239,7 @@ void NoteLayer::updateParticles(float dt)
     for (int particleIndex {}; particleIndex < (int)particles.size(); )
     {
         auto& particle = particles[particleIndex];
-        if (renderStyle == ParticleStyles::sparks) { // Sparks
-            particle.velocity.y -= Sparks::gravity * dt; // Gravity pulls them down slightly
-            particle.pos += particle.velocity * dt;
-            particle.life -= dt * Sparks::fadeRate; // Fast fade
-        }
-        else if (renderStyle == ParticleStyles::dust) { // Dust
-            particle.velocity.x += (rng.nextFloat() - Particles::centred) * Dust::jitter * dt; // Brownian
-            particle.velocity.x *= std::pow(Dust::dragPerTick, dt * Dust::ticksPerSecond); // Drag: 0.95 per 60 Hz tick, at any frame rate
-            particle.pos += particle.velocity * dt;
-            particle.life -= dt * Dust::fadeRate; // Slow fade
-        }
-        else if (renderStyle == ParticleStyles::smoke) { // Smoke
-            particle.velocity.x += (rng.nextFloat() - Particles::centred) * Smoke::jitter * dt; // Slight wiggle
-            particle.size += dt * Smoke::growthRate; // Smoke expands as it rises
-            particle.pos += particle.velocity * dt;
-            particle.life -= dt * Smoke::fadeRate; // Very slow fade
-        }
+        ParticleRecipe::step(renderStyle, particle, dt, rng);
 
         // Unordered erase for O(1) removal, avoiding expensive std::remove_if memory shifting
         if (particle.life <= Particles::dead) {
@@ -316,42 +259,8 @@ void NoteLayer::spawnParticlesForNote(juce::Rectangle<int> keyBounds, float widt
     float x_ndc = (keyBounds.getCentreX() / width) * Particles::ndcSpan - Particles::ndcEdge;
     float y_ndc = -(Particles::ndcEdge - (keyBounds.getY() / height) * Particles::ndcSpan);
     y_ndc += Particles::aboveKey;
-    juce::Point<float> pos(x_ndc, y_ndc);
+    const juce::Point<float> keyTop(x_ndc, y_ndc);
 
-    int count {};
-    if (renderStyle == ParticleStyles::sparks) count = Sparks::perNote; // Sparks
-    else if (renderStyle == ParticleStyles::dust) count = Dust::perNote; // Dust
-    else if (renderStyle == ParticleStyles::smoke) count = Smoke::perNote; // Smoke
-
-    for (int particleIndex {}; particleIndex < count; particleIndex++)
-    {
-        Particle particle;
-        if (renderStyle == ParticleStyles::sparks) { // Sparks
-            particle.pos = pos;
-            particle.velocity = { (rng.nextFloat() - Particles::centred) * Sparks::spreadVelocity, rng.nextFloat() * Sparks::riseVelocity };
-            particle.size = Sparks::sizeMin + rng.nextFloat() * Sparks::sizeSpan;
-            particle.life = Sparks::lifeMin + rng.nextFloat() * Sparks::lifeSpan;
-            particle.colour = renderParticleColour;
-        }
-        else if (renderStyle == ParticleStyles::dust) { // Dust
-            float spreadX = (rng.nextFloat() - Particles::centred) * Dust::spreadX;
-            float spreadY = (rng.nextFloat() - Particles::centred) * Dust::spreadY;
-            particle.pos = pos + juce::Point<float>(spreadX, spreadY);
-            particle.velocity = { (rng.nextFloat() - Particles::centred) * Dust::spreadVelocity, rng.nextFloat() * Dust::riseSpan + Dust::riseMin };
-            particle.size = Dust::sizeMin + rng.nextFloat() * Dust::sizeSpan;
-            float alpha = Dust::alphaMin + rng.nextFloat() * Dust::alphaSpan;
-            particle.colour = renderParticleColour.withAlpha(alpha);
-            particle.life = Dust::lifeMin + rng.nextFloat() * Dust::lifeSpan;
-        }
-        else if (renderStyle == ParticleStyles::smoke) { // Smoke
-            float spreadX = (rng.nextFloat() - Particles::centred) * Smoke::spreadX;
-            particle.pos = pos + juce::Point<float>(spreadX, Particles::noSpread);
-            particle.velocity = { (rng.nextFloat() - Particles::centred) * Smoke::spreadVelocity, rng.nextFloat() * Smoke::riseSpan + Smoke::riseMin };
-            particle.size = Smoke::sizeMin + rng.nextFloat() * Smoke::sizeSpan; // Very large
-            float alpha = Smoke::alphaMin + rng.nextFloat() * Smoke::alphaSpan;
-            particle.colour = renderParticleColour.withAlpha(alpha);
-            particle.life = Smoke::lifeMin + rng.nextFloat() * Smoke::lifeSpan; // longer life
-        }
-        particles.push_back(particle);
-    }
+    for (int particleIndex {}, count = ParticleRecipe::perNote(renderStyle); particleIndex < count; ++particleIndex)
+        particles.push_back(ParticleRecipe::spawn(renderStyle, keyTop, height / width, renderParticleColour, rng));
 }

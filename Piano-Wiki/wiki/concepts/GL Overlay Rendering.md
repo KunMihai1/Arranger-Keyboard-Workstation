@@ -43,7 +43,12 @@ Measured: painting notes with `juce::Graphics` made JUCE hold the MessageManager
 paint each frame — Debug, ~90 notes: **18 fps, UI frozen up to ~90 ms**; Release ~30 % of a core,
 mostly the NVIDIA driver spin-waiting in `SwapBuffers`. Now:
 - `setComponentPaintingEnabled(false)`; notes are one batched draw with a rounded-rect SDF shader
-  (same look); particles are drawn first so notes stay on top, as before.
+  (same look). Dust is drawn first so notes stay on top; **Sparks and Smoke are drawn over the notes**
+  (2026-11-27, owner: sparks "can't even be seen", smoke "in the background transparent").
+- How each particle style spawns, moves, fades and sizes is the pure, unit-tested `ParticleRecipe`
+  (`Source/UI/ParticleRecipe.*`); `NoteLayerParticles.cpp` only stores, steps and draws. Sparks: 18 per note,
+  arc and fall, logical-px sizes × rendering scale, a 3-point trail, **additive blending** (glow, white-hot
+  core); Smoke: 10 puffs per note, ≥ 0.5 alpha, rise, swell and thin out over ~2 s; Dust: original numbers.
 - Motion in `NoteField` (pure, unit-tested), advanced with measured `dt`; sub-pixel positions.
 - Frames paced with `DwmFlush()` while animating (vsync swap waits spin on NVIDIA); idle = no frames.
   Measured to pace correctly when minimised and on a locked session.

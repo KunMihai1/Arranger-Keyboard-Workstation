@@ -41,7 +41,7 @@ namespace
         const juce::String particleStyle    = "Particle style";
         const juce::String sparks           = "Sparks";
         const juce::String dust             = "Dust";
-        const juce::String smoke            = "Smoke";
+        const juce::String wisps            = "Wisps";
         const juce::String tracksMode       = "TRACKS";
         const juce::String notesMode        = "NOTES";
         const juce::String instrumentsMode  = "INSTRUMENT";
@@ -174,10 +174,10 @@ void MainComponent::stagePagesInit()
     particleStyleLabel.setText (StageWiringText::particleStyle);
     particleSparks.setButtonText (StageWiringText::sparks);
     particleDust.setButtonText (StageWiringText::dust);
-    particleSmoke.setButtonText (StageWiringText::smoke);
+    particleWisps.setButtonText (StageWiringText::wisps);
     particleSparks.onClick = [this] { setParticleStyle (ParticleStyles::sparks, true); };
     particleDust.onClick   = [this] { setParticleStyle (ParticleStyles::dust, true); };
-    particleSmoke.onClick  = [this] { setParticleStyle (ParticleStyles::smoke, true); };
+    particleWisps.onClick  = [this] { setParticleStyle (ParticleStyles::wisps, true); };
     setParticleStyle (ParticleStyles::fromStored (propertiesFile != nullptr ? propertiesFile->getIntValue (SettingsFileKeys::particleStyle, ParticleStyles::dust)
                                                                             : ParticleStyles::dust), false);
     // These three are shown and hidden with the play view (toggleHPanel), as in phase 1: add them hidden.
@@ -185,7 +185,7 @@ void MainComponent::stagePagesInit()
                                        static_cast<juce::Component*> (&colourSelectorButton) })
         settingsPage->addChildComponent (control);
     for (juce::Component* control : { static_cast<juce::Component*> (&particleStyleLabel), static_cast<juce::Component*> (&particleSparks),
-                                       static_cast<juce::Component*> (&particleDust), static_cast<juce::Component*> (&particleSmoke) })
+                                       static_cast<juce::Component*> (&particleDust), static_cast<juce::Component*> (&particleWisps) })
         settingsPage->addAndMakeVisible (control);
     midiWindow->setInterceptsMouseClicks (false, true);   // its empty area (the Display column) clicks through
     settingsPage->onLayoutContent = [this] (juce::Rectangle<int> area, float scale)
@@ -200,7 +200,7 @@ void MainComponent::stagePagesInit()
         colourSelectorButton.setBounds (colourSelectorButton.boundsForBoardBox (rects.displayToggles[displayColoursRow]));
         particleStyleLabel.setBounds (rects.particleStyleLabel);
         auto left = static_cast<float> (rects.particleStyleRow.getX());   // adjacent seg buttons, as the board
-        for (auto* button : { &particleSparks, &particleDust, &particleSmoke })
+        for (auto* button : { &particleSparks, &particleDust, &particleWisps })
         {
             button->setScale (scale);
             button->setBounds (juce::Rectangle<float> (left, static_cast<float> (rects.particleStyleRow.getY()), button->getExactWidth(),
@@ -616,7 +616,7 @@ void MainComponent::setParticleStyle (int styleId, bool save)
     // Spec B9: NoteLayer::setParticleStyle existed but nothing called it (always Dust). Saved as ParticleStyle.
     particleSparks.setLedOn (styleId == ParticleStyles::sparks);
     particleDust.setLedOn (styleId == ParticleStyles::dust);
-    particleSmoke.setLedOn (styleId == ParticleStyles::smoke);
+    particleWisps.setLedOn (styleId == ParticleStyles::wisps);
     particleStyleId = styleId;
     if (noteLayer)
         noteLayer->setParticleStyle (styleId);
