@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "6177a1d",
-  "last_synced_branch": "feat/ui-keys",
+  "last_synced_commit": "2d5b429",
+  "last_synced_branch": "feat/ui-dust",
   "last_synced_at": "2026-11-27",
-  "note": "Synced through 6177a1d: realistic piano keys (PianoKeyShapes, cached key looks, areaOf)."
+  "note": "Synced through 2d5b429: smooth Dust (DustField), log oldest entries archived."
 }
