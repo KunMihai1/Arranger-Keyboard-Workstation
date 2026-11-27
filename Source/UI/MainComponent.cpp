@@ -1,5 +1,6 @@
 #include "MainComponent.h"
 #include "AppInfo.h"
+#include "HomeLayout.h"
 
 namespace
 {
@@ -27,13 +28,7 @@ namespace
         constexpr int   loadingTextPadding     = 20;
         constexpr int   singleLine             = 1;
         constexpr float defaultFontHeight      = 16.0f;
-        constexpr float half                   = 0.5f;
-        constexpr double centre                = 0.5;
         constexpr int   centringDivisor        = 2;
-        constexpr int   playButtonWidthDivisor  = 16;
-        constexpr int   playButtonHeightDivisor = 24;
-        constexpr double playButtonLeftOfCentre = 0.175;   // fractions of the window, matching the artwork
-        constexpr double playButtonBelowCentre  = 0.162;
         constexpr int   settingsWidth          = 250;
         constexpr int   settingsButtonHeight   = 70;
         constexpr int   panelButtonWidth       = 200;
@@ -209,17 +204,10 @@ void MainComponent::paint(juce::Graphics& g)
     g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
     if (currentBackground.isValid())
     {
-            juce::Rectangle<float> bounds = getLocalBounds().toFloat();
-            auto imageWidth = (float)cachedImageMainWindow.getWidth();
-            auto imageHeight = (float)cachedImageMainWindow.getHeight();
-            auto scale = juce::jmax(bounds.getWidth() / imageWidth, bounds.getHeight() / imageHeight);
-            auto newWidth = imageWidth * scale;
-            auto newHeight = imageHeight * scale;
-            auto imageX = (bounds.getWidth() - newWidth) * Layout::half;
-            auto imageY = (bounds.getHeight() - newHeight) * Layout::half;
             g.setColour(juce::Colours::grey);
             g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
-            g.drawImage(currentBackground, juce::Rectangle<float>(imageX, imageY, newWidth, newHeight));
+            g.drawImage(currentBackground, HomeLayout::coverRect(getLocalBounds().toFloat(), (float)cachedImageMainWindow.getWidth(),
+                                                                 (float)cachedImageMainWindow.getHeight()));
         g.setFont(juce::FontOptions(Layout::defaultFontHeight));
         g.setColour(juce::Colours::white);
     }
@@ -346,12 +334,9 @@ void MainComponent::resized()
     if (overlayWindow)
         overlayWindow->setBounds(getLocalBounds());
     using namespace Layout;
-    int buttonWidth = getWidth() / playButtonWidthDivisor;
-    int buttonHeight = getHeight() / playButtonHeightDivisor;
-    int playX = (int)(getWidth() * centre - getWidth() * playButtonLeftOfCentre);
-    int playY = (int)(getHeight() * centre + getHeight() * playButtonBelowCentre);
 
-    playButton.setBounds(playX, playY, buttonWidth, buttonHeight);
+    // On the same spot of the picture whatever the window's shape (owner, 2026-11-27).
+    playButton.setBounds(HomeLayout::playButton(getLocalBounds(), (float)cachedImageMainWindow.getWidth(), (float)cachedImageMainWindow.getHeight()));
     settingsButton.setBounds(origin, origin, settingsWidth, settingsButtonHeight);
     settingsPanel.setBounds(origin, settingsButtonHeight, settingsWidth, getHeight());
     midiButton.setBounds(origin, smallGap, panelButtonWidth, panelButtonHeight);

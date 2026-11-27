@@ -1,4 +1,5 @@
 #include "MainComponent.h"
+#include "HomeLayout.h"
 
 // The small widgets MainComponent draws with: rotary slider, knob and button looks, panels
 // (split from MainComponent.cpp, ADR-003).
@@ -14,7 +15,6 @@ namespace
     constexpr float fallbackKnobInset    = 4.0f;
     constexpr float diameterPerRadius    = 2.0f;
     constexpr float pointerThickness     = 3.0f;
-    constexpr float buttonFontHeight     = 40.0f;
     constexpr int   panelBorderThickness = 3;
     constexpr float headerGlowAlpha      = 0.18f;
     constexpr float gradientLeft         = 0.0f;
@@ -95,7 +95,8 @@ void KnobLookAndFeel::drawRotarySlider(juce::Graphics& g, int left, int top, int
 
 juce::Font CustomLookAndFeel::getTextButtonFont(juce::TextButton& button, int buttonHeight)
 {
-    return juce::Font(buttonFontHeight, juce::Font::bold);
+    juce::ignoreUnused(button);
+    return juce::Font(HomeLayout::playTextHeight(buttonHeight), juce::Font::bold);   // only the home Play button uses this look
 }
 
 void CustomLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour& backgroundColour, bool isMouseOverButton, bool isButtonDown)
