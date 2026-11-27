@@ -13,6 +13,12 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-28 — Branches pruned; merging deletes the branch
+- Deleted 41 merged branches on GitHub, the merged local ones, `refactor/names-playback-2` (its patches are in
+  `main`), the stale `origin-pr/*` refs and a clean agent worktree. Left: `main`, and `feat/particles-sparks-smoke`
+  (checked out with uncommitted changes in the owner's main folder).
+- Owner rule, now in AGENTS.md › Git: merging a PR deletes its branch (`gh pr merge --delete-branch` + local).
+
 ## 2026-11-28 — Sign-in part 2 (`feat/ui-sign-in`)
 - Log in remembers the last email (`RememberedEmail`, settings key `LastEmail`, never the password): "Remembered from
   last time. *Not you?*" (`StageTextLink`) while the field holds it. Home: "Signed in as …" + Log out (back to Log in,
