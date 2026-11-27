@@ -143,6 +143,31 @@ namespace StagePalette
     static const juce::Colour slipBottom         { 0xff111213 };
     static const juce::Colour slipEdge           { 0xff000000 };
 
+    // --- Keys (StageRevised .wk / .wk.down / .bk; spec §7 for the pressed black key) ---
+    static const juce::Colour keyBed             { 0xff0b0b0c };
+    static const juce::Colour whiteKeyTop        { 0xffe9e6de };
+    static const juce::Colour whiteKeyUpper      { 0xfff8f7f2 };   // at 12 %
+    static const juce::Colour whiteKeyLower      { 0xfffbfaf6 };   // at 80 %
+    static const juce::Colour whiteKeyBottom     { 0xffefece4 };
+    static const juce::Colour whiteKeyLip        { 0xffd8d3c6 };
+    static const juce::Colour whiteKeyEdge       { 0x1a000000 };   // inset -1px 0 0 rgba(0,0,0,.10)
+    static const juce::Colour pressedWhiteTop    { 0xffcfcbc1 };
+    static const juce::Colour pressedWhiteUpper  { 0xffe6e3da };   // at 14 %
+    static const juce::Colour pressedWhiteLower  { 0xffeeebe3 };   // at 85 %
+    static const juce::Colour pressedWhiteBottom { 0xffe4e0d6 };
+    static const juce::Colour pressedWhiteLip    { 0xffcfc9bb };
+    static const juce::Colour pressedWhiteEdge   { 0x24000000 };   // rgba(0,0,0,.14)
+    static const juce::Colour pressedKeyShade    { 0x59000000 };   // inset 0 5px 6px -3px rgba(0,0,0,.35)
+    static const juce::Colour blackKeyTop        { 0xff141415 };
+    static const juce::Colour blackKeyBody       { 0xff1e1e20 };   // at 82 %
+    static const juce::Colour blackKeySlopeTop   { 0xff3b3b3f };   // at 84 %: the lit front slope
+    static const juce::Colour blackKeySlopeEnd   { 0xff2a2a2d };
+    static const juce::Colour blackKeyBevelLeft  { 0xff2c2c2f };
+    static const juce::Colour blackKeyBevelRight { 0xff070707 };
+    static const juce::Colour blackKeyShadow     { 0x73000000 };   // 1px 3px 4px rgba(0,0,0,.45)
+    static const juce::Colour pressedBlackTop    { 0xff0e0e0f };
+    static const juce::Colour pressedBlackBody   { 0xff18181a };
+
     // --- Sections timeline ---
     static const juce::Colour timelineLanes         { 0xff121315 };
     static const juce::Colour timelineBarLine       { 0xff1e2024 };
