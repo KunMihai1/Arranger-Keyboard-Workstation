@@ -13,6 +13,20 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-27 — Log in and Home on the instrument (`feat/ui-front-screens`, redesign sign-in part 1)
+- Before: a forest picture with a centred login card, then a "Play" text on the picture. Now (boards StageLogin /
+  StageHome): the panel is always shown — on Log in / Home its screen is asleep ("Welcome" / "Ready", lamps dark) and
+  its controls inactive; the page area holds the restyled `LoginComponent` (LCD fields, Show, lit Log in, Sign up,
+  Forgot password?; Sign up mode: Username, Create account, Back to log in; Enter submits) or `StageHomePage`
+  (Settings · Play · Exit big keys); `frontKeys` (a drawn-only `KeyboardUI`) sits under them. `MainComponentFront.cpp`.
+- What the account buttons do is unchanged (Login still always succeeds — next PR). `inPlayView` replaces two checks
+  of `!playButton.isVisible()` (they were also true before login).
+- Layouts in pure `FrontScreensLayout`, checked against the boards' renders (Play key top 124.4 vs 125, email field
+  97.4 vs 97.6, Log in row 258.6 vs 258.9 board px). Live: login → Home → Play → HOME → Home; Settings from Home and
+  Esc back; Esc menu on Home.
+- Sonnet review, verified: Esc was swallowed by a focused login field (now passed on), focus lost after login (Home grabs it), two async callbacks without a null check, Show state kept between Log in / Sign up, a misplaced colour comment — all fixed. Not changed: the unreachable login body (next PR), the hidden playButton kept as the Play relay.
+- unit 5861 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped); display 13 / 0 before the review fixes (one GL pixel read failed on the rerun while the desktop was in use).
+
 ## 2026-11-27 — Panel finishes (`feat/ui-finishes`, redesign phase 5, board `SkinsFinish`)
 - Settings › Display › Finish: Stage (default) and Rosso burst, Champagne, Tobacco burst, Midnight flake, Concert
   black; saved as `PanelFinish`. Panel surface + key slip + side strips; controls, screen and keys unchanged.

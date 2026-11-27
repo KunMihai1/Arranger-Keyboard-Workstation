@@ -108,8 +108,12 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   Champagne · Tobacco burst · Midnight flake · Concert black (Pearl accordion not built, owner). Panel surface, key
   slip and side strips; textures from the board's own feTurbulence numbers. Agent calls to check: side strips 16 px
   (26 would cover the first LEDs); labels print dark where the finish is light (Champagne, Tobacco's bright middle).
-- ⬜ Next (spec order): sign-in. Open question to the owner: Home with the board's instrument look (Settings · Play ·
-  Exit keys) or keep Play on the piano photo (PR #73).
+- ✅ **Log in and Home on the instrument** (boards StageLogin / StageHome, owner decision 2026-11-23): the panel shows
+  (screen asleep: Welcome / Ready, controls inactive), the page area holds the LCD-field login form or Home's
+  Settings · Play · Exit keys, the keys are drawn underneath. The forest picture and its Play text are gone (asked the
+  owner 2026-11-27 whether to keep the photo instead — no answer; spec decision followed, easy to revert).
+- ⬜ Next: real sign-in — Login still always succeeds (`handleLogin` returns early), then remembered email · Not you? ·
+  Log out · Remember me (needs the auth proxy to accept refresh tokens) · Forgot password (needs a reset endpoint).
 - ✅ **Bug found 2026-11-27 — track library reloads tracks from the wrong file** (PR #77). A folder stored one
   `filePath` (the first MIDI file added) and each track only `trackIndex`, so tracks from other files came back as
   that first file's. Each track now saves its own `filePath` (old saves fall back to the folder's; they can't be
