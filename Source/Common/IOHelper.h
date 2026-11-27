@@ -129,12 +129,10 @@ public:
     /**
      * @brief Saves playback settings to a file.
      * @param properties Pointer to the properties storage
-     * @param settings Settings to save
-     * @param lowest Lowest value
-     * @param highest Highest value
+     * @param settings Settings to save (the home-octave values, saved as given)
      * @param styleID Style ID
      */
-    static void savePlaybackSettings(juce::PropertySet* properties, const PlayBackSettings& settings, int lowest, int highest, const juce::String& styleID);
+    static void savePlaybackSettings(juce::PropertySet* properties, const PlayBackSettings& settings, const juce::String& styleID);
 
     /**
      * @brief Loads playback settings from a file.

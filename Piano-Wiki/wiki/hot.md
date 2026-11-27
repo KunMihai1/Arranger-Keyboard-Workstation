@@ -13,7 +13,7 @@ status: evergreen
 ## Last Updated
 2026-11-26. Voices page merged (PR #68). **Phase 4e, the Chord helper page** on `feat/ui-chords-page` (voicings
 drawn on mini keyboards; pages now hold the GL note layer hidden — a note used to bring it back over the page).
-Next page: Recorder. Owner bug fixes on `fix/track-picker-instrument`; next: split drift with Z/X, Sparks/Smoke redesign. Never restore app data. `docs/superpowers/` is **local only** (owner). Detail in [[log]].
+Next page: Recorder. Owner bug fixes on `fix/track-picker-instrument`; then split fix; next Sparks/Smoke. Owner tests on another PC. `docs/superpowers/` is **local only** (owner). Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
@@ -30,7 +30,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 2790, arranger 770, integration 130 (+7 skipped), display 10**.
+  Current: **unit 2807, arranger 770, integration 130 (+7 skipped), display 10**.
 - Visual checks: screenshot/click the app's window by process id (a VS panel can share its title); boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test

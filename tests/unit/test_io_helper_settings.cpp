@@ -12,7 +12,7 @@ namespace IOHelperSettingsTestValues
     const juce::String playbackRoundTrip        = "Save and load roundtrip - full range keyboard";
     const juce::String wrongDeviceGivesDefaults = "Load with wrong VID/PID returns defaults";
     const juce::String emptyGivesDefaults       = "Load from empty properties returns defaults";
-    const juce::String smallKeyboardClamps      = "Save with small keyboard range clamps to base octave";
+    const juce::String smallKeyboardClamps      = "a PC keyboard\'s range and split are saved as given (they used to be folded into the middle-C octave: A3 came back as A4)";
     const juce::String effectsRoundTrip         = "Save and load roundtrip uses style and device key";
     const juce::String sectionsRoundTrip        = "Save and load roundtrip";
     const juce::String missingFileGivesEmpty    = "Load from non-existent file gives empty map";
@@ -32,15 +32,11 @@ namespace IOHelperSettingsTestValues
     constexpr int endNote         = 96;
     constexpr int leftHandBound   = 60;
     constexpr int rightHandBound  = 72;
-    constexpr int lowestKey       = 21;    // an 88-key keyboard
-    constexpr int highestKey      = 108;
     constexpr int notSet          = -1;
     constexpr int smallStartNote  = 48;    // C3
     constexpr int smallEndNote    = 72;    // C5
     constexpr int smallLeftBound  = 55;
     constexpr int smallRightBound = 65;
-    constexpr int baseOctaveC     = 60;    // a small keyboard's notes map onto the octave above middle C
-    constexpr int semitonesPerOctave = 12;
 
     // Effect values per device.
     constexpr int leftHandChannel   = 1;
@@ -107,7 +103,7 @@ public:
             original.VID = vendorId;
             original.PID = productId;
 
-            PlaybackSettingsIOHelper::savePlaybackSettings(&properties, original, lowestKey, highestKey, styleKey);
+            PlaybackSettingsIOHelper::savePlaybackSettings(&properties, original, styleKey);
 
             PlayBackSettings loaded = PlaybackSettingsIOHelper::loadPlaybackSettings(&properties, vendorId, productId, styleKey);
 
@@ -132,7 +128,7 @@ public:
             original.VID = vendorId;
             original.PID = productId;
 
-            PlaybackSettingsIOHelper::savePlaybackSettings(&properties, original, lowestKey, highestKey, styleKey);
+            PlaybackSettingsIOHelper::savePlaybackSettings(&properties, original, styleKey);
 
             PlayBackSettings loaded = PlaybackSettingsIOHelper::loadPlaybackSettings(&properties, otherVendorId, otherProductId, styleKey);
 
@@ -166,14 +162,15 @@ public:
             original.VID = smallVendorId;
             original.PID = smallProductId;
 
-            // highest - lowest = 72 - 48 = 24, which is < 49, so clamping kicks in
-            PlaybackSettingsIOHelper::savePlaybackSettings(&properties, original, smallStartNote, smallEndNote, styleKey);
+            // A 24-key range (a PC keyboard): Display saves the home-octave values (PlaybackRange), kept as they are.
+            PlaybackSettingsIOHelper::savePlaybackSettings(&properties, original, styleKey);
 
             PlayBackSettings loaded = PlaybackSettingsIOHelper::loadPlaybackSettings(&properties, smallVendorId, smallProductId, styleKey);
 
-            // Values should be remapped to base 60:  60 + (note % 12)
-            expect(loaded.startNote == baseOctaveC + (smallStartNote % semitonesPerOctave));
-            expect(loaded.endNote == baseOctaveC + (smallEndNote % semitonesPerOctave));
+            expectEquals(loaded.startNote, smallStartNote);
+            expectEquals(loaded.endNote, smallEndNote);
+            expectEquals(loaded.leftHandBound, smallLeftBound);
+            expectEquals(loaded.rightHandBound, smallRightBound);
 
         }
     }

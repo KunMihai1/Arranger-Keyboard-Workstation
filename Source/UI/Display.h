@@ -213,7 +213,8 @@ public:
     void updateUIbeforeAnyLoadingCase() override;
 
     /** @brief Sets minimum and maximum MIDI note boundaries */
-    void set_min_max(int min, int max);
+    /** The playing keyboard's range; pcKeyboard: the PC keyboard (its octave shifts the range and split shown). */
+    void set_min_max(int min, int max, bool pcKeyboard);
 
     /** @brief Sets VID and PID for playback settings */
     void set_VID_PID(const juce::String& VID, const juce::String& PID);
@@ -251,8 +252,9 @@ public:
     /** @brief calling the listener's function that they inherit */
     void callingListeners();
 
-    /** @brief sets all the settings including min,max note, playing range on left/right hand */
-    void setNewSettingsHelperFunction(int value);
+    /** The PC keyboard moved an octave (Z / X, after set_min_max): the range and split show moved with it and the
+        MIDI handler gets them. What is saved does not change (PlaybackRange). */
+    void keyboardShifted();
 
     void initializeSectionsForStyle(std::unordered_map<juce::String, StyleSection>& sections);
 
@@ -288,7 +290,12 @@ private:
     SegButton    styleSettingsButton { juce::String::fromUTF8 (StylePageText::styleSettingsUtf8), SegButton::Style::seg };
 
     int minNote, maxNote;  ///< min and max notes of playing range (set_min_max)
-    PlayBackSettings settings; ///< Playback settings
+    PlayBackSettings settings;      ///< Playback settings as they apply now: savedSettings moved by the keyboard's octave
+    PlayBackSettings savedSettings; ///< The style's saved (home-octave) range and split (PlaybackRange)
+
+    int keyboardShift() const;      ///< semitones the playing keyboard is from home (PlaybackRange::octaveShift)
+    bool pcKeyboardInput = false;   ///< the range comes from the PC keyboard (set_min_max)
+    void showRangeSettings();       ///< settings = savedSettings as shown now; the fields follow
 
     std::shared_ptr<std::deque<TrackEntry>> availableTracksFromFolder; ///< Tracks loaded from folder
     std::shared_ptr<std::unordered_map<juce::String, std::deque<TrackEntry>>> groupedTracks; ///< Tracks grouped by folder
