@@ -418,7 +418,6 @@ private:
     bool loadingOverlayActive = false;          ///< Loading label currently using the hide-note-layer path
     bool noteLayerVisibleBeforeLabel = false;   ///< Note-layer visibility to restore after the loading label
     bool noteLayerVisibleBeforeMenu = false;    ///< Note-layer visibility to restore after the ESC menu
-    bool keyboardVisibleBeforeMenu = false;     ///< Keyboard visibility to restore after the ESC menu
     bool sceneHiddenForArrangerOverlay = false; ///< True while the arranger authoring overlay hides the note layer
     bool noteLayerVisibleBeforeArranger = false;///< Note-layer visibility to restore after the arranger overlay
     // UI buttons and toggles

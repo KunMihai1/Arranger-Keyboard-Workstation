@@ -11,9 +11,8 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-27. Merged: Chord helper page (#69), owner bug fixes (#70), split octave fix (#71), calmer Sparks +
-**Light wisps** replacing Smoke (#72, pure `ParticleRecipe`, display checks), "Play" on the home picture (#73,
-`HomeLayout`). **Next: the Esc menu** restyled as a page panel (owner: "esc opens the old screen"), then Recorder.
+2026-11-27. Merged #69–#73 (Chord helper, owner fixes, split, Sparks + **Light wisps**, "Play" text); Esc menu
+as a page panel on `feat/ui-esc-menu`. **Next page: Recorder**, then Sections v2.
 Owner sometimes uses this machine's screen: screenshot first. Injected keys don't play notes: check the note
 layer through the display harness. `docs/superpowers/` is **local only**. Detail in [[log]].
 
@@ -32,7 +31,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 4221, arranger 770, integration 130 (+7 skipped), display 10**.
+  Current: **unit 4606, arranger 770, integration 130 (+7 skipped), display 12**.
 - Visual checks: screenshot/click the app's window by process id (a VS panel can share its title); boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
@@ -48,7 +47,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 Full task list with states: [[Owner Backlog]].
 - 🟡 **~100 `juce::AlertWindow`s left** (0.5–1 s each in Debug, balanced text layout): move to `StageDialog`.
 - 🟡 **UI redesign** (spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2): panel and
-  pages Style, Effects, Settings, Voices, Chord helper done. Owner: same look on every resolution; pages centred like the
+  pages Style, Effects, Settings, Voices, Chord helper, Esc menu done. Owner: same look on every resolution; pages centred like the
   panel; agent checks the running app **1:1** against the boards before finishing.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.

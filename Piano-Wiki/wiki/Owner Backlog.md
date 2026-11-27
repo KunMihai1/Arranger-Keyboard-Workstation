@@ -90,10 +90,12 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   "tiny dots, barely", smoke "looks like fog"; on a browser preview picked **Light wisps** to replace Smoke and
   said sparks were "way too boom" → calm embers. Seen on screen through display-test frames; display checks that
   both light up the area above the key.
-- 🟡 **Esc opens the old screen** (owner, 2026-11-27) — the Esc menu restyled as a page panel (spec P.12), next.
+- ✅ **Esc opens the old screen** (owner, 2026-11-27) — the Esc menu is a page panel now (spec P.12,
+  `feat/ui-esc-menu`): MENU heading, Settings / Effects / Exit seg buttons, app scale, click outside closes;
+  the keys stay dimmed under it (note layer held hidden as on a page).
 - ✅ **"Play" text on the piano photo is trimmed** (owner, 2026-11-27) and must sit in the same place at every
   window width / height — PR #73 (`HomeLayout`).
-- ⬜ Next pages (spec order): Recorder, Esc menu, Sections v2; then keys, Dust, finishes, sign-in.
+- ⬜ Next pages (spec order): Recorder, Sections v2; then keys, Dust, finishes, sign-in.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
   centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.

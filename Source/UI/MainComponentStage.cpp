@@ -274,6 +274,8 @@ void MainComponent::layoutStage()
             page->setBounds (stageRegions.noteArea);
         }
 
+    if (overlayWindow)
+        overlayWindow->setScale (stageRegions.scale);   // the Esc menu follows a resize while it is open
     if (keyboardInitialized)
         keyboard.setBounds (stageRegions.keys);
     if (noteLayer)

@@ -190,12 +190,16 @@ void MainComponent::setOverlayMenuVisible(bool show)
 
     if (show)
     {
+        overlayWindow->setScale(stageRegions.scale);   // the menu scales with the rest of the app
         overlayWindow->setBounds(getLocalBounds());
-        // Hide the GL note layer (would cover the overlay) and the keyboard, remembering both.
+        // Hide the GL note layer (it would cover the menu) and hold it hidden, as a page does: a note played
+        // meanwhile must not bring it back. The keys stay, dimmed under the menu like the rest of the app.
         noteLayerVisibleBeforeMenu = (noteLayer && noteLayer->isVisible());
-        keyboardVisibleBeforeMenu  = keyboard.isVisible();
-        if (noteLayer) noteLayer->setVisible(false);
-        keyboard.setVisible(false);
+        if (noteLayer)
+        {
+            noteLayer->setHeldHidden(true);
+            noteLayer->setVisible(false);
+        }
 
         overlayWindow->setVisible(true);
         overlayWindow->toFront(true);
@@ -207,9 +211,9 @@ void MainComponent::setOverlayMenuVisible(bool show)
         if (noteLayer)
         {
             noteLayer->resetState();   // clear leftover falling/active notes so we return to a clean screen
+            noteLayer->setHeldHidden(false);
             noteLayer->setVisible(noteLayerVisibleBeforeMenu);
         }
-        keyboard.setVisible(keyboardVisibleBeforeMenu);
         grabKeyboardFocus();   // so ESC/keys keep working after the menu closes
     }
 }
