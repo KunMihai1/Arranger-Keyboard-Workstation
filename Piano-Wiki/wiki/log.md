@@ -13,6 +13,23 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-27 — New smooth Dust (`feat/ui-dust`, redesign phase 4, board `Dust`)
+- Old Dust: 40 particles once per note-on, a new random sideways kick every frame (jitter), linear fade, fixed
+  size. New pure `DustField` = the board's "new" mode: burst of 26 (rise × 1.8), then 60 / s per held key; 86 %
+  specks / 14 % motes with the board's life / size / alpha ranges; two-wave sine flow field, damping e^(−1.4 dt), lift
+  16 (1 − p); fade smoothstep in (0–.12) and out (.3–1); ease-out growth; ≤ 3200, oldest first. Board units (1200
+  wide) → NDC; additive point sprites with the board's radial gradient; still under the notes.
+- `NoteLayer` render thread keeps which keys are held (noteOn / noteOff / releaseAll / clear) and streams Dust for
+  them each frame. `ParticleRecipe` lost its Dust branch (Sparks / Wisps unchanged).
+- Tests: `test_dust_field` (burst, 60 / s, kinds and ranges, fade / growth curve, one frame = the board's formulas,
+  budget, scale); display `dustIsVisible` (3 taps lit 610–786 px in 6 runs, floor 300; emission off → 40, fails).
+- Review (Sonnet), verified and fixed: switching Sparks → Dust left live sparks never ageing (layer animating
+  forever) → recipe particles dropped while Dust is the style; a note outside the piano burst Dust at x = 0 → guarded;
+  tests pinned to the board's numbers. Not changed: a held key's stream keeps its old x after a resize (low).
+- Live: chord C held 1.2 s next to the board's own script rendered the same way; this screen runs at **125 %**
+  (positions × 1.25), which also showed the cached keys stay crisp when scaled.
+- Unit 5788 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 13 / 0.
+
 ## 2026-11-27 — Realistic keys (`feat/ui-keys`, redesign phase 3)
 - `KeyboardUI` drew flat white rectangles with black outlines and a **green** pressed key. Now the board
   `StageRevised` keys: pure `PianoKeyShapes` geometry, board materials (`StagePalette` "Keys"), pressed white
@@ -658,89 +675,5 @@ Append-only. Newest entries at the TOP. Never edit past entries.
   folder rename leaves `TrackEntry::folderName` stale (nothing reads it after load now).
 - Spec: `docs/superpowers/specs/2026-11-22-track-map-stale-pointers-design.md`.
 
-## 2026-11-22 — Fix: Solo Start on a "None" track crashed
-- `startPlaying()` Solo path dereferenced the null map entry that `applyBPMchangeBeforePlayback`'s
-  `operator[]` inserts for every "None" track; now null-checked like the all-tracks path.
-- Test case in `test_current_style_start.cpp` (style load → Solo → click Track → Start): unit run
-  crashed 0xC0000005 before, 758/0 after; arranger 705/0. Verified live: "There are no tracks to play".
-- Null entries themselves left alone (every other reader already checks).
-
-## 2026-11-22 — Live reproduction of the code-reading bug list
-
-Driven in the running Debug app on main (a182b35), app data backed up and restored afterwards.
-
-- **Confirmed – crash:** Solo mode, click a "None" track, Start → access violation (c0000005).
-  No BPM drag needed: loading the style already runs `applyBPMchangeBeforePlayback`, whose
-  `mapUuidToTrackEntry[...]` inserts a null entry for each None track; the Solo path in
-  `startPlaying()` derefs it without the null check the All-tracks path has.
-- **Confirmed – picker folder switch:** assign Bass from folder A, browse into folder B without
-  choosing → the slot still says Bass but Notes information shows folder B's track (C8 test notes).
-  The map holds `&(*availableTracksFromFolder)[i]`, a copy overwritten on folder open.
-- **Confirmed – removing a folder track:** removing a track stored *before* a used one shifts it
-  (`remove_if` + erase) → the slot shows another track's notes. Removing one stored after it does not.
-- **Confirmed – Start while playing:** track player: BPM unlocked while playing and locked after
-  Stop (toggle in `updateObjects`). Arranger: BPM unlocked while still playing (stale async
-  `onStoppedItself` from `haltAudio`).
-- **Corrected – taskbar:** a normal launch is maximised correctly; only Windows "restore" gives a
-  window the size of the whole screen (0,0-1938,1077). The earlier sighting and the "black keys too
-  long" look came from the test helper's SW_RESTORE. Black keys are 0.6 of the key height as drawn.
-- Not reproducible live (races): SFZ load order, MIDI-thread recording without a lock.
-
-## 2026-11-21 — Start-with-nothing-to-play fix, CI object cache, bug hunt by code reading
-- **PR #16 merged** (precompiled header + 10 modules dropped): CI 4–5 min → ~2 min.
-- **PR #17 `fix/start-without-tracks`**: Start on a style with all tracks "None" left the beat light
-  red and (arranger mode) the BPM slider locked — the button set `isPlaying` before
-  `startPlaying()`, which returns early. `startPlaying()` now returns bool; test
-  `test_current_style_start.cpp` (red 3 → green). Unit 756, arranger 705.
-- **PR #18 `ci/cache-juce-objects`**: JUCE module code is 76 % of compile CPU (`/Bt+`). Test project
-  builds with `/Z7` (`ci/Directory.Build.targets`); CI restores the module `.obj`s + tlogs keyed on
-  JUCE version + runner image + hash of generated `ci/JuceLibraryCode`; saved only from `main`
-  (CI now runs on push to main). Simulated: 53.6 → 23.8 s.
-- **In-app run of the GPU note test plan: 12/12 pass** (login button skips credentials).
-- **Found by reading code — to reproduce live before fixing:**
-  1. Start while the arranger plays: stale async `onStoppedItself` (ArrangerEngine::haltAudio)
-     clears `isPlaying` / unlocks BPM after the restart.
-  2. Start while the track player plays: BPM slider toggled by `updateObjects()` ends up inverted
-     (`stop(false)` doesn't toggle, `start()` does).
-  3. Crash: Solo mode + "None" track selected + BPM drag (`mapUuidToTrackEntry[...]` inserts nullptr)
-     + Start → `*it->second` on nullptr (CurrentStyleComponent.cpp ~64).
-  4. Track picker stores `&(*availableTracksFromFolder)[i]` (a copy, rewritten on folder switch) in
-     the shared map (Display.cpp ~356) → wrong track plays / use-after-free.
-  5. Removing a track erases mid-`deque` in `groupedTracks` → other map pointers shift; map not rebuilt.
-  6. `AudioHandler::loadSfz`: detached threads per load → out-of-order completion leaves the older
-     instrument; also captures `this` (quit during loading).
-  7. Window `setFullScreen(true)` covers the taskbar → style list's button row hidden (fix: maximised).
-
-## 2026-11-21 — Faster builds: precompiled header + 10 unused JUCE modules dropped
-PRs #13–#15 (docs, perf, refactor) merged. Then `build/faster-builds`: measured first — every
-source file re-parsed all 24 modules' headers (6.8 s to compile one small `.cpp`), and CI spent
-194 s of 225 s compiling. A/B on four scratch copies (same machine, tests built on 4 cores like
-the CI runner): precompiled header alone 202 → 65 s, module drop alone 202 → 169 s, both 202 → 53 s.
-Adopted both. In-repo: clean app build 92 → 39 s, one `.cpp` 8.7 → 2.1 s, `MainComponent.h`
-(7 files) 10.9 → 3.5 s; suites unchanged (unit 748, arranger 705); app starts in 0.7–0.8 s
-(unchanged — instruments already load off-thread after login). Dropped: analytics, animation,
-audio_utils, box2d, cryptography, javascript, midi_ci, osc, product_unlocking, video — none used,
-none a dependency of a kept module. See [[Dependencies Index]].
-
-## 2026-11-21 — Agent rules, docs/ tracked, GPU note rendering, 800-line file cap
-Three branches, merged in order (PRs: docs → perf → refactor):
-- **`docs/agent-rules-and-docs`** — root `AGENTS.md` (spec → TDD, root cause + measurement first,
-  real problems only, minimal diff, no AI attribution, Sonnet review whose claims the orchestrator
-  verifies) and `CLAUDE.md` importing it. `/docs` un-ignored (24 specs/plans/test plans now
-  versioned). Merged `arhitecture/add-arhitecture-optimize-big-files`; `ARCHITECTURE.md` moved to
-  `docs/`. README's stale `Project Synth2.jucer` → `Arranger Workstation.jucer`.
-- **`perf/note-layer-gpu`** — benchmark harness (exact copy of the old `NoteLayer` vs 5 variants,
-  scripted loads, unlocked re-run) showed the old `juce::Graphics` path held the MessageManager
-  lock every frame: Debug ~90 notes 18 fps / UI frozen ≤90 ms; Release ~30 % of a core (NVIDIA
-  spin in `SwapBuffers`). New: SDF-shader notes in `renderOpenGL`, component painting off,
-  `NoteField` pure model (+41 unit assertions), command queue, `DwmFlush` pacing → Release 1.9 %
-  CPU, msg latency p99 0.23 ms, Debug 60 fps. Review fixes: particles under notes again,
-  dt-scaled drag, SafePointer made on the message thread. Local integration test reads real
-  pixels (8/8). CI unit floor 650 → 730. See [[GL Overlay Rendering]].
-- **`refactor/split-large-files`** — 7 files over 800 lines split verbatim by responsibility
-  (line-multiset verified, suite totals unchanged: unit 748, arranger 705, integration 137).
-  CI now fails on any file > 800 lines. [[ADR-003 800-Line File Cap Split By Responsibility]]
-  partly supersedes [[ADR-002 Defer MainComponent Display Refactor]].
-
 ---
-Older entries (2026-06-06 to 2026-09-04): [[log-archive-2026]].
+Older entries (2026-06-06 to 2026-11-22): [[log-archive-2026]].

@@ -2,7 +2,7 @@
 type: concept
 title: "GL Overlay Rendering"
 created: 2026-06-07
-updated: 2026-11-26
+updated: 2026-11-27
 tags:
   - concept
   - ui
@@ -48,7 +48,13 @@ mostly the NVIDIA driver spin-waiting in `SwapBuffers`. Now:
 - How each particle style spawns, moves, fades and sizes is the pure, unit-tested `ParticleRecipe`
   (`Source/UI/ParticleRecipe.*`); `NoteLayerParticles.cpp` only stores, steps and draws. Sparks: 18 per note,
   arc and fall, logical-px sizes × rendering scale, a 3-point trail, **additive blending** (glow, white-hot
-  core); Smoke: 10 puffs per note, ≥ 0.5 alpha, rise, swell and thin out over ~2 s; Dust: original numbers.
+  core); Smoke: 10 puffs per note, ≥ 0.5 alpha, rise, swell and thin out over ~2 s (since replaced by Light wisps).
+- **Dust** (2026-11-27, board `Dust`, redesign B3) is its own pure, unit-tested `DustField` (`Source/UI/DustField.*`),
+  not a `ParticleRecipe` style: a burst of 26 at note-on, then **60 a second per held key** (the render thread keeps
+  which keys are held from the noteOn / noteOff / releaseAll / clear commands); 86 % fine specks, 14 % soft motes;
+  carried by a smooth sine flow field (no per-frame random kicks), fading in and out and growing with an ease-out;
+  at most 3200, oldest first. Simulated in board units (1200 wide), drawn as additive point sprites with the board's
+  radial gradient (white core → particle colour → transparent), still under the notes.
 - Motion in `NoteField` (pure, unit-tested), advanced with measured `dt`; sub-pixel positions.
 - Frames paced with `DwmFlush()` while animating (vsync swap waits spin on NVIDIA); idle = no frames.
   Measured to pace correctly when minimised and on a locked session.

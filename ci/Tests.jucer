@@ -53,6 +53,8 @@
               file="../tests/unit/test_stage_screen.cpp"/>
         <FILE id="pnoKyT" name="test_piano_keys.cpp" compile="1" resource="0"
               file="../tests/unit/test_piano_keys.cpp"/>
+        <FILE id="dstFlT" name="test_dust_field.cpp" compile="1" resource="0"
+              file="../tests/unit/test_dust_field.cpp"/>
         <FILE id="stgWdT" name="test_stage_widgets.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_widgets.cpp"/>
         <FILE id="stgMdT" name="test_stage_models.cpp" compile="1" resource="0"
@@ -513,6 +515,8 @@
         <FILE id="hmLayC" name="HomeLayout.cpp" compile="1" resource="0" file="../Source/UI/HomeLayout.cpp"/>
         <FILE id="pkShpH" name="PianoKeyShapes.h" compile="0" resource="0" file="../Source/UI/PianoKeyShapes.h"/>
         <FILE id="pkShpC" name="PianoKeyShapes.cpp" compile="1" resource="0" file="../Source/UI/PianoKeyShapes.cpp"/>
+        <FILE id="dstFlH" name="DustField.h" compile="0" resource="0" file="../Source/UI/DustField.h"/>
+        <FILE id="dstFlC" name="DustField.cpp" compile="1" resource="0" file="../Source/UI/DustField.cpp"/>
         <FILE id="recMdH" name="RecorderModel.h" compile="0" resource="0" file="../Source/UI/Recorder/RecorderModel.h"/>
         <FILE id="recMdC" name="RecorderModel.cpp" compile="1" resource="0" file="../Source/UI/Recorder/RecorderModel.cpp"/>
         <FILE id="recCnH" name="RecorderContent.h" compile="0" resource="0" file="../Source/UI/Recorder/RecorderContent.h"/>

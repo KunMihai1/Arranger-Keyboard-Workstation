@@ -4,7 +4,7 @@
 /*  Owner (2026-11-27): "the sparks can't even be seen ... smoke is like in the background transparent". First pass
     made sparks visible; on the browser preview the owner then said sparks were "way too boom" (picked the calmer
     embers) and chose Light wisps to replace Smoke ("something that flows a bit and looks smoother").
-    Dust stays as it was. */
+    Dust became its own field (DustField, board `Dust`, 2026-11-27): no recipe particles. */
 
 namespace ParticleRecipeTestValues
 {
@@ -19,8 +19,8 @@ namespace ParticleRecipeTestValues
     const juce::String wispsTrailKey  = "a young wisp's trail stops at the key";
     const juce::String wispsLook      = "wisps live long, glow over the notes and draw a long trail";
     const juce::String drawOrder      = "sparks and wisps are drawn over the falling notes; dust under them";
-    const juce::String dustUnchanged  = "dust keeps its numbers: 40 per note, half-size points, not scaled, no aspect";
-    const juce::String dustOpacity    = "dust opacity is its alpha times its life, also while life is above full (as before)";
+    const juce::String dustNotHere    = "dust spawns no recipe particles (DustField makes it) and adds light";
+    const juce::String scaledPoints   = "a point's size is its logical size times the rendering scale";
 
     constexpr int   seed              = 2026;
     constexpr int   samples           = 200;
@@ -45,18 +45,12 @@ namespace ParticleRecipeTestValues
     constexpr float minWispLife       = 1.6f;
     constexpr int   minWispTrail      = 60;
     constexpr int   singlePoint       = 1;
-    constexpr int   dustPerNote       = 40;
-    constexpr float dustSize          = 10.0f;
-    constexpr float dustPointSize     = 5.0f;
+    constexpr int   noParticles       = 0;
+    constexpr float pointSizeLogical  = 10.0f;
     constexpr float windowScale       = 1.5f;
-    constexpr float squareLayer       = 1.0f;
+    constexpr float pointSizePhysical = 15.0f;
     constexpr float noTime            = 0.0f;
-    constexpr float sizeTolerance     = 0.001f;
     constexpr float pathTolerance     = 0.0001f;
-    constexpr float dustAlpha         = 0.5f;
-    constexpr float dustYoungLife     = 1.2f;     // Dust starts with up to 1.2 life
-    constexpr float dustYoungOpacity  = 0.6f;
-    constexpr float alphaTolerance    = 0.005f;   // a colour keeps its alpha in 8 bits (0.5 is stored as 128 / 255)
     const juce::Point<float> keyTop { 0.0f, -0.95f };
     const juce::Colour particleColour { 0xfff0b43c };
 }
@@ -82,7 +76,7 @@ public:
                 expect (tilt <= maxSparkTilt);
                 expect (spark.size >= minSparkSize);
                 expect (spark.life >= minSparkLife);
-                const auto peak = highestPoint (spark, random) - keyTop.y;
+                const auto peak = highestPoint (spark) - keyTop.y;
                 expect (peak >= minSparkRise && peak <= maxSparkRise);
             }
             expect (additive (ParticleStyles::sparks));
@@ -93,14 +87,14 @@ public:
             auto spark = spawn (ParticleStyles::sparks, keyTop, xPerY, particleColour, random);
             expect (spark.velocity.y > noTime);
             for (int frameIndex {}; frameIndex < twoSecondsOfFrames; ++frameIndex)
-                step (ParticleStyles::sparks, spark, frame, random);
+                step (ParticleStyles::sparks, spark, frame);
             expect (spark.velocity.y < noTime);
         }
 
         beginTest (sparksTrail);
         {
             auto spark = spawn (ParticleStyles::sparks, keyTop, xPerY, particleColour, random);
-            step (ParticleStyles::sparks, spark, frame, random);
+            step (ParticleStyles::sparks, spark, frame);
             const auto head = trailPoint (ParticleStyles::sparks, spark, firstTrailPoint);
             const auto behind = trailPoint (ParticleStyles::sparks, spark, secondTrailPoint);
             expect (head.pos == spark.pos);
@@ -118,7 +112,7 @@ public:
                 float widest {};
                 for (int frameIndex {}; frameIndex < oneSecondOfFrames; ++frameIndex)
                 {
-                    step (ParticleStyles::wisps, wisp, frame, random);
+                    step (ParticleStyles::wisps, wisp, frame);
                     widest = juce::jmax (widest, std::abs (wisp.pos.x - start.x - wisp.velocity.x * wisp.age));
                 }
                 expect (wisp.pos.y - start.y >= minWispRise);
@@ -131,10 +125,10 @@ public:
             const auto born = spawn (ParticleStyles::wisps, keyTop, xPerY, particleColour, random);
             auto wisp = born;
             for (float age {}; age < wispAge; age += frame)
-                step (ParticleStyles::wisps, wisp, frame, random);
+                step (ParticleStyles::wisps, wisp, frame);
             const auto back = trailPoint (ParticleStyles::wisps, wisp, laterTrailPoint);
             auto earlier = born;
-            step (ParticleStyles::wisps, earlier, back.age, random);
+            step (ParticleStyles::wisps, earlier, back.age);
             expectWithinAbsoluteError (back.pos.x, earlier.pos.x, pathTolerance);
             expectWithinAbsoluteError (back.pos.y, earlier.pos.y, pathTolerance);
             expect (back.opacity > noTime);
@@ -144,7 +138,7 @@ public:
         beginTest (wispsTrailKey);
         {
             auto wisp = spawn (ParticleStyles::wisps, keyTop, xPerY, particleColour, random);
-            step (ParticleStyles::wisps, wisp, youngWispAge, random);
+            step (ParticleStyles::wisps, wisp, youngWispAge);
             expectEquals (trailPoint (ParticleStyles::wisps, wisp, trailPoints (ParticleStyles::wisps) - singlePoint).opacity, noTime);
         }
 
@@ -164,37 +158,26 @@ public:
             expect (! drawnOverNotes (ParticleStyles::dust));
         }
 
-        beginTest (dustUnchanged);
+        beginTest (dustNotHere);
         {
-            expectEquals (perNote (ParticleStyles::dust), dustPerNote);
-            expectEquals (pointSize (ParticleStyles::dust, dustSize, windowScale), dustPointSize);
-            expectEquals (trailPoints (ParticleStyles::dust), singlePoint);
-            expect (! additive (ParticleStyles::dust));
-            juce::Random wide (seed), square (seed);
-            const auto onWide = spawn (ParticleStyles::dust, keyTop, xPerY, particleColour, wide);
-            const auto onSquare = spawn (ParticleStyles::dust, keyTop, squareLayer, particleColour, square);
-            expect (onWide.pos == onSquare.pos && onWide.velocity == onSquare.velocity);
-            const auto mote = trailPoint (ParticleStyles::dust, onWide, firstTrailPoint);
-            expect (mote.pos == onWide.pos);
-            expectWithinAbsoluteError (mote.size, onWide.size, sizeTolerance);
+            expectEquals (perNote (ParticleStyles::dust), noParticles);
+            expectEquals (trailPoints (ParticleStyles::dust), noParticles);
+            expect (additive (ParticleStyles::dust));   // the board draws Dust with 'lighter'
         }
 
-        beginTest (dustOpacity);
+        beginTest (scaledPoints);
         {
-            NoteParticle mote;
-            mote.colour = particleColour.withAlpha (dustAlpha);
-            mote.life = dustYoungLife;
-            expectWithinAbsoluteError (opacity (mote), dustYoungOpacity, alphaTolerance);
+            expectEquals (pointSize (pointSizeLogical, windowScale), pointSizePhysical);
         }
     }
 
 private:
-    static float highestPoint (NoteParticle particle, juce::Random& random)
+    static float highestPoint (NoteParticle particle)
     {
         auto highest = particle.pos.y;
         for (int frameIndex {}; particle.life > ParticleRecipeTestValues::noTime && frameIndex < ParticleRecipeTestValues::samples; ++frameIndex)
         {
-            ParticleRecipe::step (ParticleStyles::sparks, particle, ParticleRecipeTestValues::frame, random);
+            ParticleRecipe::step (ParticleStyles::sparks, particle, ParticleRecipeTestValues::frame);
             highest = juce::jmax (highest, particle.pos.y);
         }
         return highest;

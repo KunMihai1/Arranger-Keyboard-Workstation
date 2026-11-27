@@ -17,6 +17,8 @@ namespace NoteLayerIntegrationTestValues
     const juce::String heldHiddenStaysHidden = "held hidden (a page over the note area), a note does not show the layer; released, it does again";
     const juce::String sparksAreVisible = "sparks light up the area above the key (owner: they could not be seen)";
     const juce::String wispsAreVisible  = "light wisps light up the area above the key";
+    const juce::String dustIsVisible    = "dust (board Dust: a burst, then a stream while held) lights up the area above the key";
+    const juce::String dustLitMessage   = "dust extra lit px: ";
 
     constexpr juce::uint32 noMessageFilter = 0;
     constexpr int pollIntervalMs = 2;
@@ -71,6 +73,8 @@ namespace NoteLayerIntegrationTestValues
     constexpr int minSparkPixelsPerTap = 150;
     constexpr int wispTaps             = 1;
     constexpr int minWispPixelsPerTap  = 400;
+    constexpr int dustTaps             = 3;
+    constexpr int minDustPixelsPerTap  = 100;   // three taps lit 629-786 px in three runs (2026-11-27)
 
     // NoteLayer's default particle colour picks its alpha at random (0.6-1.0) once per layer: the tests use the dimmest.
     namespace DimmestDefaultParticle
@@ -335,6 +339,13 @@ public:
         beginTest (wispsAreVisible);
         {
             expectGreaterThan (extraLitAboveKey (ParticleStyles::wisps, wispTaps), wispTaps * minWispPixelsPerTap);
+        }
+
+        beginTest (dustIsVisible);
+        {
+            const auto extra = extraLitAboveKey (ParticleStyles::dust, dustTaps);
+            logMessage (dustLitMessage + juce::String (extra));
+            expectGreaterThan (extra, dustTaps * minDustPixelsPerTap);
         }
 
         host.removeFromDesktop();

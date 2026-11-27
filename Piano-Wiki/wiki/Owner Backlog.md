@@ -102,7 +102,9 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   lane, zoom, jump pads, Selected-section inspector. All 29 inventory items of the spec checked live.
 - ✅ **Realistic keys** (board StageRevised, 2026-11-27): ivory / ebony keys with lip, rounded fronts, gaps on a dark
   bed, black-key shadow; a pressed key looks pushed down (no more green). Checked 1:1 against the board live.
-- ⬜ Next pages (spec order): Dust, finishes, sign-in. Open question to the owner: Home with the board's instrument
+- ✅ **New smooth Dust** (board Dust, 2026-11-27): a burst on press, then a soft stream while the key is held; fine
+  specks and soft motes drift on a smooth flow (no more jitter), fade in and out, grow as they rise; additive glow.
+- ⬜ Next pages (spec order): finishes, sign-in. Open question to the owner: Home with the board's instrument
   look (Settings · Play · Exit keys) or keep Play on the piano photo (PR #73).
 - ✅ **Bug found 2026-11-27 — track library reloads tracks from the wrong file** (PR #77). A folder stored one
   `filePath` (the first MIDI file added) and each track only `trackIndex`, so tracks from other files came back as
