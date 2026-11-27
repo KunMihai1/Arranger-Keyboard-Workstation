@@ -12,10 +12,11 @@ namespace OverlayComponentTestValues
     const juce::String constructorWantsKeyboardFocus = "Constructor - wants keyboard focus";
     const juce::String settingsButtonTextIsSettings = "Settings button - text is 'Settings'";
     const juce::String settingsButtonHasPointingHandCursor = "Settings button - has pointing hand cursor";
-    const juce::String settingsButtonTextColourIsWhite = "Settings button - text colour is white";
+    const juce::String menuLayout = "Esc menu (owner: 'esc opens the old screen'): a centred page panel, heading, then Settings, Effects, Exit stacked";
+    const juce::String menuScales = "Esc menu - the same look at any scale";
+    const juce::String clickOutsideCloses = "Esc menu - a click outside the panel closes it, a click on it does not";
     const juce::String exitButtonTextIsExit = "Exit button - text is 'Exit'";
     const juce::String exitButtonHasPointingHandCursor = "Exit button - has pointing hand cursor";
-    const juce::String exitButtonTextColourIsWhite = "Exit button - text colour is white";
     const juce::String showOverlaySetVisibleTrueMakesComponentVisible = "showOverlay - setVisible true makes component visible";
     const juce::String hideOverlayMakesComponentInvisible = "hideOverlay - makes component invisible";
     const juce::String showThenHideThenShowTogglesCorrectly = "show then hide then show - toggles correctly";
@@ -49,6 +50,17 @@ namespace OverlayComponentTestValues
     constexpr int largeWidth = 800;
     constexpr int largeHeight = 600;
     constexpr int noSize = 0;
+    constexpr int boardWidth = 1200;
+    constexpr int boardHeight = 645;
+    constexpr float boardScale = 1.0f;
+    constexpr float doubleScale = 2.0f;
+    constexpr int menuWidth = 260;           // board px
+    constexpr int menuButtonCount = 3;
+    constexpr int firstButton = 0;
+    constexpr int secondButton = 1;
+    constexpr int thirdButton = 2;
+    constexpr int doubled = 2;
+    const juce::Point<int> outsideThePanel { 10, 10 };
 }
 
 using namespace OverlayComponentTestValues;
@@ -94,11 +106,51 @@ public:
             expect(overlay.getSettingsButton().getMouseCursor() == juce::MouseCursor::PointingHandCursor);
         }
 
-        beginTest(settingsButtonTextColourIsWhite);
+        beginTest(menuLayout);
+        {
+            const juce::Rectangle<int> host (boardWidth, boardHeight);
+            const auto rects = escMenuLayout (host, boardScale);
+            expectEquals (rects.panel.getWidth(), menuWidth);
+            expect (rects.panel.getCentre() == host.getCentre());
+            expect (rects.panel.contains (rects.heading));
+            expectEquals ((int) rects.buttons.size(), menuButtonCount);
+            expect (rects.heading.getBottom() <= rects.buttons[firstButton].getY());
+            for (int index = firstButton; index < menuButtonCount; ++index)
+            {
+                expect (rects.panel.contains (rects.buttons[(size_t) index]));
+                expectEquals (rects.buttons[(size_t) index].getWidth(), rects.heading.getWidth());
+                expectEquals (rects.buttons[(size_t) index].getHeight(), rects.buttons[firstButton].getHeight());
+            }
+            expect (rects.buttons[firstButton].getBottom() < rects.buttons[secondButton].getY());
+            expect (rects.buttons[secondButton].getBottom() < rects.buttons[thirdButton].getY());
+
+            OverlayComponent overlay;
+            overlay.setBounds (host);
+            expect (overlay.getSettingsButton().getBounds() == rects.buttons[firstButton]);
+            expect (overlay.getEffectsButton().getBounds() == rects.buttons[secondButton]);
+            expect (overlay.getExitButton().getBounds() == rects.buttons[thirdButton]);
+        }
+
+        beginTest(menuScales);
+        {
+            const juce::Rectangle<int> host (boardWidth * doubled, boardHeight * doubled);
+            const auto atOne = escMenuLayout ({ boardWidth, boardHeight }, boardScale);
+            const auto atTwo = escMenuLayout (host, doubleScale);
+            expectEquals (atTwo.panel.getWidth(), atOne.panel.getWidth() * doubled);
+            expectEquals (atTwo.panel.getHeight(), atOne.panel.getHeight() * doubled);
+            expect (atTwo.panel.getCentre() == host.getCentre());
+        }
+
+        beginTest(clickOutsideCloses);
         {
             OverlayComponent overlay;
-            auto colour = overlay.getSettingsButton().findColour(juce::TextButton::textColourOffId);
-            expect(colour == juce::Colours::white);
+            overlay.setBounds (juce::Rectangle<int> (boardWidth, boardHeight));
+            int closes {};
+            overlay.onRequestClose = [&closes] { ++closes; };
+            overlay.clickAt (escMenuLayout (overlay.getLocalBounds(), boardScale).panel.getCentre());
+            expectEquals (closes, noSize);
+            overlay.clickAt (outsideThePanel);
+            expectEquals (closes, (int) secondButton);
         }
 
         // ---- Exit button ----
@@ -115,12 +167,6 @@ public:
             expect(overlay.getExitButton().getMouseCursor() == juce::MouseCursor::PointingHandCursor);
         }
 
-        beginTest(exitButtonTextColourIsWhite);
-        {
-            OverlayComponent overlay;
-            auto colour = overlay.getExitButton().findColour(juce::TextButton::textColourOffId);
-            expect(colour == juce::Colours::white);
-        }
 
         // ---- showOverlay / hideOverlay ----
 

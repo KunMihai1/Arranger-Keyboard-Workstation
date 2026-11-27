@@ -190,6 +190,7 @@ void MainComponent::setOverlayMenuVisible(bool show)
 
     if (show)
     {
+        overlayWindow->setScale(stageRegions.scale);   // the menu scales with the rest of the app
         overlayWindow->setBounds(getLocalBounds());
         // Hide the GL note layer (would cover the overlay) and the keyboard, remembering both.
         noteLayerVisibleBeforeMenu = (noteLayer && noteLayer->isVisible());
