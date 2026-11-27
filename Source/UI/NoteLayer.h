@@ -20,6 +20,7 @@
 #include "MidiHandler.h"
 #include "KeyboardUI.h"
 #include "NoteField.h"
+#include "ParticleRecipe.h"
 
 /**
     Displays active and falling MIDI notes with particle effects.
@@ -33,17 +34,6 @@
     Threading: the public methods are called on the message thread. They post commands to a
     small mutex-guarded queue; renderOpenGL() drains it and owns all animation state.
 */
-
-/** Particle looks of the note layer (the particle-style setting). */
-namespace ParticleStyles
-{
-    constexpr int sparks = 1;
-    constexpr int dust   = 2;
-    constexpr int smoke  = 3;
-
-    /** A style read from the settings file: anything but Sparks / Dust / Smoke reads as Dust (the default). */
-    constexpr int fromStored (int stored) { return stored >= sparks && stored <= smoke ? stored : dust; }
-}
 
 class NoteLayer : public juce::Component, public MidiHandlerListener, private juce::OpenGLRenderer
 {
@@ -100,8 +90,6 @@ public:
     std::pair<const char*, const char*> getShaderChoice(int styleId);
 
 private:
-    static constexpr float fullLife            = 1.0f;
-    static constexpr float defaultParticleSize = 6.0f;
 
     struct Command
     {
@@ -127,16 +115,6 @@ private:
     void drawNotes(float width, float height);
     void drawParticles();
 
-    /** @struct Particle
-     *  @brief Represents a particle in the OpenGL particle system.
-     */
-    struct Particle {
-        juce::Point<float> pos;     /**< Particle position in NDC coordinates */
-        juce::Point<float> velocity;/**< Particle velocity */
-        float life = fullLife;      /**< Remaining life (0 = dead) */
-        float size = defaultParticleSize; /**< Particle size */
-        juce::Colour colour;        /**< Particle color */
-    };
 
     struct Vertex {
         float posX, posY;
@@ -169,7 +147,7 @@ private:
     // Render thread only.
     std::vector<Command> pendingCommands;
     NoteField field;
-    std::vector<Particle> particles;           /**< Active particles */
+    std::vector<NoteParticle> particles;           /**< Active particles */
     juce::Random rng;                          /**< Particle randomness (getSystemRandom() is shared, not thread-safe) */
     juce::Colour renderParticleColour;
     bool renderSpawnParticles = false;

@@ -39,6 +39,7 @@
               file="../tests/unit/test_voices_page.cpp"/>
         <FILE id="chHmT" name="test_chord_helper_model.cpp" compile="1" resource="0"
               file="../tests/unit/test_chord_helper_model.cpp"/>
+        <FILE id="ptRcpT" name="test_particle_recipe.cpp" compile="1" resource="0" file="../tests/unit/test_particle_recipe.cpp"/>
         <FILE id="stgPnT" name="test_stage_panel.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_panel.cpp"/>
         <FILE id="stgSrT" name="test_stage_screen.cpp" compile="1" resource="0"
@@ -536,6 +537,8 @@
         <FILE id="nlPart" name="NoteLayerParticles.cpp" compile="1" resource="0" file="../Source/UI/NoteLayerParticles.cpp"/>
         <FILE id="nlName" name="NoteLayerNames.h" compile="0" resource="0" file="../Source/UI/NoteLayerNames.h"/>
         <FILE id="cFN9eI" name="NoteLayer.h" compile="0" resource="0" file="../Source/UI/NoteLayer.h"/>
+        <FILE id="ptRcpH" name="ParticleRecipe.h" compile="0" resource="0" file="../Source/UI/ParticleRecipe.h"/>
+        <FILE id="ptRcpC" name="ParticleRecipe.cpp" compile="1" resource="0" file="../Source/UI/ParticleRecipe.cpp"/>
         <FILE id="ntFld1" name="NoteField.cpp" compile="1" resource="0" file="../Source/UI/NoteField.cpp"/>
         <FILE id="ntFld2" name="NoteField.h" compile="0" resource="0" file="../Source/UI/NoteField.h"/>
         <FILE id="QnlFvU" name="KeyboardUI.cpp" compile="1" resource="0" file="../Source/UI/KeyboardUI.cpp"/>
