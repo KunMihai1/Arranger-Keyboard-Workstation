@@ -13,6 +13,21 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-28 — Audio thread: no allocation, no waiting (`fix/audio-thread-realtime`)
+- The audio callback allocated every block with MIDI: a local `MidiBuffer`, then a fresh one per active channel (and
+  scanned the block 16 times); the no-SFZ notice posted `callAsync` (allocates a message) from the audio thread.
+  `getNextMidiBlock` took `midiMutex` with a blocking lock while the MIDI thread holds it across MIDI-out sends and
+  listener calls.
+- Now: `MidiChannelSplitter` (pure) — 16 buffers reserved off the audio thread, one pass, SysEx skipped unread (a
+  long message copy would allocate); `incomingMidi` reserved too; the notice is an atomic mask read by a 250 ms
+  message-thread timer (`reportChannelsWithoutSfz`); `ScopedTryLock` — if the MIDI thread holds the queue, its events
+  go out one block later instead of the audio thread waiting.
+- Tests (12 new): routing, storage never reallocated over 50 full blocks, the audio side returns while a parked MIDI
+  thread holds the lock (failed before the fix), the queued note arrives next block, the no-SFZ report fires once.
+- Sonnet review, verified: SysEx copies could still allocate (fixed), a failing test run could leave a thread parked
+  on stack references (fixed). Accepted: a busy MIDI thread delays notes by one buffer.
+- unit 5915 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped).
+
 ## 2026-11-28 — Branches pruned; merging deletes the branch
 - Deleted 41 merged branches on GitHub, the merged local ones, `refactor/names-playback-2` (its patches are in
   `main`), the stale `origin-pr/*` refs and a clean agent worktree. Left: `main`, and `feat/particles-sparks-smoke`

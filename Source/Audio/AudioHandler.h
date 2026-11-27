@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "MidiChannelSplitter.h"
+
 #include <JuceHeader.h>
 #include "MidiHandler.h"
 
@@ -221,7 +223,8 @@ struct ChannelDSP
     void process(juce::AudioBuffer<float>& buffer, int numSamples);
 };
 
-class AudioHandler : public juce::AudioIODeviceCallback
+class AudioHandler : public juce::AudioIODeviceCallback,
+                     private juce::Timer
 {
 public:
     AudioHandler(MidiHandler& mh);
@@ -238,11 +241,15 @@ public:
     std::function<void()> onSfzLoadStart;
     std::function<void()> onSfzLoadComplete;
     std::function<void(int channelMask)> onNoSfzForChannels;
+    /** Message thread (a timer calls it): reports the channels that got a note without an SFZ since last time. */
+    void reportChannelsWithoutSfz();
 
 private:
     std::atomic<int>  pendingLoads      {};
-    std::atomic<int>  noSfzChannelMask  {};
-    std::atomic<bool> noSfzNotifyPending { false };
+    std::atomic<int>  noSfzChannelMask  {};   // set on the audio thread, reported by timerCallback on the message thread
+
+    void timerCallback() override;
+    void reserveMidiStorage();   ///< off the audio thread: the callback then never allocates for MIDI
 
     MidiHandler& midiHandler;
     sfzero::Synth sfzSynths[DspConstants::midiChannelCount];
@@ -253,6 +260,8 @@ private:
     juce::String      loadedSfzPath[DspConstants::midiChannelCount]; // message-thread only
 
     juce::AudioBuffer<float> tempBuffer;
+    juce::MidiBuffer incomingMidi;     // reserved before the device starts: the callback only clears and refills it
+    MidiChannelSplitter channelMidi;
     float channelGains[DspConstants::midiChannelCount];
     float channelPans[DspConstants::midiChannelCount];
     ChannelDSP channelDSP[DspConstants::midiChannelCount];

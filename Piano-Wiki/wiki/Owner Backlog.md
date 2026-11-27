@@ -170,7 +170,9 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   merging a PR deletes its branch (AGENTS.md › Git).
 - ❓ Instrument presets (reverb/chorus/cutoff… per instrument) are never sent — only the program change.
   Owner unsure (2026-11-22); left as is until they decide.
-- ⬜ `AudioHandler` allocates a `juce::MidiBuffer` on every audio callback (audio thread must not allocate).
+- ✅ (`fix/audio-thread-realtime`) `AudioHandler` allocated on every audio callback (a fresh `MidiBuffer`, one per
+  active channel, `callAsync` for the no-SFZ notice) and could wait on `MidiHandler`'s lock: now reserved buffers
+  (`MidiChannelSplitter`), a message-thread timer for the notice, and a try-lock (busy → next block).
 - ✅ (#82, `BackendJson`) `SupabaseClient`: request JSON is built by string concatenation, so a `"` or `\` in an email,
   password or username breaks the request; `signup()` never reads the reply body (sign-up always shows
   "Invalid server response"). Found in the Backend names cleanup, not fixed there.
