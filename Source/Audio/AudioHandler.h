@@ -11,6 +11,7 @@
 #pragma once
 
 #include "MidiChannelSplitter.h"
+#include "FractionalDelayLine.h"
 
 #include <JuceHeader.h>
 #include "MidiHandler.h"
@@ -211,9 +212,12 @@ struct ChannelDSP
 
     Adaa1Tanh distortionAdaa[DspConstants::stereoChannelCount];         // one per stereo side; state is per-signal
 
-    std::vector<float> delayLineL, delayLineR;
-    int    delayWritePos  {};
-    int    delayReadOffset {};
+    /** CC94's delay time in samples. It glides to a new value at most half a sample per sample, and the lines are
+        read between samples: moving the time bends the echo down to an octave at most (never backwards) instead of
+        stepping the read head, which clicked. Double, so the glide lands exactly on the target. */
+    double delayTimeSamples {};
+    double delayTimeTarget {};
+    FractionalDelayLine delayLineL, delayLineR;
     double sampleRate     = DspConstants::fallbackSampleRate;
 
     juce::Random rng;

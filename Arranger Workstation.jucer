@@ -567,6 +567,8 @@
               file="Source/Audio/MidiChannelSplitter.cpp"/>
         <FILE id="mcSplH" name="MidiChannelSplitter.h" compile="0" resource="0"
               file="Source/Audio/MidiChannelSplitter.h"/>
+        <FILE id="frcDlH" name="FractionalDelayLine.h" compile="0" resource="0"
+              file="Source/Audio/FractionalDelayLine.h"/>
         <FILE id="audioC" name="AudioHandler.cpp" compile="1" resource="0"
               file="Source/Audio/AudioHandler.cpp"/>
         <FILE id="T3o6UR" name="SFZlibrary.h" compile="0" resource="0" file="Source/Audio/SFZlibrary.h"/>
