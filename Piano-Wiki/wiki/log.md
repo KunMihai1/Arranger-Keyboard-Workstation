@@ -13,6 +13,23 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-27 — Recorder page (`feat/ui-recorder-page`)
+- The File page only held the old header buttons and showed nothing of the recording. Board PageFile: two
+  columns, each a heading, an LCD and seg buttons. Last recording: length (running while recording), notes, REC
+  lamp; Play recording (LED while it plays) / Stop / Save as MIDI…. MIDI file: status, name, Play a MIDI file… /
+  Stop. Pure `RecorderModel` (texts, enables, `recorderLayout`) + `RecorderContent` (paints, owns the buttons,
+  polls the state at 4 Hz while showing), `Source/UI/Recorder/`.
+- Notes, not events: every take starts with two program changes. `MidiRecordPlayer` gained
+  `getRecordedNoteCount` (under the events lock: the MIDI thread appends while recording), `getRecordedSeconds`
+  (running, then start→Stop) and `getIsPlayingFile`.
+- Bugs fixed: Play a MIDI file opened a **Save** dialog (now Open); a playing file could not be stopped.
+- Review (Sonnet): nothing important. Taken: the length test could not catch a lost Stop length (now fails
+  without it, checked: 2 failures); a new take cleared the loaded file but the name stayed; Stop refreshes at once;
+  board font sizes (time 44, file name 16 — renders compared with `png/PageFile.png`).
+- Unit 4679 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 12 / 0. Live: REC → REC ON and the
+  time runs; REC → length kept; Open dialog → file plays (PLAYING + name); Stop and a file ending on its own →
+  STOPPED; a new take clears the file's name.
+
 ## 2026-11-27 — Esc menu as a page panel (`feat/ui-esc-menu`)
 - Owner: "when pressing esc the old screen opens" (a dimmed window with plain JUCE buttons). Spec part 2 P.12:
   `OverlayComponent` keeps its API and becomes StageDialog's panel (page gradient, rule, shadow, silkscreen MENU

@@ -11,8 +11,8 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-27. Merged #69–#73 (Chord helper, owner fixes, split, Sparks + **Light wisps**, "Play" text); Esc menu
-as a page panel on `feat/ui-esc-menu`. **Next page: Recorder**, then Sections v2.
+2026-11-27. Merged #69–#74 (Chord helper, owner fixes, split, Sparks + **Light wisps**, "Play" text, Esc menu);
+**Recorder page** on `feat/ui-recorder-page`. **Next page: Sections v2**, then keys, Dust, finishes, sign-in.
 Owner sometimes uses this machine's screen: screenshot first. Injected keys don't play notes: check the note
 layer through the display harness. `docs/superpowers/` is **local only**. Detail in [[log]].
 
@@ -31,7 +31,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 4606, arranger 770, integration 130 (+7 skipped), display 12**.
+  Current: **unit 4679, arranger 770, integration 130 (+7 skipped), display 12**.
 - Visual checks: screenshot/click the app's window by process id (a VS panel can share its title); boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
@@ -47,7 +47,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 Full task list with states: [[Owner Backlog]].
 - 🟡 **~100 `juce::AlertWindow`s left** (0.5–1 s each in Debug, balanced text layout): move to `StageDialog`.
 - 🟡 **UI redesign** (spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2): panel and
-  pages Style, Effects, Settings, Voices, Chord helper, Esc menu done. Owner: same look on every resolution; pages centred like the
+  pages Style, Effects, Settings, Voices, Chord helper, Esc menu, Recorder done. Owner: same look on every resolution; pages centred like the
   panel; agent checks the running app **1:1** against the boards before finishing.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.
