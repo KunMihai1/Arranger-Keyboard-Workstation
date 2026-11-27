@@ -569,6 +569,10 @@
               file="Source/Audio/MidiChannelSplitter.h"/>
         <FILE id="frcDlH" name="FractionalDelayLine.h" compile="0" resource="0"
               file="Source/Audio/FractionalDelayLine.h"/>
+        <FILE id="bbdChC" name="BbdChorus.cpp" compile="1" resource="0"
+              file="Source/Audio/BbdChorus.cpp"/>
+        <FILE id="bbdChH" name="BbdChorus.h" compile="0" resource="0"
+              file="Source/Audio/BbdChorus.h"/>
         <FILE id="audioC" name="AudioHandler.cpp" compile="1" resource="0"
               file="Source/Audio/AudioHandler.cpp"/>
         <FILE id="T3o6UR" name="SFZlibrary.h" compile="0" resource="0" file="Source/Audio/SFZlibrary.h"/>

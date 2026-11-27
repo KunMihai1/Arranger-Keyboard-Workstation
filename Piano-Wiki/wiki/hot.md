@@ -1,7 +1,7 @@
 ---
 type: meta
 title: "Hot Cache"
-updated: 2026-11-27T23:30:00
+updated: 2026-11-28T01:30:00
 tags:
   - meta
   - hot
@@ -30,7 +30,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 5948, arranger 770, integration 130 (+7 skipped), display 13**. Screen: 125 %.
+  Current: **unit 5962, arranger 770, integration 130 (+7 skipped), display 13**. Screen: 125 %.
 - Visual checks: screenshot/click the app's window by process id ; boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
@@ -48,6 +48,6 @@ Full task list with states: [[Owner Backlog]].
 - 🟡 **UI redesign** (spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2): panel and
   pages Style, Effects, Settings, Voices, Chord helper, Esc menu, Recorder, Sections, keys, Dust, finishes, Log in / Home, sign-in done (Login check waits on the backend). Owner: same look on every resolution; pages centred like the
   panel; agent checks the running app **1:1** against the boards before finishing.
-- 🟡 **Swap `juce::dsp::Chorus` (CC93) for the BBD model** from `va-effects`; budget = 16 `ChannelDSP`s.
+- ✅ CC93 is `BbdChorus` (bucket-brigade, from `va-effects`); the delay time glides (Lagrange-3).
 - 🟡 **Missing-SFZ popup (`b5765e9`) never smoke-tested**; **Phase 7a manual sign-off 0/9**.
 - 🟢 OpenGL crash parked (unreproducible); tripwire logs to `Desktop/piano_gl_errors.log`.

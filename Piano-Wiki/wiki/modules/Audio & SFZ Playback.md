@@ -10,7 +10,7 @@ depends_on:
 used_by:
   - "[[Keyboard & Main UI]]"
 created: 2026-06-06
-updated: 2026-08-29
+updated: 2026-11-28
 tags:
   - module
   - audio
@@ -27,7 +27,7 @@ Turns MIDI into sound. Hosts 16 SFZ synths (one per MIDI channel), applies a per
 
 ## Key files
 - `AudioHandler.h/.cpp` — `juce::AudioIODeviceCallback`. Owns `sfzero::Synth sfzSynths[16]` (one per channel), renders the audio block, and applies a `ChannelDSP` per channel. `loadSfz(file, channel)` loads instruments asynchronously (`pendingLoads`, `onSfzLoadStart/Complete`, `onNoSfzForChannels`). Takes a `MidiHandler&` to pull MIDI.
-- `ChannelDSP` (struct in `AudioHandler.h`) — per-channel effects: state-variable filter (CC74 cutoff / CC71 resonance), `juce::Reverb`, `juce::dsp::Chorus`, tremolo, delay line (L/R), distortion (tanh drive), random mod, expression. Caches derived values (e.g. tremolo phase increment, distortion norm factor).
+- `ChannelDSP` (struct in `AudioHandler.h`) — per-channel effects: state-variable filter (CC74 cutoff / CC71 resonance), `juce::Reverb`, `BbdChorus` (CC93), tremolo, delay line (L/R, `FractionalDelayLine`), distortion (tanh drive), random mod, expression. Caches derived values (e.g. tremolo phase increment, distortion norm factor).
 - `SFZlibrary.h/.cpp` — `SFZLibraryManager`: persistent library of `SFZLibraryEntry` (id, name, path) plus `SFZStyleMappings` (style id → {instrument number → entry id}). Add/remove files, assign SFZ to a style+instrument, import mappings between styles, resolve `getSfzForStyleInstrument()`. Also owns the shared GM name table — `getGMInstrumentNames()` / `getGMInstrumentName(int)` (free functions, since instrument numbers are the keys mappings are stored under).
 - `SFZLibraryUI.h/.cpp` — UI for managing the SFZ library and assignments. `buildInstrumentList()` just points at `getGMInstrumentNames()`. Since 2026-11-26 it is the Voices page's SFZ library column (it was a panel on the Settings page): an LCD list, file name left and what it plays in the open style right (`sfzAssignmentText`: the GM name, or "N instruments"); Load SFZ… / Assign to style track… / Import mappings…; right-click a row → Remove. Always enabled (loading still needs the internal engine).
 
@@ -67,10 +67,11 @@ sfzero output → filter (CC74/71) → distortion (CC80) → chorus (CC93) → r
 
 > [!key-insight] Which effects are hand-written vs JUCE's
 > **Hand-written, per-sample:** tanh waveshaper distortion with gain compensation (`1/tanh(drive)`
-> cached as `distortionNormFactor`), tremolo (5 Hz LFO, manual phase accumulator), delay (raw
-> circular `std::vector<float>` L/R with modulo read/write, *not* `juce::dsp::DelayLine`), random mod
-> (one-pole smoothed noise). **JUCE's, configured and CC-mapped:** `StateVariableTPTFilter`,
-> `juce::Reverb`, `juce::dsp::Chorus`. Useful to know before describing this work anywhere.
+> cached as `distortionNormFactor`), tremolo (5 Hz LFO, manual phase accumulator), delay
+> (`FractionalDelayLine`, Lagrange-3, *not* `juce::dsp::DelayLine`), chorus (`BbdChorus`, a
+> bucket-brigade model), random mod (one-pole smoothed noise). The delay line and the chorus are ports from
+> the owner's `va-effects` repo. **JUCE's, configured and CC-mapped:** `StateVariableTPTFilter`,
+> `juce::Reverb`. Useful to know before describing this work anywhere.
 
 > [!key-insight] `> 0.005f` is a neutral-value bypass, not a CC check
 > Params are `value / 127.0f`, so the smallest nonzero CC gives ≈0.0079 — the threshold sits just
@@ -131,11 +132,24 @@ sfzero output → filter (CC74/71) → distortion (CC80) → chorus (CC93) → r
 > delay and a sampler. ADAA is ~1.9% for all sixteen. This is a budget decision, not a claim that
 > ADAA is the better algorithm.
 
-> [!bug] The delay read offset still jumps
-> `updateCC` case 94 sets `delayReadOffset` instantly. Moving a delay read head is a pitch
-> discontinuity — it clicks. Smoothing it needs fractional interpolation on the read position
-> (Lagrange), which is a separate change from the mix smoothing already done. Noted at
-> `AudioHandler.cpp` case 94.
+> [!done] The delay time glides (2026-11-28, `fix/delay-fractional-read`)
+> CC94 used to move the read head at once (a click). The time is now a double that glides to the
+> target at most half a sample per sample, read through `FractionalDelayLine` (Lagrange-3).
+
+> [!key-insight] CC93 is a bucket-brigade chorus, not `juce::dsp::Chorus` (2026-11-28)
+> `BbdChorus` models a BBD: delay = 256 stages / (2 x clock), so a longer delay means a slower clock and
+> less treble. The reconstruction lowpass follows the sweep (min of 12 kHz and 0.45 x clock), a 2:1 / 1:2
+> compander wraps the line, and the line adds -78 dB noise. Juno settings: 0.5 Hz, 5 ms +- 2 ms, the
+> right side a quarter cycle on. Two CPU changes from `va-effects`: filter coefficients every 16
+> samples, and the compander's powers as sqrt and a plain ratio. Measured (Release): 116 ns per stereo
+> sample against 200 for the original; 16 parts with the chorus on use 8.9 % of one core. It is
+> skipped while closed (`isActive()`), and re-opening resets it and keeps the output dry for 12 ms
+> while the line fills, so opening does not click.
+
+> [!key-insight] The audio callback flushes denormals
+> `AudioHandler::audioDeviceIOCallbackWithContext` holds a `juce::ScopedNoDenormals`; JUCE's device layer
+> sets nothing. Without it, filters and level followers fed exact silence decay into denormals:
+> the chorus alone went from 111 to 152 ns per stereo sample on silence.
 
 > [!key-insight] Effects apply to BOTH engines, but different code does the work
 > One knob fires both paths, gated on which output is open (`MainComponent.cpp:770-776`, and again

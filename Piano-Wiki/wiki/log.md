@@ -2,7 +2,7 @@
 type: meta
 title: "Operations Log"
 created: 2026-06-06
-updated: 2026-11-27
+updated: 2026-11-28
 tags:
   - meta
   - log
@@ -12,6 +12,17 @@ status: evergreen
 # Operations Log
 
 Append-only. Newest entries at the TOP. Never edit past entries.
+
+## 2026-11-28 — CC93 chorus is a bucket-brigade model (`feat/bbd-chorus`)
+- `BbdChorus` (port of `va-effects`' BbdChorus, Juno settings) replaces `juce::dsp::Chorus`: the reconstruction
+  corner follows the delay (slower clock, darker), a 2:1 / 1:2 compander and a -78 dB noise floor.
+- CPU (Release): 116 ns per stereo sample against 200 for the original. Two changes: filter coefficients every
+  16 samples, and sqrt in place of pow. 16 parts with the chorus on = 8.9 % of one core.
+- Opening on a sounding note measured a 0.057 step (threshold 0.05): fixed with a 12 ms dry warm-up and detectors
+  that start neutral.
+- Sonnet review: faithful to the original. Confirmed: no denormal flushing anywhere (exact silence: 111 → 152 ns), so the callback
+  now holds `juce::ScopedNoDenormals`; plus a stale comment, a re-open test.
+- unit 5962 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped).
 
 ## 2026-11-28 — CC94 delay time glides (`fix/delay-fractional-read`)
 - The delay read whole samples and moved its read head at once when CC94 changed the time: the echo stepped (a click;

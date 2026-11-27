@@ -12,6 +12,7 @@
 
 #include "MidiChannelSplitter.h"
 #include "FractionalDelayLine.h"
+#include "BbdChorus.h"
 
 #include <JuceHeader.h>
 #include "MidiHandler.h"
@@ -157,7 +158,6 @@ struct Adaa1Tanh
 struct ChannelDSP
 {
     float reverbMix            {};
-    float chorusMix            {};
     float tremoloPhase         {};
     float tremoloPhaseInc      {};   // cached: 2π*5/sampleRate
     float randomModSmoothed    {};
@@ -165,7 +165,7 @@ struct ChannelDSP
     int   filterResonanceCC    {};      // raw CC71 value; 0 = neutral
 
     // Everything a CC can move during playback is smoothed. The reverb and chorus
-    // mixes are not in this list because juce::Reverb and juce::dsp::Chorus each
+    // mixes are not in this list because juce::Reverb and BbdChorus each
     // smooth their own wet/dry internally.
     SmoothedParam expression;            // CC11
     SmoothedParam tremoloDepth;          // CC92
@@ -208,7 +208,7 @@ struct ChannelDSP
     juce::dsp::StateVariableTPTFilter<float> filter;
     juce::Reverb                             reverb;
     juce::Reverb::Parameters                 reverbParams;
-    juce::dsp::Chorus<float>                 chorus;
+    BbdChorus                                chorus;   // CC93: a bucket-brigade model (va-effects), not juce::dsp::Chorus
 
     Adaa1Tanh distortionAdaa[DspConstants::stereoChannelCount];         // one per stereo side; state is per-signal
 

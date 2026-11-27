@@ -164,7 +164,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   checks fail there only (they pass in `--display-tests`); likely a window left by an earlier test (found 2026-11-24).
 - ✅ (`fix/delay-fractional-read`, 2026-11-28) Delay read offset jumped on CC94 changes: now `FractionalDelayLine`
   (Lagrange-3, ported from `va-effects`) and a linear glide of at most half a sample per sample (bends ≤ an octave).
-- ⬜ Swap `juce::dsp::Chorus` (CC93) for the BBD model from `va-effects`.
+- ✅ Swap `juce::dsp::Chorus` (CC93) for the BBD model from `va-effects` (2026-11-28, `feat/bbd-chorus`):
+  `BbdChorus`, 8.9 % of one core for 16 parts; the audio callback now flushes denormals.
 - ⬜ 🔒 Missing-SFZ popup never smoke-tested; Phase 7a manual sign-off 0/9.
 - ✅ Prune merged branches (2026-11-28: 41 merged branches deleted on GitHub, the local ones and a stale agent
   worktree; only `main` left, plus `feat/particles-sparks-smoke` checked out in the owner's main folder). Rule since:
