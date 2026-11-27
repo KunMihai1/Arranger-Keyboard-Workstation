@@ -13,6 +13,8 @@
 #include "AppInfo.h"
 #include "Stage/StageFonts.h"
 #include "Stage/FrontScreensLayout.h"
+#include "BackendJson.h"
+#include "RememberedEmail.h"
 
 namespace
 {
@@ -39,8 +41,6 @@ namespace
         const juce::String networkFailure        = "Network failure or invalid JSON";
         const juce::String verifyTitle           = "Email Verification Required";
         const juce::String verifyEmail           = "Please verify your email before logging in. Check your inbox.";
-        const juce::String loginSuccessTitle     = "Login Success";
-        const juce::String loggedIn              = "You are now logged in!";
         const juce::String unknownError          = "Unknown error occurred:\n";
         const juce::String forgotTitle           = "Forgot Password";
         const juce::String enterEmailFirst       = "Please enter your email first.";
@@ -53,20 +53,8 @@ namespace
         const juce::String signUpSuccessTitle    = "Sign Up Success";
         const juce::String createdCheckEmail     = "Account created successfully! Please check your email to verify.";
         const juce::String created               = "Account created successfully!";
-    }
-
-    // Fields of the auth server's JSON replies.
-    namespace ResponseKeys
-    {
-        const juce::String error                = "error";
-        const juce::String errorDescription     = "error_description";
-        const juce::String message              = "msg";
-        const juce::String confirmationRequired = "confirmation_required";
-        const juce::String user                 = "user";
-        const juce::String id                   = "id";
-        const juce::String accessToken          = "access_token";
-        const juce::String confirmationSentAt   = "confirmation_sent_at";
-        const juce::String trueText             = "true";
+        const juce::String remembered            = "Remembered from last time.";
+        const juce::String notYou                = "Not you?";
     }
 
     // Board PageLogin: the title (22 px, .24em, two lines), the subtitle (.silk-dim 11 px) and the .seg buttons (30 high).
@@ -78,9 +66,15 @@ namespace
     constexpr int   segPadding         = 14;
     constexpr float segTextSize        = 11.0f;
     constexpr int   buttonGap          = 8;
+    constexpr int   rememberedGap      = 8;   // "Remembered from last time." and Not you?
     constexpr bool  semiBold           = true;
     constexpr bool  medium             = false;
     constexpr juce::juce_wchar passwordBullet      = 0x2022;
+
+    /*  Owner decision 2026-11-28: Log in does not ask the server yet. The Supabase project's address does not resolve
+        (paused or deleted), so a real check would lock everyone out. Log in lets the typed email in, as before; set
+        this to true once the backend answers again (the server path below is built and its replies unit-tested). */
+    constexpr bool checkAccountWithServer = false;
     constexpr juce::juce_wchar noPasswordCharacter = 0;
 }
 
@@ -97,6 +91,7 @@ LoginComponent::LoginComponent(std::shared_ptr<SupabaseClient> newClient)
       forgotButton (Text::forgotButton, SegButton::Style::seg),
       createButton (Text::createButton, SegButton::Style::lit, true, RubberButton::LedColour::green),
       backButton (Text::backButton, SegButton::Style::seg),
+      notYouLink (Text::notYou),
       client{newClient}
 {
     for (auto* label : { &usernameLabel, &emailLabel, &passwordLabel })
@@ -112,6 +107,9 @@ LoginComponent::LoginComponent(std::shared_ptr<SupabaseClient> newClient)
         button->setTextSize (segTextSize);
         addChildComponent (*button);
     }
+    addChildComponent (notYouLink);
+    notYouLink.onClick = [this] { forgetRememberedEmail(); };
+    emailField.onTextChange = [this] { resized(); repaint(); };   // the remembered row follows the field
     loginButton.setLedOn (true);
     createButton.setLedOn (true);
 
@@ -142,6 +140,7 @@ void LoginComponent::setScale (float newScale)
         field->setScale (scale);
     for (auto* button : { &showButton, &loginButton, &signUpButton, &forgotButton, &createButton, &backButton })
         button->setScale (scale);
+    notYouLink.setScale (scale);
     resized();
     repaint();
 }
@@ -152,7 +151,7 @@ void LoginComponent::paint(juce::Graphics& g)
     g.setGradientFill (juce::ColourGradient::vertical (StagePalette::pageTop, bounds.getY(), StagePalette::pageBottom, bounds.getBottom()));
     g.fillRect (bounds);
 
-    const auto layout = FrontScreensLayout::login (bounds, scale, { signUpMode, false, false });
+    const auto layout = FrontScreensLayout::login (bounds, scale, { signUpMode, showsRememberedRow(), false });
     g.setColour (StagePalette::silkscreenText);
     g.setFont (StageFonts::silkscreen (titleSize * scale, semiBold, titleSpacing));
     // One word a line, as the board (its 300 px column wraps "Arranger Workstation").
@@ -170,11 +169,13 @@ void LoginComponent::paint(juce::Graphics& g)
     g.setColour (StagePalette::silkscreenDimText);
     g.setFont (StageFonts::silkscreen (subtitleSize * scale, medium, subtitleSpacing));
     g.drawText (signUpMode ? Text::signUpSubtitle : Text::loginSubtitle, layout.subtitle, juce::Justification::centredLeft, false);
+    if (showsRememberedRow())
+        g.drawText (Text::remembered, layout.rememberedRow, juce::Justification::centredLeft, false);
 }
 
 void LoginComponent::resized()
 {
-    const auto layout = FrontScreensLayout::login (getLocalBounds().toFloat(), scale, { signUpMode, false, false });
+    const auto layout = FrontScreensLayout::login (getLocalBounds().toFloat(), scale, { signUpMode, showsRememberedRow(), false });
     usernameLabel.setBounds (layout.usernameLabel.toNearestInt());
     usernameField.setBounds (layout.usernameField.toNearestInt());
     emailLabel.setBounds (layout.emailLabel.toNearestInt());
@@ -182,6 +183,12 @@ void LoginComponent::resized()
     passwordLabel.setBounds (layout.passwordLabel.toNearestInt());
     passwordField.setBounds (layout.passwordField.toNearestInt());
     showButton.setBounds (layout.showButton.toNearestInt());
+
+    notYouLink.setVisible (showsRememberedRow());
+    const auto rememberedWidth = juce::GlyphArrangement::getStringWidth (StageFonts::silkscreen (subtitleSize * scale, medium, subtitleSpacing),
+                                                                         Text::remembered);
+    notYouLink.setBounds (layout.rememberedRow.withTrimmedLeft (rememberedWidth + static_cast<float> (rememberedGap) * scale)
+                                               .withWidth (notYouLink.getExactWidth()).toNearestInt());
 
     // The lit button takes the room the others leave (flex-grow), 8 apart.
     auto row = layout.buttonRow;
@@ -210,6 +217,8 @@ void LoginComponent::setSignUpMode (bool shouldSignUp)
     usernameField.clear();
     emailField.clear();
     passwordField.clear();
+    if (! signUpMode)
+        emailField.setText (rememberedEmail, false);
 
     for (juce::Component* child : { static_cast<juce::Component*> (&emailLabel), static_cast<juce::Component*> (&emailField),
                                     static_cast<juce::Component*> (&passwordLabel), static_cast<juce::Component*> (&passwordField),
@@ -237,10 +246,17 @@ void LoginComponent::togglePasswordShown()
 
 void LoginComponent::handleLogin()
 {
-    if (onSuccessfullLogin)
-        onSuccessfullLogin();
-    return;
+    if (waitingForServer)
+        return;
 
+    if constexpr (checkAccountWithServer)
+        askServerToLogIn();
+    else
+        letInWithoutServer();
+}
+
+void LoginComponent::askServerToLogIn()
+{
     auto email = emailField.getText().trim();
     auto pass = passwordField.getText().trim();
 
@@ -256,111 +272,44 @@ void LoginComponent::handleLogin()
 
     juce::Component::SafePointer<LoginComponent> safeThis(this);
     auto clientPtr = client;
-
-    
+    setWaitingForServer (true);
 
     std::thread([email, pass, safeThis, clientPtr]()
         {
+            const auto response = clientPtr->login(email, pass);
+            const auto reply = BackendJson::readLoginReply (response.body);
 
-            auto response = clientPtr->login(email, pass);
-
-            if (safeThis == nullptr)
-                return;
-
-            auto body = response.body;
-
-            auto parsed = juce::JSON::parse(body);
-
-            juce::MessageManager::callAsync([body,parsed,response, safeThis, clientPtr]()
+            juce::MessageManager::callAsync([email, reply, body = response.body, safeThis, clientPtr]()
                 {
-                    
-
-                    if (!parsed.isObject())
-                    {
-                        
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::WarningIcon,
-                            Text::loginFailedTitle,
-                            Text::networkFailure
-                        );
+                    if (safeThis == nullptr)
                         return;
-                    }
+                    safeThis->setWaitingForServer (false);
 
-                    auto* obj = parsed.getDynamicObject();
-
-                    
-                    if (obj->hasProperty(ResponseKeys::error) || obj->hasProperty(ResponseKeys::errorDescription) || obj->hasProperty(ResponseKeys::message))
+                    using Outcome = BackendJson::LoginReply::Outcome;
+                    switch (reply.outcome)
                     {
-                        juce::String errorMessage;
-
-                        if (obj->hasProperty(ResponseKeys::errorDescription))
-                            errorMessage = obj->getProperty(ResponseKeys::errorDescription).toString();
-                        else if (obj->hasProperty(ResponseKeys::error))
-                            errorMessage = obj->getProperty(ResponseKeys::error).toString();
-                        else if (obj->hasProperty(ResponseKeys::message))
-                            errorMessage = obj->getProperty(ResponseKeys::message).toString();
-
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::WarningIcon,
-                            Text::loginFailedTitle,
-                            errorMessage
-                        );
-                        return;
-                    }
-
-                    
-                    
-                    
-                    if (obj->hasProperty(ResponseKeys::confirmationRequired) && obj->getProperty(ResponseKeys::confirmationRequired).toString() == ResponseKeys::trueText)
-                    {
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::InfoIcon,
-                            Text::verifyTitle,
-                            Text::verifyEmail
-                        );
-                        return;
-                    }
-                    
-
-                    if (obj->hasProperty(ResponseKeys::user))
-                    {
-                        auto userObj = obj->getProperty(ResponseKeys::user).getDynamicObject();
-                        if (userObj != nullptr)
-                        {
-                            clientPtr->setUserId(userObj->getProperty(ResponseKeys::id).toString());
-                        }
-                    }
-
-                    if (obj->hasProperty(ResponseKeys::accessToken))
-                    {
-
-                        clientPtr->setAccessToken(obj->getProperty(ResponseKeys::accessToken).toString());
-
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::InfoIcon,
-                            Text::loginSuccessTitle,
-                            Text::loggedIn
-                        );
-
-                        if (safeThis == nullptr)
+                        case Outcome::signedIn:
+                            clientPtr->setUserId (reply.userId);
+                            clientPtr->setAccessToken (reply.accessToken);
+                            safeThis->passwordField.clear();
+                            safeThis->rememberedEmail = email;
+                            if (safeThis->onSuccessfullLogin)
+                                safeThis->onSuccessfullLogin (email);   // straight to Home: no "logged in" box
                             return;
-                        safeThis->emailField.clear();
-                        safeThis->passwordField.clear();
-
-                        if (safeThis->onSuccessfullLogin)
-                            safeThis->onSuccessfullLogin();
-                    }
-                    else
-                    {
-                        
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::WarningIcon,
-                            Text::loginFailedTitle,
-                            Text::unknownError + body
-                        );
+                        case Outcome::rejected:
+                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::loginFailedTitle, reply.message);
+                            return;
+                        case Outcome::confirmEmail:
+                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon, Text::verifyTitle, Text::verifyEmail);
+                            return;
+                        case Outcome::unreadable:
+                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::loginFailedTitle, Text::networkFailure);
+                            return;
+                        case Outcome::unexpected:
+                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::loginFailedTitle, Text::unknownError + body);
+                            return;
                     }
                 });
-
         }).detach();
 }
 
@@ -397,6 +346,9 @@ void LoginComponent::handleForgotPassword()
 
 void LoginComponent::handleDoneSignup()
 {
+    if (waitingForServer)
+        return;
+
     auto email = emailField.getText().trim();
     auto pass = passwordField.getText().trim();
     auto username = usernameField.getText().trim();
@@ -413,91 +365,89 @@ void LoginComponent::handleDoneSignup()
 
     juce::Component::SafePointer<LoginComponent> safeThis(this);
     auto clientPtr = client;
+    setWaitingForServer (true);
 
     std::thread([email, pass, username, safeThis, clientPtr]()
         {
+            const auto response = clientPtr->signup(email, pass, username);
+            const auto reply = BackendJson::readSignupReply (response.body);
 
-            auto response = clientPtr->signup(email, pass, username);
-
-            if (safeThis == nullptr)
-                return;
-
-            auto body = response.body;
-
-            auto parsed = juce::JSON::parse(body);
-
-            juce::MessageManager::callAsync([body,parsed,response, safeThis]()
+            juce::MessageManager::callAsync([email, reply, body = response.body, safeThis]()
                 {
-                    
-
-                    if (!parsed.isObject())
-                    {
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::WarningIcon,
-                            Text::signUpFailedTitle,
-                            Text::invalidResponse + body
-                        );
+                    if (safeThis == nullptr)
                         return;
-                    }
+                    safeThis->setWaitingForServer (false);
 
-                    auto* obj = parsed.getDynamicObject();
-
-                    
-                    if (obj->hasProperty(ResponseKeys::error) || obj->hasProperty(ResponseKeys::errorDescription))
+                    using Outcome = BackendJson::SignupReply::Outcome;
+                    switch (reply.outcome)
                     {
-                        juce::String errorMessage = Text::signupFailed;
-                        if (obj->hasProperty(ResponseKeys::errorDescription))
-                            errorMessage = obj->getProperty(ResponseKeys::errorDescription).toString();
-                        else if (obj->hasProperty(ResponseKeys::error))
-                            errorMessage = obj->getProperty(ResponseKeys::error).toString();
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::WarningIcon,
-                            Text::signUpFailedTitle,
-                            errorMessage
-                        );
-                        return;
+                        case Outcome::unreadable:
+                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::signUpFailedTitle, Text::invalidResponse + body);
+                            return;
+                        case Outcome::rejected:
+                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::signUpFailedTitle,
+                                                                    reply.message.isNotEmpty() ? reply.message : Text::signupFailed);
+                            return;
+                        case Outcome::notCreated:
+                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::signUpFailedTitle, Text::userNotCreated + body);
+                            return;
+                        case Outcome::createdCheckEmail:
+                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon, Text::signUpSuccessTitle, Text::createdCheckEmail);
+                            break;
+                        case Outcome::created:
+                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon, Text::signUpSuccessTitle, Text::created);
+                            break;
                     }
-
-                    
-                    bool isSession = obj->hasProperty(ResponseKeys::accessToken);
-                    bool isUser = obj->hasProperty(ResponseKeys::id);
-                    if (!isSession && !isUser)
-                    {
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::WarningIcon,
-                            Text::signUpFailedTitle,
-                            Text::userNotCreated + body
-                        );
-                        return;
-                    }
-
-                    
-                    if (isUser && obj->hasProperty(ResponseKeys::confirmationSentAt))
-                    {
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::InfoIcon,
-                            Text::signUpSuccessTitle,
-                            Text::createdCheckEmail
-                        );
-                    }
-                    else
-                    {
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::InfoIcon,
-                            Text::signUpSuccessTitle,
-                            Text::created
-                        );
-                    }
-
-                    
-                    if (safeThis != nullptr)
-                        safeThis->setSignUpMode (false);   // back to Log in, the fields cleared
+                    safeThis->setSignUpMode (false);   // back to Log in, the new email filled in
+                    safeThis->emailField.setText (email);
                 });
-
         }).detach();
 }
 
 void LoginComponent::handleBack()
 {
     setSignUpMode (false);
+}
+
+void LoginComponent::setRememberedEmail (const juce::String& email)
+{
+    rememberedEmail = email;
+    if (! signUpMode)
+        emailField.setText (email, false);
+    resized();
+    repaint();
+}
+
+void LoginComponent::forgetRememberedEmail()
+{
+    rememberedEmail = {};
+    emailField.clear();
+    if (onForgetEmail)
+        onForgetEmail();
+    resized();
+    repaint();
+    emailField.grabKeyboardFocus();
+}
+
+bool LoginComponent::showsRememberedRow() const
+{
+    return RememberedEmail::showRow (rememberedEmail, emailField.getText(), signUpMode);
+}
+
+void LoginComponent::setWaitingForServer (bool waiting)
+{
+    // One request at a time: the form's buttons rest until the server answers.
+    waitingForServer = waiting;
+    for (auto* button : { &loginButton, &signUpButton, &forgotButton, &createButton, &backButton })
+        button->setEnabled (! waiting);
+}
+
+void LoginComponent::letInWithoutServer()
+{
+    const auto typedEmail = emailField.getText().trim();
+    passwordField.clear();
+    if (typedEmail.isNotEmpty())   // Log in with nothing typed keeps what was remembered
+        rememberedEmail = typedEmail;
+    if (onSuccessfullLogin)
+        onSuccessfullLogin (typedEmail);
 }

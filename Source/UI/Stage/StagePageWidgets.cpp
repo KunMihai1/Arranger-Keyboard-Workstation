@@ -616,3 +616,53 @@ namespace StageLcd
         }
     }
 }
+
+//==============================================================================
+namespace
+{
+    // Board PageLogin .link: 11 px SemiBold, .06em, amber, underlined.
+    constexpr float linkTextSize       = 11.0f;
+    constexpr float linkSpacing        = 0.06f;
+    constexpr float linkUnderline      = 1.0f;
+    constexpr float linkUnderlineDrop  = 1.5f;   // below the baseline
+    constexpr float linkPressedAlpha   = 0.7f;
+    constexpr bool  linkSemiBold       = true;
+}
+
+StageTextLink::StageTextLink (const juce::String& text) : juce::Button (text)
+{
+    setMouseCursor (juce::MouseCursor::PointingHandCursor);
+}
+
+void StageTextLink::setScale (float newScale)
+{
+    scale = newScale;
+    repaint();
+}
+
+juce::Font StageTextLink::font() const
+{
+    return StageFonts::silkscreen (linkTextSize * scale, linkSemiBold, linkSpacing);
+}
+
+float StageTextLink::getExactWidth() const
+{
+    return juce::GlyphArrangement::getStringWidth (font(), getButtonText());
+}
+
+void StageTextLink::paintButton (juce::Graphics& g, bool, bool isDown)
+{
+    const auto colour = isDown ? StagePalette::linkText.withMultipliedAlpha (linkPressedAlpha) : StagePalette::linkText;
+    g.setColour (colour);
+    juce::GlyphArrangement line;
+    line.addLineOfText (font(), getButtonText(), float {}, float {});
+    const auto bounds = getLocalBounds().toFloat();
+    line.justifyGlyphs (int {}, line.getNumGlyphs(), bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(),
+                        juce::Justification::centredLeft);
+    line.draw (g);
+
+    if (line.getNumGlyphs() == int {})
+        return;
+    const auto& first = line.getGlyph (int {});
+    g.fillRect (first.getLeft(), first.getBaselineY() + linkUnderlineDrop * scale, getExactWidth(), linkUnderline * scale);
+}

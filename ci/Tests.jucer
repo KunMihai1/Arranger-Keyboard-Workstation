@@ -57,6 +57,8 @@
               file="../tests/unit/test_dust_field.cpp"/>
         <FILE id="pnlFnT" name="test_panel_finish.cpp" compile="1" resource="0"
               file="../tests/unit/test_panel_finish.cpp"/>
+        <FILE id="bkJsT" name="test_backend_json.cpp" compile="1" resource="0"
+              file="../tests/unit/test_backend_json.cpp"/>
         <FILE id="frnLyT" name="test_front_screens_layout.cpp" compile="1" resource="0"
               file="../tests/unit/test_front_screens_layout.cpp"/>
         <FILE id="stgWdT" name="test_stage_widgets.cpp" compile="1" resource="0"
@@ -701,6 +703,14 @@
         <FILE id="pBoiRK" name="ValidatorUI.h" compile="0" resource="0" file="../Source/Backend/ValidatorUI.h"/>
         <FILE id="ZSMmrT" name="addDeviceWindow.cpp" compile="1" resource="0"
               file="../Source/Backend/addDeviceWindow.cpp"/>
+        <FILE id="bkJsC" name="BackendJson.cpp" compile="1" resource="0"
+              file="../Source/Backend/BackendJson.cpp"/>
+        <FILE id="bkJsH" name="BackendJson.h" compile="0" resource="0"
+              file="../Source/Backend/BackendJson.h"/>
+        <FILE id="rmEmC" name="RememberedEmail.cpp" compile="1" resource="0"
+              file="../Source/Backend/RememberedEmail.cpp"/>
+        <FILE id="rmEmH" name="RememberedEmail.h" compile="0" resource="0"
+              file="../Source/Backend/RememberedEmail.h"/>
         <FILE id="oLjKCa" name="SupabaseClient.cpp" compile="1" resource="0"
               file="../Source/Backend/SupabaseClient.cpp"/>
         <FILE id="Ia73LG" name="SupabaseClient.h" compile="0" resource="0"

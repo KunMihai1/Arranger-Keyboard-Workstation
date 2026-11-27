@@ -1,4 +1,5 @@
 #include "MainComponent.h"
+#include "../Backend/RememberedEmail.h"
 
 // Log in and Home on the instrument (boards StageLogin / StageHome, owner decision 2026-11-23; split from
 // MainComponentStage.cpp, ADR-003). The panel shows with its screen asleep ("Welcome" / "Ready", lamps dark) and its
@@ -26,7 +27,10 @@ void MainComponent::frontScreensInit()
         if (auto* app = juce::JUCEApplication::getInstance())
             app->systemRequestedQuit();
     };
+    homePage->onLogOut   = [this] { logOut(); };
     addChildComponent (*homePage);
+    if (loginWindow != nullptr)
+        loginWindow->setRememberedEmail (RememberedEmail::load (propertiesFile));
     addChildComponent (frontKeys);
     showFrontScreen (FrontScreen::login);
 }
@@ -79,4 +83,34 @@ bool MainComponent::frontScreenContent (StageScreen::Content& content) const
     content.variation = {};
     content.chord     = {};
     return true;
+}
+
+void MainComponent::signedIn (const juce::String& email)
+{
+    if (email.isNotEmpty())   // the email only, never the password (spec part 1 §10)
+    {
+        RememberedEmail::save (propertiesFile, email);
+        if (propertiesFile != nullptr)
+            propertiesFile->saveIfNeeded();
+    }
+    homePage->setSignedInAs (email);
+    showFrontScreen (FrontScreen::home);
+}
+
+void MainComponent::logOut()
+{
+    // Ends the session on this computer; the email stays remembered for the next log in.
+    client->setAccessToken ({});
+    client->setUserId ({});
+    homePage->setSignedInAs ({});
+    if (loginWindow != nullptr)
+        loginWindow->setRememberedEmail (RememberedEmail::load (propertiesFile));
+    showFrontScreen (FrontScreen::login);
+}
+
+void MainComponent::forgetRememberedEmail()
+{
+    RememberedEmail::forget (propertiesFile);
+    if (propertiesFile != nullptr)
+        propertiesFile->saveIfNeeded();
 }

@@ -14,6 +14,7 @@
       StageFader    the Style page's channel fader (0-127); dragging moves it by
                     the drag, it never jumps to where it was clicked
       StageLcdInput the board's .lcd-input: an LCD text box (the Voices page search)
+      StageTextLink the board's .link: amber underlined text that acts (Log in's "Not you?")
       StageLcd      drawing helpers for LCD lists and section headings
 
   ==============================================================================
@@ -199,6 +200,25 @@ private:
     double valueAtGrab {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StageFader)
+};
+
+class StageTextLink : public juce::Button
+{
+public:
+    explicit StageTextLink (const juce::String& text);
+
+    void setScale (float newScale);
+    float getExactWidth() const;
+
+protected:
+    void paintButton (juce::Graphics& g, bool isHighlighted, bool isDown) override;
+
+private:
+    juce::Font font() const;
+
+    float scale { StageMetrics::referenceScale };
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StageTextLink)
 };
 
 namespace StageLcd

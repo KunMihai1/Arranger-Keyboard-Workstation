@@ -11,8 +11,8 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-27. Merged #75–#80 (Recorder, Sections v2, track library, keys, Dust, finishes);
-Log in / Home look (`feat/ui-front-screens`). **Owner (2026-11-27): continue without stopping** — sign-in;
+2026-11-28. Merged #75–#81 (Recorder … finishes, Log in / Home look); sign-in part 2 (`feat/ui-sign-in`). **Supabase backend
+unreachable** (domain doesn't resolve): Login still lets anyone in (owner, 2026-11-28). **Owner (2026-11-27): continue without stopping**;
 agent commits / pushes / merges. Screen shared: screenshot first. `docs/superpowers/` is **local only**. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
@@ -30,8 +30,8 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 5861, arranger 770, integration 130 (+7 skipped), display 13**. Screen: 125 %.
-- Visual checks: screenshot/click the app's window by process id (a VS panel can share its title); boards: `specs/assets/…/render/render.sh`.
+  Current: **unit 5901, arranger 770, integration 130 (+7 skipped), display 13**. Screen: 125 %.
+- Visual checks: screenshot/click the app's window by process id ; boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
 - App `Builds\VisualStudio2022\Arranger Workstation.sln`, Debug x64; close the app first (PDB lock).
@@ -46,7 +46,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 Full task list with states: [[Owner Backlog]].
 - 🟡 **~100 `juce::AlertWindow`s left** (0.5–1 s each in Debug, balanced text layout): move to `StageDialog`.
 - 🟡 **UI redesign** (spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2): panel and
-  pages Style, Effects, Settings, Voices, Chord helper, Esc menu, Recorder, Sections, keys, Dust, finishes, Log in / Home done. Next: real sign-in. Owner: same look on every resolution; pages centred like the
+  pages Style, Effects, Settings, Voices, Chord helper, Esc menu, Recorder, Sections, keys, Dust, finishes, Log in / Home, sign-in done (Login check waits on the backend). Owner: same look on every resolution; pages centred like the
   panel; agent checks the running app **1:1** against the boards before finishing.
 - 🟡 **Delay read offset still jumps** (CC94 → `delayReadOffset` moved instantly; needs fractional
   read). Replacement `DelayLine` exists in the sibling `va-effects` repo.

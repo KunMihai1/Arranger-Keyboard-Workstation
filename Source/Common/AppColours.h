@@ -155,6 +155,7 @@ namespace StagePalette
     static const juce::Colour playKeyBottom      { 0xff3f3127 };
     static const juce::Colour playKeyBorder      { 0xff2a1d14 };
     static const juce::Colour playKeyText        { 0xffffe2cf };
+    static const juce::Colour linkText           { 0xffe0b25a };   // PageLogin .link ("Not you?")
 
     // --- Keys (StageRevised .wk / .wk.down / .bk; spec §7 for the pressed black key) ---
     static const juce::Colour keyBed             { 0xff0b0b0c };

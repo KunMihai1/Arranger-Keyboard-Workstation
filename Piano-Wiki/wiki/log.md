@@ -13,6 +13,19 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-28 — Sign-in part 2 (`feat/ui-sign-in`)
+- Log in remembers the last email (`RememberedEmail`, settings key `LastEmail`, never the password): "Remembered from
+  last time. *Not you?*" (`StageTextLink`) while the field holds it. Home: "Signed in as …" + Log out (back to Log in,
+  tokens forgotten, email kept). No "logged in" box.
+- Pure `BackendJson`: request bodies via `juce::JSON` (a `"` in a password / device name broke them; ordinary values
+  byte-identical) and the login / sign-up reply readers (old inline decisions, unchanged). `signup()` now reads the
+  reply — before, every sign-up showed "Invalid server response".
+- **Login still lets anyone in.** Live, a login attempt gave "connection failed": `ecmlftmkoqszdwjugqtn.supabase.co`
+  does not resolve (DNS: non-existent domain) while supabase.co does. Owner chose to keep the bypass
+  (`checkAccountWithServer = false`) until the backend is back. Remember me hidden, Forgot password? unchanged.
+- Sonnet review, verified: Log in with nothing typed (the bypass) left Home without Log out and wiped the remembered email — fixed. Rejected: non-ASCII escaping (juce::JSON writes UTF-8 by default). Live: Log in → Signed in row → Log out → remembered row → Not you?.
+- unit 5901 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped); display not run (owner using the screen).
+
 ## 2026-11-27 — Log in and Home on the instrument (`feat/ui-front-screens`, redesign sign-in part 1)
 - Before: a forest picture with a centred login card, then a "Play" text on the picture. Now (boards StageLogin /
   StageHome): the panel is always shown — on Log in / Home its screen is asleep ("Welcome" / "Ready", lamps dark) and

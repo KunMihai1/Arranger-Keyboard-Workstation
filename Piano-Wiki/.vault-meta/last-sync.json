@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "19e5ef3",
-  "last_synced_branch": "feat/ui-front-screens",
-  "last_synced_at": "2026-11-27",
-  "note": "Synced through 19e5ef3: Log in and Home on the instrument (FrontScreensLayout, StageHomePage, restyled LoginComponent)."
+  "last_synced_commit": "6a55f63",
+  "last_synced_branch": "feat/ui-sign-in",
+  "last_synced_at": "2026-11-28",
+  "note": "Synced through 6a55f63: sign-in part 2 (RememberedEmail, BackendJson, Signed in / Log out; login check off while the backend is unreachable)."
 }
