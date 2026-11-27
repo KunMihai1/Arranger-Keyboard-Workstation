@@ -12,6 +12,7 @@
 
 #include "MidiHandler.h"
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -89,6 +90,12 @@ public:
 
     void setAnnotationState(bool newState);
 
+    /** Presses or releases one key and repaints it (what a note-on / note-off does, on the message thread). */
+    void setKeyDown(int midiNote, bool isDown);
+
+    /** What a press or release of this key repaints: every pixel its look can change. */
+    juce::Rectangle<int> areaOf(int midiNote) const;
+
 
 private:
     friend class NoteLayer;
@@ -99,13 +106,27 @@ private:
      */
     void paintKeyboardB(juce::Graphics& g);
 
+    /** The looks a key can have; each is drawn once per key size into keyImageCache. */
+    enum class KeyLookKind { white, whitePressed, whiteDimmed, black, blackPressed };
+
+    void paintNoteName(juce::Graphics& g, int midiNote);
+    const juce::Image& keyImage(KeyLookKind look, int width, int height, float scale);
+    static void drawKeyLook(juce::Graphics& g, juce::Rectangle<float> shape, KeyLookKind look, float scale);
+    /** The black keys' blurred shadow, made once per size (a blur per key per paint would be slow). */
+    const juce::Image& blackKeyShadow(float scale);
+
+    std::map<std::pair<int, int>, juce::Image> keyImageCache;   ///< (look, width) -> that key drawn at this size
+    juce::Image blackShadowImage;
+    float blackShadowScale {};
+    int blackShadowMargin {};   ///< px between the shadow image's corner and the key's (blur + 1)
 
     /** @brief True if the keyboard has been drawn */
     bool isDrawn = false;
 
     /** @brief Stores each key's bounds, active state, and type */
     struct note {
-        juce::Rectangle<int> bounds {}; ///< Key bounds
+        juce::Rectangle<int> bounds {}; ///< Key bounds (a white key's whole step: the falling-note column)
+        juce::Rectangle<float> shape {}; ///< The key as drawn (PianoKeyShapes)
         bool isActive = false; ///< Whether the key is currently pressed
         std::string type = ""; ///< "white" or "black"
     };

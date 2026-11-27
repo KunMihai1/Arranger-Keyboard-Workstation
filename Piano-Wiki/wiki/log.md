@@ -13,6 +13,23 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-27 — Realistic keys (`feat/ui-keys`, redesign phase 3)
+- `KeyboardUI` drew flat white rectangles with black outlines and a **green** pressed key. Now the board
+  `StageRevised` keys: pure `PianoKeyShapes` geometry, board materials (`StagePalette` "Keys"), pressed white
+  darker with a shaded top and a short lip, pressed black darker with a shorter slope; only white keys outside the
+  device range dimmed and note names as before. Draw order fixed: bed, whites, black shadows, blacks.
+- Paint at 1920 × 224 (Debug): 1.9 ms before; 8.75 ms drawing the materials every paint → each look cached once
+  per size as an image: 1.3 ms. Edges snapped to whole pixels so the gaps stay the bed colour.
+- Review (Sonnet), verified: a white key's repaint area (its step, `bounds`) could end 1 px before its drawn edge —
+  reproduced, 10 keys at 1075 px left a stale column; `areaOf` = bounds ∪ shape, test compares every press with
+  the released render at 1075 / 1366 / 1920. Added: all-88 shape order test. Rejected: "cached bitmaps blur under
+  display scaling" — a 2× render with logical-size images stays sharp in JUCE's renderer (test passed with the
+  change forced off), so no change; shadow width ±1 px on some black keys (inside a 4 px blur); raw `this` in
+  `callAsync` and `keys[]` insert outside 21..108 are pre-existing.
+- Live 1:1 at 1920 × 1080 vs the board (side-by-side crop); pressed looks checked on a rendered image (computer
+  keyboard input is off in this machine's settings, left unchanged).
+- Unit 5510 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 12 / 0.
+
 ## 2026-11-27 — Track library file per track; steady sparks display test (`fix/track-library-and-sparks-test`, PR #77)
 - Track library: `TrackIOHelper` saved one `filePath` per folder (its first track's) and only `trackIndex` per
   track, so a folder mixing MIDI files reloaded every track from the first file. Each track now saves its own

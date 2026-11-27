@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "248494b",
-  "last_synced_branch": "fix/track-library-and-sparks-test",
+  "last_synced_commit": "6177a1d",
+  "last_synced_branch": "feat/ui-keys",
   "last_synced_at": "2026-11-27",
-  "note": "Synced through 248494b: track library file per track, steady sparks display test."
+  "note": "Synced through 6177a1d: realistic piano keys (PianoKeyShapes, cached key looks, areaOf)."
 }
