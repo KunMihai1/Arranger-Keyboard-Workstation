@@ -86,6 +86,8 @@ allowlist). **Full rule and idioms: `docs/names-not-values.md`.**
 ## Git
 
 - Branch from `main` (`fix/…`, `feat/…`, `perf/…`, `docs/…`); merge through a PR with CI green.
+- **Merging = deleting the branch** (owner, 2026-11-28): `gh pr merge <n> --merge --delete-branch`, then delete the
+  local branch (and its worktree) too. Only `main` lives on.
 - **Never commit, push, or open a PR without the user's explicit approval.**
 - **No AI attribution anywhere** — no `Co-Authored-By`, no "Generated with …" line, no tool name in
   commit messages, PR titles or PR bodies. Commits are authored by the user alone.
