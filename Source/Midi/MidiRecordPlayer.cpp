@@ -42,6 +42,7 @@ void MidiRecordPlayer::startRecording()
 {
     allEventsPlayed.clear();
     allEventsPlayedFile.clear();
+    lengthAtStop = {};
     applyPresetFunction();
     recordStartTime = juce::Time::getMillisecondCounterHiRes() * secondsPerMillisecond;
     isRecording = true;
@@ -53,6 +54,7 @@ bool MidiRecordPlayer::stopRecording()
         return false;
 
     isRecording = false;
+    lengthAtStop = juce::Time::getMillisecondCounterHiRes() * secondsPerMillisecond - recordStartTime;
     return true;
 }
 
@@ -233,6 +235,28 @@ bool MidiRecordPlayer::getIsRecording()
 bool MidiRecordPlayer::getIsPlaying()
 {
     return isPlaying == true;
+}
+
+bool MidiRecordPlayer::getIsPlayingFile()
+{
+    return isPlayingFile;
+}
+
+int MidiRecordPlayer::getRecordedNoteCount()
+{
+    const juce::SpinLock::ScopedLockType eventsLock(lock);
+    return static_cast<int>(std::count_if(allEventsPlayed.begin(), allEventsPlayed.end(),
+                                          [](const RecordedEvent& event) { return event.message.isNoteOn(); }));
+}
+
+double MidiRecordPlayer::getRecordedSeconds()
+{
+    if (isRecording)
+        return juce::Time::getMillisecondCounterHiRes() * secondsPerMillisecond - recordStartTime;
+
+    const juce::SpinLock::ScopedLockType eventsLock(lock);
+    const double lastEvent = allEventsPlayed.empty() ? double {} : allEventsPlayed.back().timeFromStart;
+    return juce::jmax(lengthAtStop, lastEvent);
 }
 
 bool MidiRecordPlayer::writeRecordingToStream(juce::OutputStream& outputStream, juce::String& errorMsg, double tempo)

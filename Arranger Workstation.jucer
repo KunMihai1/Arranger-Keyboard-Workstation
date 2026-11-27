@@ -357,6 +357,10 @@
         <FILE id="plRngC" name="PlaybackRange.cpp" compile="1" resource="0" file="Source/UI/PlaybackRange.cpp"/>
         <FILE id="hmLayH" name="HomeLayout.h" compile="0" resource="0" file="Source/UI/HomeLayout.h"/>
         <FILE id="hmLayC" name="HomeLayout.cpp" compile="1" resource="0" file="Source/UI/HomeLayout.cpp"/>
+        <FILE id="recMdH" name="RecorderModel.h" compile="0" resource="0" file="Source/UI/Recorder/RecorderModel.h"/>
+        <FILE id="recMdC" name="RecorderModel.cpp" compile="1" resource="0" file="Source/UI/Recorder/RecorderModel.cpp"/>
+        <FILE id="recCnH" name="RecorderContent.h" compile="0" resource="0" file="Source/UI/Recorder/RecorderContent.h"/>
+        <FILE id="recCnC" name="RecorderContent.cpp" compile="1" resource="0" file="Source/UI/Recorder/RecorderContent.cpp"/>
         <FILE id="K2Xsjg" name="SelectableLabel.cpp" compile="1" resource="0"
               file="Source/UI/SelectableLabel.cpp"/>
         <FILE id="cazbKc" name="SelectableLabel.h" compile="0" resource="0"

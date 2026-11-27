@@ -57,11 +57,6 @@ namespace
 
     constexpr int beatUnit = 4;   // styles carry no other time-signature denominator today (BeatBar's default)
 
-    // Legacy page controls, reference px (scaled with the Stage).
-    constexpr int pageButtonWidth  = 180;
-    constexpr int pageButtonHeight = 30;
-    constexpr int pageButtonGap    = 12;
-    constexpr int pageIconSize     = 30;
     constexpr size_t displayParticlesRow = 0;   // Settings page, Display column rows
     constexpr size_t displayNoteNamesRow = 1;
     constexpr size_t displayColoursRow   = 2;
@@ -148,19 +143,38 @@ void MainComponent::stagePagesInit()
     };
     syncStylesPage();
 
-    // Recorder: play the recording, save it, play a MIDI file.
+    // Recorder (board PageFile): the last recording (length, notes, REC) with Play / Stop / Save as MIDI..., and a MIDI
+    // file played through the current sounds. The panel's REC starts and stops recording.
     filePage = makePage (StageWiringText::recorderTitle);
-    for (juce::Component* control : { static_cast<juce::Component*> (&startPlayback), static_cast<juce::Component*> (&saveRecordingButton),
-                                       static_cast<juce::Component*> (&playRecordingFileButton) })
-        filePage->addChildComponent (control);
+    recorderContent = std::make_unique<RecorderContent>();
+    recorderContent->readState = [this]
+    {
+        RecorderState state;
+        state.recording       = recordPlayer.getIsRecording();
+        state.playing         = recordPlayer.getIsPlaying();
+        state.recordedSeconds = recordPlayer.getRecordedSeconds();
+        state.notes           = recordPlayer.getRecordedNoteCount();
+        state.fileName        = lastMidiFileName;
+        state.filePlaying     = recordPlayer.getIsPlayingFile();
+        return state;
+    };
+    recorderContent->onPlayRecording = [this] { startPlayback.onClick(); refreshStage(); };   // stops a recording first
+    recorderContent->onStopRecording = [this]
+    {
+        if (recordPlayer.getIsRecording())
+            toggleRecordingFromPanel();
+        else if (recordPlayer.getIsPlaying())
+            recordPlayer.stopPlayBack();
+    };
+    recorderContent->onSaveRecording = [this] { saveRecordingToFile(); };
+    recorderContent->onPlayFile      = [this] { playRecordingFromFile(); };
+    recorderContent->onStopFile      = [this] { recordPlayer.stopRecordingFilePlaying(); };
+    recorderContent->refresh();
+    filePage->addAndMakeVisible (*recorderContent);
     filePage->onLayoutContent = [this] (juce::Rectangle<int> area, float scale)
     {
-        auto row = area.withHeight (juce::roundToInt (pageButtonHeight * scale));
-        startPlayback.setBounds (row.removeFromLeft (juce::roundToInt (pageIconSize * scale)));
-        row.removeFromLeft (juce::roundToInt (pageButtonGap * scale));
-        saveRecordingButton.setBounds (row.removeFromLeft (juce::roundToInt (pageButtonWidth * scale)));
-        row.removeFromLeft (juce::roundToInt (pageButtonGap * scale));
-        playRecordingFileButton.setBounds (row.removeFromLeft (juce::roundToInt (pageButtonWidth * scale)));
+        recorderContent->setScale (scale);
+        recorderContent->setBounds (area);
     };
 
     // Settings (board StageSettings): MIDI / Arranger / Chords = midiWindow (it was the MIDI Settings window), Display =
