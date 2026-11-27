@@ -13,6 +13,23 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-27 — Panel finishes (`feat/ui-finishes`, redesign phase 5, board `SkinsFinish`)
+- Settings › Display › Finish: Stage (default) and Rosso burst, Champagne, Tobacco burst, Midnight flake, Concert
+  black; saved as `PanelFinish`. Panel surface + key slip + side strips; controls, screen and keys unchanged.
+- `FractalNoise` = SVG 1.1 feTurbulence reference code. Oracle: Edge rendering the same filters into a canvas — raw
+  noise within 7/255 (fractal) / 19 (turbulence) premultiplied, another seed 40+ off; texture coverage matches (flake
+  lit 16.5 % vs Edge 17.1 %, flame / brush / rosewood means within a few /255). The board PNGs never showed the noise.
+- Render (Debug, 1920 × 198): 118–250 ms per finish → cached per size, re-rendered 150 ms after a resize settles.
+- Labels: light silkscreen measured unreadable on Champagne and on Tobacco's bright middle (1.8–2.7 : 1). One ink
+  per printed column from its average background, a label switching only below 3:1 → every label ≥ 3.05 : 1 (test
+  over 11 label spots per finish). Agent call: side strips 16 px (26 would cover the first LEDs at x = 20).
+- Review (Sonnet), verified and fixed: a scale change at the same pixel size kept the old texture (cache keyed by
+  scale too); Concert's pinstripes would print on the 12 px slip (slip = bare surface); the test copied the
+  column choice (now `PanelFinish::inkColumnAt`, used by both). Not changed: straight vs premultiplied gradient
+  blending (slightly lighter mixes), ink averaging per paint (tenths of a ms).
+- Live at 1920 × 1080 (125 %): each finish switched, restart keeps it, set back to Stage afterwards.
+- Unit 5825 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 13 / 0.
+
 ## 2026-11-27 — New smooth Dust (`feat/ui-dust`, redesign phase 4, board `Dust`)
 - Old Dust: 40 particles once per note-on, a new random sideways kick every frame (jitter), linear fade, fixed
   size. New pure `DustField` = the board's "new" mode: burst of 26 (rise × 1.8), then 60 / s per held key; 86 %

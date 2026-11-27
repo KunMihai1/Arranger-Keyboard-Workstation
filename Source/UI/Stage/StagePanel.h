@@ -24,6 +24,7 @@
 #include "StageModels.h"
 #include "StageScreen.h"
 #include "StageWidgets.h"
+#include "PanelFinish.h"
 
 namespace StagePanelNames
 {
@@ -48,7 +49,7 @@ namespace StagePanelNames
     inline const juce::String reverb    = "Reverb";
 }
 
-class StagePanel : public juce::Component, private juce::Timer
+class StagePanel : public juce::Component, public SilkscreenInkSource, private juce::Timer
 {
 public:
     enum class QuickKnob { volume, reverb };
@@ -57,6 +58,13 @@ public:
     ~StagePanel() override;
 
     void setScale (float newScale);
+
+    /** The panel's finish (Settings > Display > Finish, board SkinsFinish): Stage is the matte default. */
+    void setFinish (PanelFinish::Id newFinish);
+
+    /** The light silkscreen, or dark ink where the finish under the widget is light (Champagne, Tobacco's centre). */
+    juce::Colour silkscreenInk (const juce::Component& widget, bool bright) const override;
+    juce::Colour inkOver (juce::Rectangle<int> area, bool bright) const;
     StageScreen& screen();
 
     // --- State shown on the panel ---
@@ -117,6 +125,14 @@ private:
     StageKnob reverbKnob { StagePanelNames::reverb, StageKnob::Size::quick };
 
     float scale { StageMetrics::referenceScale };
+
+    // The finish is drawn once per size (fractal noise is slow); while a resize settles the last one is stretched.
+    void renderFinish();
+    PanelFinish::Id finish { PanelFinish::Id::stage };
+    juce::Image finishSurface, finishLeftSide, finishRightSide;
+    std::array<juce::Colour, PanelFinish::inkColumnCount> columnBackgrounds {};   ///< the finish under each printed column
+    float finishScale {};   ///< the scale the finish was drawn at (grain, strips and trims follow it)
+    juce::TimedCallback finishRefresh { [this] { finishRefresh.stopTimer(); renderFinish(); repaint(); } };
     int holdDirection {};
     int shownVolume {};
     int shownReverb {};

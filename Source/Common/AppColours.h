@@ -206,3 +206,73 @@ namespace StagePalette
     static const juce::Colour faderCapShine   { 0x2effffff };   // inset 0 1px 0 rgba(255,255,255,.18)
     static const juce::Colour lcdInset        { 0x80000000 };   // inset 0 1px 3px rgba(0,0,0,.5)
 }
+
+/** Panel finishes (board SkinsFinish, redesign B4): the five optional surfaces, their side strips and trims.
+    "Clear" colours are a stop's own colour at zero alpha, so a CSS "transparent" fades without going grey. */
+namespace FinishPalette
+{
+    // Rosso burst: red lacquer, maple sides
+    static const juce::Colour rossoCentre      { 0xffe2402b };
+    static const juce::Colour rossoInner       { 0xffb81e1a };   // 38 %
+    static const juce::Colour rossoOuter       { 0xff7a0f12 };   // 72 %
+    static const juce::Colour rossoEdge        { 0xff3d0709 };
+    static const juce::Colour lacquerShine     { 0x38ffffff };   // rgba(255,255,255,.22)
+    static const juce::Colour lacquerShineSoft { 0x0affffff };   // .04
+    static const juce::Colour clearWhite       { 0x00ffffff };
+    static const juce::Colour clearBlack       { 0x00000000 };
+    static const juce::Colour lacquerShadow    { 0x2e000000 };   // rgba(0,0,0,.18)
+    static const juce::Colour mapleBase        { 0xffd9b382 };
+    static const juce::Colour sideShadeLeft    { 0x40000000 };   // .25
+    static const juce::Colour sideShadeMiddle  { 0x14ffffff };   // white .08
+    static const juce::Colour sideShadeRight   { 0x4d000000 };   // .3
+
+    // Champagne: brushed gold, walnut sides
+    static const juce::Colour champagneTop     { 0xffe9d6a6 };
+    static const juce::Colour champagneMiddle  { 0xffcfb47c };   // 45 %
+    static const juce::Colour champagneBottom  { 0xffb89a62 };
+    static const juce::Colour champagneSheen   { 0x59fff8e1 };   // rgba(255,248,225,.35)
+    static const juce::Colour champagneClear   { 0x00fff8e1 };
+    static const juce::Colour walnutBase       { 0xff5b3a24 };
+    static const juce::Colour darkInk          { 0xff2b2416 };   // silkscreen on the light gold (7.7:1 on #cfb47c)
+    static const juce::Colour darkInkDim       { 0xff5a4a30 };   // the dim silkscreen (4.3:1)
+    static const juce::Colour walnutShadeLeft  { 0x4d000000 };   // .3
+    static const juce::Colour walnutShadeMiddle { 0x0fffffff };  // white .06
+    static const juce::Colour walnutShadeRight { 0x59000000 };   // .35
+
+    // Tobacco burst: flamed maple sunburst, dark sides
+    static const juce::Colour tobaccoBase      { 0xffe0a44a };
+    static const juce::Colour tobaccoClear     { 0x006e2d0a };
+    static const juce::Colour tobaccoBurst     { 0x8c6e2d0a };   // rgba(110,45,10,.55) at 58 %
+    static const juce::Colour tobaccoDeep      { 0xf22d1206 };   // rgba(45,18,6,.95) at 85 %
+    static const juce::Colour tobaccoEdge      { 0xff1c0b04 };
+    static const juce::Colour tobaccoLight     { 0x40fff0d2 };   // rgba(255,240,210,.25)
+    static const juce::Colour tobaccoLightClear { 0x00fff0d2 };
+    static const juce::Colour tobaccoShadow    { 0x26000000 };   // .15
+    static const juce::Colour tobaccoSideOuter { 0xff140c07 };
+    static const juce::Colour tobaccoSideMiddle { 0xff2a1a10 };
+    static const juce::Colour tobaccoSideInner { 0xff120a06 };
+
+    // Midnight flake: navy metal flake, chrome trim, rosewood sides
+    static const juce::Colour midnightCentre   { 0xff2a4a8a };
+    static const juce::Colour midnightMiddle   { 0xff16295a };   // 45 %
+    static const juce::Colour midnightEdge     { 0xff0a1430 };
+    static const juce::Colour midnightShine    { 0x2effffff };   // .18
+    static const juce::Colour midnightShadow   { 0x40000000 };   // .25
+    static const juce::Colour chromeTop        { 0xfff4f6f8 };
+    static const juce::Colour chromeMiddle     { 0xff9aa1a8 };   // 60 %
+    static const juce::Colour chromeBottom     { 0xff5d646b };
+    static const juce::Colour rosewoodBase     { 0xff4a2219 };
+
+    // Concert black: piano gloss, gold pinstripe
+    static const juce::Colour concertTop       { 0xff2a2a2d };
+    static const juce::Colour concertMiddle    { 0xff0e0e10 };   // 35 %
+    static const juce::Colour concertBottom    { 0xff060607 };
+    static const juce::Colour glossShine       { 0x1affffff };   // .10 at 44 %
+    static const juce::Colour glossShineSoft   { 0x05ffffff };   // .02 at 50 %
+    static const juce::Colour goldClear        { 0x00c9a24e };
+    static const juce::Colour goldEdge         { 0xffc9a24e };
+    static const juce::Colour goldCentre       { 0xffe8cf8a };
+    static const juce::Colour concertSideOuter { 0xff050505 };
+    static const juce::Colour concertSideMiddle { 0xff1c1c1e };
+    static const juce::Colour concertSideInner { 0xff060606 };
+}

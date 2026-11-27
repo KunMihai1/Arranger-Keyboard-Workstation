@@ -24,6 +24,7 @@ namespace
     constexpr float halves           = 2.0f;
     constexpr bool semiBold          = true;
     constexpr bool medium            = false;
+    constexpr int finishSettleMilliseconds = 150;   // redraw the finish once a window drag has paused this long
 
     /** Width a silkscreen text needs, as CSS lays it out: letter spacing follows the last letter too, and
         rounding up keeps drawText from dropping the last glyph. */
@@ -267,6 +268,10 @@ juce::Rectangle<int> StagePanel::getContentBounds() const
 void StagePanel::resized()
 {
     using namespace StageMetrics;
+    // A finish drawn for another size is stretched until the resize settles, then drawn again.
+    if (finish != PanelFinish::Id::stage && finishSurface.isValid()
+        && (finishSurface.getBounds() != getLocalBounds() || ! juce::approximatelyEqual (finishScale, scale)))
+        finishRefresh.startTimer (finishSettleMilliseconds);
     const auto content = getContentBounds().toFloat();
     const auto innerTop    = content.getY() + scaled (panelPaddingVertical);
     const auto innerHeight = scaled (panelHeight - panelPaddingVertical - panelPaddingVertical);
@@ -385,12 +390,61 @@ void StagePanel::resized()
     }
 }
 
+void StagePanel::setFinish (PanelFinish::Id newFinish)
+{
+    if (newFinish == finish)
+        return;
+    finish = newFinish;
+    renderFinish();
+    repaint();
+}
+
+juce::Colour StagePanel::silkscreenInk (const juce::Component& widget, bool bright) const
+{
+    return inkOver (getLocalArea (&widget, widget.getLocalBounds()), bright);
+}
+
+juce::Colour StagePanel::inkOver (juce::Rectangle<int> area, bool bright) const
+{
+    if (finish == PanelFinish::Id::stage || ! finishSurface.isValid())
+        return bright ? StagePalette::silkscreenText : StagePalette::silkscreenDimText;
+
+    // One ink per printed column, from the finish under the whole column (labels in a row never switch ink).
+    const auto column = PanelFinish::inkColumnAt (PanelFinish::inkColumns (getContentBounds(), scale), area.getCentreX());
+    return PanelFinish::inkFor (columnBackgrounds[column], PanelFinish::averageColour (finishSurface, area), bright);
+}
+
+void StagePanel::renderFinish()
+{
+    const auto sideWidth = juce::roundToInt (PanelFinish::sideWidth (scale));
+    finishSurface   = PanelFinish::renderSurface (finish, getWidth(), getHeight(), scale);
+    finishLeftSide  = PanelFinish::renderSide (finish, sideWidth, getHeight(), scale, false);
+    finishRightSide = PanelFinish::renderSide (finish, sideWidth, getHeight(), scale, true);
+    finishScale = scale;
+
+    const auto columns = PanelFinish::inkColumns (getContentBounds(), scale);
+    for (size_t column {}; column < columns.size(); ++column)
+        columnBackgrounds[column] = PanelFinish::averageColour (finishSurface, columns[column]);
+}
+
 void StagePanel::paint (juce::Graphics& g)
 {
     using namespace StageMetrics;
     const auto bounds = getLocalBounds().toFloat();
-    g.setGradientFill (juce::ColourGradient::vertical (StagePalette::panelTop, bounds.getY(), StagePalette::panelBottom, bounds.getBottom()));
-    g.fillRect (bounds);
+    if (finish == PanelFinish::Id::stage)
+    {
+        g.setGradientFill (juce::ColourGradient::vertical (StagePalette::panelTop, bounds.getY(), StagePalette::panelBottom, bounds.getBottom()));
+        g.fillRect (bounds);
+    }
+    else
+    {
+        if (! finishSurface.isValid())
+            renderFinish();
+        const auto sideWidth = PanelFinish::sideWidth (scale);
+        g.drawImage (finishSurface, bounds);
+        g.drawImage (finishLeftSide, bounds.withWidth (sideWidth));
+        g.drawImage (finishRightSide, bounds.withLeft (bounds.getRight() - sideWidth));
+    }
     g.setColour (StagePalette::panelBottomEdge);
     g.fillRect (bounds.withTop (bounds.getBottom() - scaled (panelBottomEdge)));
 
@@ -402,14 +456,14 @@ void StagePanel::paint (juce::Graphics& g)
     // (a knob turn repaints just the knob's area).
     if (g.clipRegionIntersects (quickFxTitleArea.getSmallestIntegerContainer()))
     {
-        g.setColour (StagePalette::silkscreenText);
+        g.setColour (inkOver (quickFxTitleArea.getSmallestIntegerContainer(), true));
         g.setFont (StageFonts::silkscreen (scaled (silkLabelSize), semiBold, silkLabelSpacing));
         g.drawText (quickFxTitle, quickFxTitleArea, juce::Justification::centredLeft, false);
     }
 
     if (g.clipRegionIntersects (partLabelArea.getSmallestIntegerContainer()))
     {
-        g.setColour (StagePalette::silkscreenDimText);
+        g.setColour (inkOver (partLabelArea.getSmallestIntegerContainer(), false));
         g.setFont (StageFonts::silkscreen (scaled (silkLabelSize), medium, partLabelSpacing));
         g.drawText (partTitle, partLabelArea, juce::Justification::centredLeft, false);
     }

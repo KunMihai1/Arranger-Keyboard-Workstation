@@ -23,6 +23,17 @@
 #include <JuceHeader.h>
 #include "StageMetrics.h"
 
+/** A surface that sets the silkscreen ink of the widgets on it: the panel prints dark ink on a light finish
+    (Champagne); pages and dialogs keep the light ink. */
+struct SilkscreenInkSource
+{
+    virtual ~SilkscreenInkSource() = default;
+    virtual juce::Colour silkscreenInk (const juce::Component& widget, bool bright) const = 0;
+};
+
+/** The ink for a widget's printed label: its nearest SilkscreenInkSource's, else the light silkscreen. */
+juce::Colour silkscreenInkFor (const juce::Component& widget, bool bright);
+
 namespace StageDrawing
 {
     /** The board's .led / .led-on: off = dark with an inset shade; lit = the colour with its CSS blur glow

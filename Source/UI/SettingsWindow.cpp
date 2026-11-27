@@ -119,6 +119,16 @@ SettingsPageRects settingsPageLayout (juce::Rectangle<int> content, float scale)
     rects.particleStyleLabel = juce::Rectangle<float> (display.getX(), top, columnWidth, scaled (Board::labelHeight)).toNearestInt();
     top += scaled (Board::labelHeight + Board::rowGap);
     rects.particleStyleRow = juce::Rectangle<float> (display.getX(), top, columnWidth, scaled (segHeight)).toNearestInt();
+
+    // Then "Finish" (board SkinsFinish) and its two seg rows, spaced as "Particle style".
+    top += scaled (segHeight + Board::rowGap + Board::displayExtra);
+    rects.finishLabel = juce::Rectangle<float> (display.getX(), top, columnWidth, scaled (Board::labelHeight)).toNearestInt();
+    top += scaled (Board::labelHeight + Board::rowGap);
+    for (auto& row : rects.finishRowAreas)
+    {
+        row = juce::Rectangle<float> (display.getX(), top, columnWidth, scaled (segHeight)).toNearestInt();
+        top += scaled (segHeight + Board::rowGap);
+    }
     return rects;
 }
 
