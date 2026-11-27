@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "6a55f63",
-  "last_synced_branch": "feat/ui-sign-in",
+  "last_synced_commit": "328140f",
+  "last_synced_branch": "feat/bbd-chorus",
   "last_synced_at": "2026-11-28",
-  "note": "Synced through 6a55f63: sign-in part 2 (RememberedEmail, BackendJson, Signed in / Log out; login check off while the backend is unreachable)."
+  "note": "Synced through 328140f: CC93 chorus is BbdChorus (va-effects port); the audio callback flushes denormals; delay glide noted on the Audio page."
 }
