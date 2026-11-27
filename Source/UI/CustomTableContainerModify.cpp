@@ -1,4 +1,5 @@
 #include "CustomTableContainer.h"
+#include "Stage/StageAlert.h"
 
 namespace
 {
@@ -10,12 +11,8 @@ namespace
         const juce::String modifyTitle           = "Modify";
         const juce::String shiftTimeStamps       = "Shift the time stamps of your notes";
         const juce::String timeStampsSuffix      = " time stamps";
-        const juce::String timeStampLabel        = "Time stamp";
         const juce::String enterVelocity         = "Enter a new velocity for your notes";
         const juce::String velocitiesSuffix      = " velocities";
-        const juce::String velocityLabel         = "Velocity";
-        const juce::String valueSuffix           = " value:";
-        const juce::String propertyEditor        = "propertyEditor";
         const juce::String okButton              = "OK";
         const juce::String modifyTimeStampsTitle = "Modify time stamps";
         const juce::String modifyVelocitiesTitle = "Modify velocities";
@@ -27,8 +24,6 @@ namespace
         const juce::String nextLog               = " next: ";
     }
 
-    constexpr int dialogOk       = 1;   // the value dialog's OK / Cancel results
-    constexpr int dialogCancel   = 0;
     constexpr int firstSelection = 0;
 }
 
@@ -239,46 +234,61 @@ void TableContainer::showModifyChangeDialog(
     std::function<void(int)> onValidResults,
     bool isModify)
 {
+    // Which rows: the buttons given (Cancel wherever it sits is a dismissal) become the dialog's confirm (lit, the
+    // first) and its alternative (the second, if any).
+    auto askWhichRows = [this, messageAllSelected, messageNoSelection, buttonsWithSelection, buttonsWithoutSelection,
+                         onValidResults] (const juce::String& questionTitle)
+    {
+        const auto& buttons = anySelected() ? buttonsWithSelection : buttonsWithoutSelection;
+        std::vector<std::pair<juce::String, int>> actions;
+        for (int buttonIndex {}; buttonIndex < static_cast<int> (buttons.size()); ++buttonIndex)
+            if (buttons[static_cast<size_t> (buttonIndex)] != TableDialog::cancel)
+                actions.emplace_back (buttons[static_cast<size_t> (buttonIndex)],
+                                      TableDialog::resultIdFor (buttons[static_cast<size_t> (buttonIndex)], buttonIndex));
+        if (actions.empty())
+            return;
+
+        auto report = [this, onValidResults] (int result)
+        {
+            onValidResults (result);
+            onConfirmed();
+        };
+        const auto& primary = actions[TableDialog::primaryAction];
+        const bool hasAlternative = actions.size() > TableDialog::alternativeAction;
+        std::function<void()> onAlternative;
+        if (hasAlternative)
+            onAlternative = [report, resultId = actions[TableDialog::alternativeAction].second] { report (resultId); };
+        StageAlert::showChoice (questionTitle, anySelected() ? messageAllSelected : messageNoSelection,
+                                primary.first, hasAlternative ? actions[TableDialog::alternativeAction].first : juce::String(),
+                                [report, resultId = primary.second] { report (resultId); }, onAlternative, this);
+    };
+
 
     if (isModify)
     {
-       juce::String title = Text::modifyTitle, text, label;
+       juce::String title = Text::modifyTitle, text;
        int selectedID = actionModifyCB->getSelectedId();
 
        if (selectedID == ModifyActionIds::timeStamps)
        {
            text = Text::shiftTimeStamps;
            title += Text::timeStampsSuffix;
-           label = Text::timeStampLabel;
        }
        else if (selectedID == ModifyActionIds::velocities)
        {
            text = Text::enterVelocity;
            title += Text::velocitiesSuffix;
-           label = Text::velocityLabel;
        }
-       label += Text::valueSuffix;
 
-       auto* window = new juce::AlertWindow{ title, text, juce::AlertWindow::NoIcon };
-
-       window->addTextEditor(Text::propertyEditor, {}, label);
-
-       window->addButton(Text::okButton, dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
-       window->addButton(TableDialog::cancel, dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
-
-       window->enterModalState(true,
-           juce::ModalCallbackFunction::create([this, window, selectedID, title,messageAllSelected,messageNoSelection,buttonsWithSelection,buttonsWithoutSelection,onValidResults](int result)
+       // The value first; then, as without a value, which rows it applies to.
+       StageAlert::showInput (title, text, Text::okButton, {},
+           [this, selectedID, askWhichRows, title] (const juce::String& userValue)
                {
-                   std::unique_ptr<juce::AlertWindow> cleanup{ window };
-                   if (result != dialogOk)
-                       return;
-
-                   juce::String userValue = window->getTextEditor(Text::propertyEditor)->getText().trim();
                    if (selectedID == ModifyActionIds::timeStamps)
                    {
                        if (!Validator::isValidMidiDoubleString(userValue))
                        {
-                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::modifyTimeStampsTitle, Text::invalidInput);
+                           StageAlert::showMessage (Text::modifyTimeStampsTitle, Text::invalidInput);
                            return;
                        }
 
@@ -298,7 +308,7 @@ void TableContainer::showModifyChangeDialog(
 
                        if (!Validator::isValidMidiDoubleValueTimeStamps(doubleValue,timeStampCurrentNoteOn,timeStampPreviousNoteOn,timeStampNextNoteOn))
                        {
-                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::modifyTimeStampsTitle, Text::invalidValue);
+                           StageAlert::showMessage (Text::modifyTimeStampsTitle, Text::invalidValue);
                            return;
                        }
                        editorValue = doubleValue;
@@ -307,7 +317,7 @@ void TableContainer::showModifyChangeDialog(
                    {
                        if (!Validator::isValidMidiIntegerString(userValue))
                        {
-                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::modifyVelocitiesTitle, Text::invalidInput);
+                           StageAlert::showMessage (Text::modifyVelocitiesTitle, Text::invalidInput);
                            return;
                        }
 
@@ -315,52 +325,18 @@ void TableContainer::showModifyChangeDialog(
 
                        if (!Validator::isValidMidiIntValue(intValue))
                        {
-                           juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::modifyVelocitiesTitle, Text::invalidValue);
+                           StageAlert::showMessage (Text::modifyVelocitiesTitle, Text::invalidValue);
                            return;
                        }
 
                        editorValue = intValue;
                    }
 
-                   auto* alert = new juce::AlertWindow(title, anySelected() ? messageAllSelected : messageNoSelection, juce::AlertWindow::QuestionIcon);
-
-                   auto& buttons = anySelected() ? buttonsWithSelection : buttonsWithoutSelection;
-
-                   for (int buttonIndex {}; buttonIndex < buttons.size(); buttonIndex++)
-                       alert->addButton(buttons[buttonIndex], TableDialog::resultIdFor(buttons[buttonIndex], buttonIndex));
-
-                   alert->enterModalState(true,
-                       juce::ModalCallbackFunction::create([this, onValidResults](int result)
-                           {
-                               if (result == TableDialog::dismissed) return;
-                               onValidResults(result);
-                               onConfirmed();
-                           }),
-                       true);
-                   
-               }));
-       juce::MessageManager::callAsync([window]()
-           {
-               if (auto* editor = window->getTextEditor(Text::propertyEditor))
-                   editor->grabKeyboardFocus();
-           });
+                   askWhichRows (title);   // "Modify time stamps" / "Modify velocities", as before
+               }, this);
     }
     else
     {
-        auto* alert = new juce::AlertWindow(title, anySelected() ? messageAllSelected : messageNoSelection, juce::AlertWindow::QuestionIcon);
-
-        auto& buttons = anySelected() ? buttonsWithSelection : buttonsWithoutSelection;
-
-        for (int buttonIndex {}; buttonIndex < buttons.size(); buttonIndex++)
-            alert->addButton(buttons[buttonIndex], TableDialog::resultIdFor(buttons[buttonIndex], buttonIndex));
-
-        alert->enterModalState(true,
-            juce::ModalCallbackFunction::create([this, onValidResults](int result)
-                {
-                    if (result == TableDialog::dismissed) return;
-                    onValidResults(result);
-                    onConfirmed();
-                }),
-            true);
+        askWhichRows (title);
     }
 }

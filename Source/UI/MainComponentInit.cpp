@@ -187,7 +187,7 @@ void MainComponent::recordButtonsInit()
         saveRecordingButton.setVisible(true);
 
         if(result==nothingToPlay)
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::playRecordingTitle, Text::nothingToPlay);
+            StageAlert::showMessage (Text::playRecordingTitle, Text::nothingToPlay);
 
         if (result == playbackStarted)
             showStageMessage(Text::playbackStarted);
@@ -356,6 +356,8 @@ void MainComponent::keyBoardUIinit(int min, int max)
     noteLayer->setParticleStyle(particleStyleId);   // the stored style (Settings page), chosen before the layer existed
     midiHandler.addListener(noteLayer.get());
     addAndMakeVisible(noteLayer.get());
+    if (StageAlert::current() != nullptr)
+        keepNoteLayerUnderAlert();   // e.g. a device notice from the Play that made it
     layoutStage();   // keys and note area take their Stage regions
 
     this->keyboard.repaint();

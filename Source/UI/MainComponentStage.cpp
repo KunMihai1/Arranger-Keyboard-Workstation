@@ -639,6 +639,7 @@ void MainComponent::closeStagePage()
     {
         noteLayer->resetState();   // don't come back to frozen notes
         noteLayer->setVisible (noteLayerVisibleBeforePage);
+        keepNoteLayerUnderAlert();   // an alert opened meanwhile stays on top (no-op without one)
     }
 
     if (anyPageWasOpen)   // focus back to the play surface, so the PC keyboard plays again (P.13)

@@ -7,10 +7,7 @@ namespace
     {
         const juce::String enterKeyCountTitle   = "Enter Number of Keys";
         const juce::String enterKeyCount        = "Please enter how many keys this device has:";
-        const juce::String keysEditor           = "keys";
-        const juce::String keyCountLabel        = "Number of keys";
         const juce::String okButton             = "OK";
-        const juce::String cancelButton         = "Cancel";
         const juce::String digits               = "0123456789";
         const juce::String invalidInputTitle    = "Invalid Input";
         const juce::String invalidKeyCountInput = "Please enter a valid number of keys.";
@@ -25,8 +22,6 @@ namespace
     constexpr int firstChordMode    = 0;    // ChordMode values as stored
     constexpr int lastChordMode     = 2;
     constexpr int defaultProgram    = 0;
-    constexpr int dialogOk          = 1;
-    constexpr int dialogCancel      = 0;
 
     // The keyboard sizes the app knows (see the device database).
     namespace KeyboardSizes
@@ -406,6 +401,8 @@ void MainComponent::playButtonOnClick()
         else {
             keyboard.setVisible(true);
             this->noteLayer->setVisible(true);
+            if (StageAlert::current() != nullptr)
+                keepNoteLayerUnderAlert();   // an alert opened on the way here stays on top
         }
 
         if (MIDIDevice.isOpenAudioOUT())
@@ -459,56 +456,25 @@ void MainComponent::updateKeysButtonOnClick()
     juce::String PID = MIDIDevice.extractPID(identifier);
 
 
-    auto* window = new juce::AlertWindow(
-        Text::enterKeyCountTitle,
-        Text::enterKeyCount,
-        juce::AlertWindow::QuestionIcon
-    );
-
-    window->addTextEditor(Text::keysEditor, {}, Text::keyCountLabel);
-    window->addButton(Text::okButton, dialogOk, juce::KeyPress(juce::KeyPress::returnKey));
-    window->addButton(Text::cancelButton, dialogCancel, juce::KeyPress(juce::KeyPress::escapeKey));
-    window->enterModalState(
-        true, // make modal
-        juce::ModalCallbackFunction::create(
-            [this, VID, PID, selectedText, window](int result)
+    StageAlert::showInput (Text::enterKeyCountTitle, Text::enterKeyCount, Text::okButton, {},
+        [this, VID, PID] (const juce::String& keysStr)
             {
-                if (result == dialogCancel)
-                {
-                    delete window;
-                    return;
-                }
-
-                juce::String keysStr = window->getTextEditorContents(Text::keysEditor).trim();
-                delete window;
-
                 if (!keysStr.containsOnly(Text::digits))
                 {
-                    juce::AlertWindow::showMessageBoxAsync(
-                        juce::AlertWindow::WarningIcon,
-                        Text::invalidInputTitle,
-                        Text::invalidKeyCountInput);
+                    StageAlert::showMessage (Text::invalidInputTitle, Text::invalidKeyCountInput);
                     return;
                 }
 
                 int numKeys = keysStr.getIntValue();
                 if (numKeys != KeyboardSizes::keys49 && numKeys != KeyboardSizes::keys61 && numKeys != KeyboardSizes::keys76 && numKeys != KeyboardSizes::keys88)
                 {
-                    juce::AlertWindow::showMessageBoxAsync(
-                        juce::AlertWindow::WarningIcon,
-                        Text::invalidKeyCountTitle,
-                        Text::supportedKeyCounts);
+                    StageAlert::showMessage (Text::invalidKeyCountTitle, Text::supportedKeyCounts);
                     return;
                 }
 
                 dataBase.updateDeviceJson(VID, PID, {}, numKeys);
 
-                juce::AlertWindow::showMessageBoxAsync(
-                    juce::AlertWindow::InfoIcon,
-                    Text::successTitle,
-                    Text::deviceUpdated);
-            }
-        )
-    );
+                StageAlert::showMessage (Text::successTitle, Text::deviceUpdated);
+            });
 
 }

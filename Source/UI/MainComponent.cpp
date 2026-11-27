@@ -78,6 +78,7 @@ MainComponent::MainComponent()
 
     loginWindowInitialize();
     frontScreensInit();
+    alertsInit();
 
     openingAudioLabel.setText(Text::preparingSession, juce::dontSendNotification);
     openingAudioLabel.setJustificationType(juce::Justification::centred);
@@ -165,6 +166,7 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
+    StageAlert::closeAll();   // its dialogs sit in this window and call back into this component
     sfzManager.save(IOHelper::getFile(AppDataNames::sfzLibraryFile));
 
     if (this->MIDIDevice.isOpenIN())

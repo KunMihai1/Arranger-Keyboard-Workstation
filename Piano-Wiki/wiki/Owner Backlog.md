@@ -179,9 +179,12 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 - ✅ (2026-11-24, `TableDialog::resultIdFor`) Notes table (right-click a track → notes): with **no rows selected**, the reset/modify dialog shows
   "Change All" / "Cancel", but Cancel gets button id 2 = "selected", so Cancel runs the *selected* action on
   an empty selection and calls `onConfirmed()` (`TableContainer::showModifyChangeDialog`).
-- ⬜ Names check gaps: `MidiNotesTableModel.cpp:209` / `:231` compare `columnId` with bare `2` / `3`, and
-  `SoundEffectWindowComponent.cpp:498` has inline row names (`"TONE"`…); `check_named_values.py` misses
-  both shapes (found 2026-11-23 while designing the UI).
+- ✅ Names check gaps (re-checked 2026-11-28, nothing to fix): the bare `2` / `3` in `MidiNotesTableModel.cpp` sit in
+  commented-out code (the checker rightly skips comments), and the Effects page rewrite named the effect rows.
+- ✅ **Every `juce::AlertWindow` replaced** (`feat/stage-alerts`, 2026-11-28): 48 notices, 3 OK/Cancel questions and 3
+  hand-built boxes now go through `StageAlert` (page-look `StageDialog`s: OK-only notices, an alternative button
+  for Change All / Change selected). They cover the whole scene like the old modal boxes, hide the GL note layer
+  while open and give the keys back after.
 - ✅ (2026-11-24) Renaming a track from the track list doesn't focus the name box: `TrackListComponent::renameFromTrackList`
   looks up the editor "folderName" although its editor is "trackName" (seen in the Playback names cleanup).
 

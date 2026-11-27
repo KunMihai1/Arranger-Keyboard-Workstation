@@ -57,6 +57,8 @@
               file="../tests/unit/test_dust_field.cpp"/>
         <FILE id="pnlFnT" name="test_panel_finish.cpp" compile="1" resource="0"
               file="../tests/unit/test_panel_finish.cpp"/>
+        <FILE id="stgAlT" name="test_stage_alert.cpp" compile="1" resource="0"
+              file="../tests/unit/test_stage_alert.cpp"/>
         <FILE id="audRtT" name="test_audio_thread_realtime.cpp" compile="1" resource="0"
               file="../tests/unit/test_audio_thread_realtime.cpp"/>
         <FILE id="bkJsT" name="test_backend_json.cpp" compile="1" resource="0"
@@ -476,7 +478,11 @@
                 file="../Source/UI/Voices/VoicesInstrumentPanel.cpp"/>
           <FILE id="stgPwH" name="StagePageWidgets.h" compile="0" resource="0"
                 file="../Source/UI/Stage/StagePageWidgets.h"/>
-          <FILE id="stgDlC" name="StageDialog.cpp" compile="1" resource="0"
+          <FILE id="stgAlC" name="StageAlert.cpp" compile="1" resource="0"
+              file="../Source/UI/Stage/StageAlert.cpp"/>
+        <FILE id="stgAlH" name="StageAlert.h" compile="0" resource="0"
+              file="../Source/UI/Stage/StageAlert.h"/>
+        <FILE id="stgDlC" name="StageDialog.cpp" compile="1" resource="0"
                 file="../Source/UI/Stage/StageDialog.cpp"/>
           <FILE id="stgDlH" name="StageDialog.h" compile="0" resource="0"
                 file="../Source/UI/Stage/StageDialog.h"/>

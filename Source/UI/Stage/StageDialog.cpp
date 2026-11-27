@@ -62,6 +62,7 @@ StageDialog::StageDialog (StageDialogOptions dialogOptions, OnConfirm confirmCal
     : options (std::move (dialogOptions)), onConfirm (std::move (confirmCallback)),
       input ({}),
       cancelButton (StageDialogText::cancel, SegButton::Style::seg),
+      alternativeButton (options.alternativeText, SegButton::Style::seg),
       confirmButton (options.confirmText, SegButton::Style::lit)
 {
     setWantsKeyboardFocus (true);
@@ -73,7 +74,20 @@ StageDialog::StageDialog (StageDialogOptions dialogOptions, OnConfirm confirmCal
     input.setVisible (options.hasInput);
     cancelButton.onClick  = [this] { cancel(); };
     confirmButton.onClick = [this] { confirm(); };
-    addAndMakeVisible (cancelButton);
+    addChildComponent (cancelButton);
+    cancelButton.setVisible (options.hasCancel);
+    addChildComponent (alternativeButton);
+    alternativeButton.setVisible (options.alternativeText.isNotEmpty());
+    alternativeButton.onClick = [this]
+    {
+        if (! isVisible())
+            return;
+        setVisible (false);
+        if (onClosed)
+            onClosed();
+        if (onAlternative)
+            onAlternative();   // may delete what opened the dialog: touch nothing after this
+    };
     addAndMakeVisible (confirmButton);
 }
 
@@ -84,12 +98,19 @@ void StageDialog::showOver (juce::Component& anchor, float newScale)
     scale = newScale;
     input.setScale (scale);
     cancelButton.setScale (scale);
+    alternativeButton.setScale (scale);
     confirmButton.setScale (scale);
 
     auto* host = dynamic_cast<StagePageFrame*> (&anchor) != nullptr ? &anchor
                                                                      : anchor.findParentComponentOfClass<StagePageFrame>();
     if (host == nullptr)
+    {
         host = anchor.getTopLevelComponent();
+        // A window takes its children through its content component (JUCE asserts on direct children).
+        if (auto* window = dynamic_cast<juce::ResizableWindow*> (host))
+            if (auto* content = window->getContentComponent())
+                host = content;
+    }
 
     host->addAndMakeVisible (this);
     setBounds (host->getLocalBounds());
@@ -111,13 +132,23 @@ void StageDialog::confirm()
         return;
     const auto text = getText();
     setVisible (false);
+    if (onClosed)
+        onClosed();
     if (onConfirm)
         onConfirm (text);   // may delete what opened the dialog: touch nothing after this
 }
 
 void StageDialog::cancel()
 {
+    if (! options.hasCancel)
+    {
+        confirm();   // a notice: Esc or a click outside means "OK"
+        return;
+    }
+    const bool wasVisible = isVisible();
     setVisible (false);
+    if (wasVisible && onClosed)
+        onClosed();
 }
 
 bool StageDialog::hasInput() const { return options.hasInput; }
@@ -193,8 +224,10 @@ void StageDialog::resized()
     auto right = static_cast<float> (rects.buttonRow.getRight());
     const auto top = static_cast<float> (rects.buttonRow.getY());
     const auto height = static_cast<float> (rects.buttonRow.getHeight());
-    for (auto* button : { &confirmButton, &cancelButton })   // right to left, adjacent with a gap
+    for (auto* button : { &confirmButton, &alternativeButton, &cancelButton })   // right to left, adjacent with a gap
     {
+        if (! button->isVisible())
+            continue;
         const auto width = button->getExactWidth();
         button->setBounds (juce::Rectangle<float> (right - width, top, width, height).toNearestInt());
         right -= width + static_cast<float> (buttonGap) * scale;

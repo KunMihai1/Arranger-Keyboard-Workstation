@@ -30,6 +30,7 @@
 #include "PlaytimeTracker.h"
 #include "Stage/StagePanel.h"
 #include "Stage/StageHomePage.h"
+#include "Stage/StageAlert.h"
 #include "Stage/StagePageFrame.h"
 #include "Stage/StageScale.h"
 #include "Recorder/RecorderContent.h"
@@ -419,6 +420,10 @@ private:
     bool loadingOverlayActive = false;          ///< Loading label currently using the hide-note-layer path
     bool noteLayerVisibleBeforeLabel = false;   ///< Note-layer visibility to restore after the loading label
     bool noteLayerVisibleBeforeMenu = false;    ///< Note-layer visibility to restore after the ESC menu
+    bool noteLayerHiddenForAlert = false;       ///< a StageAlert hid the note layer (it would draw over the dialog)
+    juce::Component::SafePointer<juce::Component> focusBeforeAlert;   ///< gets the keys back when the alert closes
+    void alertsInit();                          ///< StageAlert's cover hooks (MainComponentFront.cpp)
+    void keepNoteLayerUnderAlert();             ///< hides the note layer while a StageAlert shows
     // UI buttons and toggles
     juce::TextButton settingsButton{ MainComponentText::settings };
     juce::TextButton midiButton{ MainComponentText::midiSettings };

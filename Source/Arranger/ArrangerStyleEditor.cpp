@@ -1,4 +1,5 @@
 #include "ArrangerStyleEditor.h"
+#include "Stage/StageAlert.h"
 #include "ArrangerSourceBuilder.h"
 #include "ArrangerDefaults.h"
 #include "ArrangerPatternBuilder.h"
@@ -28,7 +29,6 @@ namespace
         const juce::String replaceTracksEnd    = "\" with the current recording and overwrite the saved "
                                                  "configuration?\nYour sections (intros/variations/fills) stay as they are.";
         const juce::String updateButton        = "Update";
-        const juce::String cancelButton        = "Cancel";
         const juce::String noTracksToImport    = "No recorded tracks to import.";
         const juce::String updatingTracks      = "Updating tracks...";
         const juce::String failedToWrite       = "Failed to write ";
@@ -46,7 +46,6 @@ namespace
         const juce::String savedAs             = "Saved: ";
     }
 
-    constexpr int    dialogConfirmed       = 1;      // showOkCancelBox: 1 = OK button, 0 = Cancel
     constexpr int    comboIdOffset         = 1;      // ComboBox ids must be != 0: id = value + 1
     constexpr int    noItems               = 0;
     constexpr int    highestPitchClass     = 11;     // B
@@ -337,25 +336,24 @@ void ArrangerStyleEditor::updateTracksFromRecording()
     // sections (Intro/Variation/Fill/...) exactly as they are, then overwrite the saved .style.
     if (! loadedFile.existsAsFile())
     {
-        juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon, Text::updateTracksTitle, Text::saveFirst);
+        StageAlert::showMessage (Text::updateTracksTitle, Text::saveFirst);
         return;
     }
     if (! onRequestCurrentTracks)
         return;
 
-    juce::AlertWindow::showOkCancelBox (juce::AlertWindow::WarningIcon,
-        Text::updateTracksTitle,
-        Text::replaceTracksStart + name + Text::replaceTracksEnd,
-        Text::updateButton, Text::cancelButton, this,
-        juce::ModalCallbackFunction::create ([this] (int result)
+    const juce::Component::SafePointer<ArrangerStyleEditor> safeEditor (this);   // the editor may be replaced meanwhile
+    StageAlert::showQuestion (Text::updateTracksTitle,
+            Text::replaceTracksStart + name + Text::replaceTracksEnd,
+            Text::updateButton,
+            [this, safeEditor]
         {
-            if (result != dialogConfirmed)   // 1 = Update, 0 = Cancel
+            if (safeEditor == nullptr)
                 return;
-
             auto rawTracks = onRequestCurrentTracks();   // raw entries (with sequences), copied on the message thread
             if (rawTracks.empty())
             {
-                juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon, Text::updateTracksTitle, Text::noTracksToImport);
+                StageAlert::showMessage (Text::updateTracksTitle, Text::noTracksToImport);
                 return;
             }
 
@@ -389,8 +387,7 @@ void ArrangerStyleEditor::updateTracksFromRecording()
                     safe->setBusy (false);
                     if (! written)
                     {
-                        juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon,
-                            Text::updateTracksTitle, Text::failedToWrite + target.getFullPathName());
+                        StageAlert::showMessage (Text::updateTracksTitle, Text::failedToWrite + target.getFullPathName());
                         return;
                     }
                     safe->sourceTracks = std::move (*applied);
@@ -404,11 +401,10 @@ void ArrangerStyleEditor::updateTracksFromRecording()
                     safe->layoutTimeline();
                     safe->rebuildPreview();
                     if (safe->onSaved) safe->onSaved (target, safe->buildStyle());
-                    juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon,
-                        Text::updateTracksTitle, Text::tracksUpdated + target.getFileName());
+                    StageAlert::showMessage (Text::updateTracksTitle, Text::tracksUpdated + target.getFileName());
                 });
             });
-        }));
+        }, this);
 }
 
 void ArrangerStyleEditor::renumberSectionsByType()
@@ -430,7 +426,7 @@ void ArrangerStyleEditor::removeSelectedSection()
     const int selected = timeline.getSelectedIndex();
     if (selected < int {} || selected >= (int) windows.size())
     {
-        juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon, Text::removeSectionTitle, Text::selectSectionFirst);
+        StageAlert::showMessage (Text::removeSectionTitle, Text::selectSectionFirst);
         return;
     }
 
@@ -454,15 +450,15 @@ void ArrangerStyleEditor::requestSave()
     // A *different* existing config would be clobbered: confirm before overwriting it.
     if (target.existsAsFile() && target != loadedFile)
     {
-        juce::AlertWindow::showOkCancelBox (juce::AlertWindow::WarningIcon,
-            Text::saveTitle,
+        const juce::Component::SafePointer<ArrangerStyleEditor> safeEditor (this);
+        StageAlert::showQuestion (Text::saveTitle,
             Text::overwriteStart + target.getFileNameWithoutExtension() + Text::overwriteEnd,
-            Text::overwriteButton, Text::cancelButton, this,
-            juce::ModalCallbackFunction::create ([this, target] (int result)
+            Text::overwriteButton,
+            [safeEditor, target]
             {
-                if (result == dialogConfirmed)            // 1 = Overwrite, 0 = Cancel
-                    finishSave (target);
-            }));
+                if (safeEditor != nullptr)
+                    safeEditor->finishSave (target);
+            }, this);
         return;
     }
 
@@ -495,15 +491,13 @@ void ArrangerStyleEditor::finishSave (const juce::File& target)
             safe->setBusy (false);
             if (! written)
             {
-                juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon,
-                    Text::saveTitle, Text::failedToWrite + target.getFullPathName());
+                StageAlert::showMessage (Text::saveTitle, Text::failedToWrite + target.getFullPathName());
                 return;
             }
             safe->loadedFile = target;
             safe->updateTracksBtn.setEnabled (true);   // there is now a file to update
             if (safe->onSaved) safe->onSaved (target, safe->buildStyle());
-            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon,
-                Text::saveTitle, (willRename ? Text::renamedTo : Text::savedAs) + target.getFileName());
+            StageAlert::showMessage (Text::saveTitle, (willRename ? Text::renamedTo : Text::savedAs) + target.getFileName());
         });
     });
 }

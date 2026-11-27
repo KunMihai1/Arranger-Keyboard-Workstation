@@ -9,6 +9,7 @@
 */
 
 #include "addDeviceWindow.h"
+#include "Stage/StageAlert.h"
 
 namespace
 {
@@ -71,11 +72,7 @@ AddDeviceWindow::AddDeviceWindow(const juce::String& vid, const juce::String& pi
                 onAddDevice(name, keys);
             if (!testing)
             {
-                juce::AlertWindow::showMessageBoxAsync(
-                    juce::AlertWindow::InfoIcon,
-                    Text::addedTitle,
-                    Text::addedStart + name + Text::addedWith + juce::String(keys) + Text::addedEnd
-                );
+                StageAlert::showMessage (Text::addedTitle, Text::addedStart + name + Text::addedWith + juce::String(keys) + Text::addedEnd);
             }
             
 
@@ -85,11 +82,7 @@ AddDeviceWindow::AddDeviceWindow(const juce::String& vid, const juce::String& pi
         {
             if (!testing)
             {
-                juce::AlertWindow::showMessageBoxAsync(
-                    juce::AlertWindow::WarningIcon,
-                    Text::invalidTitle,
-                    Text::invalidMessage
-                );
+                StageAlert::showMessage (Text::invalidTitle, Text::invalidMessage, this);   // in this window: it stays open
             }
         }
     };
