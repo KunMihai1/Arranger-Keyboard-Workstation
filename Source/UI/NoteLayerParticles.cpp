@@ -141,7 +141,8 @@ std::pair<const char*, const char*> NoteLayer::sparksShader()
         "    vColour = colour;\n"
         "}\n";
 
-    // A glowing spark: a soft halo, and a core that is white-hot while the spark is young (alpha = life left).
+    // A glowing spark, the preview's profile (owner picked it there): a bright core over the inner quarter of the
+    // radius, white-hot while the spark is young (alpha = life left), then a halo fading evenly to the edge.
     const char* sparksFragment =
         "#ifdef GL_ES\n"
         "precision mediump float;\n"
@@ -149,10 +150,10 @@ std::pair<const char*, const char*> NoteLayer::sparksShader()
         "varying vec4 vColour;\n"
         "void main()\n"
         "{\n"
-        "    float dist = distance(gl_PointCoord.xy, vec2(0.5, 0.5));\n"
-        "    float glow = exp(-dist * dist * 14.0);\n"
-        "    float core = 1.0 - smoothstep(0.0, 0.2, dist);\n"
-        "    vec3 colour = mix(vColour.rgb, vec3(1.0), core * vColour.a);\n"
+        "    float r = min(1.0, distance(gl_PointCoord.xy, vec2(0.5, 0.5)) * 2.0);\n"
+        "    float glow = r < 0.25 ? mix(1.0, 0.85, r / 0.25) : 0.85 * (1.0 - r) / 0.75;\n"
+        "    float core = 1.0 - smoothstep(0.0, 0.25, r);\n"
+        "    vec3 colour = mix(vColour.rgb, vec3(1.0, 0.98, 0.92), core * vColour.a);\n"
         "    gl_FragColor = vec4(colour, glow * vColour.a);\n"
         "}\n";
 
@@ -214,7 +215,7 @@ std::pair<const char*, const char*> NoteLayer::wispsShader()
         "void main()\n"
         "{\n"
         "    float dist = distance(gl_PointCoord.xy, vec2(0.5, 0.5));\n"
-        "    float glow = exp(-dist * dist * 16.0);\n"
+        "    float glow = 1.0 - smoothstep(0.15, 0.5, dist);\n"
         "    gl_FragColor = vec4(vColour.rgb, glow * vColour.a);\n"
         "}\n";
 

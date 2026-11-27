@@ -70,13 +70,13 @@ namespace
         constexpr float secondPhase    = 2.0f;
         constexpr float lifeMin        = 1.6f;
         constexpr float lifeSpan       = 0.6f;
-        constexpr float size           = 5.0f;
+        constexpr float size           = 6.0f;
         constexpr float alpha          = 0.7f;
         constexpr float lighten        = 0.35f;   // toward white, so the trail reads as light in any colour
         constexpr int   trail          = 110;
         constexpr float trailStep      = 0.006f;  // seconds: dense enough that the points read as one line
         constexpr float thinnest       = 0.3f;    // the trail's tail is this much of the head's size
-        constexpr float overlap        = 0.45f;   // neighbouring points overlap, so each adds less light
+        constexpr float overlap        = 0.6f;    // neighbouring points overlap, so each adds less light
     }
 
     float between (juce::Random& random, float lowest, float span) { return lowest + random.nextFloat() * span; }
