@@ -13,6 +13,18 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-27 — "Play" on the piano picture: same spot at any window shape, never cut (`fix/home-play-button`)
+- Owner: "The play text on top of the piano photo is a bit trimmed and has to be in the same place for every type
+  of width height of screen". The picture covers the window (scaled to fill, centred, cropped) but the button sat at
+  fractions of the window, so on other shapes it drifted off the piano; its 40 px bold text was taller than the room
+  JUCE's `drawButtonText` leaves (box height − 2 × min (4, 0.3 h): 37 px at 1080).
+- New pure `HomeLayout` (`coverRect`, shared with `paint`; `playButton` at fractions of the picture, centred where it
+  sat at 16:9, kept inside the window; `playTextHeight` from that room). Review (Sonnet): the text-fit test only
+  restated the formula — now measured on a real `TextButton` and the real glyphs of "Play"; a picture that failed to
+  load would divide by zero — falls back to the window (test failed first).
+- Unit 3356 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped). Checked live at 1920×1029, 1280×1024,
+  1100×600, 800×900. Seen in passing: the login card is not centred on small windows (sign-in redesign, later).
+
 ## 2026-11-27 — Split moved by an octave with the PC keyboard (`fix/split-octave-shift`)
 - Track / Quick FX / label fixes merged (PR #70). Correction to the incident below it: the owner runs the app on a
   different PC; the restores only reset test data on the agent's machine.
