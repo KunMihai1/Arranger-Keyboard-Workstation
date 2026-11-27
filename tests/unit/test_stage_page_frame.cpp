@@ -60,6 +60,12 @@ namespace StagePageFrameTestValues
     constexpr float smallestScale   = 0.4f;
     constexpr float largestScale    = 2.0f;
     constexpr float scaleStep       = 0.01f;
+
+    const juce::String shortRuleHidden  = "a title rule squeezed shorter than the minimum is not drawn (seen: a stray dash on Sections)";
+    const juce::String sectionsTitle    = "Sections";
+    const juce::String sectionsSubtitle = "Style 1 - cut sections out of your recording";
+    constexpr float    squeezedRule     = 6.0f;
+    constexpr float    roomyRule        = 200.0f;
 }
 
 class StagePageFrameTest : public juce::UnitTest
@@ -164,6 +170,31 @@ public:
                     ++clippedScales;
             }
             expectEquals (clippedScales, int {});
+        }
+
+        beginTest (shortRuleHidden);
+        {
+            // The rule runs from a gap after the subtitle to a gap before the first action. Squeezed to a few px
+            // (Sections, while previewing) it read as a stray dash: below the minimum it is not drawn.
+            auto ruleFor = [] (float wantedLength)
+            {
+                StagePageFrame frame { sectionsTitle };
+                frame.setSubtitle (sectionsSubtitle);
+                juce::Component action;
+                frame.setActions ({ &action });
+                frame.setScale (referenceScale);
+                frame.setSize (boardWidth, boardPageHeight);
+                const float gap = static_cast<float> (StageMetrics::pageRowGap);
+                const float ruleLeft = frame.getSubtitleBounds().getRight() + gap;
+                const float exitLeft = static_cast<float> (frame.getExitButton().getX());
+                action.setSize (juce::roundToInt (exitLeft - gap - (ruleLeft + wantedLength + gap)), boardRowHeight);
+                frame.setActions ({ &action });
+                return frame.getRuleBounds();
+            };
+            expect (ruleFor (squeezedRule).isEmpty());
+            const auto roomy = ruleFor (roomyRule);
+            expect (! roomy.isEmpty());
+            expectWithinAbsoluteError (roomy.getWidth(), roomyRule, static_cast<float> (positionTolerance));
         }
 
         beginTest (contentLikeBoard);

@@ -7,7 +7,7 @@
 #include <functional>
 
 /** The Sections editor's lanes (board PageSections): a bar ruler, one lane per recorded track with its notes
-    (read-only density), and the draggable / resizable section windows over them. Holds a copy of the windows;
+    (read-only, by pitch), and the draggable / resizable section windows over them. Holds a copy of the windows;
     emits a callback whenever they change. Knows nothing about files or the engine. */
 class ArrangerTimelineComponent : public juce::Component, public juce::TooltipClient
 {
@@ -22,7 +22,7 @@ public:
     void setWindows (const std::vector<SectionWindow>& windows);
     const std::vector<SectionWindow>& getWindows() const { return windows; }
 
-    /** The recorded tracks drawn in the lanes (their notes per beat), at `beatsPerBar` beats a bar. */
+    /** The recorded tracks drawn in the lanes (each note as a bar, by pitch), at `beatsPerBar` beats a bar. */
     void setSourceTracks (const std::vector<SourceTrackFile>& tracks, double beatsPerBar);
     int  getLaneCount() const;
 
@@ -64,8 +64,8 @@ private:
     float  scale       = SectionLaneMetrics::referenceScale;
     int    zoomLevel   = SectionLanes::defaultZoomLevel;
 
-    std::vector<std::vector<int>> laneDensity;   // note-ons per beat, per recorded track
-    std::vector<int> laneBusiest;                 // each track's busiest beat
+    std::vector<std::vector<SectionLanes::LaneNote>> laneNotes;   // per recorded track, in start order
+    std::vector<SectionLanes::PitchRange> lanePitches;             // each track's lowest and highest pitch
     double beatsPerBar = ArrangerStyleDefaults::beatsPerBar;
 
     int  selectedIndex = ArrangerStyleDefaults::noIndex;

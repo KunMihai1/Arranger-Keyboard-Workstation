@@ -52,7 +52,7 @@ ArrangerStyleListComponent::ArrangerStyleListComponent()
         juce::AlertWindow::showOkCancelBox (juce::AlertWindow::WarningIcon,
             deleteTitle,
             deleteQuestionStart + file.getFileNameWithoutExtension() + deleteQuestionEnd,
-            confirmDelete, cancelDelete, this,
+            confirmDelete, cancelDelete, getTopLevelComponent(),   // centred on the window, not the small list
             juce::ModalCallbackFunction::create ([this, file] (int result)
             {
                 if (result != deleteConfirmed) return;

@@ -36,6 +36,8 @@ namespace StylePageText
     inline const char* const  slotSeparatorUtf8 = " \xc2\xb7 slot ";   // "Choose track · slot 3"
     inline const juce::String tracks        = "Tracks";
     inline const juce::String openAStyle    = "Open a style on the left";
+    inline const juce::String sectionsTitle = "Sections";
+    inline const char* const  sectionsSubtitleUtf8 = " \xc2\xb7 cut sections out of your recording";   // "<style> · cut …"
 }
 
 /** The Style page's two columns: the styles list and the tracks area (board: 230, gap 24, the rest). */
@@ -107,6 +109,10 @@ public:
     void showView(StyleView view);
     /** Back to the style from the track picker, notes or style settings (they are destroyed). */
     void closeSubView();
+    /** Leaves a sub-view outright (the Sections view closes its editor too); closeSubView steps back. */
+    void leaveSubView();
+    /** True while the Sections view is open: live Start / section buttons wait (it previews on the engine). */
+    bool isAuthoringSections() const;
     /** The Styles page closed: forget any sub-view. */
     void resetView();
     /** The "Choose instrument - Slot N" sub-page; a pick reports the GM program, then the Style page returns. */
@@ -160,9 +166,6 @@ public:
     void setArrangerMinorScale(MinorScaleChoice choice);  // Phase 7a: curated minor scale for NTT
     void setArrangerSynchroStart(bool enabled);   // Phase 6: start the groove on the first chord
     void setArrangerCountIn(bool enabled);        // Phase 6b: one metronome bar before the groove
-
-    /** Forwarded from the style component: true while an authoring overlay is shown (host hides the GL note layer). */
-    std::function<void(bool)> onArrangerOverlayVisible;
 
     /** Forwarded from the style component: asks the host to return keyboard focus to the play surface after Start. */
     std::function<void()> onRequestPlayFocus;

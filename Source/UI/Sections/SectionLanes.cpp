@@ -1,15 +1,15 @@
 #include "SectionLanes.h"
+#include <deque>
+#include <map>
 
 namespace
 {
     constexpr int   firstBar        = 1;
     constexpr int   oneBar          = 1;
     constexpr int   noLanes         = 0;
-    constexpr int   noNotes         = 0;
     constexpr int   smallestWidth   = 1;
-    constexpr float clear           = 0.0f;
-    constexpr float faintestNote    = 0.35f;   // one note in a busy track still shows
-    constexpr float fullyLit        = 1.0f;
+    constexpr float middle          = 0.5f;   // a one-pitch track sits mid-lane
+    constexpr float fullTravel      = 1.0f;
     constexpr float zoomFactors[]   = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };   // index 3 = today's 56 px
 
     const char* const labelSeparatorUtf8 = " \xc2\xb7 ";   // " · "
@@ -41,30 +41,80 @@ namespace SectionLanes
         return scaled (rulerHeight + juce::jmax (noLanes, laneTotal) * laneHeight, scale);
     }
 
-    std::vector<int> beatDensity (const std::vector<TimedBeatEvent>& events, int totalBeats)
+    std::vector<LaneNote> laneNotes (const std::vector<TimedBeatEvent>& events)
     {
-        std::vector<int> density (static_cast<size_t> (juce::jmax (int {}, totalBeats)), noNotes);
+        std::vector<LaneNote> notes;
+        std::map<std::pair<int, int>, std::deque<size_t>> sounding;   // (channel, pitch) -> its unreleased notes, oldest first
+        double lastBeat {};
         for (const auto& event : events)
         {
-            if (! event.message.isNoteOn())
-                continue;
-            const int beat = static_cast<int> (std::floor (event.beats));
-            if (juce::isPositiveAndBelow (beat, totalBeats))
-                ++density[static_cast<size_t> (beat)];
+            lastBeat = juce::jmax (lastBeat, event.beats);
+            const auto key = std::make_pair (event.message.getChannel(), event.message.getNoteNumber());
+            if (event.message.isNoteOn())
+            {
+                sounding[key].push_back (notes.size());
+                notes.push_back ({ event.beats, {}, event.message.getNoteNumber() });
+            }
+            else if (event.message.isNoteOff (true))   // velocity-0 note-ons count as releases
+            {
+                auto& open = sounding[key];
+                if (open.empty())
+                    continue;
+                auto& note = notes[open.front()];
+                note.lengthBeats = juce::jmax (double {}, event.beats - note.startBeat);
+                open.pop_front();
+            }
         }
-        return density;
+        for (auto& [key, open] : sounding)
+            for (const auto index : open)
+                notes[index].lengthBeats = juce::jmax (double {}, lastBeat - notes[index].startBeat);   // held to the end
+
+        std::stable_sort (notes.begin(), notes.end(), [] (const LaneNote& left, const LaneNote& right) { return left.startBeat < right.startBeat; });
+        return notes;
     }
 
-    float densityAlpha (int notes, int busiestBeat)
+    PitchRange pitchRange (const std::vector<LaneNote>& notes)
     {
-        if (notes <= noNotes || busiestBeat <= noNotes)
-            return clear;
-        const float share = static_cast<float> (juce::jmin (notes, busiestBeat)) / static_cast<float> (busiestBeat);
-        return faintestNote + (fullyLit - faintestNote) * share;
+        if (notes.empty())
+            return {};
+        PitchRange range { notes.front().pitch, notes.front().pitch };
+        for (const auto& note : notes)
+        {
+            range.low  = juce::jmin (range.low, note.pitch);
+            range.high = juce::jmax (range.high, note.pitch);
+        }
+        return range;
+    }
+
+    float noteTop (int pitch, PitchRange range, juce::Rectangle<int> lane, float scale)
+    {
+        using namespace SectionLaneMetrics;
+        const float bandTop = static_cast<float> (lane.getY()) + noteInsetY * scale;
+        const float travel  = static_cast<float> (noteHeight - noteThickness) * scale;   // from the top note to the bottom one
+        if (range.high <= range.low)
+            return bandTop + travel * middle;
+        const float height = static_cast<float> (juce::jlimit (range.low, range.high, pitch) - range.low) / static_cast<float> (range.high - range.low);
+        return bandTop + travel * (fullTravel - height);
     }
 
     bool isStrongBarLine (int bar) { return (bar - firstBar) % SectionLaneMetrics::strongLineEvery == int {}; }
     bool showsBarNumber (int bar)  { return (bar - firstBar) % SectionLaneMetrics::numberEvery == int {}; }
+
+    int labelStart (juce::Range<int> window, const std::vector<juce::Range<int>>& above)
+    {
+        int start = window.getStart();
+        for (bool moved = true; moved && start < window.getEnd();)
+        {
+            moved = false;
+            for (const auto& cover : above)
+                if (cover.contains (start))
+                {
+                    start = cover.getEnd();   // past this cover; look again, another may begin there
+                    moved = true;
+                }
+        }
+        return start;
+    }
 
     juce::String windowLabel (const juce::String& name, int lengthBars)
     {

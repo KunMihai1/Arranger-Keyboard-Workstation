@@ -185,8 +185,7 @@ void CurrentStyleComponent::resized()
                                                                 stripWidth, stripHigh).toNearestInt());
     }
 
-    // Phase 3 authoring overlays are parented to the top-level window (full screen),
-    // so they are sized in presentOverlay(), not here.
+    // The Sections view (list + editor) lives in the Style page; Display sizes it.
 }
 
 void CurrentStyleComponent::paint(juce::Graphics& g)

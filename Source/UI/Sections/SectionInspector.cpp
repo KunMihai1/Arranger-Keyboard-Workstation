@@ -154,7 +154,8 @@ juce::Rectangle<int> SectionInspector::arrowBounds (InspectorArrow arrow) const
         case startRow: value = juce::String (section->startBar); break;
         default:       value = SectionEditModel::lengthText (section->lengthBars); break;
     }
-    const auto valueWidth = juce::roundToInt (juce::GlyphArrangement::getStringWidth (font, value));
+    // Rounded up: drawText drops a glyph that ends past its box by even a fraction ("16 bars" lost its "s").
+    const auto valueWidth = static_cast<int> (std::ceil (juce::GlyphArrangement::getStringWidth (font, value)));
     return row.withLeft (row.getRight() - arrowWidth - valueWidth - arrowWidth).withWidth (arrowWidth);
 }
 

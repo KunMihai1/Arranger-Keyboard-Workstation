@@ -2,6 +2,7 @@
 #include "UI/Sections/SectionEditModel.h"
 #include "UI/Sections/SectionInspector.h"
 #include "UI/Sections/SectionJumpPads.h"
+#include "UI/Stage/StageFonts.h"
 
 /*  The Sections page's inspector (board PageSections): today a section could only be moved or resized by
     dragging; the inspector's arrows make the same edits, clamped the same way, and change the type and what
@@ -26,6 +27,7 @@ namespace SectionEditModelTestValues
     const juce::String afterButtonsShow      = "the When it ends button of the section's value is lit, and a press reports its value";
     const juce::String padsReport            = "pads sit left to right after Jump; a click on one reports it, elsewhere nothing";
     const juce::String padLedFollows         = "the playing pad's LED: a section index, or none when out of range";
+    const juce::String valuesFitArrows       = "a value between its arrows is never cut: the gap holds its measured width at any scale";
     const juce::String introPad              = "INTRO 1";
     const juce::String varPad                = "VAR 1";
     const juce::String fillPad               = "FILL 1";
@@ -62,6 +64,10 @@ namespace SectionEditModelTestValues
     constexpr int padsWidth      = 600;
     constexpr int padsHeight     = 44;
     constexpr int noPadClicked   = -1;
+    constexpr float inspectorTextSize = 13.0f;   // the board's LCD rows (SectionInspector)
+    constexpr int   longestLength     = 32;
+    constexpr size_t scaleCount       = 6;
+    const std::array<float, scaleCount> scales { 1.0f, 1.2f, 1.37f, 1.5f, 1.6f, 2.0f };
 
     SectionWindow window (ArrangerSectionType type, const juce::String& name, int startBar, int lengthBars)
     {
@@ -239,6 +245,27 @@ public:
             expectEquals (pads.getPlayingIndex(), second);
             pads.setPlayingIndex (missing);
             expectEquals (pads.getPlayingIndex(), SectionJumpPadValues::noPad);
+        }
+
+        beginTest (valuesFitArrows);
+        for (const auto scale : scales)
+        {
+            SectionInspector inspector;
+            inspector.setScale (scale);
+            inspector.setBounds (int {}, int {}, juce::roundToInt (inspectorWidth * scale), juce::roundToInt (inspectorHeight * scale));
+            const auto font = StageFonts::lcd (inspectorTextSize * scale);
+            for (int length = lengthOne; length <= longestLength; ++length)
+            {
+                inspector.setSection (window (ArrangerSectionType::Variation, variation1, length, length));
+                const auto lengthGap = inspector.arrowBounds (InspectorArrow::lengthLonger).getX()
+                                     - inspector.arrowBounds (InspectorArrow::lengthShorter).getRight();
+                const auto startGap  = inspector.arrowBounds (InspectorArrow::startLater).getX()
+                                     - inspector.arrowBounds (InspectorArrow::startEarlier).getRight();
+                expectGreaterOrEqual (static_cast<float> (lengthGap),
+                                      juce::GlyphArrangement::getStringWidth (font, SectionEditModel::lengthText (length)));
+                expectGreaterOrEqual (static_cast<float> (startGap),
+                                      juce::GlyphArrangement::getStringWidth (font, juce::String (length)));
+            }
         }
     }
 };

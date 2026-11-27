@@ -5,6 +5,7 @@
 #include "Arranger/ArrangerEngine.h"
 #include "Arranger/ArrangerStyleEditor.h"
 #include "Arranger/ArrangerStyleListComponent.h"
+#include "UI/Sections/SectionsView.h"
 #include "TrackPlayerListener.h"
 #include "StyleSection.h"
 #include "CustomBeatBar.h"
@@ -74,9 +75,17 @@ public:
     /** @brief Callback triggered when switching to the keybinds tab. */
     std::function<void()> keybindTabStarting;
 
-    /** Fired true when an authoring overlay (style browser/editor) is shown, false when it fully
-        closes. The host hides the OpenGL note layer while true (it would punch through the overlay). */
-    std::function<void(bool)> onAuthoringOverlayVisible;
+    /** The Sections view (spec 2026-11-27 sections v2): the configurations list and the editor, shown in the
+        Style page by the host (Display). Show it / leave it; its title-row controls changed. */
+    std::function<void()> onShowSections, onLeaveSections, onSectionsActionsChanged;
+    SectionsView& getSectionsView() { return sectionsView; }
+    /** Exit on the Sections view: closes the editor first (true; also true while a save runs, which blocks Exit),
+        false when only the list is open (the view may go). */
+    bool sectionsExitStep();
+    /** The Sections view goes away (page closed, Home, another style): stop the preview and drop the editor. */
+    void closeSections();
+    /** True while the Sections view is open: live Start / sections wait until it is closed (it previews). */
+    bool isAuthoringSections() const { return sectionsOpen; }
 
     /** Asks the host to return keyboard focus to the play surface (so the PC keyboard keeps
         playing). Fired after Start, since starting the arranger rebuilds the scene and can leave
@@ -365,7 +374,9 @@ private:
 
     // --- Phase 3: self-contained style authoring (opened from the play-settings dropdown) ---
     ArrangerStyleListComponent arrangerStyleList;                ///< Full-bounds browser of saved *.style files.
-    std::unique_ptr<ArrangerStyleEditor> arrangerStyleEditor;    ///< Full-bounds authoring overlay (lazy).
+    std::unique_ptr<ArrangerStyleEditor> arrangerStyleEditor;    ///< The configuration being edited (lazy).
+    SectionsView  sectionsView { arrangerStyleList };            ///< Hosts the list and the editor in the Style page.
+    bool          sectionsOpen = false;
 
     bool          hasActiveArrangerConfig = false;              ///< When set, Start + section buttons use activeArrangerConfig.
     ArrangerStyle activeArrangerConfig;                         ///< The loaded/saved configuration in effect (vs. a demo from live tracks).
@@ -387,7 +398,7 @@ private:
     void openStyleEditorNew();
     void openStyleEditorFromFile (const juce::File& styleFile);
     void loadStyleFileIntoEngine (const juce::File& styleFile);
-    /** Wire the standard editor callbacks (close / current-tracks / saved) onto arrangerStyleEditor. */
+    /** Wire the standard editor callbacks (current-tracks / saved / title row) onto arrangerStyleEditor. */
     void configureEditorCallbacks();
     /** Make a loaded/built style the active arranger configuration and refresh the UI selection. */
     void applyActiveConfig (const juce::File& styleFile, const ArrangerStyle& style);
@@ -399,8 +410,12 @@ private:
     void closeStyleEditor();
     /** Re-point the engine's elapsed-beats callback at our beat bar (the editor hijacks it). */
     void restoreEngineBeatBar();
-    /** Parent an authoring overlay to the top-level window so it fills the whole screen. */
-    void presentOverlay (juce::Component& overlay);
+    /** Authoring is a separate mode from live performance and shares the one ArrangerEngine: stop live playback. */
+    void stopLivePlayback();
+    /** Stop the preview and take the editor off the Sections view (before a new one, or on close). */
+    void dropEditor();
+    /** Show `arrangerStyleEditor` (just created) in the Sections view. */
+    void showEditorInSections();
     std::unordered_map<juce::Uuid, TrackEntry*>& mapUuidToTrackEntry; ///< Global map of all track entries.
     Track* lastSelectedTrack = nullptr;                     ///< Last track selected by the user.
     std::weak_ptr<std::vector<StyleSection>> sections;

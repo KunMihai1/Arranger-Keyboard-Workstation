@@ -16,9 +16,10 @@ namespace SectionLaneMetrics
     inline constexpr int   minimumLanes    = 8;    // a style has eight track slots: empty ones still show
     inline constexpr int   headerWidth     = 132;  // track name + transpose button, left of the lanes
     inline constexpr int   headerPaddingX  = 8;
-    inline constexpr int   noteInsetY      = 5;    // a note cell inside its lane
-    inline constexpr int   noteHeight      = 12;
-    inline constexpr int   noteGap         = 1;    // between two beats' cells
+    inline constexpr int   noteInsetY      = 5;    // the note band inside its lane
+    inline constexpr int   noteHeight      = 12;   // the note band's height: pitches spread over it
+    inline constexpr int   noteThickness   = 3;    // one note's bar
+    inline constexpr int   noteGap         = 1;    // a note's bar ends this much before its release
     inline constexpr int   barNumberInsetX = 3;
     inline constexpr int   barNumberTop    = 2;
     inline constexpr float barNumberSize   = 10.0f;
@@ -47,14 +48,36 @@ namespace SectionLanes
     /** The whole lanes area's height: the ruler and every lane. */
     int contentHeight (int laneTotal, float scale);
 
-    /** Note-ons per beat over `totalBeats` beats (events past the end are dropped). */
-    std::vector<int> beatDensity (const std::vector<TimedBeatEvent>& events, int totalBeats);
+    /** One recorded note as the lane draws it: where it starts, how long it sounds (beats) and its pitch. */
+    struct LaneNote
+    {
+        double startBeat {};
+        double lengthBeats {};
+        int    pitch {};
+    };
 
-    /** A beat cell's opacity: 0 for an empty beat, rising with the notes in it up to the busiest beat. */
-    float densityAlpha (int notes, int busiestBeat);
+    /** The track's notes, in start order: each note-on paired with its release (note-off or velocity 0, same
+        channel and pitch, first in first out); a note never released lasts to the track's last event. */
+    std::vector<LaneNote> laneNotes (const std::vector<TimedBeatEvent>& events);
+
+    struct PitchRange
+    {
+        int low {};
+        int high {};
+    };
+    /** The lowest and highest pitch among `notes` (both 0 when there are none). */
+    PitchRange pitchRange (const std::vector<LaneNote>& notes);
+
+    /** The top of a note's bar in `lane`: the range's lowest pitch at the bottom of the note band, its
+        highest at the top, a one-pitch range in the middle. */
+    float noteTop (int pitch, PitchRange range, juce::Rectangle<int> lane, float scale);
 
     bool isStrongBarLine (int bar);   ///< bars 1, 5, 9, …
     bool showsBarNumber (int bar);    ///< bars 1, 3, 5, …
+
+    /** Where a window's label starts: its left edge, or past the windows drawn over that spot (`above`, as x
+        ranges), so a partly covered window still shows its whole label. At or past the window's end: none. */
+    int labelStart (juce::Range<int> window, const std::vector<juce::Range<int>>& above);
 
     /** A window's label: "Var 1 · 8 bars", "Fill 1 · 1 bar". */
     juce::String windowLabel (const juce::String& name, int lengthBars);

@@ -14,9 +14,14 @@ namespace SectionLanesTestValues
 
     const juce::String eightSlotsAlwaysShow = "at least the eight track slots show; more tracks, more lanes";
     const juce::String lanesStackUnderRuler = "lanes stack under the ruler, each 22 board px, scaled";
-    const juce::String densityCountsBeats   = "note-ons are counted per beat; note-offs and events past the end are not";
-    const juce::String densityFades         = "an empty beat is clear; busier beats are more opaque, the busiest fully lit";
-    const juce::String rulerMarks           = "a strong line every 4 bars, numbers on every other bar, from bar 1";
+    const juce::String notesPairOnOff       = "each note-on pairs with its release into one note; one never released lasts to the track's end";
+    const juce::String notesStackByPitch    = "in a lane the lowest pitch sits at the bottom, the highest at the top, a single pitch in the middle";
+    const juce::String labelStartsUncovered = "a label starts after the windows drawn over the start of its window; fully covered, none";
+    constexpr int      spanStart            = 0;
+    constexpr int      coverStart           = 40;
+    constexpr int      secondCoverEnd       = 90;
+    constexpr int      spanEnd              = 200;
+    const juce::String rulerMarks           ="a strong line every 4 bars, numbers on every other bar, from bar 1";
     const juce::String labelsNameLength     = "a window's label is its name and its length, one bar singular";
     const juce::String modesCycle           = "the transpose button cycles None, Parallel, Chord, Fixed and back";
     const juce::String zoomSteps            = "zoom goes from a quarter to twice today's 56 px bar, today's width by default";
@@ -27,6 +32,9 @@ namespace SectionLanesTestValues
     const juce::String zoomSetsWidth        = "the timeline is bars x the zoomed, scaled bar width";
     const juce::String lanesSetHeight       = "the timeline is the ruler and the lanes high, at least eight lanes";
     const juce::String selectFromOutside    = "a section can be selected from outside; out of range or removed clears it";
+    const juce::String labelUnderWindowHidden = "a window's label is hidden under the windows drawn over it (two at one bar printed over each other)";
+    const juce::String otherVarName         = "Variation 7 longer name";
+    constexpr int      edgePx               = 2;
     const juce::String drumsName            = "Drums";
     const juce::String bassName             = "Bass";
 
@@ -61,15 +69,15 @@ namespace SectionLanesTestValues
     constexpr double firstBeat      = 0.0;
     constexpr double sameBeatLater  = 0.5;
     constexpr double thirdBeat      = 2.25;
-    constexpr double pastTheEnd     = 9.0;
-    constexpr int    fourBeats      = 4;
-    constexpr int    twoNotes       = 2;
-    constexpr int    oneNote        = 1;
-    constexpr int    noNotes        = 0;
-    constexpr int    busiest        = 4;
-    constexpr float  clear          = 0.0f;
-    constexpr float  fullyLit       = 1.0f;
-    constexpr float  tolerance      = 0.001f;
+    constexpr double trackEnd       = 3.0;
+    constexpr juce::uint8 silent    = 0;
+    constexpr int    threeNotes     = 3;
+    constexpr size_t note1          = 0;
+    constexpr size_t note2          = 1;
+    constexpr size_t note3          = 2;
+    constexpr double beatTolerance  = 0.0001;
+    constexpr float  positionTolerance = 0.01f;
+    constexpr float  half           = 0.5f;
     constexpr int    bar1            = 1;
     constexpr int    bar2            = 2;
     constexpr int    bar3            = 3;
@@ -94,10 +102,6 @@ namespace SectionLanesTestValues
     constexpr int    noSelection    = -1;
     constexpr int    windowStart    = 3;
     constexpr int    windowLength   = 2;
-    constexpr size_t beat1           = 0;
-    constexpr size_t beat2           = 1;
-    constexpr size_t beat3           = 2;
-    constexpr size_t beat4           = 3;
 }
 
 class SectionLanesTest : public juce::UnitTest
@@ -127,32 +131,56 @@ public:
             expectEquals (contentHeight (eightSlots, doubleScale), eightLanesHigh * doubled);
         }
 
-        beginTest (densityCountsBeats);
+        beginTest (notesPairOnOff);
         {
             const std::vector<TimedBeatEvent> events {
                 { firstBeat,     juce::MidiMessage::noteOn (channel, middleC, velocity) },
                 { sameBeatLater, juce::MidiMessage::noteOn (channel, noteE, velocity) },
                 { sameBeatLater, juce::MidiMessage::noteOff (channel, middleC) },
-                { thirdBeat,     juce::MidiMessage::noteOn (channel, noteG, velocity) },
-                { pastTheEnd,    juce::MidiMessage::noteOn (channel, middleC, velocity) },
+                { thirdBeat,     juce::MidiMessage::noteOn (channel, noteG, velocity) },   // never released
+                { trackEnd,      juce::MidiMessage::noteOn (channel, noteE, silent) },     // velocity 0 = release
             };
-            const auto density = beatDensity (events, fourBeats);
-            expectEquals ((int) density.size(), fourBeats);
-            if (density.size() == (size_t) fourBeats)
+            const auto notes = laneNotes (events);
+            expectEquals ((int) notes.size(), threeNotes);
+            if (notes.size() == (size_t) threeNotes)
             {
-                expectEquals (density[beat1], twoNotes);
-                expectEquals (density[beat2], noNotes);
-                expectEquals (density[beat3], oneNote);
-                expectEquals (density[beat4], noNotes);
+                expectEquals (notes[note1].pitch, middleC);
+                expectWithinAbsoluteError (notes[note1].startBeat, firstBeat, beatTolerance);
+                expectWithinAbsoluteError (notes[note1].lengthBeats, sameBeatLater - firstBeat, beatTolerance);
+                expectEquals (notes[note2].pitch, noteE);
+                expectWithinAbsoluteError (notes[note2].lengthBeats, trackEnd - sameBeatLater, beatTolerance);
+                expectEquals (notes[note3].pitch, noteG);
+                expectWithinAbsoluteError (notes[note3].lengthBeats, trackEnd - thirdBeat, beatTolerance);   // held to the end
             }
+            const auto range = pitchRange (notes);
+            expectEquals (range.low, middleC);
+            expectEquals (range.high, noteG);
         }
 
-        beginTest (densityFades);
-        expectWithinAbsoluteError (densityAlpha (noNotes, busiest), clear, tolerance);
-        expect (densityAlpha (oneNote, busiest) > clear);
-        expect (densityAlpha (twoNotes, busiest) > densityAlpha (oneNote, busiest));
-        expectWithinAbsoluteError (densityAlpha (busiest, busiest), fullyLit, tolerance);
-        expectWithinAbsoluteError (densityAlpha (noNotes, noNotes), clear, tolerance);   // an empty track: no divide by zero
+        beginTest (notesStackByPitch);
+        for (const auto scale : { boardScale, doubleScale })
+        {
+            using namespace SectionLaneMetrics;
+            const auto lane = laneBounds (firstLane, laneWidth, scale);
+            const PitchRange range { middleC, noteG };
+            const float bandTop    = (float) lane.getY() + noteInsetY * scale;
+            const float lowestTop  = bandTop + (noteHeight - noteThickness) * scale;
+            expectWithinAbsoluteError (noteTop (middleC, range, lane, scale), lowestTop, positionTolerance);
+            expectWithinAbsoluteError (noteTop (noteG, range, lane, scale), bandTop, positionTolerance);
+            const float middle = noteTop (noteE, range, lane, scale);
+            expect (middle > bandTop && middle < lowestTop);
+            expectWithinAbsoluteError (noteTop (middleC, { middleC, middleC }, lane, scale), (bandTop + lowestTop) * half, positionTolerance);
+        }
+
+        beginTest (labelStartsUncovered);
+        {
+            const juce::Range<int> window { spanStart, spanEnd };
+            expectEquals (labelStart (window, {}), spanStart);
+            expectEquals (labelStart (window, { { coverStart, spanEnd } }), spanStart);                       // covered further right only
+            expectEquals (labelStart (window, { { spanStart, coverStart } }), coverStart);                    // starts where the cover ends
+            expectEquals (labelStart (window, { { coverStart, secondCoverEnd }, { spanStart, coverStart } }), secondCoverEnd);   // covers in a row
+            expect (labelStart (window, { { spanStart, spanEnd } }) >= spanEnd);                              // fully covered: no label
+        }
 
         beginTest (rulerMarks);
         expect (isStrongBarLine (bar1) && isStrongBarLine (bar5) && isStrongBarLine (bar9));
@@ -271,6 +299,46 @@ public:
             timeline.setSelectedIndex (secondWindow);
             timeline.setWindows ({ window });
             expectEquals (timeline.getSelectedIndex(), noSelection);
+        }
+
+        beginTest (labelUnderWindowHidden);
+        {
+            // Variation 1 (bars 1-8) under Fill 1 (bars 1-2), as two Adds at the same bar leave them: inside the
+            // fill only the fill's label shows, whatever the variation is called.
+            auto render = [] (const juce::String& lowerName)
+            {
+                SectionWindow lower;
+                lower.type = ArrangerSectionType::Variation;
+                lower.name = lowerName;
+                lower.startBar = bar1;
+                lower.lengthBars = eightBars;
+                SectionWindow upper;
+                upper.type = ArrangerSectionType::Fill;
+                upper.name = fillName;
+                upper.startBar = bar1;
+                upper.lengthBars = windowLength;
+                ArrangerTimelineComponent timeline;
+                timeline.setTotalBars (tenBars);
+                timeline.setWindows ({ lower, upper });
+                timeline.setSize (timeline.getPreferredWidth(), timeline.getPreferredHeight());
+                juce::Image image (juce::Image::ARGB, timeline.getWidth(), timeline.getHeight(), true, juce::SoftwareImageType());
+                juce::Graphics g (image);
+                timeline.paintEntireComponent (g, false);
+                return image;
+            };
+            const auto named   = render (varName);
+            const auto renamed = render (otherVarName);
+            const int fillRight = windowLength * todaysBarPx - edgePx;   // inside the fill, clear of its border
+            bool insideSame = true, outsideDiffers = false;
+            for (int column {}; column < named.getWidth(); ++column)
+                for (int row {}; row < named.getHeight(); ++row)
+                {
+                    const bool same = named.getPixelAt (column, row) == renamed.getPixelAt (column, row);
+                    if (column < fillRight) insideSame = insideSame && same;
+                    else                    outsideDiffers = outsideDiffers || ! same;
+                }
+            expect (insideSame);
+            expect (outsideDiffers);   // the variation's label still shows where nothing covers it
         }
     }
 };

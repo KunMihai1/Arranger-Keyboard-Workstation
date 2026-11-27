@@ -373,6 +373,8 @@
         <FILE id="secInC" name="SectionInspector.cpp" compile="1" resource="0" file="Source/UI/Sections/SectionInspector.cpp"/>
         <FILE id="secJpH" name="SectionJumpPads.h" compile="0" resource="0" file="Source/UI/Sections/SectionJumpPads.h"/>
         <FILE id="secJpC" name="SectionJumpPads.cpp" compile="1" resource="0" file="Source/UI/Sections/SectionJumpPads.cpp"/>
+        <FILE id="secVwH" name="SectionsView.h" compile="0" resource="0" file="Source/UI/Sections/SectionsView.h"/>
+        <FILE id="secVwC" name="SectionsView.cpp" compile="1" resource="0" file="Source/UI/Sections/SectionsView.cpp"/>
         <FILE id="K2Xsjg" name="SelectableLabel.cpp" compile="1" resource="0"
               file="Source/UI/SelectableLabel.cpp"/>
         <FILE id="cazbKc" name="SelectableLabel.h" compile="0" resource="0"
@@ -606,6 +608,7 @@
               file="Source/Arranger/ArrangerTimelineComponent.h"/>
         <FILE id="arrEd1" name="ArrangerStyleEditor.cpp" compile="1" resource="0"
               file="Source/Arranger/ArrangerStyleEditor.cpp"/>
+        <FILE id="arStEP" name="ArrangerStyleEditorPage.cpp" compile="1" resource="0" file="Source/Arranger/ArrangerStyleEditorPage.cpp"/>
         <FILE id="arrEd2" name="ArrangerStyleEditor.h" compile="0" resource="0"
               file="Source/Arranger/ArrangerStyleEditor.h"/>
         <FILE id="arrLs1" name="ArrangerStyleListComponent.cpp" compile="1"

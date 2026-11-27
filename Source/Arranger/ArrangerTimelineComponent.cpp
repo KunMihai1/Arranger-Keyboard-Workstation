@@ -11,8 +11,6 @@ namespace
     constexpr int   oneWindow          = 1;      // size() - oneWindow is the last window's index
     constexpr int   lastBarOffset      = 1;      // a region of N bars ends N - 1 bars after its start
     constexpr int   noMargin           = 0;      // the board starts bar 1 at the lanes' left edge
-    constexpr int   firstBeat          = 0;
-    constexpr int   nextBeat           = 1;
     constexpr float half               = 0.5f;
     constexpr float glowSpread         = 1.0f;   // the selected window's outer ring and the playhead's glow
     constexpr float outlineWidth       = 1.0f;
@@ -46,7 +44,7 @@ int ArrangerTimelineComponent::getPreferredHeight() const
     return SectionLanes::contentHeight (getLaneCount(), scale);
 }
 
-int ArrangerTimelineComponent::getLaneCount() const { return SectionLanes::laneCount (static_cast<int> (laneDensity.size())); }
+int ArrangerTimelineComponent::getLaneCount() const { return SectionLanes::laneCount (static_cast<int> (laneNotes.size())); }
 
 int ArrangerTimelineComponent::xForBar (double bar) const
 {
@@ -91,16 +89,12 @@ void ArrangerTimelineComponent::setSelectedIndex (int index)
 void ArrangerTimelineComponent::setSourceTracks (const std::vector<SourceTrackFile>& tracks, double newBeatsPerBar)
 {
     beatsPerBar = newBeatsPerBar;
-    laneDensity.clear();
-    laneBusiest.clear();
+    laneNotes.clear();
+    lanePitches.clear();
     for (const auto& track : tracks)
     {
-        double lastBeat {};
-        for (const auto& event : track.events)
-            lastBeat = juce::jmax (lastBeat, event.beats);
-        auto density = SectionLanes::beatDensity (track.events, (int) std::floor (lastBeat) + nextBeat);
-        laneBusiest.push_back (density.empty() ? int {} : *std::max_element (density.begin(), density.end()));
-        laneDensity.push_back (std::move (density));
+        laneNotes.push_back (SectionLanes::laneNotes (track.events));
+        lanePitches.push_back (SectionLanes::pitchRange (laneNotes.back()));
     }
     repaint();
 }
@@ -183,23 +177,25 @@ void ArrangerTimelineComponent::paint (juce::Graphics& g)
 void ArrangerTimelineComponent::paintNotes (juce::Graphics& g, const Layout& currentLayout, juce::Rectangle<int> clip) const
 {
     using namespace SectionLaneMetrics;
+    // Each note as a bar from its start to its release, high notes higher in the lane (a mini piano roll).
     const double beatWidth = pixelsPerBar (currentLayout) / juce::jmax (half, (float) beatsPerBar);
-    const int firstVisibleBeat = juce::jmax (firstBeat, (int) std::floor ((double) clip.getX() / beatWidth));
-    const int lastVisibleBeat  = (int) std::ceil ((double) clip.getRight() / beatWidth);
-    const float gap = juce::jmin (scaled (noteGap), (float) beatWidth * half);
+    const double firstVisibleBeat = (double) clip.getX() / beatWidth;
+    const double lastVisibleBeat  = (double) clip.getRight() / beatWidth;
+    g.setColour (StagePalette::laneNote);
 
-    for (size_t lane {}; lane < laneDensity.size(); ++lane)
+    for (size_t lane {}; lane < laneNotes.size(); ++lane)
     {
         const auto laneBox = SectionLanes::laneBounds ((int) lane, getWidth(), scale);
-        const float top = (float) laneBox.getY() + scaled (noteInsetY);
-        const auto& density = laneDensity[lane];
-        for (int beat = firstVisibleBeat; beat <= lastVisibleBeat && beat < (int) density.size(); ++beat)
+        for (const auto& note : laneNotes[lane])
         {
-            const float alpha = SectionLanes::densityAlpha (density[(size_t) beat], laneBusiest[lane]);
-            if (alpha <= float {})
+            if (note.startBeat > lastVisibleBeat)
+                break;   // in start order: the rest are further right
+            if (note.startBeat + note.lengthBeats < firstVisibleBeat)
                 continue;
-            g.setColour (StagePalette::laneNote.withAlpha (alpha));
-            g.fillRect (juce::Rectangle<float> ((float) (beat * beatWidth), top, (float) beatWidth - gap, scaled (noteHeight)));
+            const float left  = (float) (note.startBeat * beatWidth);
+            const float width = juce::jmax (scaled (outlineWidth), (float) (note.lengthBeats * beatWidth) - scaled (noteGap));
+            g.fillRect (juce::Rectangle<float> (left, SectionLanes::noteTop (note.pitch, lanePitches[lane], laneBox, scale),
+                                                width, scaled (noteThickness)));
         }
     }
 }
@@ -223,15 +219,28 @@ void ArrangerTimelineComponent::paintWindow (juce::Graphics& g, int windowIndex,
     g.setColour (isSelected ? StagePalette::windowLabel : typeColour);
     g.drawRoundedRectangle (region.reduced (outlineWidth * half), corner, outlineWidth);
 
-    // Label "name · n bars", with the board's text-shadow; cut at the window's edge.
-    const auto text = SectionLanes::windowLabel (window.name, window.lengthBars);
-    const auto labelArea = region.withTrimmedLeft (scaled (labelInsetX)).withTrimmedTop (scaled (labelTop))
-                                 .withHeight (scaled (labelSize + labelTop)).withTrimmedRight (scaled (labelInsetX));
-    g.setFont (StageFonts::lcd (scaled (labelSize)));
-    g.setColour (StagePalette::windowLabelShadow);
-    g.drawText (text, labelArea.translated (float {}, shadowDrop), juce::Justification::topLeft, true);
-    g.setColour (StagePalette::windowLabel);
-    g.drawText (text, labelArea, juce::Justification::topLeft, true);
+    // Label "name · n bars", with the board's text-shadow; cut at the window's edge, and hidden under the
+    // windows drawn over this one (two windows added at the same bar no longer print over each other).
+    {
+        juce::Graphics::ScopedSaveState keepClip (g);
+        std::vector<juce::Range<int>> covers;
+        for (int above = windowIndex + oneWindow; above < (int) windows.size(); ++above)
+        {
+            const auto cover = windowRegion (above, currentLayout);
+            g.excludeClipRegion (cover);
+            covers.push_back (cover.getHorizontalRange());
+        }
+        // A partly covered window shows its whole label after what covers its start.
+        const int start = SectionLanes::labelStart (windowRegion (windowIndex, currentLayout).getHorizontalRange(), covers);
+        const auto text = SectionLanes::windowLabel (window.name, window.lengthBars);
+        const auto labelArea = region.withLeft ((float) start).withTrimmedLeft (scaled (labelInsetX)).withTrimmedTop (scaled (labelTop))
+                                     .withHeight (scaled (labelSize + labelTop)).withTrimmedRight (scaled (labelInsetX));
+        g.setFont (StageFonts::lcd (scaled (labelSize)));
+        g.setColour (StagePalette::windowLabelShadow);
+        g.drawText (text, labelArea.translated (float {}, shadowDrop), juce::Justification::topLeft, true);
+        g.setColour (StagePalette::windowLabel);
+        g.drawText (text, labelArea, juce::Justification::topLeft, true);
+    }
 
     if (isSelected)   // grips on both edges
     {

@@ -122,6 +122,7 @@ namespace StageMetrics
     inline constexpr int partGap              = 10;    // "PART", Left, Right
     inline constexpr float partLabelSpacing   = 0.1f;  // .silk-dim letter-spacing
     inline constexpr int ruleWidth            = 1;
+    inline constexpr int minimumRuleLength    = 24;   // a title rule shorter than this reads as a stray dash: not drawn
 
     // --- Knobs: ring with ticks, knurled skirt, cap, pointer; label under the ring ---
     inline constexpr int quickKnobRing          = 52;
