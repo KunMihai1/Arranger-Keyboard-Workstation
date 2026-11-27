@@ -303,8 +303,8 @@ void NoteLayer::renderOpenGL()
 
     if (width > emptySize && height > emptySize)
     {
-        // Dust under the notes (as the old juce::Graphics notes were composited over it); Sparks and Smoke
-        // over them, so they read as light and smoke in front of the notes, not haze behind them.
+        // Dust under the notes (as the old juce::Graphics notes were composited over it); Sparks and Wisps
+        // over them, so they read as light in front of the notes, not haze behind them.
         if (ParticleRecipe::drawnOverNotes(renderStyle))
         {
             drawNotes(width, height);

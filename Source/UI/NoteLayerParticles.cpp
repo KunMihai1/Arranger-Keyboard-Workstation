@@ -27,14 +27,6 @@ namespace
         constexpr float  ndcEdge    = 1.0f;
         constexpr float  aboveKey   = 0.05f;
     }
-
-    namespace Trail   // a spark's trail: points back along its velocity, smaller and fainter
-    {
-        constexpr float stepSeconds = 0.018f;
-        constexpr float shrink      = 0.25f;
-        constexpr float fade        = 0.4f;
-        constexpr float whole       = 1.0f;
-    }
 }
 
 void NoteLayer::createParticleShader()
@@ -88,17 +80,16 @@ void NoteLayer::drawParticles()
 
     for (const auto& particle : particles)
     {
-        const auto opacity = ParticleRecipe::opacity(particle);
         for (int trailIndex {}; trailIndex < trailPoints; ++trailIndex)
         {
-            const auto back = (float) trailIndex;
-            const auto pos = particle.pos - particle.velocity * (back * Trail::stepSeconds);
-            const auto size = particle.size * (Trail::whole - back * Trail::shrink);
-            renderVerts.push_back({ pos.x, pos.y, ParticleRecipe::pointSize(renderStyle, size, renderingScale),
+            const auto point = ParticleRecipe::trailPoint(renderStyle, particle, trailIndex);
+            if (point.opacity <= Particles::dead)
+                break;   // past the start of its trail
+            renderVerts.push_back({ point.pos.x, point.pos.y, ParticleRecipe::pointSize(renderStyle, point.size, renderingScale),
                                     particle.colour.getFloatRed(),
                                     particle.colour.getFloatGreen(),
                                     particle.colour.getFloatBlue(),
-                                    opacity * (Trail::whole - back * Trail::fade) });
+                                    point.opacity });
         }
     }
 
@@ -125,7 +116,7 @@ void NoteLayer::drawParticles()
     glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_POINT_SPRITE);
     glEnable(GL_BLEND);
-    // Sparks add light (a glow over the notes); the others cover what is under them.
+    // Sparks and wisps add light (a glow over the notes); Dust covers what is under it.
     glBlendFunc(GL_SRC_ALPHA, ParticleRecipe::additive(renderStyle) ? GL_ONE : GL_ONE_MINUS_SRC_ALPHA);
 
     glDrawArrays(GL_POINTS, firstVertex, (GLsizei)renderVerts.size());
@@ -200,9 +191,9 @@ std::pair<const char*, const char*> NoteLayer::dustShader()
     return {dustVertex, dustFragment};
 }
 
-std::pair<const char*, const char*> NoteLayer::smokeShader()
+std::pair<const char*, const char*> NoteLayer::wispsShader()
 {
-    const char* smokeVertex =
+    const char* wispsVertex =
         "attribute vec2 position;\n"
         "attribute float pointSize;\n"
         "attribute vec4 colour;\n"
@@ -214,20 +205,20 @@ std::pair<const char*, const char*> NoteLayer::smokeShader()
         "    vColour = colour;\n"
         "}\n";
 
-    // A puff: dense in the middle, thinning to nothing at its edge.
-    const char* smokeFragment =
+    // One point of a wisp's trail: a soft round glow; the points overlap into a smooth line of light.
+    const char* wispsFragment =
         "#ifdef GL_ES\n"
         "precision mediump float;\n"
         "#endif\n"
         "varying vec4 vColour;\n"
         "void main()\n"
         "{\n"
-        "    float edge = distance(gl_PointCoord.xy, vec2(0.5, 0.5)) * 2.0;\n"
-        "    float density = pow(max(0.0, 1.0 - edge), 1.6);\n"
-        "    gl_FragColor = vec4(vColour.rgb, density * vColour.a);\n"
+        "    float dist = distance(gl_PointCoord.xy, vec2(0.5, 0.5));\n"
+        "    float glow = exp(-dist * dist * 16.0);\n"
+        "    gl_FragColor = vec4(vColour.rgb, glow * vColour.a);\n"
         "}\n";
 
-    return {smokeVertex, smokeFragment};
+    return {wispsVertex, wispsFragment};
 }
 
 std::pair<const char*, const char*> NoteLayer::getShaderChoice(int styleId)
@@ -236,7 +227,7 @@ std::pair<const char*, const char*> NoteLayer::getShaderChoice(int styleId)
     {
     case ParticleStyles::sparks: return sparksShader();
     case ParticleStyles::dust: return dustShader();
-    case ParticleStyles::smoke: return smokeShader();
+    case ParticleStyles::wisps: return wispsShader();
     default:
         return {nullptr,nullptr};
     }
@@ -270,5 +261,5 @@ void NoteLayer::spawnParticlesForNote(juce::Rectangle<int> keyBounds, float widt
     const juce::Point<float> keyTop(x_ndc, y_ndc);
 
     for (int particleIndex {}, count = ParticleRecipe::perNote(renderStyle); particleIndex < count; ++particleIndex)
-        particles.push_back(ParticleRecipe::spawn(renderStyle, keyTop, renderParticleColour, rng));
+        particles.push_back(ParticleRecipe::spawn(renderStyle, keyTop, height / width, renderParticleColour, rng));
 }

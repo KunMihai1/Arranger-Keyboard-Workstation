@@ -14,7 +14,7 @@ namespace SettingsPageTestValues
 
     const juce::String layoutMatchesBoard = "the Settings page's columns, fields and rows sit where the board puts them";
     const juce::String keyboardSizesKeepStored = "the Keyboard field lists the standard sizes and a stored size outside them";
-    const juce::String storedParticleStyleChecked = "a stored particle style outside Sparks / Dust / Smoke reads as Dust";
+    const juce::String storedParticleStyleChecked = "a stored particle style outside Sparks / Dust / Wisps reads as Dust";
 
     constexpr int keys25 = 25;
     constexpr int keys49 = 49;
@@ -97,7 +97,7 @@ public:
         beginTest (storedParticleStyleChecked);
         {
             expectEquals (ParticleStyles::fromStored (ParticleStyles::sparks), ParticleStyles::sparks);
-            expectEquals (ParticleStyles::fromStored (ParticleStyles::smoke), ParticleStyles::smoke);
+            expectEquals (ParticleStyles::fromStored (ParticleStyles::wisps), ParticleStyles::wisps);
             expectEquals (ParticleStyles::fromStored (unknownStyle), ParticleStyles::dust);
             expectEquals (ParticleStyles::fromStored (negativeStyle), ParticleStyles::dust);
         }

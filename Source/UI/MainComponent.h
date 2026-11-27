@@ -500,7 +500,7 @@ private:
     SilkLabel particleStyleLabel { {}, SilkLabel::Tone::dim };
     SegButton particleSparks { {}, SegButton::Style::seg, true };
     SegButton particleDust   { {}, SegButton::Style::seg, true };
-    SegButton particleSmoke  { {}, SegButton::Style::seg, true };
+    SegButton particleWisps  { {}, SegButton::Style::seg, true };
     void createSettingsContent();
     void setParticleStyle (int styleId, bool save);
     int particleStyleId = ParticleStyles::dust;   ///< applied again when Play creates the note layer

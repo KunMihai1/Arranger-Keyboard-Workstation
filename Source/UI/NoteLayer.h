@@ -77,7 +77,7 @@ public:
     /** @brief Enables or disables spawning of particles */
     void setSpawnParticleState(bool state);
 
-    /** @brief Sets the particle skin style (1 = Sparks, 2 = Dust, 3 = Smoke) */
+    /** @brief Sets the particle skin style (1 = Sparks, 2 = Dust, 3 = Light wisps) */
     void setParticleStyle(int styleId);
 
     /** @brief A page covers the note area: stay hidden even when a note arrives (otherwise the layer shows
@@ -86,7 +86,7 @@ public:
 
     std::pair<const char*, const char*> sparksShader();
     std::pair<const char*, const char*> dustShader();
-    std::pair<const char*, const char*> smokeShader();
+    std::pair<const char*, const char*> wispsShader();
     std::pair<const char*, const char*> getShaderChoice(int styleId);
 
 private:
