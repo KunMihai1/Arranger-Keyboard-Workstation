@@ -396,6 +396,8 @@
         <FILE id="nlPart" name="NoteLayerParticles.cpp" compile="1" resource="0" file="Source/UI/NoteLayerParticles.cpp"/>
         <FILE id="nlName" name="NoteLayerNames.h" compile="0" resource="0" file="Source/UI/NoteLayerNames.h"/>
         <FILE id="cFN9eI" name="NoteLayer.h" compile="0" resource="0" file="Source/UI/NoteLayer.h"/>
+        <FILE id="ptRcpH" name="ParticleRecipe.h" compile="0" resource="0" file="Source/UI/ParticleRecipe.h"/>
+        <FILE id="ptRcpC" name="ParticleRecipe.cpp" compile="1" resource="0" file="Source/UI/ParticleRecipe.cpp"/>
         <FILE id="ntFld1" name="NoteField.cpp" compile="1" resource="0" file="Source/UI/NoteField.cpp"/>
         <FILE id="ntFld2" name="NoteField.h" compile="0" resource="0" file="Source/UI/NoteField.h"/>
         <FILE id="QnlFvU" name="KeyboardUI.cpp" compile="1" resource="0" file="Source/UI/KeyboardUI.cpp"/>
