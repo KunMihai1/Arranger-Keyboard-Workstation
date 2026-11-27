@@ -13,6 +13,25 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-27 — Sections v2 page (`feat/ui-sections-lanes`)
+- The configurations list and editor were two full-window overlays in plain JUCE widgets. Now the Style page's
+  **Sections view** (board PageSections): list + Add section left, lanes + jump pads centre, Selected-section
+  inspector right, name / key / zoom / Preview / Update tracks / Save in the title row. `Source/UI/Sections/`
+  (SectionLanes, SectionLaneHeaders, SectionsPageLayout, SectionEditModel, SectionInspector, SectionJumpPads,
+  SectionsView); editor page layout in `ArrangerStyleEditorPage.cpp`. Logic stays in `CurrentStyleComponent`.
+- Owner: "don't lose any logic" → spec inventory of 29 behaviours (L1–L7, E1–E12, T1–T5), each checked live
+  (list, New / Edit / Load / double-click / Del, Save / rename / Update tracks, key, transpose, add / remove / type,
+  drag, tooltip, Preview, follow, pads, Exit / Esc / Home, panel Start blocked while open).
+- Lanes draw every note as a bar by pitch (owner asked why the per-beat squares; held chords showed as one blip).
+- Live fixes: list re-parented away (never shown); inspector values lost a glyph ("16 bar", start 13 as "1");
+  seg buttons sharing a row off-centre (owner); Delete box off the window edge; overlapping window labels;
+  squeezed title rule as a dash; editor title row shows the style name only.
+- Review (Sonnet), verified: Home / pages / panel could drop the editor mid-save (result lost) → save / update show
+  the app overlay; focus back to the keys on close; `CurrentStyleComponent.cpp` 802 lines → split. Rejected:
+  `destroySubView` without `views.back()` (same pattern as tracks / notes, unreachable).
+- Found, not fixed: track library reloads tracks from a folder's first file; flaky `sparksAreVisible`.
+- Unit 5235 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 12 / 0 (flaky test aside).
+
 ## 2026-11-27 — Recorder page (`feat/ui-recorder-page`)
 - The File page only held the old header buttons and showed nothing of the recording. Board PageFile: two
   columns, each a heading, an LCD and seg buttons. Last recording: length (running while recording), notes, REC
