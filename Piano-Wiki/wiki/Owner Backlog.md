@@ -101,13 +101,13 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   are the Style page's Sections view instead of two overlays; lanes with every note by pitch, transpose button per
   lane, zoom, jump pads, Selected-section inspector. All 29 inventory items of the spec checked live.
 - ⬜ Next pages (spec order): keys, Dust, finishes, sign-in.
-- ⬜ **Bug found 2026-11-27 — track library reloads tracks from the wrong file.** A folder stores one `filePath`
-  (the first MIDI file added) and each track only `trackIndex`; tracks added to the same folder from other files
-  come back after a restart as that first file's track (`myTracks.json`: three files → three copies of the first).
-  Not fixed (outside the Sections page); needs a per-track source path.
-- ⬜ **Flaky display test `sparksAreVisible`** (seen 2026-11-27): lit pixels above the key with sparks vs a fixed
-  margin; failed 2 of 6 runs just under it (1398 vs > 1422, 1420 vs > 1525), passed on rerun. Random particles
-  measured on the real screen; needs a steadier measure (seeded spawn or several taps).
+- ✅ **Bug found 2026-11-27 — track library reloads tracks from the wrong file** (PR #77). A folder stored one
+  `filePath` (the first MIDI file added) and each track only `trackIndex`, so tracks from other files came back as
+  that first file's. Each track now saves its own `filePath` (old saves fall back to the folder's; they can't be
+  repaired, the other files were never recorded). A folder whose first file is gone stays, with its other tracks.
+- ✅ **Flaky display test `sparksAreVisible`** (PR #77): failed 3 of 12 runs. Causes: the default particle colour
+  picks its alpha at random (0.6–1.0) per launch, 12 random sparks a tap, note-only count ±50 px. Now the dimmest
+  default colour and three taps summed (floor 450; lowest of ten runs 782); 10 of 10 green; fails with no sparks.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
   centred (`StageRegions::panelContent`, `33a370c`); tested 21:9, 4:3, portrait, 150 % scaling, tiny.

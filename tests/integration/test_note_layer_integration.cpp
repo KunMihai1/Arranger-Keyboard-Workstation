@@ -65,7 +65,21 @@ namespace NoteLayerIntegrationTestValues
     constexpr int keysAround = 4;            // white keys either side of the played key
     constexpr int areaAboveKey = 300;        // logical px of the note area above the key
     constexpr int glowThreshold = 60;
-    constexpr int minExtraLitPixels = 400;   // physical px lit by the particles beyond what the note itself lights
+    // Physical px lit by the particles beyond what the note itself lights. Sparks are a handful of small points, so they
+    // are summed over several taps (worst run of ten: 782 px over three taps); wisps are long trails (1240+ px a tap).
+    constexpr int sparkTaps            = 3;
+    constexpr int minSparkPixelsPerTap = 150;
+    constexpr int wispTaps             = 1;
+    constexpr int minWispPixelsPerTap  = 400;
+
+    // NoteLayer's default particle colour picks its alpha at random (0.6-1.0) once per layer: the tests use the dimmest.
+    namespace DimmestDefaultParticle
+    {
+        constexpr float hue        = 0.12f;
+        constexpr float saturation = 0.95f;
+        constexpr float brightness = 0.9f;
+        constexpr float alpha      = 0.6f;
+    }
 }
 
 using namespace NoteLayerIntegrationTestValues;
@@ -296,16 +310,31 @@ public:
             return lit;
         };
 
+        // What the particles add over the note alone, summed over several taps: each tap's sparks are random and
+        // the note-only count drifts with frame timing (measured 2026-11-27: one spark tap adds 197-429 px).
+        // The colour is the dimmest one the layer can start with, so the check holds for every launch.
+        auto dimmestDefault = juce::Colour::fromHSV (DimmestDefaultParticle::hue, DimmestDefaultParticle::saturation,
+                                                     DimmestDefaultParticle::brightness, DimmestDefaultParticle::alpha);
+        layer.setColourParticle (dimmestDefault);
+        auto extraLitAboveKey = [&] (int style, int taps)
+        {
+            int extra {};
+            for (int tap {}; tap < taps; ++tap)
+            {
+                const auto withoutParticles = litAboveKeyAfterTap (false, style);
+                extra += litAboveKeyAfterTap (true, style) - withoutParticles;
+            }
+            return extra;
+        };
+
         beginTest (sparksAreVisible);
         {
-            const auto withoutParticles = litAboveKeyAfterTap (false, ParticleStyles::sparks);
-            expectGreaterThan (litAboveKeyAfterTap (true, ParticleStyles::sparks), withoutParticles + minExtraLitPixels);
+            expectGreaterThan (extraLitAboveKey (ParticleStyles::sparks, sparkTaps), sparkTaps * minSparkPixelsPerTap);
         }
 
         beginTest (wispsAreVisible);
         {
-            const auto withoutParticles = litAboveKeyAfterTap (false, ParticleStyles::wisps);
-            expectGreaterThan (litAboveKeyAfterTap (true, ParticleStyles::wisps), withoutParticles + minExtraLitPixels);
+            expectGreaterThan (extraLitAboveKey (ParticleStyles::wisps, wispTaps), wispTaps * minWispPixelsPerTap);
         }
 
         host.removeFromDesktop();

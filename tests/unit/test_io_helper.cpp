@@ -1,6 +1,7 @@
 #include <juce_core/juce_core.h>
 #include <juce_audio_basics/juce_audio_basics.h>
 #include "IOHelper.h"
+#include "PersistedKeys.h"
 
 namespace TrackIOHelperTestValues
 {
@@ -29,6 +30,9 @@ namespace TrackIOHelperTestValues
     const juce::String saveToFileAndLoadFromFileEmptyFolderSurvivesSave = "saveToFile and loadFromFile - empty folder survives save-load";
     const juce::String loadFromFileNonExistentFileDoesNothing = "loadFromFile - non-existent file does nothing";
     const juce::String saveToFileAndLoadFromFileMultipleFoldersWithTracks = "saveToFile and loadFromFile - multiple folders with tracks";
+    const juce::String saveToFileAndLoadFromFileTracksFromTwoFilesInOneFolder = "saveToFile and loadFromFile - one folder, tracks from two files, each reloads from its own file";
+    const juce::String loadFromFileFirstFileGoneKeepsFolderAndOtherTracks = "loadFromFile - the folder's first file is gone: the folder and the other file's tracks stay";
+    const juce::String loadFromFileOldFolderPathStillLoads = "loadFromFile - a track without its own file path loads from the folder's file";
 
     constexpr int         melodicChannel = 1;
     constexpr int         drumChannel    = 10;
@@ -83,6 +87,8 @@ namespace TrackIOHelperTestValues
     constexpr int    twoPairs     = 2;
     constexpr size_t firstKey     = 0;
     constexpr size_t firstEntry   = 0;
+    constexpr size_t secondEntry  = 1;
+    constexpr int    twoTracks    = 2;
     constexpr int    oneFolder    = 1;
     constexpr int    twoFolders   = 2;
     constexpr int    oneTrack     = 1;
@@ -652,6 +658,115 @@ public:
             tempMidi1.deleteFile();
             tempMidi2.deleteFile();
         }
+
+        beginTest(saveToFileAndLoadFromFileTracksFromTwoFilesInOneFolder);
+        {
+            auto melodyMidi = writeOneTrackMidiFile(melodicChannel, middleC);
+            auto drumsMidi  = writeOneTrackMidiFile(drumChannel, kickNote);
+
+            std::unordered_map<juce::String, std::deque<TrackEntry>> groupedTracks;
+            groupedTracks[folderName].push_back(makeEntry(melodyMidi, melodyName));
+            groupedTracks[folderName].push_back(makeEntry(drumsMidi, drumsName));
+
+            auto tempJsonFile = juce::File::createTempFile(jsonExtension);
+            TrackIOHelper::saveToFile(tempJsonFile, groupedTracks);
+
+            std::unordered_map<juce::String, std::deque<TrackEntry>> loadedTracks;
+            std::vector<juce::String> loadedKeys;
+            TrackIOHelper::loadFromFile(tempJsonFile, loadedTracks, loadedKeys);
+
+            expect((int)loadedTracks[folderName].size() == twoTracks);
+            auto& loadedDrums = loadedTracks[folderName][secondEntry];
+            expect(loadedDrums.file == drumsMidi, loadedDrums.file.getFullPathName());
+            expect(loadedDrums.type == TrackType::Percussion);
+            expect(loadedDrums.sequence.getEventPointer(firstEvent)->message.getNoteNumber() == kickNote);
+
+            tempJsonFile.deleteFile();
+            melodyMidi.deleteFile();
+            drumsMidi.deleteFile();
+        }
+
+        beginTest(loadFromFileFirstFileGoneKeepsFolderAndOtherTracks);
+        {
+            auto melodyMidi = writeOneTrackMidiFile(melodicChannel, middleC);
+            auto drumsMidi  = writeOneTrackMidiFile(drumChannel, kickNote);
+
+            std::unordered_map<juce::String, std::deque<TrackEntry>> groupedTracks;
+            groupedTracks[folderName].push_back(makeEntry(melodyMidi, melodyName));
+            groupedTracks[folderName].push_back(makeEntry(drumsMidi, drumsName));
+
+            auto tempJsonFile = juce::File::createTempFile(jsonExtension);
+            TrackIOHelper::saveToFile(tempJsonFile, groupedTracks);
+            melodyMidi.deleteFile();
+
+            std::unordered_map<juce::String, std::deque<TrackEntry>> loadedTracks;
+            std::vector<juce::String> loadedKeys;
+            TrackIOHelper::loadFromFile(tempJsonFile, loadedTracks, loadedKeys);
+
+            expect((int)loadedKeys.size() == oneFolder);
+            expect((int)loadedTracks[folderName].size() == oneTrack);
+            expect(loadedTracks[folderName][firstEntry].file == drumsMidi);
+
+            tempJsonFile.deleteFile();
+            drumsMidi.deleteFile();
+        }
+
+        beginTest(loadFromFileOldFolderPathStillLoads);
+        {
+            auto melodyMidi = writeOneTrackMidiFile(melodicChannel, middleC);
+
+            auto* trackObj = new juce::DynamicObject{};
+            juce::var trackVar(trackObj);
+            trackObj->setProperty(TrackJsonKeys::trackIndex, firstTrack);
+            trackObj->setProperty(TrackJsonKeys::displayName, melodyName);
+
+            auto* folderObj = new juce::DynamicObject{};
+            juce::var folderVar(folderObj);
+            folderObj->setProperty(TrackJsonKeys::folderName, folderName);
+            folderObj->setProperty(TrackJsonKeys::filePath, melodyMidi.getFullPathName());
+            folderObj->setProperty(TrackJsonKeys::tracks, juce::Array<juce::var> { trackVar });
+
+            auto tempJsonFile = juce::File::createTempFile(jsonExtension);
+            tempJsonFile.replaceWithText(juce::JSON::toString(juce::Array<juce::var> { folderVar }));
+
+            std::unordered_map<juce::String, std::deque<TrackEntry>> loadedTracks;
+            std::vector<juce::String> loadedKeys;
+            TrackIOHelper::loadFromFile(tempJsonFile, loadedTracks, loadedKeys);
+
+            expect((int)loadedTracks[folderName].size() == oneTrack);
+            expect(loadedTracks[folderName][firstEntry].file == melodyMidi);
+
+            tempJsonFile.deleteFile();
+            melodyMidi.deleteFile();
+        }
+    }
+
+private:
+    static juce::File writeOneTrackMidiFile(int channel, int noteNumber)
+    {
+        auto midiFileOnDisk = juce::File::createTempFile(midiExtension);
+        juce::MidiFile midiFile;
+        midiFile.setTicksPerQuarterNote(standardResolution);
+        juce::MidiMessageSequence sequence;
+        sequence.addEvent(juce::MidiMessage::noteOn(channel, noteNumber, velocity), atStart);
+        sequence.addEvent(juce::MidiMessage::noteOff(channel, noteNumber), quarterNoteTicks);
+        midiFile.addTrack(sequence);
+
+        juce::FileOutputStream outStream(midiFileOnDisk);
+        if (outStream.openedOk())
+            midiFile.writeTo(outStream);
+        return midiFileOnDisk;
+    }
+
+    static TrackEntry makeEntry(const juce::File& midiFileOnDisk, const juce::String& displayName)
+    {
+        TrackEntry entry;
+        entry.file = midiFileOnDisk;
+        entry.trackIndex = firstTrack;
+        entry.displayName = displayName;
+        entry.folderName = folderName;
+        entry.uuid = TrackEntry::generateUUID();
+        return entry;
     }
 };
 

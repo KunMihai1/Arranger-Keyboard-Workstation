@@ -12,6 +12,8 @@
 
 #include "PersistedKeys.h"
 
+#include <map>
+
 namespace MidiFileFacts
 {
     constexpr int    drumChannel                = 10;
@@ -48,6 +50,32 @@ namespace
     {
         if (auto* propertiesFile = dynamic_cast<juce::PropertiesFile*>(properties))
             propertiesFile->saveIfNeeded();
+    }
+
+    struct ParsedMidiFile
+    {
+        juce::MidiFile midiFile;   // timestamps already in seconds
+        double originalBpm {};
+        bool isReadable {};
+    };
+
+    // Several tracks usually come from the same file: read and convert each file once.
+    const ParsedMidiFile& readMidiFileOnce(const juce::File& file, std::map<juce::String, ParsedMidiFile>& parsedFiles)
+    {
+        auto [found, isNew] = parsedFiles.try_emplace(file.getFullPathName());
+        ParsedMidiFile& parsed = found->second;
+
+        if (! isNew || ! file.existsAsFile())
+            return parsed;
+
+        juce::FileInputStream inputStream(file);
+        if (! inputStream.openedOk() || ! parsed.midiFile.readFrom(inputStream))
+            return parsed;
+
+        parsed.originalBpm = TrackIOHelper::getOriginalBpmFromFile(parsed.midiFile);
+        TrackIOHelper::convertTicksToSeconds(parsed.midiFile, parsed.originalBpm);
+        parsed.isReadable = true;
+        return parsed;
     }
 }
 
@@ -99,6 +127,7 @@ void TrackIOHelper::saveToFile(const juce::File& file, const std::unordered_map<
             auto* trackObj = new juce::DynamicObject{};
             juce::var trackVar(trackObj);
 
+            trackObj->setProperty(TrackJsonKeys::filePath, tr.file.getFullPathName());   // a folder mixes files
             trackObj->setProperty(TrackJsonKeys::trackIndex, tr.trackIndex);
             trackObj->setProperty(TrackJsonKeys::displayName, tr.displayName);
             trackObj->setProperty(TrackJsonKeys::uuid, tr.uuid.toString());
@@ -167,6 +196,7 @@ void TrackIOHelper::loadFromFile(const juce::File& fileParam, std::unordered_map
     groupedTracks.clear();
 
     juce::Array<juce::var>* foldersArray = jsonVar.getArray();
+    std::map<juce::String, ParsedMidiFile> parsedFiles;
 
     for (auto& item : *foldersArray)
     {
@@ -185,11 +215,6 @@ void TrackIOHelper::loadFromFile(const juce::File& fileParam, std::unordered_map
             continue; // move on to next folder
         }
 
-        juce::File file{ filePath };
-
-        if (!file.existsAsFile())
-            continue;
-
         groupedTrackKeys.push_back(folderName);
         groupedTracks[folderName] = {};
 
@@ -200,24 +225,22 @@ void TrackIOHelper::loadFromFile(const juce::File& fileParam, std::unordered_map
 
         juce::Array<juce::var>* trackArray = tracksVar.getArray();
 
-        juce::FileInputStream inputStream(file);
-        if (!inputStream.openedOk())
-            continue;
-
-        juce::MidiFile midiFile;
-        if (!midiFile.readFrom(inputStream))
-            continue;
-
-
-        double originalBpm = getOriginalBpmFromFile(midiFile);
-
-        convertTicksToSeconds(midiFile, originalBpm);
-
         for (auto& trackItem : *trackArray)
         {
             auto* trackObj = trackItem.getDynamicObject();
             if (trackObj == nullptr)
                 continue;
+
+            // Older saves kept only the folder's (first) file; a track then comes from that file.
+            const juce::String trackFilePath = trackObj->getProperty(TrackJsonKeys::filePath).toString();
+            const juce::File file { trackFilePath.isNotEmpty() ? trackFilePath : filePath };
+
+            const auto& parsedFile = readMidiFileOnce(file, parsedFiles);
+            if (! parsedFile.isReadable)
+                continue;
+
+            const juce::MidiFile& midiFile = parsedFile.midiFile;
+            const double originalBpm = parsedFile.originalBpm;
 
             int trackIndex = (int)trackObj->getProperty(TrackJsonKeys::trackIndex);
             juce::String displayName = trackObj->getProperty(TrackJsonKeys::displayName).toString();

@@ -11,7 +11,7 @@ used_by:
   - "[[Keyboard & Main UI]]"
   - "[[Arranger Engine]]"
 created: 2026-06-06
-updated: 2026-11-24
+updated: 2026-11-27
 tags:
   - module
   - playback
@@ -39,6 +39,9 @@ The original ("classic") playback engine: plays multiple MIDI tracks together wi
   `PageNotes`): # column, velocity bars, Whole track / Back to recorded buttons that set the old choice and run the
   old action; Cancel in their confirm dialog is a dismissal (`TableDialog::resultIdFor`).
 - `MidiNotesTableModel.h/.cpp` — table model showing the notes of a track.
+- Saved in `myTracks.json` by `TrackIOHelper` (`Source/Common/IOHelper.cpp`): folders, each track with its own
+  MIDI `filePath` + `trackIndex` (since 2026-11-27; older saves only had the folder's first file, which is still the
+  fallback). Each file is read once per load; a track whose file is gone is skipped, its folder stays.
 - Supporting headers: `TrackEntry.h` (track data + `MidiMessageSequence`), `TrackListener.h`, `TrackPlayerListener.h`, `StyleSection.h`.
 
 ## How it works
