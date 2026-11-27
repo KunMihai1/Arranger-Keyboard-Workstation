@@ -13,6 +13,19 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-27 — Track library file per track; steady sparks display test (`fix/track-library-and-sparks-test`, PR #77)
+- Track library: `TrackIOHelper` saved one `filePath` per folder (its first track's) and only `trackIndex` per
+  track, so a folder mixing MIDI files reloaded every track from the first file. Each track now saves its own
+  `filePath`; load falls back to the folder's for old saves and reads each file once (`readMidiFileOnce`). A folder
+  whose first file is gone is kept with its other tracks (before: the folder vanished). Old saves can't be repaired.
+- `sparksAreVisible` failed 3 of 12 runs (one tap's sparks added 258–730 px vs 400). Causes measured: NoteLayer's
+  default particle colour has a random alpha 0.6–1.0 per instance; 12 random sparks a tap; the note-only count
+  drifts ±50 px. Test now pins the dimmest default colour and sums 3 taps (floor 150 px a tap; lowest sum in ten
+  runs 782 vs 450). Mutation: no sparks → −2, fails. 10 / 10 display runs green.
+- Review (Sonnet), verified: `<map>` include; a test for the kept folder. Rejected: "max saturation isn't the
+  dimmest" — the count uses max(r, g, b) = HSV brightness.
+- Unit 5244 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 12 / 0.
+
 ## 2026-11-27 — Sections v2 page (`feat/ui-sections-lanes`)
 - The configurations list and editor were two full-window overlays in plain JUCE widgets. Now the Style page's
   **Sections view** (board PageSections): list + Add section left, lanes + jump pads centre, Selected-section
