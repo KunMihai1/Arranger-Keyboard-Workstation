@@ -11,7 +11,7 @@ namespace RecorderModelTestValues
     const juce::String testCategory = "Unit";
 
     const juce::String lengthIsMinutesSeconds = "the length reads mm:ss, from 00:00 up to 99:59";
-    const juce::String notesCounted           = "the notes line counts notes, singular for one, a prompt for none";
+    const juce::String notesCounted           = "the notes line counts notes, singular for one; none reads true before a take and after an empty one";
     const juce::String lampFollowsRecording   = "the lamp reads REC ON while recording, REC OFF otherwise";
     const juce::String fileLines              = "the file LCD: no file, playing, stopped; the file's name or the prompt";
     const juce::String buttonsWork            = "Play needs notes; Stop needs something running; Save needs a finished recording";
@@ -28,7 +28,7 @@ namespace RecorderModelTestValues
     const juce::String longestLength   = "99:59";
     const juce::String boardNotes      = "312 notes";
     const juce::String oneNote         = "1 note";
-    const juce::String noNotes         = "Nothing recorded yet";
+    const juce::String noNotes         = "No notes yet";
     const juce::String recOn           = "REC ON";
     const juce::String recOff          = "REC OFF";
     const juce::String noFile          = "NO FILE LOADED";

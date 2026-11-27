@@ -25,7 +25,7 @@ namespace RecorderModel
     /** "mm:ss", whole seconds, from 00:00 up to 99:59. */
     juce::String lengthText (double seconds);
 
-    /** "312 notes" / "1 note" / "Nothing recorded yet". */
+    /** "312 notes" / "1 note" / "No notes yet" (true before a take and after an empty one). */
     juce::String notesText (int notes);
 
     /** The lamp's words at the top right of the recording LCD: "REC ON" / "REC OFF". */
@@ -60,9 +60,9 @@ namespace RecorderMetrics
     inline constexpr int   lcdPaddingBottom = 10;
     inline constexpr int   smallLineHeight  = 14;
     inline constexpr int   timeHeight       = 46;
-    inline constexpr float timeTextSize     = 40.0f;
+    inline constexpr float timeTextSize     = 44.0f;
     inline constexpr int   fileTitleHeight  = 24;
-    inline constexpr float fileTitleTextSize = 17.0f;
+    inline constexpr float fileTitleTextSize = 16.0f;
     inline constexpr float smallTextSize    = 12.0f;
     inline constexpr int   columnCount      = 2;
 }

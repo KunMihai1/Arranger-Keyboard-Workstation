@@ -59,6 +59,8 @@ namespace MidiRecordPlayerTestValues
     constexpr double oneSecond        = 1.0;
     constexpr double tempo            = 120.0;
     constexpr int    recordedPrograms = 2;     // startRecording's presets: one program change per hand
+    constexpr int    takeMs           = 30;    // a short take, long enough to measure
+    constexpr double takeSeconds      = 0.03;
 }
 
 using namespace MidiRecordPlayerTestValues;
@@ -225,11 +227,17 @@ public:
             player.applyPresetFunction = [] {};
             expectEquals(player.getRecordedSeconds(), recordingStart);
             player.startRecording();
-            expect(player.getRecordedSeconds() >= recordingStart);
+            const auto atStart = player.getRecordedSeconds();
+            juce::Thread::sleep(takeMs);
+            expect(player.getRecordedSeconds() >= atStart + takeSeconds);   // it runs while recording
             player.stopRecording();
             const auto lengthAtStop = player.getRecordedSeconds();
-            expect(lengthAtStop >= recordingStart);
-            expectEquals(player.getRecordedSeconds(), lengthAtStop);   // stopped: it no longer runs
+            expect(lengthAtStop >= takeSeconds);                            // start to Stop
+            expectEquals(player.getRecordedSeconds(), lengthAtStop);       // stopped: it no longer runs
+
+            player.startRecording();                                        // a new take starts from zero
+            player.stopRecording();
+            expect(player.getRecordedSeconds() < lengthAtStop);
 
             player.getAllRecordedEvents().push_back(RecordedEvent{ juce::MidiMessage::noteOn (styleChannel, middleC, velocity), oneSecond });
             expect(player.getRecordedSeconds() >= oneSecond);

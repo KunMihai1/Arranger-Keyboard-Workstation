@@ -158,17 +158,19 @@ void MainComponent::stagePagesInit()
         state.filePlaying     = recordPlayer.getIsPlayingFile();
         return state;
     };
-    recorderContent->onPlayRecording = [this] { startPlayback.onClick(); refreshStage(); };   // stops a recording first
+    // Each action shows its result at once instead of on the next poll.
+    recorderContent->onPlayRecording = [this] { startPlayback.onClick(); refreshStage(); recorderContent->refresh(); };   // stops a recording first
     recorderContent->onStopRecording = [this]
     {
         if (recordPlayer.getIsRecording())
             toggleRecordingFromPanel();
         else if (recordPlayer.getIsPlaying())
             recordPlayer.stopPlayBack();
+        recorderContent->refresh();
     };
     recorderContent->onSaveRecording = [this] { saveRecordingToFile(); };
     recorderContent->onPlayFile      = [this] { playRecordingFromFile(); };
-    recorderContent->onStopFile      = [this] { recordPlayer.stopRecordingFilePlaying(); };
+    recorderContent->onStopFile      = [this] { recordPlayer.stopRecordingFilePlaying(); recorderContent->refresh(); };
     recorderContent->refresh();
     filePage->addAndMakeVisible (*recorderContent);
     filePage->onLayoutContent = [this] (juce::Rectangle<int> area, float scale)

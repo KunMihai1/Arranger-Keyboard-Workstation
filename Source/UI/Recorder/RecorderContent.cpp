@@ -22,6 +22,9 @@ namespace
     constexpr int   paddingSide   = 12;      // the board's .seg: padding 0 12px
     constexpr float detailTextSize = 13.0f;  // the board's "312 events" / "through the current sounds"
     constexpr bool  mediumFace    = false;   // silkscreen Medium (.silk-dim)
+    constexpr float buttonTextSize = 11.0f;  // PageFile's .seg: 26 high, 11 px text (the shared default is 22 / 10)
+    constexpr float hintTextSize  = 11.0f;   // PageFile's .silk-dim: 11 px, letter-spacing .06em, as written
+    constexpr float hintSpacing   = 0.06f;
 }
 
 RecorderContent::RecorderContent()
@@ -40,6 +43,8 @@ RecorderContent::RecorderContent()
     for (auto* button : { &playRecording, &stopRecording, &saveRecording, &playFile, &stopFile })
     {
         button->setPaddingSide (paddingSide);
+        button->setBoardHeight (RecorderMetrics::buttonHeight);
+        button->setTextSize (buttonTextSize);
         button->setMouseClickGrabsKeyboardFocus (false);   // the PC keyboard keeps playing after a press
         addAndMakeVisible (button);
     }
@@ -127,7 +132,7 @@ void RecorderContent::paint (juce::Graphics& g)
     g.drawText (RecorderModel::fileTitle (state), rects.fileTitle, juce::Justification::centredLeft, true);
 
     g.setColour (StagePalette::silkscreenDimText);
-    g.setFont (StageFonts::silkscreen (StageMetrics::silkLabelSize * scale, mediumFace, StageMetrics::silkDimSpacing));
+    g.setFont (StageFonts::silkscreen (hintTextSize * scale, mediumFace, hintSpacing));
     g.drawText (RecorderText::hint, rects.hint, juce::Justification::centredLeft, false);
 }
 

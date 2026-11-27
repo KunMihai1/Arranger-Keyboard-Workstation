@@ -14,7 +14,7 @@ namespace
     const juce::String lengthSeparator = ":";
     const juce::String noteWord        = " note";
     const juce::String notesWord       = " notes";
-    const juce::String nothingYet      = "Nothing recorded yet";
+    const juce::String nothingYet      = "No notes yet";
     const juce::String recOn           = "REC ON";
     const juce::String recOff          = "REC OFF";
     const juce::String noFile          = "NO FILE LOADED";
