@@ -13,6 +13,21 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-27 — Split moved by an octave with the PC keyboard (`fix/split-octave-shift`)
+- Track / Quick FX / label fixes merged (PR #70). Correction to the incident below it: the owner runs the app on a
+  different PC; the restores only reset test data on the agent's machine.
+- Owner: "it should move the value but something made it to be on the wrong value at a point". Z / X move the
+  range and split with the PC keyboard (kept), but an edit while shifted saved all four values as shown and
+  `savePlaybackSettings` folded a PC keyboard's notes into the middle-C octave (A3 came back as A4; none as B3);
+  a clamped value didn't come back; a none split became A0 on a shift.
+- Fix: pure `PlaybackRange` — saved home-octave values + the PC keyboard's shift (start − middle C; hardware 0);
+  shown = saved + shift (clamped, none kept); an edit saves only the changed field, moved home. `Display` keeps
+  `savedSettings` / `settings`; `set_min_max(min, max, pcKeyboard)`; `keyboardShifted()`; saving keeps values as
+  given. Review (Sonnet): the shift first came from the key count, which would have shifted 25–49-key hardware —
+  now from the PC-keyboard flag (test failed first). Noted: old PC-keyboard saves of "none" (stored as B3) show B3.
+- Unit 2807 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), display 10 / 0. Live: field edits save and
+  survive reopening; Z / X not driven (synthetic keys don't reach the app).
+
 ## 2026-11-27 — Owner bug reports: tracks, picker folder, Quick FX, labels (`fix/track-picker-instrument`)
 - Chord helper merged (PR #69); it also fixed the owner's "Styles LED stays red": a chord played on a page put
   the GL note layer over the page.

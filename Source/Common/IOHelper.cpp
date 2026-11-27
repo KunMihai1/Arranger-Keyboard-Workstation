@@ -485,31 +485,17 @@ void TrackIOHelper::extractNotePairEvents(juce::MidiMessageSequence& sequence, s
     }
 }
 
-void PlaybackSettingsIOHelper::savePlaybackSettings(juce::PropertySet* properties, const PlayBackSettings& settings, int lowest, int highest, const juce::String& styleID)
+void PlaybackSettingsIOHelper::savePlaybackSettings(juce::PropertySet* properties, const PlayBackSettings& settings, const juce::String& styleID)
 {
     if (!properties) return;
 
-    using namespace PlaybackSettingsKeys;
-    int baseStart = middleC;
-    bool keyboardInputCase = false;
-    if (highest - lowest < smallestHardwareKeyboardKeys)
-        keyboardInputCase = true;
-
+    // Saved as given: the caller saves the home-octave values (PlaybackRange). Folding a PC keyboard's notes into
+    // the middle-C octave here moved a split saved while shifted by an octave (A3 came back as A4; none as B3).
     juce::String prefix = getStyleDeviceSettingsPrefix(styleID, settings.VID, settings.PID);
-
-    if (keyboardInputCase && lowest != middleC)
-    {
-        properties->setValue(prefix + PlaybackSettingsKeys::startNote, baseStart + settings.startNote % semitonesPerOctave);
-        properties->setValue(prefix + PlaybackSettingsKeys::endNote, baseStart + settings.endNote % semitonesPerOctave);
-        properties->setValue(prefix + PlaybackSettingsKeys::leftHandBound, baseStart + settings.leftHandBound % semitonesPerOctave);
-        properties->setValue(prefix + PlaybackSettingsKeys::rightHandBound, baseStart + settings.rightHandBound % semitonesPerOctave);
-    }
-    else {
-        properties->setValue(prefix + PlaybackSettingsKeys::startNote, settings.startNote);
-        properties->setValue(prefix + PlaybackSettingsKeys::endNote, settings.endNote);
-        properties->setValue(prefix + PlaybackSettingsKeys::leftHandBound, settings.leftHandBound);
-        properties->setValue(prefix + PlaybackSettingsKeys::rightHandBound, settings.rightHandBound);
-    }
+    properties->setValue(prefix + PlaybackSettingsKeys::startNote, settings.startNote);
+    properties->setValue(prefix + PlaybackSettingsKeys::endNote, settings.endNote);
+    properties->setValue(prefix + PlaybackSettingsKeys::leftHandBound, settings.leftHandBound);
+    properties->setValue(prefix + PlaybackSettingsKeys::rightHandBound, settings.rightHandBound);
 
     saveIfFileBacked(properties);
 }
