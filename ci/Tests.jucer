@@ -55,6 +55,8 @@
               file="../tests/unit/test_piano_keys.cpp"/>
         <FILE id="dstFlT" name="test_dust_field.cpp" compile="1" resource="0"
               file="../tests/unit/test_dust_field.cpp"/>
+        <FILE id="pnlFnT" name="test_panel_finish.cpp" compile="1" resource="0"
+              file="../tests/unit/test_panel_finish.cpp"/>
         <FILE id="stgWdT" name="test_stage_widgets.cpp" compile="1" resource="0"
               file="../tests/unit/test_stage_widgets.cpp"/>
         <FILE id="stgMdT" name="test_stage_models.cpp" compile="1" resource="0"
@@ -432,6 +434,10 @@
                 file="../Source/UI/Stage/StageFonts.h"/>
           <FILE id="stgScC" name="StageScale.cpp" compile="1" resource="0"
                 file="../Source/UI/Stage/StageScale.cpp"/>
+          <FILE id="frcNsH" name="FractalNoise.h" compile="0" resource="0" file="../Source/UI/Stage/FractalNoise.h"/>
+          <FILE id="frcNsC" name="FractalNoise.cpp" compile="1" resource="0" file="../Source/UI/Stage/FractalNoise.cpp"/>
+          <FILE id="pnlFnH" name="PanelFinish.h" compile="0" resource="0" file="../Source/UI/Stage/PanelFinish.h"/>
+          <FILE id="pnlFnC" name="PanelFinish.cpp" compile="1" resource="0" file="../Source/UI/Stage/PanelFinish.cpp"/>
           <FILE id="stgScH" name="StageScale.h" compile="0" resource="0"
                 file="../Source/UI/Stage/StageScale.h"/>
           <FILE id="stgMtH" name="StageMetrics.h" compile="0" resource="0"

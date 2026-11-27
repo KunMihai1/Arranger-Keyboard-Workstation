@@ -303,6 +303,13 @@ bool RubberButton::hitTest (int xPosition, int yPosition)
     return cap.contains (static_cast<float> (xPosition), static_cast<float> (yPosition));
 }
 
+juce::Colour silkscreenInkFor (const juce::Component& widget, bool bright)
+{
+    if (const auto* source = widget.findParentComponentOfClass<SilkscreenInkSource>())
+        return source->silkscreenInk (widget, bright);
+    return bright ? StagePalette::silkscreenText : StagePalette::silkscreenDimText;
+}
+
 void RubberButton::paintButton (juce::Graphics& g, bool, bool isDown)
 {
     if (style != Style::ledToggle)
@@ -311,7 +318,7 @@ void RubberButton::paintButton (juce::Graphics& g, bool, bool isDown)
     StageDrawing::drawLed (g, getLedBounds(), ledOn, colourOf (ledColour), scale);
 
     g.setFont (getLabelFont());
-    g.setColour (labelTone == LabelTone::bright ? StagePalette::silkscreenText : StagePalette::silkscreenDimText);
+    g.setColour (silkscreenInkFor (*this, labelTone == LabelTone::bright));
 
     switch (style)
     {
@@ -504,14 +511,14 @@ void StageKnob::paint (juce::Graphics& g)
     g.fillPath (pointer, juce::AffineTransform::rotation (valueAngle, centre.x, centre.y));
 
     // Label under the ring.
-    g.setColour (StagePalette::silkscreenText);
+    g.setColour (silkscreenInkFor (*this, true));
     g.setFont (StageFonts::silkscreen (scaled (silkLabelSize), semiBold, silkLabelSpacing));
     const auto labelTop = ring.getBottom() + scaled (geometry.labelGap);
     g.drawText (label.toUpperCase(), getLocalBounds().toFloat().withTop (labelTop), juce::Justification::centredTop, false);
 
     if (showsValue)
     {
-        g.setColour (StagePalette::silkscreenDimText);
+        g.setColour (silkscreenInkFor (*this, false));
         g.setFont (StageFonts::lcd (scaled (knobValueTextSize)));
         g.drawText (juce::String (juce::roundToInt (getValue())), getValueBounds(), juce::Justification::centred, false);
     }

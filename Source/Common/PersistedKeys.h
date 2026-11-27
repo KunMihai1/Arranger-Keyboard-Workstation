@@ -38,6 +38,7 @@ namespace SettingsFileKeys
     inline const juce::String midiOutIndex            = "MidiOutIndex";
     inline const juce::String audioOutIndex           = "AudioOutIndex";
     inline const juce::String particleStyle           = "ParticleStyle";       // ParticleStyles id (spec B9)
+    inline const juce::String panelFinish             = "PanelFinish";         // PanelFinish stored id (board SkinsFinish)
     inline const juce::String leftInstrumentSuffix    = "_leftInstrumentNumber";
     inline const juce::String rightInstrumentSuffix   = "_rightInstrumentNumber";
 }

@@ -59,6 +59,8 @@ struct SettingsPageRects
     static constexpr int arrangerRows  = 7;
     static constexpr int choiceCount   = 3;   // a row of three seg buttons
     static constexpr int displayRows   = 3;   // particles, note names, particle colours
+    static constexpr int finishRows    = 2;   // Stage / Rosso / Champagne, Tobacco / Midnight / Concert
+    static constexpr int finishesPerRow = 3;
     std::array<juce::Rectangle<int>, columnCount> columns, headings;
     std::array<juce::Rectangle<int>, fieldCount> fieldLabels, fields;
     juce::Rectangle<int> keyboardLabel, keyboardRow;
@@ -66,6 +68,8 @@ struct SettingsPageRects
     juce::Rectangle<int> chordModeLabel, chordModeRow, minorScaleLabel, minorScaleRow;
     std::array<juce::Rectangle<int>, displayRows> displayToggles;
     juce::Rectangle<int> particleStyleLabel, particleStyleRow;
+    juce::Rectangle<int> finishLabel;
+    std::array<juce::Rectangle<int>, finishRows> finishRowAreas;
 };
 /** The Keyboard field's sizes: 49 / 61 / 76 / 88, plus the stored count when a device was added with another one. */
 std::vector<int> keyboardFieldSizes (int storedKeys);

@@ -502,6 +502,13 @@ private:
     SegButton particleWisps  { {}, SegButton::Style::seg, true };
     void createSettingsContent();
     void setParticleStyle (int styleId, bool save);
+    // Settings > Display > Finish (board SkinsFinish, key PanelFinish): the panel surface, key slip and side strips.
+    SilkLabel finishLabel { {}, SilkLabel::Tone::dim };
+    std::array<std::unique_ptr<SegButton>, PanelFinish::all.size()> finishButtons;
+    PanelFinish::Id panelFinish = PanelFinish::Id::stage;
+    juce::Image slipFinish;   ///< the key slip in the finish, drawn for the slip's size and scale
+    float slipFinishScale {};
+    void setPanelFinish (PanelFinish::Id finish, bool save);
     int particleStyleId = ParticleStyles::dust;   ///< applied again when Play creates the note layer
     // Voices page (board StageVoices, MainComponentVoices.cpp): the lit hands' instrument, Display's range fields,
     // the SFZ library; the title row's Left hand / Right hand are the Part LEDs' two toggles.

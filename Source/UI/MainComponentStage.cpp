@@ -39,6 +39,7 @@ namespace
         const juce::String noteNames        = "Note names on keys";
         const char* const  particleColoursUtf8 = "Particle colours\xe2\x80\xa6";
         const juce::String particleStyle    = "Particle style";
+        const juce::String finish           = "Finish";
         const juce::String sparks           = "Sparks";
         const juce::String dust             = "Dust";
         const juce::String wisps            = "Wisps";
@@ -198,6 +199,18 @@ void MainComponent::stagePagesInit()
     particleWisps.onClick  = [this] { setParticleStyle (ParticleStyles::wisps, true); };
     setParticleStyle (ParticleStyles::fromStored (propertiesFile != nullptr ? propertiesFile->getIntValue (SettingsFileKeys::particleStyle, ParticleStyles::dust)
                                                                             : ParticleStyles::dust), false);
+    static_assert (SettingsPageRects::finishRows * SettingsPageRects::finishesPerRow == static_cast<int> (PanelFinish::all.size()), "a button per finish");
+    finishLabel.setText (StageWiringText::finish);
+    settingsPage->addAndMakeVisible (finishLabel);
+    for (size_t finishIndex {}; finishIndex < finishButtons.size(); ++finishIndex)
+    {
+        const auto finish = PanelFinish::all[finishIndex];
+        finishButtons[finishIndex] = std::make_unique<SegButton> (PanelFinish::label (finish), SegButton::Style::seg, true);
+        finishButtons[finishIndex]->onClick = [this, finish] { setPanelFinish (finish, true); };
+        settingsPage->addAndMakeVisible (*finishButtons[finishIndex]);
+    }
+    setPanelFinish (PanelFinish::fromStored (propertiesFile != nullptr ? propertiesFile->getValue (SettingsFileKeys::panelFinish) : juce::String()),
+                    false);
     // These three are shown and hidden with the play view (toggleHPanel), as in phase 1: add them hidden.
     for (juce::Component* control : { static_cast<juce::Component*> (&particleToggle), static_cast<juce::Component*> (&noteNumbersAnnotation),
                                        static_cast<juce::Component*> (&colourSelectorButton) })
@@ -226,6 +239,21 @@ void MainComponent::stagePagesInit()
             left += button->getExactWidth();
         }
         particleStyleLabel.setScale (scale);
+
+        finishLabel.setScale (scale);
+        finishLabel.setBounds (rects.finishLabel);
+        for (size_t row {}; row < rects.finishRowAreas.size(); ++row)
+        {
+            auto finishLeft = static_cast<float> (rects.finishRowAreas[row].getX());
+            for (size_t column {}; column < SettingsPageRects::finishesPerRow; ++column)
+            {
+                auto& button = *finishButtons[row * SettingsPageRects::finishesPerRow + column];
+                button.setScale (scale);
+                button.setBounds (juce::Rectangle<float> (finishLeft, static_cast<float> (rects.finishRowAreas[row].getY()), button.getExactWidth(),
+                                                          static_cast<float> (rects.finishRowAreas[row].getHeight())).toNearestInt());
+                finishLeft += button.getExactWidth();
+            }
+        }
     };
 
     // Chords (board PageChords): the chord helper - search, the chord list, the chosen chord's voicings on
@@ -310,8 +338,22 @@ void MainComponent::paintStageStrips (juce::Graphics& g)
     g.fillRect (felt);
 
     const auto slip = stageRegions.slip.toFloat();
-    g.setGradientFill (juce::ColourGradient::vertical (StagePalette::slipTop, slip.getY(), StagePalette::slipBottom, slip.getBottom()));
-    g.fillRect (slip);
+    if (panelFinish == PanelFinish::Id::stage)
+    {
+        g.setGradientFill (juce::ColourGradient::vertical (StagePalette::slipTop, slip.getY(), StagePalette::slipBottom, slip.getBottom()));
+        g.fillRect (slip);
+    }
+    else
+    {
+        // The slip is small: draw its finish again whenever its size changed.
+        if (slipFinish.getBounds() != stageRegions.slip.withZeroOrigin() || ! juce::approximatelyEqual (slipFinishScale, stageRegions.scale))
+        {
+            slipFinish = PanelFinish::renderSurface (panelFinish, stageRegions.slip.getWidth(), stageRegions.slip.getHeight(), stageRegions.scale,
+                                                     PanelFinish::Part::keySlip);
+            slipFinishScale = stageRegions.scale;
+        }
+        g.drawImageAt (slipFinish, stageRegions.slip.getX(), stageRegions.slip.getY());
+    }
     g.setColour (StagePalette::slipEdge);
     g.fillRect (slip.withHeight (stageRegions.scale * StageMetrics::panelBottomEdge));
 }
@@ -640,6 +682,23 @@ void MainComponent::applyQuickKnob (StagePanel::QuickKnob knob, int value, bool 
     // The Effects page shows the same stored values: keep it current while it is open.
     if (pageRouter.open() == StagePage::effects && effectsContent && effectsContent->onChannelChanged)
         effectsContent->onChannelChanged (effectsContent->getSelectedChannel());
+}
+
+void MainComponent::setPanelFinish (PanelFinish::Id finish, bool save)
+{
+    panelFinish = finish;
+    for (size_t finishIndex {}; finishIndex < finishButtons.size(); ++finishIndex)
+        if (finishButtons[finishIndex] != nullptr)
+            finishButtons[finishIndex]->setLedOn (PanelFinish::all[finishIndex] == finish);
+    if (stagePanel != nullptr)
+        stagePanel->setFinish (finish);
+    slipFinish = {};
+    repaint (stageRegions.slip);
+    if (save && propertiesFile != nullptr)
+    {
+        propertiesFile->setValue (SettingsFileKeys::panelFinish, PanelFinish::storedId (finish));
+        propertiesFile->saveIfNeeded();
+    }
 }
 
 void MainComponent::setParticleStyle (int styleId, bool save)
