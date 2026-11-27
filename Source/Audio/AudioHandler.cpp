@@ -19,6 +19,12 @@ namespace ChannelLayout
     constexpr int noOutputChannels = 0;
     constexpr int firstChannelBit  = 1;   // bit for channel index 0 in the no-SFZ channel mask
     constexpr int noChannels       = 0;
+
+    // Room reserved off the audio thread, so a block's MIDI never allocates there. A dense block (a chord with
+    // pedal and controllers on several parts) is a few dozen events; past this the buffer would grow once.
+    constexpr int reservedEventsPerBlock   = 1024;
+    constexpr int reservedEventsPerChannel = 256;
+    constexpr int noSfzCheckIntervalMs     = 250;   // how soon "no SFZ on channel …" is reported (message thread)
     constexpr int noLoadsPending   = 0;
 }
 
@@ -462,10 +468,32 @@ AudioHandler::AudioHandler(MidiHandler& mh) : midiHandler(mh)
         channelPans[channelIndex]  = EffectSettings::centrePan;
         channelHasSfz[channelIndex].store(false, std::memory_order_relaxed);
     }
+    reserveMidiStorage();
+    startTimer(ChannelLayout::noSfzCheckIntervalMs);
+}
+
+void AudioHandler::reserveMidiStorage()
+{
+    incomingMidi.clear();
+    incomingMidi.ensureSize(MidiChannelSplitter::bytesPerShortEvent() * static_cast<size_t>(ChannelLayout::reservedEventsPerBlock));
+    channelMidi.prepare(ChannelLayout::reservedEventsPerChannel);
+}
+
+void AudioHandler::timerCallback()
+{
+    reportChannelsWithoutSfz();
+}
+
+void AudioHandler::reportChannelsWithoutSfz()
+{
+    const int mask = noSfzChannelMask.exchange(ChannelLayout::noChannels);
+    if (onNoSfzForChannels && mask != ChannelLayout::noChannels)
+        onNoSfzForChannels(mask);
 }
 
 AudioHandler::~AudioHandler()
 {
+    stopTimer();
     midiHandler.setInternalSynthListening(false);   // nothing will drain the queue any more
 }
 
@@ -478,6 +506,7 @@ void AudioHandler::audioDeviceAboutToStart (juce::AudioIODevice* device)
     currentSampleRate = device->getCurrentSampleRate();
     const int bufferSize = device->getCurrentBufferSizeSamples();
     tempBuffer.setSize(DspConstants::stereoChannelCount, bufferSize, false, true);
+    reserveMidiStorage();
 
     for (int channelIndex {}; channelIndex < DspConstants::midiChannelCount; ++channelIndex)
     {
@@ -508,13 +537,15 @@ void AudioHandler::audioDeviceIOCallbackWithContext (const float* const* inputCh
     if (numOutputChannels == noOutputChannels)
         return;
 
-    juce::MidiBuffer incomingMidi;
+    incomingMidi.clear();   // keeps its reserved storage: no allocation here
     midiHandler.getNextMidiBlock(incomingMidi, bufferStart, numSamples);
 
     // Update per-channel state from incoming CCs before rendering;
     // also detect noteOns on channels with no SFZ loaded.
     for (const auto metadata : incomingMidi)
     {
+        if (metadata.numBytes > MidiChannelSplitter::largestShortMessage)
+            continue;   // SysEx is not for the synths; copying it into a MidiMessage would allocate
         const auto msg = metadata.getMessage();
         if (msg.isController())
         {
@@ -534,17 +565,8 @@ void AudioHandler::audioDeviceIOCallbackWithContext (const float* const* inputCh
             if (channelIndex >= int {} && channelIndex < DspConstants::midiChannelCount
                 && !channelHasSfz[channelIndex].load(std::memory_order_relaxed))
             {
+                // Only an atomic here: posting a message from the audio thread allocates (timerCallback reports it).
                 noSfzChannelMask.fetch_or(firstChannelBit << channelIndex, std::memory_order_relaxed);
-                bool expected = false;
-                if (noSfzNotifyPending.compare_exchange_strong(expected, true))
-                {
-                    juce::MessageManager::callAsync([this]() {
-                        const int mask = noSfzChannelMask.exchange(noChannels);
-                        noSfzNotifyPending.store(false);
-                        if (onNoSfzForChannels && mask != noChannels)
-                            onNoSfzForChannels(mask);
-                    });
-                }
             }
         }
     }
@@ -554,21 +576,15 @@ void AudioHandler::audioDeviceIOCallbackWithContext (const float* const* inputCh
 
     juce::AudioBuffer<float> mainBuffer(outputChannelData, numOutputChannels, numSamples);
 
+    channelMidi.split(incomingMidi);   // one pass, into buffers reserved in audioDeviceAboutToStart
+
     for (int channel = firstMidiChannel; channel <= DspConstants::midiChannelCount; ++channel)
     {
         if (!channelHasSfz[channel - firstMidiChannel].load(std::memory_order_acquire))
             continue;
 
-        juce::MidiBuffer channelMidi;
-        for (const auto metadata : incomingMidi)
-        {
-            const auto message = metadata.getMessage();
-            if (message.getChannel() == channel)
-                channelMidi.addEvent(message, metadata.samplePosition);
-        }
-
         tempBuffer.clear();
-        sfzSynths[channel - firstMidiChannel].renderNextBlock(tempBuffer, channelMidi, bufferStart, numSamples);
+        sfzSynths[channel - firstMidiChannel].renderNextBlock(tempBuffer, channelMidi.channel(channel), bufferStart, numSamples);
 
         channelDSP[channel - firstMidiChannel].process(tempBuffer, numSamples);
 

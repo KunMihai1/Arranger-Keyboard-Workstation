@@ -144,8 +144,11 @@ void MidiHandler::handleIncomingMidiMessage(juce::MidiInput* source, const juce:
 }
 
 void MidiHandler::getNextMidiBlock(juce::MidiBuffer& destBuffer, int startSample, int numSamples) {
-	//DBG("getNextMidiBlock called");
-	const juce::ScopedLock lock(midiMutex);
+	// Audio thread: never wait. The MIDI thread holds midiMutex while it sends to MIDI out and tells its listeners;
+	// if it holds it now, these events go out with the next block (one buffer later) instead.
+	const juce::ScopedTryLock lock(midiMutex);
+	if (! lock.isLocked())
+		return;
 	destBuffer.addEvents(incomingMidiMessages, startSample, numSamples, InternalSynthQueue::noTimeShift);
 	incomingMidiMessages.clear();
 	//DBG("getNextMidiBlock: " << destBuffer.getNumEvents());
