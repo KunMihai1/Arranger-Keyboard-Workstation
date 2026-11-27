@@ -200,7 +200,7 @@ void MainComponent::applyAndSaveEffect(int ccNumber, int value, int currentChann
     if (save)   // a file write per knob step made turning a knob lag (measured 11.6 ms each)
         EffectSettingsIOHelper::saveSingleEffect(propertiesFile, styleID, VID, PID, currentChannel, key, value);
 
-    if (!playButton.isVisible())
+    if (inPlayView)
     {
         if (MIDIDevice.isOpenOUT())
             MIDIDevice.sendMidiCC(currentChannel, ccNumber, value);

@@ -143,6 +143,19 @@ namespace StagePalette
     static const juce::Colour slipBottom         { 0xff111213 };
     static const juce::Colour slipEdge           { 0xff000000 };
 
+    // --- Home (board PageHome): the big Settings / Play / Exit keys ---
+    static const juce::Colour bigKeyTop          { 0xff45464b };
+    static const juce::Colour bigKeyBottom       { 0xff2c2d30 };
+    static const juce::Colour bigKeyBorder       { 0xff111214 };
+    static const juce::Colour bigKeyDrop         { 0xff0d0e0f };   // 0 4px 0: the key's side
+    static const juce::Colour bigKeyShadow       { 0x80000000 };   // 0 6px 10px rgba(0,0,0,.5)
+    static const juce::Colour bigKeyShine        { 0x1affffff };   // inset 0 1px 0 rgba(255,255,255,.1)
+    static const juce::Colour bigKeyText         { 0xffd9dbde };
+    static const juce::Colour playKeyTop         { 0xff5a4638 };
+    static const juce::Colour playKeyBottom      { 0xff3f3127 };
+    static const juce::Colour playKeyBorder      { 0xff2a1d14 };
+    static const juce::Colour playKeyText        { 0xffffe2cf };
+
     // --- Keys (StageRevised .wk / .wk.down / .bk; spec §7 for the pressed black key) ---
     static const juce::Colour keyBed             { 0xff0b0b0c };
     static const juce::Colour whiteKeyTop        { 0xffe9e6de };

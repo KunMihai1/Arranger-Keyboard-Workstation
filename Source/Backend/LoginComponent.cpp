@@ -10,27 +10,29 @@
 
 #include "LoginComponent.h"
 #include "AppColours.h"
-
-using namespace AppColours;
+#include "AppInfo.h"
+#include "Stage/StageFonts.h"
+#include "Stage/FrontScreensLayout.h"
 
 namespace
 {
     namespace Text
     {
-        const juce::String emailLabel            = "Email:";
+        const juce::String emailLabel            = "Email";
         const juce::String emailHint             = "Enter email...";
-        const juce::String passwordLabel         = "Password:";
+        const juce::String passwordLabel         = "Password";
         const juce::String passwordHint          = "Enter password...";
-        const juce::String usernameLabel         = "Username:";
+        const juce::String usernameLabel         = "Username";
         const juce::String usernameHint          = "Enter username...";
-        const juce::String loginButton           = "Login";
-        const juce::String signUpButton          = "Sign Up";
-        const juce::String forgotButton          = "Forgot Pass?";
-        const juce::String doneButton            = "Done";
-        const juce::String backButton            = "Back";
-        const juce::String eyeButton             = "eye";
-        const juce::String createAccount         = "Create Account";
-        const juce::String welcomeBack           = "Welcome Back";
+        const juce::String loginButton           = "Log in";
+        const juce::String signUpButton          = "Sign up";
+        const juce::String forgotButton          = "Forgot password?";
+        const juce::String createButton          = "Create account";
+        const juce::String backButton            = "Back to log in";
+        const juce::String showPassword          = "Show";
+        const juce::String hidePassword          = "Hide";
+        const juce::String loginSubtitle         = "Welcome back. Log in to start playing.";
+        const juce::String signUpSubtitle        = "Create an account to start playing.";
         const juce::String loginTitle            = "Login";
         const juce::String enterEmailAndPassword = "Please enter both email and password.";
         const juce::String loginFailedTitle      = "Login Failed";
@@ -67,197 +69,170 @@ namespace
         const juce::String trueText             = "true";
     }
 
-    constexpr float fieldFontHeight       = 16.0f;
-    constexpr float titleFontHeight       = 32.0f;
-    constexpr float editorBackgroundAlpha = 0.6f;
-    constexpr float cardAlpha             = 0.85f;
-    constexpr float borderAlpha           = 0.5f;
-    constexpr float cornerRadius          = 15.0f;
-    constexpr float borderThickness       = 1.5f;
-    constexpr int   headerHeight          = 90;
-    constexpr int   headerTopTrim         = 25;
-    constexpr int   cardPadding           = 30;
-    constexpr int   backButtonInset       = 15;
-    constexpr int   backButtonWidth       = 80;
-    constexpr int   backButtonHeight      = 30;
-    constexpr int   headerSkip            = 60;
-    constexpr int   labelWidth            = 90;
-    constexpr int   noInset               = 0;
-    constexpr int   labelGap              = 10;
-    constexpr int   buttonsTopGap         = 10;
-    constexpr int   buttonRowExtraHeight  = 5;
-    constexpr int   buttonSpacing         = 12;
-    constexpr int   buttonsPerRow         = 3;
-    constexpr int   gapsBetweenButtons    = 2;     // buttonsPerRow - 1
-    constexpr int   doneWidth             = 140;
-    constexpr int   doneHeight            = 45;
-    constexpr int   doneBottomOffset      = 65;
-    constexpr int   centringDivisor       = 2;
-    constexpr int   eyeButtonGap          = 20;
-    constexpr int   eyeButtonInset        = 2;
+    // Board PageLogin: the title (22 px, .24em, two lines), the subtitle (.silk-dim 11 px) and the .seg buttons (30 high).
+    constexpr float titleSize          = 22.0f;
+    constexpr float titleSpacing       = 0.24f;
+    constexpr float subtitleSize       = 11.0f;
+    constexpr float subtitleSpacing    = 0.06f;
+    constexpr int   segHeight          = 30;
+    constexpr int   segPadding         = 14;
+    constexpr float segTextSize        = 11.0f;
+    constexpr int   buttonGap          = 8;
+    constexpr bool  semiBold           = true;
+    constexpr bool  medium             = false;
     constexpr juce::juce_wchar passwordBullet      = 0x2022;
     constexpr juce::juce_wchar noPasswordCharacter = 0;
 }
 
-LoginComponent::LoginComponent(std::shared_ptr<SupabaseClient> newClient): client{newClient}
+LoginComponent::LoginComponent(std::shared_ptr<SupabaseClient> newClient)
+    : usernameLabel (Text::usernameLabel, SilkLabel::Tone::bright),
+      emailLabel (Text::emailLabel, SilkLabel::Tone::bright),
+      passwordLabel (Text::passwordLabel, SilkLabel::Tone::bright),
+      usernameField (Text::usernameHint),
+      emailField (Text::emailHint),
+      passwordField (Text::passwordHint),
+      showButton (Text::showPassword, SegButton::Style::seg),
+      loginButton (Text::loginButton, SegButton::Style::lit, true, RubberButton::LedColour::green),
+      signUpButton (Text::signUpButton, SegButton::Style::seg),
+      forgotButton (Text::forgotButton, SegButton::Style::seg),
+      createButton (Text::createButton, SegButton::Style::lit, true, RubberButton::LedColour::green),
+      backButton (Text::backButton, SegButton::Style::seg),
+      client{newClient}
 {
-    auto setupLabel = [](juce::Label& lbl, const juce::String& text) {
-        lbl.setText(text, juce::dontSendNotification);
-        lbl.setColour(juce::Label::textColourId, subtitleText);
-        lbl.setFont(juce::FontOptions(fieldFontHeight, juce::Font::bold));
-        lbl.setJustificationType(juce::Justification::centredRight);
-    };
+    for (auto* label : { &usernameLabel, &emailLabel, &passwordLabel })
+        addChildComponent (*label);
+    for (auto* field : { &usernameField, &emailField, &passwordField })
+        addChildComponent (*field);
+    passwordField.setPasswordCharacter (passwordBullet);
 
-    auto setupTE = [](juce::TextEditor& te, const juce::String& emptyText) {
-        te.setMultiLine(false);
-        te.setColour(juce::TextEditor::backgroundColourId, background.withAlpha(editorBackgroundAlpha));
-        te.setColour(juce::TextEditor::textColourId, titleText);
-        te.setColour(juce::TextEditor::outlineColourId, separator);
-        te.setColour(juce::TextEditor::focusedOutlineColourId, accent1);
-        te.setFont(juce::FontOptions(fieldFontHeight));
-        te.setTextToShowWhenEmpty(emptyText, subtitleText);
-    };
+    for (auto* button : { &showButton, &loginButton, &signUpButton, &forgotButton, &createButton, &backButton })
+    {
+        button->setBoardHeight (segHeight);
+        button->setPaddingSide (segPadding);
+        button->setTextSize (segTextSize);
+        addChildComponent (*button);
+    }
+    loginButton.setLedOn (true);
+    createButton.setLedOn (true);
 
-    emailLabel = std::make_unique<juce::Label>();
-    setupLabel(*emailLabel, Text::emailLabel);
-    addAndMakeVisible(emailLabel.get());
+    showButton.onClick   = [this] { togglePasswordShown(); };
+    loginButton.onClick  = [this] { handleLogin(); };
+    signUpButton.onClick = [this] { handleSignup(); };
+    forgotButton.onClick = [this] { handleForgotPassword(); };
+    createButton.onClick = [this] { handleDoneSignup(); };
+    backButton.onClick   = [this] { handleBack(); };
 
-    emailTE = std::make_unique<juce::TextEditor>();
-    setupTE(*emailTE, Text::emailHint);
-    addAndMakeVisible(emailTE.get());
+    // The board's form submits on Enter; Esc still reaches the Esc menu while a field is focused.
+    for (auto* field : { &usernameField, &emailField, &passwordField })
+    {
+        field->onReturnKey = [this] { if (signUpMode) handleDoneSignup(); else handleLogin(); };
+        field->setEscapeAndReturnKeysConsumed (false);
+    }
 
-    passwordLabel = std::make_unique<juce::Label>();
-    setupLabel(*passwordLabel, Text::passwordLabel);
-    addAndMakeVisible(passwordLabel.get());
+    setOpaque (true);
+    setSignUpMode (false);
+}
 
-    passwordField = std::make_unique<PasswordField>();
-    addAndMakeVisible(passwordField.get());
-
-    UsernameLabel = std::make_unique<juce::Label>();
-    setupLabel(*UsernameLabel, Text::usernameLabel);
-    addAndMakeVisible(UsernameLabel.get());
-    UsernameLabel->setVisible(false);
-
-    UsernameTE = std::make_unique<juce::TextEditor>();
-    setupTE(*UsernameTE, Text::usernameHint);
-    addAndMakeVisible(UsernameTE.get());
-    UsernameTE->setVisible(false);
-
-    auto styleButton = [](juce::TextButton* btn, juce::Colour bgColour) {
-        btn->setColour(juce::TextButton::buttonColourId, bgColour);
-        btn->setColour(juce::TextButton::textColourOnId, titleText);
-        btn->setColour(juce::TextButton::textColourOffId, titleText);
-        btn->setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    };
-
-    loginTB = std::make_unique<juce::TextButton>(Text::loginButton);
-    loginTB->onClick = [this]() { handleLogin(); };
-    styleButton(loginTB.get(), accent1); // Warm orange for main action
-    addAndMakeVisible(loginTB.get());
-    
-    signupTB = std::make_unique<juce::TextButton>(Text::signUpButton);
-    signupTB->onClick = [this]() { handleSignup(); };
-    styleButton(signupTB.get(), panelBg);
-    addAndMakeVisible(signupTB.get());
-
-    forgotPassTB = std::make_unique<juce::TextButton>(Text::forgotButton);
-    forgotPassTB->onClick = [this]() { handleForgotPassword(); };
-    styleButton(forgotPassTB.get(), panelBg);
-    addAndMakeVisible(forgotPassTB.get());
-
-    doneTB = std::make_unique<juce::TextButton>(Text::doneButton);
-    doneTB->onClick = [this]() { handleDoneSignup(); };
-    styleButton(doneTB.get(), accent1);
-    addAndMakeVisible(doneTB.get());
-    doneTB->setVisible(false);
-
-    backTB = std::make_unique<juce::TextButton>(Text::backButton);
-    backTB->onClick = [this]() { handleBack(); };
-    styleButton(backTB.get(), panelBg);
-    addAndMakeVisible(backTB.get());
-    backTB->setVisible(false);
+void LoginComponent::setScale (float newScale)
+{
+    scale = newScale;
+    for (auto* label : { &usernameLabel, &emailLabel, &passwordLabel })
+        label->setScale (scale);
+    for (auto* field : { &usernameField, &emailField, &passwordField })
+        field->setScale (scale);
+    for (auto* button : { &showButton, &loginButton, &signUpButton, &forgotButton, &createButton, &backButton })
+        button->setScale (scale);
+    resized();
+    repaint();
 }
 
 void LoginComponent::paint(juce::Graphics& g)
 {
-    auto bounds = getLocalBounds().toFloat();
-    
-    // Glassmorphism card background
-    g.setColour(cardBg.withAlpha(cardAlpha));
-    g.fillRoundedRectangle(bounds, cornerRadius);
+    const auto bounds = getLocalBounds().toFloat();
+    g.setGradientFill (juce::ColourGradient::vertical (StagePalette::pageTop, bounds.getY(), StagePalette::pageBottom, bounds.getBottom()));
+    g.fillRect (bounds);
 
-    // Subtle border
-    g.setColour(separator.withAlpha(borderAlpha));
-    g.drawRoundedRectangle(bounds, cornerRadius, borderThickness);
+    const auto layout = FrontScreensLayout::login (bounds, scale, { signUpMode, false, false });
+    g.setColour (StagePalette::silkscreenText);
+    g.setFont (StageFonts::silkscreen (titleSize * scale, semiBold, titleSpacing));
+    // One word a line, as the board (its 300 px column wraps "Arranger Workstation").
+    const auto titleLines = juce::StringArray::fromTokens (juce::String (AppInfo::appName).toUpperCase(), false);
+    auto line = layout.title.withHeight (layout.title.getHeight() / static_cast<float> (FrontScreensLayout::titleLineCount));
+    for (const auto& word : titleLines)
+    {
+        g.drawText (word, line, juce::Justification::centredLeft, false);
+        line.translate (float {}, line.getHeight());
+    }
 
-    // Header Title
-    g.setFont(juce::FontOptions(titleFontHeight, juce::Font::bold));
-    g.setColour(titleText);
-    
-    // Offset the header down slightly so it doesn't overlap the Back button
-    auto headerArea = bounds.removeFromTop(headerHeight).withTrimmedTop(headerTopTrim);
-    g.drawText(UsernameLabel->isVisible() ? Text::createAccount : Text::welcomeBack, 
-               headerArea, juce::Justification::centred, false);
+    g.setColour (StagePalette::ruleLine);
+    g.fillRect (layout.rule);
+
+    g.setColour (StagePalette::silkscreenDimText);
+    g.setFont (StageFonts::silkscreen (subtitleSize * scale, medium, subtitleSpacing));
+    g.drawText (signUpMode ? Text::signUpSubtitle : Text::loginSubtitle, layout.subtitle, juce::Justification::centredLeft, false);
 }
-
 
 void LoginComponent::resized()
 {
-    auto bounds = getLocalBounds();
-    auto area = bounds.reduced(cardPadding); 
-    const int rowHeight = 35; 
-    const int spacing = 20;
+    const auto layout = FrontScreensLayout::login (getLocalBounds().toFloat(), scale, { signUpMode, false, false });
+    usernameLabel.setBounds (layout.usernameLabel.toNearestInt());
+    usernameField.setBounds (layout.usernameField.toNearestInt());
+    emailLabel.setBounds (layout.emailLabel.toNearestInt());
+    emailField.setBounds (layout.emailField.toNearestInt());
+    passwordLabel.setBounds (layout.passwordLabel.toNearestInt());
+    passwordField.setBounds (layout.passwordField.toNearestInt());
+    showButton.setBounds (layout.showButton.toNearestInt());
 
-    if (backTB != nullptr)
-        backTB->setBounds(bounds.getX() + backButtonInset, bounds.getY() + backButtonInset, backButtonWidth, backButtonHeight);
-
-    area.removeFromTop(headerSkip); // Skip header
-
-    auto layoutField = [&](juce::Label* label, juce::Component* field) {
-        auto row = area.removeFromTop(rowHeight);
-        label->setBounds(row.removeFromLeft(labelWidth).reduced(noInset, noInset)); 
-        row.removeFromLeft(labelGap); // Spacing between label and input
-        field->setBounds(row);
-        area.removeFromTop(spacing);
-    };
-
-    if (UsernameLabel->isVisible()) {
-        layoutField(UsernameLabel.get(), UsernameTE.get());
-    } else {
-        UsernameLabel->setBounds(juce::Rectangle<int>{});
-        UsernameTE->setBounds(juce::Rectangle<int>{});
-    }
-
-    layoutField(emailLabel.get(), emailTE.get());
-    layoutField(passwordLabel.get(), passwordField.get());
-
-    area.removeFromTop(buttonsTopGap); 
-
-    auto buttonArea = area.removeFromTop(rowHeight + buttonRowExtraHeight);
-    
-    if (loginTB->isVisible()) {
-        int buttonWidth = (buttonArea.getWidth() - gapsBetweenButtons * buttonSpacing) / buttonsPerRow;
-        int buttonX = buttonArea.getX();
-
-        loginTB->setBounds(buttonX, buttonArea.getY(), buttonWidth, buttonArea.getHeight());
-        buttonX += buttonWidth + buttonSpacing;
-
-        signupTB->setBounds(buttonX, buttonArea.getY(), buttonWidth, buttonArea.getHeight());
-        buttonX += buttonWidth + buttonSpacing;
-
-        forgotPassTB->setBounds(buttonX, buttonArea.getY(), buttonWidth, buttonArea.getHeight());
-    }
-
-    if (doneTB != nullptr && doneTB->isVisible())
+    // The lit button takes the room the others leave (flex-grow), 8 apart.
+    auto row = layout.buttonRow;
+    const auto gap = static_cast<float> (buttonGap) * scale;
+    auto& primary = signUpMode ? createButton : loginButton;
+    std::vector<SegButton*> others { signUpMode ? &backButton : &signUpButton };
+    if (! signUpMode)
+        others.push_back (&forgotButton);
+    for (auto other = others.rbegin(); other != others.rend(); ++other)
     {
-        int doneX = bounds.getCentreX() - doneWidth / centringDivisor;
-        int doneY = bounds.getBottom() - doneBottomOffset; 
-        doneTB->setBounds(doneX, doneY, doneWidth, doneHeight);
+        (*other)->setBounds (row.removeFromRight ((*other)->getExactWidth()).toNearestInt());
+        row.removeFromRight (gap);
     }
+    primary.setBounds (row.toNearestInt());
 }
 
 LoginComponent::~LoginComponent()
 {
+}
+
+void LoginComponent::setSignUpMode (bool shouldSignUp)
+{
+    signUpMode = shouldSignUp;
+    if (passwordShown)
+        togglePasswordShown();   // each form starts with the password hidden
+    usernameField.clear();
+    emailField.clear();
+    passwordField.clear();
+
+    for (juce::Component* child : { static_cast<juce::Component*> (&emailLabel), static_cast<juce::Component*> (&emailField),
+                                    static_cast<juce::Component*> (&passwordLabel), static_cast<juce::Component*> (&passwordField),
+                                    static_cast<juce::Component*> (&showButton) })
+        child->setVisible (true);
+    usernameLabel.setVisible (signUpMode);
+    usernameField.setVisible (signUpMode);
+    createButton.setVisible (signUpMode);
+    backButton.setVisible (signUpMode);
+    loginButton.setVisible (! signUpMode);
+    signUpButton.setVisible (! signUpMode);
+    forgotButton.setVisible (! signUpMode);
+
+    resized();
+    repaint();
+}
+
+void LoginComponent::togglePasswordShown()
+{
+    passwordShown = ! passwordShown;
+    passwordField.setPasswordCharacter (passwordShown ? noPasswordCharacter : passwordBullet);
+    showButton.setButtonText (passwordShown ? Text::hidePassword : Text::showPassword);
+    resized();
 }
 
 void LoginComponent::handleLogin()
@@ -266,8 +241,8 @@ void LoginComponent::handleLogin()
         onSuccessfullLogin();
     return;
 
-    auto email = emailTE->getText().trim();
-    auto pass = passwordField->getTextEditor().getText().trim();
+    auto email = emailField.getText().trim();
+    auto pass = passwordField.getText().trim();
 
     if (email.isEmpty() || pass.isEmpty())
     {
@@ -367,10 +342,10 @@ void LoginComponent::handleLogin()
                             Text::loggedIn
                         );
 
-                        
-
-                        safeThis->emailTE->clear();
-                        safeThis->passwordField->getTextEditor().clear();
+                        if (safeThis == nullptr)
+                            return;
+                        safeThis->emailField.clear();
+                        safeThis->passwordField.clear();
 
                         if (safeThis->onSuccessfullLogin)
                             safeThis->onSuccessfullLogin();
@@ -392,15 +367,13 @@ void LoginComponent::handleLogin()
 
 void LoginComponent::handleSignup()
 {
-    if (!UsernameLabel->isVisible())
-    {
-        toSignupVisibility();
-    }
+    if (! signUpMode)
+        setSignUpMode (true);
 }
 
 void LoginComponent::handleForgotPassword()
 {
-    auto email = emailTE->getText();
+    auto email = emailField.getText();
 
     if (email.isEmpty())
     {
@@ -411,7 +384,7 @@ void LoginComponent::handleForgotPassword()
     }
 
 
-    email = emailTE->getText();
+    email = emailField.getText();
 
     if (email.isEmpty())
     {
@@ -424,9 +397,9 @@ void LoginComponent::handleForgotPassword()
 
 void LoginComponent::handleDoneSignup()
 {
-    auto email = emailTE->getText().trim();
-    auto pass = passwordField->getTextEditor().getText().trim();
-    auto username = UsernameTE->getText().trim();
+    auto email = emailField.getText().trim();
+    auto pass = passwordField.getText().trim();
+    auto username = usernameField.getText().trim();
 
     if (email.isEmpty() || pass.isEmpty() || username.isEmpty())
     {
@@ -517,17 +490,8 @@ void LoginComponent::handleDoneSignup()
                     }
 
                     
-                    safeThis->UsernameLabel->setVisible(false);
-                    safeThis->UsernameTE->setVisible(false);
-                    safeThis->backTB->setVisible(false);
-                    safeThis->doneTB->setVisible(false);
-                    safeThis->loginTB->setVisible(true);
-                    safeThis->forgotPassTB->setVisible(true);
-                    safeThis->signupTB->setVisible(true);
-
-                    safeThis->emailTE->clear();
-                    safeThis->passwordField->getTextEditor().clear();
-                    safeThis->UsernameTE->clear();
+                    if (safeThis != nullptr)
+                        safeThis->setSignUpMode (false);   // back to Log in, the fields cleared
                 });
 
         }).detach();
@@ -535,90 +499,5 @@ void LoginComponent::handleDoneSignup()
 
 void LoginComponent::handleBack()
 {
-    toLoginVisbility();
-
-}
-
-void LoginComponent::toLoginVisbility()
-{
-    UsernameTE->clear();
-    emailTE->clear();
-    passwordField->getTextEditor().clear();
-
-    UsernameLabel->setVisible(false);
-    UsernameTE->setVisible(false);
-    doneTB->setVisible(false);
-    backTB->setVisible(false);
-    forgotPassTB->setVisible(true);
-    loginTB->setVisible(true);
-    signupTB->setVisible(true);
-    
-    resized();
-    repaint();
-}
-
-void LoginComponent::toSignupVisibility()
-{
-    UsernameTE->clear();
-    emailTE->clear();
-    passwordField->getTextEditor().clear();
-
-    UsernameLabel->setVisible(true);
-    UsernameTE->setVisible(true);
-    doneTB->setVisible(true);
-    backTB->setVisible(true);
-    forgotPassTB->setVisible(false);
-    loginTB->setVisible(false);
-    signupTB->setVisible(false);
-    
-    resized();
-    repaint();
-}
-
-PasswordField::PasswordField()
-{
-    passwordTE.setMultiLine(false);
-    passwordTE.setPasswordCharacter(passwordBullet);
-    passwordTE.setCaretVisible(true);
-    passwordTE.setTextToShowWhenEmpty(Text::passwordHint, subtitleText);
-    
-    passwordTE.setColour(juce::TextEditor::backgroundColourId, background.withAlpha(editorBackgroundAlpha));
-    passwordTE.setColour(juce::TextEditor::textColourId, titleText);
-    passwordTE.setColour(juce::TextEditor::outlineColourId, separator);
-    passwordTE.setColour(juce::TextEditor::focusedOutlineColourId, accent1);
-    passwordTE.setFont(juce::FontOptions(fieldFontHeight));
-    addAndMakeVisible(passwordTE);
-
-    
-    eyeButton = std::make_unique<juce::DrawableButton>(Text::eyeButton, juce::DrawableButton::ImageFitted);
-
-    eyeVisibleDrawable = juce::Drawable::createFromImageData(BinaryData::PasswordVisible_png, BinaryData::PasswordVisible_pngSize);
-    eyeInvisibleDrawable = juce::Drawable::createFromImageData(BinaryData::PasswordInvisible_png, BinaryData::PasswordInvisible_pngSize);
-
-    eyeButton->setImages(eyeInvisibleDrawable.get());
-
-    eyeButton->onClick = [this]()
-        {
-            visible = !visible;
-            passwordTE.setPasswordCharacter(visible ? noPasswordCharacter : passwordBullet); 
-            eyeButton->setImages(visible ? eyeVisibleDrawable.get() : eyeInvisibleDrawable.get());
-        };
-
-    eyeButton->setMouseCursor(juce::MouseCursor::PointingHandCursor);
-
-    addAndMakeVisible(eyeButton.get());
-}
-
-void PasswordField::resized()
-{
-    auto area = getLocalBounds();
-    int buttonSize = area.getHeight();
-
-    passwordTE.setBounds(area.removeFromLeft(area.getWidth() - buttonSize - eyeButtonGap));
-    eyeButton->setBounds(area.reduced(eyeButtonInset));
-}
-
-juce::TextEditor& PasswordField::getTextEditor()
-{
-    return passwordTE;
+    setSignUpMode (false);
 }

@@ -63,7 +63,6 @@ MainComponent::MainComponent()
     initalizeSaveFileForUser();
     cachedImageMainWindow = juce::ImageFileFormat::loadFrom(BinaryData::MainWindow_png, BinaryData::MainWindow_pngSize);
     playBackground = juce::ImageFileFormat::loadFrom(BinaryData::playingBackground_png, BinaryData::playingBackground_pngSize);
-    currentBackground = cachedImageMainWindow;
 
     buildChordLibrary();
 
@@ -78,6 +77,7 @@ MainComponent::MainComponent()
     client = std::make_shared<SupabaseClient>();
 
     loginWindowInitialize();
+    frontScreensInit();
 
     openingAudioLabel.setText(Text::preparingSession, juce::dontSendNotification);
     openingAudioLabel.setJustificationType(juce::Justification::centred);
@@ -607,16 +607,7 @@ void MainComponent::loginWindowInitialize()
 {
     playButton.setVisible(false);
     loginWindow = std::make_unique<LoginComponent>(client);
-    addAndMakeVisible(loginWindow.get());
-
-    auto parentBounds = getLocalBounds();
-    int panelWidth = Layout::loginPanelSize;
-    int panelHeight = Layout::loginPanelSize;
-
-    int panelX = (parentBounds.getWidth() - panelWidth) / Layout::centringDivisor;
-    int panelY = (parentBounds.getHeight() - panelHeight) / Layout::centringDivisor;
-
-    loginWindow->setBounds(panelX, panelY, panelWidth, panelHeight);
+    addChildComponent(loginWindow.get());   // laid out in the page area by layoutFrontScreens()
 
     loginWindow->onSuccessfullLogin = [this]()
     {
@@ -632,13 +623,7 @@ void MainComponent::loginWindowInitialize()
                     }).detach();
             },300);
         */
-        playButton.setVisible(true);
-        loginWindow->setVisible(false);
-       
-        juce::MessageManager::callAsync([this]() {
-            loginWindow.reset();
-            });
-        
+        showFrontScreen(FrontScreen::home);
     };
 
 }

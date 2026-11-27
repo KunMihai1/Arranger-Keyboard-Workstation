@@ -326,6 +326,7 @@ void MainComponent::layoutStage()
         keyboard.setBounds (stageRegions.keys);
     if (noteLayer)
         noteLayer->setBounds (stageRegions.noteArea);
+    layoutFrontScreens();
 }
 
 void MainComponent::paintStageStrips (juce::Graphics& g)
@@ -401,6 +402,7 @@ void MainComponent::updateStageScreen()
     content.beatsPerBar   = stageBeatsPerBar;
     content.elapsedBeats  = stageBeats;
     content.playing       = playing;
+    frontScreenContent (content);
     stagePanel->screen().setContent (content);
 }
 
@@ -419,7 +421,7 @@ void MainComponent::refreshStage()
     syncVoicesPage();   // its title row shows the same two toggles
 
     auto page = pageRouter.open();
-    stagePanel->setPageLed (page);
+    stagePanel->setPageLed (page == StagePage::none && frontScreen == FrontScreen::home ? StagePage::home : page);
 
     if (variationsFills != nullptr)
         for (auto* group : variationsFills->getSectionGroups())

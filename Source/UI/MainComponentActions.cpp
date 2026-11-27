@@ -81,7 +81,7 @@ void MainComponent::toggleHPanel()
 {
     // The Stage panel replaces the old header, which stays hidden (its controls live on the panel and pages).
     if (stagePanel != nullptr)
-        stagePanel->setVisible(! stagePanel->isVisible());
+        stagePanel->setVisible(true);   // on Log in / Home too (asleep), since the instrument look
 
     toggleHomeButton();
     toggleColourSelectorButton();
@@ -244,12 +244,11 @@ void MainComponent::midiButtonOnClick()
 
 void MainComponent::homeButtonOnClick()
 {
-    currentBackground = cachedImageMainWindow;
+    currentBackground = {};   // Home is on the instrument now, not on the picture
     repaint();
 
     toggleHPanel();
-
-    togglePlayButton();
+    inPlayView = false;
     //toggleSettingsButton(); don't need this button for now
     keyboard.setVisible(false);
     this->noteLayer->setVisible(false);
@@ -260,6 +259,7 @@ void MainComponent::homeButtonOnClick()
     if (display && display->hasOpenStyle() && display->getView() != StyleView::style)
         display->homeButtonInteraction();   // a sub-page of the style was open (formerly a temporary tab)
 
+    showFrontScreen(FrontScreen::home);
     grabKeyboardFocus();
 }
 
@@ -317,6 +317,8 @@ void MainComponent::playButtonOnClick()
         currentBackground = playBackground;
         repaint();
         toggleHPanel();
+        inPlayView = true;
+        showFrontScreen(FrontScreen::none);
 
         sendEffectsBeforePlaying();
 
