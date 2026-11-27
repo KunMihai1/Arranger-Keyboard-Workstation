@@ -365,6 +365,14 @@
         <FILE id="secLnC" name="SectionLanes.cpp" compile="1" resource="0" file="Source/UI/Sections/SectionLanes.cpp"/>
         <FILE id="secHdH" name="SectionLaneHeaders.h" compile="0" resource="0" file="Source/UI/Sections/SectionLaneHeaders.h"/>
         <FILE id="secHdC" name="SectionLaneHeaders.cpp" compile="1" resource="0" file="Source/UI/Sections/SectionLaneHeaders.cpp"/>
+        <FILE id="secPlH" name="SectionsPageLayout.h" compile="0" resource="0" file="Source/UI/Sections/SectionsPageLayout.h"/>
+        <FILE id="secPlC" name="SectionsPageLayout.cpp" compile="1" resource="0" file="Source/UI/Sections/SectionsPageLayout.cpp"/>
+        <FILE id="secEmH" name="SectionEditModel.h" compile="0" resource="0" file="Source/UI/Sections/SectionEditModel.h"/>
+        <FILE id="secEmC" name="SectionEditModel.cpp" compile="1" resource="0" file="Source/UI/Sections/SectionEditModel.cpp"/>
+        <FILE id="secInH" name="SectionInspector.h" compile="0" resource="0" file="Source/UI/Sections/SectionInspector.h"/>
+        <FILE id="secInC" name="SectionInspector.cpp" compile="1" resource="0" file="Source/UI/Sections/SectionInspector.cpp"/>
+        <FILE id="secJpH" name="SectionJumpPads.h" compile="0" resource="0" file="Source/UI/Sections/SectionJumpPads.h"/>
+        <FILE id="secJpC" name="SectionJumpPads.cpp" compile="1" resource="0" file="Source/UI/Sections/SectionJumpPads.cpp"/>
         <FILE id="K2Xsjg" name="SelectableLabel.cpp" compile="1" resource="0"
               file="Source/UI/SelectableLabel.cpp"/>
         <FILE id="cazbKc" name="SelectableLabel.h" compile="0" resource="0"

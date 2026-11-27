@@ -209,7 +209,6 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
             if (anyTrackChanged) anyTrackChanged();
         }
     };
-    arrangerStyleList.onClose      = [this] { showStyleList(false); };
 
     startPlayingTracks.onClick = [this]
     {
