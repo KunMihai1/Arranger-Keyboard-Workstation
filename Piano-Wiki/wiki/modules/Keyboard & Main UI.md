@@ -31,6 +31,15 @@ sources: []
 >
 > **Chord helper page** (2026-11-26, board `PageChords`): panel **Chords** opens it; `ChordBrowserComponent` (`chordBrowser.cpp`) restyled — search, LCD list "name · notes", the chosen chord's name and three voicings drawn on mini keyboards (pure `Source/UI/Chords/ChordHelperModel`: note names, root / 1st / 2nd inversion C3-based, key rects, layout). A click shows and plays the chord (`playChordOnClick`). The PNG chord diagrams are no longer loaded (the resources stay in the project); the hidden header `chordHelperButton` call-out is gone.
 
+> **Panel finishes** (2026-11-27, board `SkinsFinish`, `Source/UI/Stage/PanelFinish.*`, `FractalNoise.*`): Settings ›
+> Display › Finish (key `PanelFinish`, text ids `stage` / `rosso-burst` / `champagne` / `tobacco-burst` / `midnight-flake`
+> / `concert-black`). `FractalNoise` is the SVG 1.1 feTurbulence reference algorithm (checked against Edge's own pixels);
+> `PanelFinish` paints each finish as the board's CSS layers (CSS-angle linear and elliptical radial gradients, noise
+> with the board's colour matrices in linearRGB) into images cached once per finish and size — `StagePanel` re-renders
+> 150 ms after a resize settles (118–250 ms a render in Debug). Labels: `StagePanel` is a `SilkscreenInkSource`; each
+> printed column (sections | screen | transport) uses one ink from its average background, a label switching only
+> where that reads under 3:1. The key slip is the bare surface (no trims).
+
 ## Purpose
 The main application screen: hosts the on-screen keyboard, the display/transport, effect knobs, and owns + connects every subsystem.
 

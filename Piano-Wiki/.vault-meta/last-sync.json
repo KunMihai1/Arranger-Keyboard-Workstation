@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "2d5b429",
-  "last_synced_branch": "feat/ui-dust",
+  "last_synced_commit": "df9ae64",
+  "last_synced_branch": "feat/ui-finishes",
   "last_synced_at": "2026-11-27",
-  "note": "Synced through 2d5b429: smooth Dust (DustField), log oldest entries archived."
+  "note": "Synced through df9ae64: panel finishes (FractalNoise, PanelFinish, column inks)."
 }
