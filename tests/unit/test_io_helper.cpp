@@ -31,6 +31,7 @@ namespace TrackIOHelperTestValues
     const juce::String loadFromFileNonExistentFileDoesNothing = "loadFromFile - non-existent file does nothing";
     const juce::String saveToFileAndLoadFromFileMultipleFoldersWithTracks = "saveToFile and loadFromFile - multiple folders with tracks";
     const juce::String saveToFileAndLoadFromFileTracksFromTwoFilesInOneFolder = "saveToFile and loadFromFile - one folder, tracks from two files, each reloads from its own file";
+    const juce::String loadFromFileFirstFileGoneKeepsFolderAndOtherTracks = "loadFromFile - the folder's first file is gone: the folder and the other file's tracks stay";
     const juce::String loadFromFileOldFolderPathStillLoads = "loadFromFile - a track without its own file path loads from the folder's file";
 
     constexpr int         melodicChannel = 1;
@@ -682,6 +683,31 @@ public:
 
             tempJsonFile.deleteFile();
             melodyMidi.deleteFile();
+            drumsMidi.deleteFile();
+        }
+
+        beginTest(loadFromFileFirstFileGoneKeepsFolderAndOtherTracks);
+        {
+            auto melodyMidi = writeOneTrackMidiFile(melodicChannel, middleC);
+            auto drumsMidi  = writeOneTrackMidiFile(drumChannel, kickNote);
+
+            std::unordered_map<juce::String, std::deque<TrackEntry>> groupedTracks;
+            groupedTracks[folderName].push_back(makeEntry(melodyMidi, melodyName));
+            groupedTracks[folderName].push_back(makeEntry(drumsMidi, drumsName));
+
+            auto tempJsonFile = juce::File::createTempFile(jsonExtension);
+            TrackIOHelper::saveToFile(tempJsonFile, groupedTracks);
+            melodyMidi.deleteFile();
+
+            std::unordered_map<juce::String, std::deque<TrackEntry>> loadedTracks;
+            std::vector<juce::String> loadedKeys;
+            TrackIOHelper::loadFromFile(tempJsonFile, loadedTracks, loadedKeys);
+
+            expect((int)loadedKeys.size() == oneFolder);
+            expect((int)loadedTracks[folderName].size() == oneTrack);
+            expect(loadedTracks[folderName][firstEntry].file == drumsMidi);
+
+            tempJsonFile.deleteFile();
             drumsMidi.deleteFile();
         }
 

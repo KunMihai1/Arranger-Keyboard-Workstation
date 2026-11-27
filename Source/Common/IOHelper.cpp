@@ -12,6 +12,8 @@
 
 #include "PersistedKeys.h"
 
+#include <map>
+
 namespace MidiFileFacts
 {
     constexpr int    drumChannel                = 10;
