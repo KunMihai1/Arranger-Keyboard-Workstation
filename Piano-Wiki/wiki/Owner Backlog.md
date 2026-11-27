@@ -85,9 +85,14 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   fixed (on `main` too): any note played while a page was open brought the GL note layer back over the page. Not
   done: the PNG chord diagrams are no longer used but stay in the project (owner's call to delete); the loading
   label hides the note layer without the page hold (same as before).
-- 🟡 **Sparks and Smoke** (owner, 2026-11-27: "the sparks can't even be seen … smoke is like in the background
-  transparent"; picked glowing sparks and visible wisps on top), `feat/particles-sparks-smoke`: pure
-  `ParticleRecipe`, unit-tested; Dust unchanged. Waiting on a look in the running app before the PR.
+- ✅ **Sparks and Smoke** (owner, 2026-11-27: "the sparks can't even be seen … smoke is like in the background
+  transparent"), PR #72: pure `ParticleRecipe`, unit-tested; Dust unchanged. Owner tried a first pass: sparks
+  "tiny dots, barely", smoke "looks like fog"; on a browser preview picked **Light wisps** to replace Smoke and
+  said sparks were "way too boom" → calm embers. Seen on screen through display-test frames; display checks that
+  both light up the area above the key.
+- 🟡 **Esc opens the old screen** (owner, 2026-11-27) — the Esc menu restyled as a page panel (spec P.12), next.
+- ✅ **"Play" text on the piano photo is trimmed** (owner, 2026-11-27) and must sit in the same place at every
+  window width / height — PR #73 (`HomeLayout`).
 - ⬜ Next pages (spec order): Recorder, Esc menu, Sections v2; then keys, Dust, finishes, sign-in.
 - ✅ **Same look on every resolution** (owner, 2026-11-23: "the UI should look the same on any resolution
   … everything must be visible on all screens"): one uniform scale, panel controls = the board scaled and
