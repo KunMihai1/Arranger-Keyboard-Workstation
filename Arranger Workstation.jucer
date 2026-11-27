@@ -312,7 +312,11 @@
                 file="Source/UI/Voices/VoicesInstrumentPanel.cpp"/>
           <FILE id="stgPwH" name="StagePageWidgets.h" compile="0" resource="0"
                 file="Source/UI/Stage/StagePageWidgets.h"/>
-          <FILE id="stgDlC" name="StageDialog.cpp" compile="1" resource="0"
+          <FILE id="stgAlC" name="StageAlert.cpp" compile="1" resource="0"
+              file="Source/UI/Stage/StageAlert.cpp"/>
+        <FILE id="stgAlH" name="StageAlert.h" compile="0" resource="0"
+              file="Source/UI/Stage/StageAlert.h"/>
+        <FILE id="stgDlC" name="StageDialog.cpp" compile="1" resource="0"
                 file="Source/UI/Stage/StageDialog.cpp"/>
           <FILE id="stgDlH" name="StageDialog.h" compile="0" resource="0"
                 file="Source/UI/Stage/StageDialog.h"/>

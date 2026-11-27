@@ -20,7 +20,6 @@ namespace
         const juce::String styleTrackRole    = "style track";
         const juce::String channelPrefix     = "channel ";
         const juce::String errorTitle        = "ERROR";
-        const juce::String okButton          = "OK";
         const juce::String noInputDevices    = "There are no available input devices!";
         const juce::String noOutputDevices   = "There are no available output devices!";
         const juce::String inputFailed       = "Failed to open input device.";
@@ -158,7 +157,7 @@ bool MainComponent::openingDevicesForPlay()
     {
         if (device == DeviceNames::noDevicesFound)
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::noInputDevices, Text::okButton);
+            StageAlert::showMessage (Text::errorTitle, Text::noInputDevices);
             return false;
         }
     }
@@ -166,7 +165,7 @@ bool MainComponent::openingDevicesForPlay()
     {
         if (device == DeviceNames::noDevicesFound)
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::noOutputDevices, Text::okButton);
+            StageAlert::showMessage (Text::errorTitle, Text::noOutputDevices);
             return false;
         }
     }
@@ -192,7 +191,7 @@ bool MainComponent::openingDevicesForPlay()
         if (!result)
         {
 
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::inputFailed, Text::okButton);
+            StageAlert::showMessage (Text::errorTitle, Text::inputFailed);
             return false;
         }
         this->deviceOpenedIN = this->MIDIDevice.getDeviceIN();
@@ -210,7 +209,7 @@ bool MainComponent::openingDevicesForPlay()
         if (!result)
         {
             this->MIDIDevice.deviceCloseIN();  
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::outputFailed, Text::okButton);
+            StageAlert::showMessage (Text::errorTitle, Text::outputFailed);
             return false;
         }
         this->deviceOpenedOUT = this->MIDIDevice.getDeviceOUT();
@@ -223,7 +222,7 @@ bool MainComponent::openingDevicesForPlay()
         if (!result)
         {
             this->MIDIDevice.deviceCloseIN();
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::audioOutputFailed, Text::okButton);
+            StageAlert::showMessage (Text::errorTitle, Text::audioOutputFailed);
             return false;
         }
         ensureAudioHandlerReady();
@@ -263,7 +262,7 @@ void MainComponent::saveRecordingToFile(double tempo)
 {
     if (recordPlayer.getSizeRecorded() <= tooFewEventsToSave)
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, MainComponentText::saveRecording, Text::nothingToSave);
+        StageAlert::showMessage (MainComponentText::saveRecording, Text::nothingToSave);
         return;
     }
 
@@ -278,11 +277,11 @@ void MainComponent::saveRecordingToFile(double tempo)
                 juce::String errorMsg;
                 if (!recordPlayer.saveRecordingToFile(file, errorMsg,tempo))
                 {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::saveFailedTitle, errorMsg);
+                    StageAlert::showMessage (Text::saveFailedTitle, errorMsg);
                 }
                 else
                 {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::savedTitle, Text::savedTo + file.getFullPathName());
+                    StageAlert::showMessage (Text::savedTitle, Text::savedTo + file.getFullPathName());
                 }
             }
             fileChooser.reset();
@@ -300,7 +299,7 @@ void MainComponent::playRecordingFromFile(double tempo)
             {
                 juce::String errorMsg;
                 if (!recordPlayer.parseRecordingFromFile(file, errorMsg))
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::playFailedTitle, errorMsg);
+                    StageAlert::showMessage (Text::playFailedTitle, errorMsg);
                 else
                 {
                     lastMidiFileName = file.getFileName();

@@ -1,5 +1,6 @@
 #include "ArrangerStyleListComponent.h"
 #include "IOHelper.h"
+#include "Stage/StageAlert.h"
 #include "UI/Sections/SectionsPageLayout.h"
 
 namespace
@@ -8,8 +9,6 @@ namespace
     const juce::String deleteQuestionStart = "Delete \"";
     const juce::String deleteQuestionEnd   = "\"?\nThis cannot be undone.";
     const juce::String confirmDelete      = "Delete";
-    const juce::String cancelDelete       = "Cancel";
-    constexpr int      deleteConfirmed    = 1;   // showOkCancelBox: 1 = Delete, 0 = Cancel
     const juce::String styleFilePattern   = "*.style";
     constexpr bool     searchSubfolders   = false;
     const char* const  activeMarkUtf8     = "\xe2\x97\x8f";   // "●": the active configuration
@@ -49,17 +48,17 @@ ArrangerStyleListComponent::ArrangerStyleListComponent()
         if (! isRow (selectedRow)) return;
         const auto file = files[selectedRow];
 
-        juce::AlertWindow::showOkCancelBox (juce::AlertWindow::WarningIcon,
-            deleteTitle,
+        const juce::Component::SafePointer<ArrangerStyleListComponent> safeList (this);
+        StageAlert::showQuestion (deleteTitle,
             deleteQuestionStart + file.getFileNameWithoutExtension() + deleteQuestionEnd,
-            confirmDelete, cancelDelete, getTopLevelComponent(),   // centred on the window, not the small list
-            juce::ModalCallbackFunction::create ([this, file] (int result)
+            confirmDelete,
+            [safeThis = safeList, file]
             {
-                if (result != deleteConfirmed) return;
                 file.deleteFile();
-                if (onDeleteStyle) onDeleteStyle (file);   // let host clear it if it was active
-                refresh();
-            }));
+                if (safeThis == nullptr) return;
+                if (safeThis->onDeleteStyle) safeThis->onDeleteStyle (file);   // let host clear it if it was active
+                safeThis->refresh();
+            }, this);
     };
 
     loadBtn.onClick = [this]

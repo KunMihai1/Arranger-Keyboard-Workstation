@@ -1,5 +1,6 @@
 #include "MainComponent.h"
 #include "../Backend/RememberedEmail.h"
+#include "Stage/StageDialog.h"
 
 // Log in and Home on the instrument (boards StageLogin / StageHome, owner decision 2026-11-23; split from
 // MainComponentStage.cpp, ADR-003). The panel shows with its screen asleep ("Welcome" / "Ready", lamps dark) and its
@@ -113,4 +114,57 @@ void MainComponent::forgetRememberedEmail()
     RememberedEmail::forget (propertiesFile);
     if (propertiesFile != nullptr)
         propertiesFile->saveIfNeeded();
+}
+
+void MainComponent::alertsInit()
+{
+    // The GL note layer draws over ordinary components: hide it while an alert covers the scene, and bring it back
+    // only if the alert was what hid it (a page or the Esc menu keep their own hold).
+    StageAlert::setMainHost (this);
+    StageAlert::setCoverHooks ([this]
+    {
+        // Remember what was typing - unless the focus is still in the alert that just closed (a chain of alerts):
+        // then the first alert's choice stands.
+        auto* focused = juce::Component::getCurrentlyFocusedComponent();
+        if (! StageDialog::isInsideDialog (focused))
+            focusBeforeAlert = focused;
+        noteLayerHiddenForAlert = false;
+        keepNoteLayerUnderAlert();
+    },
+    [this]
+    {
+        // Back only if nothing else wants it hidden now (a page, the Esc menu or the loading overlay keep their hold).
+        const bool sceneFree = pageRouter.open() == StagePage::none && (overlayWindow == nullptr || ! overlayWindow->isVisible())
+                            && ! loadingOverlayActive;
+        if (noteLayerHiddenForAlert && noteLayer != nullptr && sceneFree)
+        {
+            noteLayer->setHeldHidden (false);
+            noteLayer->setVisible (true);
+        }
+        noteLayerHiddenForAlert = false;
+        // Back to what was typing before (e.g. the login field after "Login failed"), else here: Esc keeps working.
+        // After the key or click that closed the alert has finished: JUCE moves the focus off the hidden dialog
+        // itself, after this hook.
+        const juce::Component::SafePointer<MainComponent> safeMain (this);
+        juce::MessageManager::callAsync ([safeThis = safeMain]
+        {
+            if (safeThis == nullptr || StageAlert::current() != nullptr)
+                return;   // gone, or the next alert has the keys
+            if (safeThis->focusBeforeAlert != nullptr && safeThis->focusBeforeAlert->isShowing())
+                safeThis->focusBeforeAlert->grabKeyboardFocus();
+            else if (safeThis->isShowing())
+                safeThis->grabKeyboardFocus();
+        });
+    });
+}
+
+void MainComponent::keepNoteLayerUnderAlert()
+{
+    // Called when an alert opens, and wherever the note layer is shown again (Play, a page or menu closing).
+    if (StageAlert::current() != nullptr && noteLayer != nullptr && noteLayer->isVisible())
+    {
+        noteLayerHiddenForAlert = true;
+        noteLayer->setHeldHidden (true);
+        noteLayer->setVisible (false);
+    }
 }

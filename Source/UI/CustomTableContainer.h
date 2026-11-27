@@ -42,6 +42,8 @@ namespace TableDialog
     constexpr int firstButtonId   = 1;
     constexpr int applyToAll      = 1;   // first button
     constexpr int applyToSelected = 2;   // second button
+    constexpr size_t primaryAction     = 0;   // the dialog's lit button
+    constexpr size_t alternativeAction = 1;   // its second action, when there is one
     inline const juce::String changeAll      = "Change All";
     inline const juce::String changeSelected = "Change selected";
     inline const juce::String modifyAll      = "Modify All";

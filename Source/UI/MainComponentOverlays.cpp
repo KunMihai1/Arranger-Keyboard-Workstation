@@ -9,7 +9,6 @@ namespace
     namespace Text
     {
         const juce::String errorTitle         = "ERROR";
-        const juce::String okButton           = "OK";
         const juce::String midiOutputFailed   = "Failed to open MIDI output device.";
         const juce::String audioOutputFailed  = "Failed to open audio output device.";
     }
@@ -100,6 +99,7 @@ void MainComponent::setLoadingOverlayVisible(bool show, const juce::String& text
             // next note-on restarts the timer. Clear them, matching the arranger-overlay/menu paths.
             noteLayer->resetState();
             noteLayer->setVisible(noteLayerVisibleBeforeLabel);
+            keepNoteLayerUnderAlert();   // an alert opened meanwhile stays on top (no-op without one)
         }
         loadingOverlayActive = false;
     }
@@ -195,6 +195,7 @@ void MainComponent::setOverlayMenuVisible(bool show)
             noteLayer->resetState();   // clear leftover falling/active notes so we return to a clean screen
             noteLayer->setHeldHidden(false);
             noteLayer->setVisible(noteLayerVisibleBeforeMenu);
+            keepNoteLayerUnderAlert();   // an alert opened meanwhile stays on top (no-op without one)
         }
         grabKeyboardFocus();   // so ESC/keys keep working after the menu closes
     }
@@ -270,7 +271,7 @@ void MainComponent::createSettingsContent()
             {
                 if (!MIDIDevice.deviceOpenOUT(MIDIDevice.getDeviceIndexOUT()))
                 {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::midiOutputFailed, Text::okButton);
+                    StageAlert::showMessage (Text::errorTitle, Text::midiOutputFailed);
                     return;
                 }
                 deviceOpenedOUT = MIDIDevice.getDeviceOUT();
@@ -288,7 +289,7 @@ void MainComponent::createSettingsContent()
             {
                 if (!MIDIDevice.deviceOpenAudioOUT(MIDIDevice.getDeviceIndexAudioOUT()))
                 {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, Text::errorTitle, Text::audioOutputFailed, Text::okButton);
+                    StageAlert::showMessage (Text::errorTitle, Text::audioOutputFailed);
                     return;
                 }
                 ensureAudioHandlerReady();   // re-wires the SFZ inject callback into the players

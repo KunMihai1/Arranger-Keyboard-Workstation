@@ -9,6 +9,7 @@
 */
 
 #include "LoginComponent.h"
+#include "Stage/StageAlert.h"
 #include "AppColours.h"
 #include "AppInfo.h"
 #include "Stage/StageFonts.h"
@@ -262,11 +263,7 @@ void LoginComponent::askServerToLogIn()
 
     if (email.isEmpty() || pass.isEmpty())
     {
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::WarningIcon,
-            Text::loginTitle,
-            Text::enterEmailAndPassword
-        );
+        StageAlert::showMessage (Text::loginTitle, Text::enterEmailAndPassword);
         return;
     }
 
@@ -297,16 +294,16 @@ void LoginComponent::askServerToLogIn()
                                 safeThis->onSuccessfullLogin (email);   // straight to Home: no "logged in" box
                             return;
                         case Outcome::rejected:
-                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::loginFailedTitle, reply.message);
+                            StageAlert::showMessage (Text::loginFailedTitle, reply.message);
                             return;
                         case Outcome::confirmEmail:
-                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon, Text::verifyTitle, Text::verifyEmail);
+                            StageAlert::showMessage (Text::verifyTitle, Text::verifyEmail);
                             return;
                         case Outcome::unreadable:
-                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::loginFailedTitle, Text::networkFailure);
+                            StageAlert::showMessage (Text::loginFailedTitle, Text::networkFailure);
                             return;
                         case Outcome::unexpected:
-                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::loginFailedTitle, Text::unknownError + body);
+                            StageAlert::showMessage (Text::loginFailedTitle, Text::unknownError + body);
                             return;
                     }
                 });
@@ -326,9 +323,7 @@ void LoginComponent::handleForgotPassword()
 
     if (email.isEmpty())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-            Text::forgotTitle,
-            Text::enterEmailFirst);
+        StageAlert::showMessage (Text::forgotTitle, Text::enterEmailFirst);
         return;
     }
 
@@ -337,9 +332,7 @@ void LoginComponent::handleForgotPassword()
 
     if (email.isEmpty())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-            Text::forgotTitle,
-            Text::enterEmailFirst);
+        StageAlert::showMessage (Text::forgotTitle, Text::enterEmailFirst);
         return;
     }
 }
@@ -355,11 +348,7 @@ void LoginComponent::handleDoneSignup()
 
     if (email.isEmpty() || pass.isEmpty() || username.isEmpty())
     {
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::WarningIcon,
-            Text::signUpTitle,
-            Text::fillAllFields
-        );
+        StageAlert::showMessage (Text::signUpTitle, Text::fillAllFields);
         return;
     }
 
@@ -382,20 +371,19 @@ void LoginComponent::handleDoneSignup()
                     switch (reply.outcome)
                     {
                         case Outcome::unreadable:
-                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::signUpFailedTitle, Text::invalidResponse + body);
+                            StageAlert::showMessage (Text::signUpFailedTitle, Text::invalidResponse + body);
                             return;
                         case Outcome::rejected:
-                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::signUpFailedTitle,
-                                                                    reply.message.isNotEmpty() ? reply.message : Text::signupFailed);
+                            StageAlert::showMessage (Text::signUpFailedTitle, reply.message.isNotEmpty() ? reply.message : Text::signupFailed);
                             return;
                         case Outcome::notCreated:
-                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon, Text::signUpFailedTitle, Text::userNotCreated + body);
+                            StageAlert::showMessage (Text::signUpFailedTitle, Text::userNotCreated + body);
                             return;
                         case Outcome::createdCheckEmail:
-                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon, Text::signUpSuccessTitle, Text::createdCheckEmail);
+                            StageAlert::showMessage (Text::signUpSuccessTitle, Text::createdCheckEmail);
                             break;
                         case Outcome::created:
-                            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon, Text::signUpSuccessTitle, Text::created);
+                            StageAlert::showMessage (Text::signUpSuccessTitle, Text::created);
                             break;
                     }
                     safeThis->setSignUpMode (false);   // back to Log in, the new email filled in

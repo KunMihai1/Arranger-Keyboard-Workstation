@@ -1,4 +1,5 @@
 #include "SFZLibraryUI.h"
+#include "Stage/StageAlert.h"
 #include "PersistedKeys.h"
 #include "UI/Voices/VoicesPageLayout.h"
 
@@ -256,7 +257,7 @@ void SFZLibraryUI::assignButtonClicked()
     int selectedRow = libraryList.getSelectedRow();
     if (selectedRow < int {} || selectedRow >= (int)manager.getEntries().size())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, noFileTitle, noFileMessage);
+        StageAlert::showMessage (noFileTitle, noFileMessage);
         return;
     }
 
@@ -271,8 +272,7 @@ void SFZLibraryUI::assignButtonClicked()
         if (onLibraryChanged) onLibraryChanged();
         libraryList.repaint();
 
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, assignedTitle,
-            assignedToStyle + styleName + assignedInstrument + name + openBracket + juce::String(instrumentIndex) + closeBracket);
+        StageAlert::showMessage (assignedTitle, assignedToStyle + styleName + assignedInstrument + name + openBracket + juce::String(instrumentIndex) + closeBracket);
     };
 
     chooser->setSize(SfzLibraryLayout::instrumentChooserWidth, SfzLibraryLayout::instrumentChooserHeight);
@@ -333,7 +333,7 @@ void SFZLibraryUI::importConfigButtonClicked()
 
     if (sourceStyles.empty())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, nothingTitle, nothingMessage);
+        StageAlert::showMessage (nothingTitle, nothingMessage);
         return;
     }
 
@@ -346,7 +346,7 @@ void SFZLibraryUI::importConfigButtonClicked()
         if (onLibraryChanged) onLibraryChanged();
         libraryList.repaint();
 
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, doneTitle, importedInto + currentStyleName);
+        StageAlert::showMessage (doneTitle, importedInto + currentStyleName);
     };
 
     juce::CallOutBox::launchAsynchronously(std::move(chooser), importConfigButton.getScreenBounds(), nullptr);

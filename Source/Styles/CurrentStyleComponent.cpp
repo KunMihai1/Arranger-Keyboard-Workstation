@@ -1,4 +1,5 @@
 #include "displayGUI.h"
+#include "Stage/StageAlert.h"
 #include "CustomTableContainer.h"
 #include "Arranger/ArrangerPatternBuilder.h"
 #include "Arranger/ArrangerSourceBuilder.h"
@@ -484,8 +485,7 @@ void CurrentStyleComponent::openStyleEditorNew()
     auto tracks = collectSelectedTracks();
     if (tracks.empty())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-            Text::sectionConfigTitle, Text::recordTracksFirst);
+        StageAlert::showMessage (Text::sectionConfigTitle, Text::recordTracksFirst);
         return;
     }
 
@@ -549,7 +549,7 @@ void CurrentStyleComponent::openStyleEditorFromFile(const juce::File& styleFile)
             if (safe->onBusy) safe->onBusy(false, {});
             if (! ok)
             {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::sectionConfigTitle, err);
+                StageAlert::showMessage (Text::sectionConfigTitle, err);
                 return;
             }
             if (! safe->sectionsOpen)
@@ -570,7 +570,7 @@ bool CurrentStyleComponent::buildConfigFromFile(const juce::File& styleFile, Arr
     if (! ArrangerStyleIOHelper::loadFromFile(styleFile, sf, err))
     {
         if (showError)
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, Text::sectionConfigTitle, err);
+            StageAlert::showMessage (Text::sectionConfigTitle, err);
         return false;
     }
     out = ArrangerPatternBuilder::buildStyleFromFile(sf);

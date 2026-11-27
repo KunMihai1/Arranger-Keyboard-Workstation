@@ -13,6 +13,22 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-28 — Every AlertWindow → StageAlert (`feat/stage-alerts`)
+- `StageAlert` (new): `showMessage` (OK only; Enter / Esc / click outside = OK), `showQuestion`, `showChoice` (a second
+  action, for the notes table's Change All / Change selected), `showInput`. One at a time app-wide (a replaced one is
+  freed later, never under its own callback); hops to the message thread; hosts on the main scene (an anchor in
+  another window, e.g. Add Device, stays there). `StageDialog` gained `hasCancel`, the alternative button and `onClosed`.
+- Converted: 48 `showMessageBoxAsync` (script, icons dropped), 3 `showOkCancelBox`, the key-count and table-value
+  inputs, the table's 2-3 button choices (ids via `TableDialog::resultIdFor`, as before).
+- Live: a notice opened while Play builds the scene was first hidden behind the GL note layer (the "Preparing session"
+  overlay restores it); every place that shows the note layer again now calls `keepNoteLayerUnderAlert`, and the focus
+  returns after the closing key (deferred: JUCE moves focus off the hidden dialog after the hook). Esc works after.
+- Sonnet review, verified and fixed: Add Device's notices went into the small dialog window; page-hosted alerts could
+  strand when the page hid (now always the main scene; `current()` ignores hidden ancestors); the uncover could show the
+  note layer over a page / menu / loading overlay; the table's second question lost its "Modify …" title; chained
+  alerts kept focus inside the dead dialog; SafePointers in the style editor's questions.
+- unit 5943 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped).
+
 ## 2026-11-28 — Audio thread: no allocation, no waiting (`fix/audio-thread-realtime`)
 - The audio callback allocated every block with MIDI: a local `MidiBuffer`, then a fresh one per active channel (and
   scanned the block 16 times); the no-SFZ notice posted `callAsync` (allocates a message) from the audio thread.

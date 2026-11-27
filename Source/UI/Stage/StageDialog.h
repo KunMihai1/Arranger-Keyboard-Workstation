@@ -30,6 +30,8 @@ struct StageDialogOptions
     juce::String confirmText;    ///< the confirm button, e.g. "OK" / "Remove"
     bool         hasInput = false;
     juce::String inputText;      ///< the input's starting text
+    bool         hasCancel = true;   ///< false: a notice with its one button (OK)
+    juce::String alternativeText;    ///< a second action between Cancel and confirm (e.g. "Change selected")
 };
 
 /** Board-px layout of a dialog over a host of the given bounds. */
@@ -57,7 +59,12 @@ public:
     void showOver (juce::Component& anchor, float scale);
 
     void confirm();   ///< hides, then reports the input's trimmed text (empty without an input)
-    void cancel();    ///< hides; nothing is reported
+    void cancel();    ///< hides; nothing is reported (a notice without Cancel confirms instead)
+
+    /** Called whenever the dialog closes (confirm, the alternative or cancel), before the action's callback. */
+    std::function<void()> onClosed;
+    /** The alternative button's action (options.alternativeText); the dialog has closed when it runs. */
+    std::function<void()> onAlternative;
 
     bool hasInput() const;
     juce::String getText() const;
@@ -84,6 +91,7 @@ private:
 
     StageLcdInput input;
     SegButton cancelButton;
+    SegButton alternativeButton;
     SegButton confirmButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StageDialog)

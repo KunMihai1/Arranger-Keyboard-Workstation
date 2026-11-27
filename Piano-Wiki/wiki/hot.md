@@ -30,7 +30,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 - **`NoteLayer` draws on the GL render thread without the message lock**; motion in pure
   `NoteField`. Hiding it detaches the GL context. [[GL Overlay Rendering]].
 - Tests live in `ci/Tests.jucer`; exit code = failures, also check the `TOTAL` line.
-  Current: **unit 5915, arranger 770, integration 130 (+7 skipped), display 13**. Screen: 125 %.
+  Current: **unit 5943, arranger 770, integration 130 (+7 skipped), display 13**. Screen: 125 %.
 - Visual checks: screenshot/click the app's window by process id ; boards: `specs/assets/…/render/render.sh`.
 
 ## Build / Test
@@ -44,7 +44,7 @@ Before finishing: Sonnet reviewer, then verify each of its claims yourself.
 
 ## Active Threads / Next
 Full task list with states: [[Owner Backlog]].
-- 🟡 **~100 `juce::AlertWindow`s left** (0.5–1 s each in Debug, balanced text layout): move to `StageDialog`.
+- ✅ No `juce::AlertWindow` left: `StageAlert` (page look, covers the scene, hides the GL note layer).
 - 🟡 **UI redesign** (spec `docs/superpowers/specs/2026-11-23-ui-redesign-design.md` + part 2): panel and
   pages Style, Effects, Settings, Voices, Chord helper, Esc menu, Recorder, Sections, keys, Dust, finishes, Log in / Home, sign-in done (Login check waits on the backend). Owner: same look on every resolution; pages centred like the
   panel; agent checks the running app **1:1** against the boards before finishing.
