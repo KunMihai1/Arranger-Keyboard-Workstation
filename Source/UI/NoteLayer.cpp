@@ -76,7 +76,7 @@ NoteLayer::NoteLayer(KeyboardUI& referenceKeyboard)
     : keyBoardUI{ referenceKeyboard }
 {
     particles.reserve(Capacity::particles);
-    renderVerts.reserve(Capacity::particles);
+    renderVerts.reserve(std::max(Capacity::particles, static_cast<size_t>(DustField::maxMotes)));
     noteVerts.reserve(Capacity::verticesPerNote * Capacity::notes);
     commands.reserve(Capacity::commands);
     pendingCommands.reserve(Capacity::commands);
@@ -291,11 +291,15 @@ void NoteLayer::renderOpenGL()
     {
         releaseParticleShader();
         createParticleShader();
+        dust.clear();
     }
 
+    dust.setLayerSize(width, height);
     applyCommands(width, height);
     field.setHeight(height);
     field.advance(dt);
+    emitDustForHeldKeys(dt);
+    dust.advance(dt);
     updateParticles(dt);
 
     glClearColor(clearChannel, clearChannel, clearChannel, clearChannel);
@@ -308,17 +312,17 @@ void NoteLayer::renderOpenGL()
         if (ParticleRecipe::drawnOverNotes(renderStyle))
         {
             drawNotes(width, height);
-            drawParticles();
+            drawParticles(width, height);
         }
         else
         {
-            drawParticles();
+            drawParticles(width, height);
             drawNotes(width, height);
         }
     }
 
     // Keep drawing while anything moves (DwmFlush paces it), then go idle until the next command.
-    animating = !field.isIdle() || !particles.empty();
+    animating = !field.isIdle() || !particles.empty() || !dust.isEmpty();
     if (animating)
         openGLContext.triggerRepaint();
     else
@@ -334,10 +338,11 @@ void NoteLayer::applyCommands(float width, float height)
         case Command::Type::noteOn:
             if (field.noteOn(command.midiNote, (float) command.keyBounds.getX(), (float) command.keyBounds.getWidth()))
                 spawnParticlesForNote(command.keyBounds, width, height);
+            setKeyHeld(command.midiNote, command.keyBounds, true);
             break;
-        case Command::Type::noteOff:    field.noteOff(command.midiNote); break;
-        case Command::Type::releaseAll: field.releaseAll(); break;
-        case Command::Type::clear:      field.clear(); particles.clear(); break;
+        case Command::Type::noteOff:    field.noteOff(command.midiNote); setKeyHeld(command.midiNote, {}, false); break;
+        case Command::Type::releaseAll: field.releaseAll(); keyHeld.fill(false); break;
+        case Command::Type::clear:      field.clear(); particles.clear(); dust.clear(); keyHeld.fill(false); break;
         }
     }
     pendingCommands.clear();

@@ -3,10 +3,10 @@
 namespace
 {
     constexpr float centred  = 0.5f;   // nextFloat() - centred spreads evenly both ways
-    constexpr float halfSize = 0.5f;   // Dust's original point-size rule
     constexpr float fullTurn = juce::MathConstants<float>::twoPi;
     constexpr float whole    = 1.0f;
     constexpr int   head     = 0;      // trail index of the particle itself
+    constexpr int   none     = 0;      // Dust is not a recipe style: DustField makes and moves it
 
     // Sizes are logical px (the point sprite's diameter); motion is NDC of y per second, and x is scaled by the
     // layer's height / width so a spark or wisp moves as far sideways in pixels as the numbers say.
@@ -32,27 +32,6 @@ namespace
         constexpr float flickerBase    = 0.8f;
         constexpr float flickerDepth   = 0.2f;
         constexpr float flickerRate    = 25.0f;   // radians per second
-    }
-
-    namespace Dust   // the original numbers (B3 motion), unchanged
-    {
-        constexpr int   perNote        = 40;
-        constexpr float jitter         = 0.5f;
-        constexpr float dragPerTick    = 0.95f;
-        constexpr float ticksPerSecond = 60.0f;
-        constexpr float fadeRate       = 0.6f;
-        constexpr float spreadX        = 0.08f;
-        constexpr float spreadY        = 0.02f;
-        constexpr float spreadVelocity = 0.2f;
-        constexpr float riseSpan       = 0.4f;
-        constexpr float riseMin        = 0.1f;
-        constexpr float sizeMin        = 3.0f;
-        constexpr float sizeSpan       = 15.0f;
-        constexpr float alphaMin       = 0.4f;
-        constexpr float alphaSpan      = 0.6f;
-        constexpr float lifeMin        = 0.8f;
-        constexpr float lifeSpan       = 0.4f;
-        constexpr int   trail          = 1;
     }
 
     namespace Wisps   // thin glowing trails that curl up from the key (replaced Smoke)
@@ -102,7 +81,7 @@ namespace ParticleRecipe
         {
             case ParticleStyles::sparks: return Sparks::perNote;
             case ParticleStyles::wisps:  return Wisps::perNote;
-            default:                     return Dust::perNote;
+            default:                     return none;
         }
     }
 
@@ -134,19 +113,10 @@ namespace ParticleRecipe
             particle.sway     = xPerY;
             particle.colour   = colour.interpolatedWith (juce::Colours::white, Wisps::lighten).withAlpha (Wisps::alpha);
         }
-        else
-        {
-            particle.pos      = keyTop + juce::Point<float> (spread (random, Dust::spreadX), spread (random, Dust::spreadY));
-            particle.velocity = { spread (random, Dust::spreadVelocity), between (random, Dust::riseMin, Dust::riseSpan) };
-            particle.size     = between (random, Dust::sizeMin, Dust::sizeSpan);
-            particle.colour   = colour.withAlpha (between (random, Dust::alphaMin, Dust::alphaSpan));
-            particle.life     = between (random, Dust::lifeMin, Dust::lifeSpan);
-            particle.lifespan = {};   // Dust fades by life itself (its original rule)
-        }
         return particle;
     }
 
-    void step (int style, NoteParticle& particle, float seconds, juce::Random& random)
+    void step (int style, NoteParticle& particle, float seconds)
     {
         particle.age += seconds;
         if (style == ParticleStyles::sparks)
@@ -162,30 +132,23 @@ namespace ParticleRecipe
             particle.pos = wispAt (particle, particle.age);
             particle.life -= seconds;
         }
-        else
-        {
-            particle.velocity.x += spread (random, Dust::jitter) * seconds;   // Brownian
-            particle.velocity.x *= std::pow (Dust::dragPerTick, seconds * Dust::ticksPerSecond);
-            particle.pos += particle.velocity * seconds;
-            particle.life -= seconds * Dust::fadeRate;
-        }
     }
 
     float opacity (const NoteParticle& particle)
     {
         const auto alpha = particle.colour.getFloatAlpha();
         if (particle.lifespan <= float {})
-            return alpha * particle.life;   // Dust's original rule: life starts up to 1.2, so it may pass its alpha
+            return {};
         return juce::jlimit (float {}, alpha, alpha * particle.life / particle.lifespan);
     }
 
     bool drawnOverNotes (int style) { return style == ParticleStyles::sparks || style == ParticleStyles::wisps; }
 
-    bool additive (int style) { return style == ParticleStyles::sparks || style == ParticleStyles::wisps; }
+    bool additive (int style) { return style == ParticleStyles::sparks || style == ParticleStyles::wisps || style == ParticleStyles::dust; }
 
-    float pointSize (int style, float size, float renderingScale)
+    float pointSize (float size, float renderingScale)
     {
-        return style == ParticleStyles::dust ? size * halfSize : size * renderingScale;
+        return size * renderingScale;
     }
 
     int trailPoints (int style)
@@ -194,7 +157,7 @@ namespace ParticleRecipe
         {
             case ParticleStyles::sparks: return Sparks::trail;
             case ParticleStyles::wisps:  return Wisps::trail;
-            default:                     return Dust::trail;
+            default:                     return none;
         }
     }
 
@@ -220,6 +183,6 @@ namespace ParticleRecipe
             return { index == head ? particle.pos : wispAt (particle, age), particle.size * (Wisps::thinnest + (whole - Wisps::thinnest) * along),
                      opacity (particle) * along * Wisps::overlap, age };
         }
-        return { particle.pos, particle.size, opacity (particle), particle.age };
+        return {};
     }
 }

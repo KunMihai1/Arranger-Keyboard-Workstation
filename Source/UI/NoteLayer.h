@@ -16,11 +16,13 @@
 #include <atomic>
 #include <mutex>
 #include <algorithm>
+#include <array>
 
 #include "MidiHandler.h"
 #include "KeyboardUI.h"
 #include "NoteField.h"
 #include "ParticleRecipe.h"
+#include "DustField.h"
 
 /**
     Displays active and falling MIDI notes with particle effects.
@@ -109,11 +111,15 @@ private:
     void applyCommands(float width, float height);
     void updateParticles(float dt);
     void spawnParticlesForNote(juce::Rectangle<int> keyBounds, float width, float height);
+    void setKeyHeld(int midiNote, juce::Rectangle<int> keyBounds, bool isHeld);
+    void emitDustForHeldKeys(float dt);
+    void collectRecipeVertices();
+    void collectDustVertices(float width, float height);
     void createParticleShader();
     void releaseParticleShader();
     void createNoteShader();
     void drawNotes(float width, float height);
-    void drawParticles();
+    void drawParticles(float width, float height);
 
 
     struct Vertex {
@@ -147,7 +153,11 @@ private:
     // Render thread only.
     std::vector<Command> pendingCommands;
     NoteField field;
-    std::vector<NoteParticle> particles;           /**< Active particles */
+    std::vector<NoteParticle> particles;           /**< Active Sparks / Wisps particles */
+    DustField dust;                                /**< Dust (its own simulation, board `Dust`) */
+    static constexpr int midiNotes = 128;
+    std::array<juce::Rectangle<int>, midiNotes> heldKeyBounds {};   /**< held keys stream Dust */
+    std::array<bool, midiNotes> keyHeld {};
     juce::Random rng;                          /**< Particle randomness (getSystemRandom() is shared, not thread-safe) */
     juce::Colour renderParticleColour;
     bool renderSpawnParticles = false;

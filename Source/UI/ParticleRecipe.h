@@ -26,7 +26,7 @@ struct NoteParticle
     juce::Point<float> velocity;
     juce::Point<float> origin;   ///< where it started (Wisps)
     float life = ParticleLife::full;
-    float lifespan {};   ///< the life it started with (0: Dust, which fades by life itself)
+    float lifespan {};   ///< the life it started with
     float size {};
     float age {};        ///< seconds since it started
     float seed {};       ///< its own phase (Wisps' sway, Sparks' flicker)
@@ -43,35 +43,33 @@ struct TrailPoint
     float age {};       ///< the particle's age at this point of its path
 };
 
-/*  How each particle style looks and moves (spec 2026-11-27-particles-sparks-smoke): pure, so the rules are
-    unit-tested; NoteLayer keeps the storage and the GL drawing. Dust keeps its original numbers. */
+/*  How Sparks and Wisps look and move (spec 2026-11-27-particles-sparks-smoke): pure, so the rules are unit-tested;
+    NoteLayer keeps the storage and the GL drawing. Dust is DustField (board `Dust`, 2026-11-27): no particles here. */
 namespace ParticleRecipe
 {
-    /** Particles spawned for one note. */
+    /** Particles spawned for one note (0 for Dust). */
     int perNote (int style);
 
     /** A new particle above a key (keyTop in NDC), in the user's particle colour. `xPerY` is the layer's height over
-        its width, so a motion can be as wide in pixels as it is tall (Dust ignores it, as it always did). */
+        its width, so a motion can be as wide in pixels as it is tall. */
     NoteParticle spawn (int style, juce::Point<float> keyTop, float xPerY, juce::Colour colour, juce::Random& random);
 
     /** Moves and ages a particle by `seconds`. */
-    void step (int style, NoteParticle& particle, float seconds, juce::Random& random);
+    void step (int style, NoteParticle& particle, float seconds);
 
-    /** How opaque the particle is now: its colour's alpha, fading with the life it has left (Dust: alpha × life,
-        unclamped, as it always was). */
+    /** How opaque the particle is now: its colour's alpha, fading with the life it has left. */
     float opacity (const NoteParticle& particle);
 
     /** Whether the style is drawn over the falling notes (Sparks, Wisps) or under them (Dust). */
     bool drawnOverNotes (int style);
 
-    /** Whether the style adds light (Sparks, Wisps glow) instead of covering what is under it. */
+    /** Whether the style adds light instead of covering what is under it (all three: Dust is the board's 'lighter'). */
     bool additive (int style);
 
-    /** The GL point size in physical px: Sparks and Wisps sizes are logical px times the rendering scale; Dust keeps
-        its original half-size rule. */
-    float pointSize (int style, float size, float renderingScale);
+    /** The GL point size in physical px: a size in logical px times the rendering scale. */
+    float pointSize (float size, float renderingScale);
 
-    /** Points drawn per particle at most: the particle and its trail (Dust: just the particle). */
+    /** Points drawn per particle at most: the particle and its trail. */
     int trailPoints (int style);
 
     /** Point `index` of the particle (0 = the particle, then back along its trail); opacity 0 past its start. */

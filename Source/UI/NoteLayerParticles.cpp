@@ -26,6 +26,7 @@ namespace
         constexpr float  ndcSpan    = 2.0f;    // pixels to normalised device coordinates (-1..1)
         constexpr float  ndcEdge    = 1.0f;
         constexpr float  aboveKey   = 0.05f;
+        constexpr float  diameter   = 2.0f;    // a Dust sprite's radius to its GL point size
     }
 }
 
@@ -63,18 +64,8 @@ void NoteLayer::releaseParticleShader()
     shader.reset();
 }
 
-void NoteLayer::drawParticles()
+void NoteLayer::collectRecipeVertices()
 {
-    if (shader == nullptr || particleVBO == noBuffer || particles.empty())
-        return;
-
-    shader->use();
-
-    float timeSeconds = (float)juce::Time::getMillisecondCounterHiRes() * Timing::secondsPerMillisecondFloat;
-    if (shader->getUniformIDFromName(ShaderNames::time) >= Timing::firstUniformId)
-        shader->setUniform(ShaderNames::time, timeSeconds);
-
-    renderVerts.clear();
     const auto renderingScale = (float) openGLContext.getRenderingScale();
     const int trailPoints = ParticleRecipe::trailPoints(renderStyle);
 
@@ -85,13 +76,56 @@ void NoteLayer::drawParticles()
             const auto point = ParticleRecipe::trailPoint(renderStyle, particle, trailIndex);
             if (point.opacity <= Particles::dead)
                 break;   // past the start of its trail
-            renderVerts.push_back({ point.pos.x, point.pos.y, ParticleRecipe::pointSize(renderStyle, point.size, renderingScale),
+            renderVerts.push_back({ point.pos.x, point.pos.y, ParticleRecipe::pointSize(point.size, renderingScale),
                                     particle.colour.getFloatRed(),
                                     particle.colour.getFloatGreen(),
                                     particle.colour.getFloatBlue(),
                                     point.opacity });
         }
     }
+}
+
+void NoteLayer::collectDustVertices(float width, float height)
+{
+    // DustField works in layer pixels (y down); the points go in NDC (y up), sized in physical pixels.
+    const auto renderingScale = (float) openGLContext.getRenderingScale();
+    const auto colourAlpha = renderParticleColour.getFloatAlpha();
+
+    for (const auto& mote : dust.all())
+    {
+        const auto sprite = dust.spriteOf(mote);
+        const auto opacity = sprite.opacity * colourAlpha;
+        if (opacity <= Particles::dead || renderVerts.size() >= renderVerts.capacity())
+            continue;
+        renderVerts.push_back({ sprite.centre.x / width * Particles::ndcSpan - Particles::ndcEdge,
+                                Particles::ndcEdge - sprite.centre.y / height * Particles::ndcSpan,
+                                sprite.radius * Particles::diameter * renderingScale,
+                                renderParticleColour.getFloatRed(),
+                                renderParticleColour.getFloatGreen(),
+                                renderParticleColour.getFloatBlue(),
+                                opacity });
+    }
+}
+
+void NoteLayer::drawParticles(float width, float height)
+{
+    if (shader == nullptr || particleVBO == noBuffer)
+        return;
+
+    renderVerts.clear();
+    if (renderStyle == ParticleStyles::dust)
+        collectDustVertices(width, height);
+    else
+        collectRecipeVertices();
+
+    if (renderVerts.empty())
+        return;
+
+    shader->use();
+
+    float timeSeconds = (float)juce::Time::getMillisecondCounterHiRes() * Timing::secondsPerMillisecondFloat;
+    if (shader->getUniformIDFromName(ShaderNames::time) >= Timing::firstUniformId)
+        shader->setUniform(ShaderNames::time, timeSeconds);
 
     auto& ext = openGLContext.extensions;
     ext.glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
@@ -116,7 +150,7 @@ void NoteLayer::drawParticles()
     glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_POINT_SPRITE);
     glEnable(GL_BLEND);
-    // Sparks and wisps add light (a glow over the notes); Dust covers what is under it.
+    // Every style adds light: Sparks and Wisps glow over the notes, Dust (the board's 'lighter') under them.
     glBlendFunc(GL_SRC_ALPHA, ParticleRecipe::additive(renderStyle) ? GL_ONE : GL_ONE_MINUS_SRC_ALPHA);
 
     glDrawArrays(GL_POINTS, firstVertex, (GLsizei)renderVerts.size());
@@ -174,6 +208,8 @@ std::pair<const char*, const char*> NoteLayer::dustShader()
         "    vColour = colour;\n"
         "}\n";
 
+    // The board's sprite: a radial gradient, white at the centre -> the particle colour at 18 % of the radius ->
+    // that colour at 40 % alpha at 45 % -> transparent at the edge.
     const char* dustFragment =
         "#ifdef GL_ES\n"
         "precision mediump float;\n"
@@ -181,12 +217,10 @@ std::pair<const char*, const char*> NoteLayer::dustShader()
         "varying vec4 vColour;\n"
         "void main()\n"
         "{\n"
-        "    vec2 uv = gl_PointCoord.xy;\n"
-        "    float dist = distance(uv, vec2(0.5, 0.5));\n"
-        "    float alpha = 1.0 - smoothstep(0.0, 0.5, dist);\n"
-        "    float core = 1.0 - smoothstep(0.0, 0.2, dist);\n"
-        "    vec3 color = vColour.rgb + vec3(core * 0.3);\n"
-        "    gl_FragColor = vec4(color, alpha * vColour.a);\n"
+        "    float r = min(1.0, distance(gl_PointCoord.xy, vec2(0.5, 0.5)) * 2.0);\n"
+        "    vec3 colour = mix(vec3(1.0), vColour.rgb, clamp(r / 0.18, 0.0, 1.0));\n"
+        "    float alpha = r < 0.18 ? 1.0 : (r < 0.45 ? mix(1.0, 0.4, (r - 0.18) / 0.27) : mix(0.4, 0.0, (r - 0.45) / 0.55));\n"
+        "    gl_FragColor = vec4(colour, alpha * vColour.a);\n"
         "}\n";
 
     return {dustVertex, dustFragment};
@@ -236,10 +270,18 @@ std::pair<const char*, const char*> NoteLayer::getShaderChoice(int styleId)
 
 void NoteLayer::updateParticles(float dt)
 {
+    // Sparks / Wisps still alive when the style changes to Dust are never drawn and no recipe ages them: drop them,
+    // or the layer would keep animating with nothing on screen.
+    if (renderStyle == ParticleStyles::dust)
+    {
+        particles.clear();
+        return;
+    }
+
     for (int particleIndex {}; particleIndex < (int)particles.size(); )
     {
         auto& particle = particles[particleIndex];
-        ParticleRecipe::step(renderStyle, particle, dt, rng);
+        ParticleRecipe::step(renderStyle, particle, dt);
 
         // Unordered erase for O(1) removal, avoiding expensive std::remove_if memory shifting
         if (particle.life <= Particles::dead) {
@@ -253,6 +295,13 @@ void NoteLayer::updateParticles(float dt)
 
 void NoteLayer::spawnParticlesForNote(juce::Rectangle<int> keyBounds, float width, float height)
 {
+    if (renderStyle == ParticleStyles::dust)
+    {
+        if (renderSpawnParticles && !keyBounds.isEmpty())   // a note outside the piano has no key to rise from
+            dust.burst((float) keyBounds.getCentreX(), (float) keyBounds.getWidth(), rng);
+        return;
+    }
+
     if (!renderSpawnParticles || particles.size() > Particles::spawnLimit || width <= emptySize || height <= emptySize)
         return; // Prevent excessive spawning if many notes are played simultaneously
 
@@ -263,4 +312,23 @@ void NoteLayer::spawnParticlesForNote(juce::Rectangle<int> keyBounds, float widt
 
     for (int particleIndex {}, count = ParticleRecipe::perNote(renderStyle); particleIndex < count; ++particleIndex)
         particles.push_back(ParticleRecipe::spawn(renderStyle, keyTop, height / width, renderParticleColour, rng));
+}
+
+void NoteLayer::setKeyHeld(int midiNote, juce::Rectangle<int> keyBounds, bool isHeld)
+{
+    if (! juce::isPositiveAndBelow(midiNote, midiNotes))
+        return;
+    keyHeld[(size_t) midiNote] = isHeld && ! keyBounds.isEmpty();
+    heldKeyBounds[(size_t) midiNote] = keyBounds;
+}
+
+void NoteLayer::emitDustForHeldKeys(float dt)
+{
+    // Board `Dust`: a held key keeps streaming (60 a second), on top of the burst its press made.
+    if (renderStyle != ParticleStyles::dust || !renderSpawnParticles || dt <= Timing::noStep)
+        return;
+
+    for (size_t midiNote {}; midiNote < keyHeld.size(); ++midiNote)
+        if (keyHeld[midiNote])
+            dust.emitHeld((float) heldKeyBounds[midiNote].getCentreX(), (float) heldKeyBounds[midiNote].getWidth(), dt, rng);
 }
