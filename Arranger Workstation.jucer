@@ -361,6 +361,10 @@
         <FILE id="recMdC" name="RecorderModel.cpp" compile="1" resource="0" file="Source/UI/Recorder/RecorderModel.cpp"/>
         <FILE id="recCnH" name="RecorderContent.h" compile="0" resource="0" file="Source/UI/Recorder/RecorderContent.h"/>
         <FILE id="recCnC" name="RecorderContent.cpp" compile="1" resource="0" file="Source/UI/Recorder/RecorderContent.cpp"/>
+        <FILE id="secLnH" name="SectionLanes.h" compile="0" resource="0" file="Source/UI/Sections/SectionLanes.h"/>
+        <FILE id="secLnC" name="SectionLanes.cpp" compile="1" resource="0" file="Source/UI/Sections/SectionLanes.cpp"/>
+        <FILE id="secHdH" name="SectionLaneHeaders.h" compile="0" resource="0" file="Source/UI/Sections/SectionLaneHeaders.h"/>
+        <FILE id="secHdC" name="SectionLaneHeaders.cpp" compile="1" resource="0" file="Source/UI/Sections/SectionLaneHeaders.cpp"/>
         <FILE id="K2Xsjg" name="SelectableLabel.cpp" compile="1" resource="0"
               file="Source/UI/SelectableLabel.cpp"/>
         <FILE id="cazbKc" name="SelectableLabel.h" compile="0" resource="0"

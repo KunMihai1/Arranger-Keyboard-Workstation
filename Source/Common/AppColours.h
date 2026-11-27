@@ -153,6 +153,16 @@ namespace StagePalette
     static const juce::Colour sectionBreak          { 0xff8a8f99 };
     static const juce::Colour sectionEnding         { 0xffb0534a };
     static const juce::Colour sectionCountIn        { 0xff7a7aa8 };
+    static const juce::Colour laneNote              { 0xff6f8f86 };   // the recording's notes in the lanes
+    static const juce::Colour laneBarNumber         { 0xff7d8086 };
+    static const juce::Colour windowLabel           { 0xfff3efe6 };   // window labels, selected outline, grips
+    static const juce::Colour windowLabelShadow     { 0xcc000000 };   // text-shadow 0 1px 1px rgba(0,0,0,.8)
+    static const juce::Colour transposeChipBorder   { 0xff3a3c41 };   // the lane header's transpose button
+    static constexpr float windowFillAlpha         = 0.22f;   // type colour + 38 (hex)
+    static constexpr float windowSelectedFillAlpha = 0.4f;    // type colour + 66 (hex)
+    static constexpr float windowSelectedGlowAlpha = 0.35f;   // 0 0 0 1px rgba(243,239,230,.35)
+    static constexpr float gripAlpha               = 0.9f;
+    static constexpr float playheadGlowAlpha       = 0.35f;   // box-shadow 0 0 4px rgba(255,166,58,.7), spread over 4 px
 
     // --- Accent ---
     static const juce::Colour tempoAccent { 0xffffa63a };   // tempo and playhead
