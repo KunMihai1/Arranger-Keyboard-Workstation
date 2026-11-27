@@ -11,11 +11,11 @@ status: evergreen
 # Recent Context
 
 ## Last Updated
-2026-11-27. Merged: Chord helper page (#69), owner bug fixes (#70: track instrument, picker folder, Quick FX,
-"RIGH", SFZ rows), split octave fix (#71). **Sparks / Smoke** on `feat/particles-sparks-smoke` (pure
-`ParticleRecipe`; unit-green) — waits for a look in the app. Next page: Recorder. Owner runs the app on another
-PC but sometimes uses this machine's screen: screenshot first, no display tests / GUI driving while they do.
-`docs/superpowers/` is **local only** (owner). Detail in [[log]].
+2026-11-27. Merged: Chord helper page (#69), owner bug fixes (#70), split octave fix (#71), calmer Sparks +
+**Light wisps** replacing Smoke (#72, pure `ParticleRecipe`, display checks), "Play" on the home picture (#73,
+`HomeLayout`). **Next: the Esc menu** restyled as a page panel (owner: "esc opens the old screen"), then Recorder.
+Owner sometimes uses this machine's screen: screenshot first. Injected keys don't play notes: check the note
+layer through the display harness. `docs/superpowers/` is **local only**. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)
 Spec → failing test → code. Root cause and a measurement before any fix; only proven problems;
