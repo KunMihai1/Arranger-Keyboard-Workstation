@@ -49,5 +49,5 @@ Full task list with states: [[Owner Backlog]].
   pages Style, Effects, Settings, Voices, Chord helper, Esc menu, Recorder, Sections, keys, Dust, finishes, Log in / Home, sign-in done (Login check waits on the backend). Owner: same look on every resolution; pages centred like the
   panel; agent checks the running app **1:1** against the boards before finishing.
 - ✅ CC93 is `BbdChorus` (bucket-brigade, from `va-effects`); the delay time glides (Lagrange-3).
-- 🟡 **Missing-SFZ popup (`b5765e9`) never smoke-tested**; **Phase 7a manual sign-off 0/9**.
+- ✅ Missing-SFZ notice checked live (2026-11-28). 🟡 **Phase 7a manual sign-off 0/9** (owner: later).
 - 🟢 OpenGL crash parked (unreproducible); tripwire logs to `Desktop/piano_gl_errors.log`.

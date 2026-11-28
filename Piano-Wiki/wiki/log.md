@@ -13,6 +13,14 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-28 — Missing-SFZ notice checked live
+- A local build (Log in's server check off for the run only, never committed) on this machine, which has no SFZ
+  library. With the Internal SFZ engine, a note from the PC keyboard showed on the panel screen: No SFZ loaded for
+  Acoustic Grand Piano (left hand) in style "DEFAULT Style". With External MIDI nothing shows: correct, the SFZ
+  engine is not in the path. The owner's output setting was set back to External MIDI through Settings afterwards.
+- Seen on the way: pressed keys light amber live (#89). Quirk: with no style open, the notice names the built-in
+  default style while the screen says "No style".
+
 ## 2026-11-28 — Log in checks the server again (`feat/login-checks-server`)
 - Owner: the backend is up. Checked: the backend's address resolves again; the auth proxy answers a made-up
   login with HTTP 400 `invalid_credentials` / "Invalid login credentials", which `BackendJson::readLoginReply` reads
