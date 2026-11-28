@@ -143,6 +143,8 @@
               file="../tests/unit/test_track_list_removal.cpp"/>
         <FILE id="stWhPl" name="test_start_while_playing.cpp" compile="1" resource="0"
               file="../tests/unit/test_start_while_playing.cpp"/>
+        <FILE id="TmpClT" name="test_tempo_clock.cpp" compile="1" resource="0"
+              file="../tests/unit/test_tempo_clock.cpp"/>
         <FILE id="sfzLib" name="test_sfz_library.cpp" compile="1" resource="0"
               file="../tests/unit/test_sfz_library.cpp"/>
         <FILE id="arrStr" name="test_arranger_stress.cpp" compile="1" resource="0"
@@ -664,6 +666,7 @@
         <FILE id="zfMrzS" name="TrackListener.h" compile="0" resource="0" file="../Source/Playback/TrackListener.h"/>
         <FILE id="dxeclC" name="TrackPlayer.cpp" compile="1" resource="0" file="../Source/Playback/TrackPlayer.cpp"/>
         <FILE id="PkpDN9" name="TrackPlayer.h" compile="0" resource="0" file="../Source/Playback/TrackPlayer.h"/>
+        <FILE id="TmpClk" name="TempoClock.h" compile="0" resource="0" file="../Source/Playback/TempoClock.h"/>
         <FILE id="sxVQU6" name="MidiNotesTableModel.h" compile="0" resource="0"
               file="../Source/Playback/MidiNotesTableModel.h"/>
         <FILE id="CkPnSg" name="TrackPlayerListener.h" compile="0" resource="0"

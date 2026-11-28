@@ -197,7 +197,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 | Item | State |
 |---|---|
 | BPM applied when a style / track loads | ✅ |
-| Change BPM while playing | ⬜ locked while the arranger plays (`CurrentStyleComponent.cpp:189`) |
+| Change BPM while playing | ✅ 2026-11-28 (`feat/tempo-while-playing`): never locked; both modes keep the musical position and change speed (track player `TempoClock`, arranger `setBpm`). Classic mode had sped up only the beat counter |
 | Real arranger with sections, loop based | ✅ |
 | Track playtime, send it for a website TOP list | ⬜ **switched off**: the only `PlaytimeTracker` creation (`MainComponent.cpp` ~595) is commented out, so nothing is sent. The tracker also ignores its interval argument (always 300 s). Corrected 2026-11-22; was marked ✅ |
 | Login / logout inside the app, persistent login (JSON in AppData) | 🟡 Log out + remembered email done (#82); the account check and a saved session wait on the backend (unreachable 2026-11-28). Before: Also: `LoginComponent::handleLogin()` returns before checking anything (Login always succeeds), and "Forgot Pass?" sends nothing |

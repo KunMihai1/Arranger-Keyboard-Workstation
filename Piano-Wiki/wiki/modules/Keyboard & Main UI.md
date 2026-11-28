@@ -70,7 +70,10 @@ The PC keyboard plays only while `MainComponent` holds keyboard focus, so focus 
 - **Buttons don't steal focus:** transport + section buttons use `setMouseClickGrabsKeyboardFocus(false)`.
 - **Global reclaim:** `MainComponent` registers `addMouseListener(this, true)` and its `mouseDown` returns keyboard focus to itself on **any** click that isn't text-entry — skipping modal popups, the in-app overlay menu, and `TextEditor`s. This is the safety net that makes a lost-focus state recoverable by clicking anywhere.
 - **Targeted grabs:** after the **Play** init completes (`paintOverChildren` → `playButtonOnClick`, which builds the play scene), and after the arranger **Start** (`CurrentStyleComponent::onRequestPlayFocus` → `Display::onRequestPlayFocus` → MainComponent, deferred), focus is re-grabbed — the scene rebuild could otherwise land focus on a freshly created child, leaving the PC keyboard silent until a stray screen click. Overlay/browser close also re-grabs (`onArrangerOverlayVisible`).
-- **BPM lock:** in arranger mode the tempo slider is disabled on Start and re-enabled on Stop (`tempoSlider.setEnabled`), matching classic mode (you can't drag BPM mid-play).
+- **Tempo while playing (since 2026-11-28, owner's TODO):** never locked. `commitTempo` (screen wheel / hold / type)
+  reaches the track player's `TempoClock` and the arranger's `setBpm`; both keep the musical position and change
+  speed from then on. Before, the arranger locked it ("TEMPO LOCKED WHILE PLAYING") and classic mode sped up only the
+  beat counter. `StageScreen::setTempoLocked` still exists (tested) but nothing calls it.
 
 ## Connects to
 - Depends on: essentially every other module (it owns them).

@@ -229,14 +229,8 @@ void CurrentStyleComponent::updateName(const juce::String& newName)
 
 void CurrentStyleComponent::updateObjects()
 {
-    // Track-player notifications only. In arranger mode the arranger owns the BPM lock, and a
-    // notification queued before the mode switch must not unlock it while the arranger plays.
-    if (arrangerModeEnabled)
-        return;
-
-    // Follow the player's actual state rather than flipping: Start while playing posts a notification
-    // without a matching stop, and Stop while stopped posts one too, so flips drifted out of sync.
-    tempoSlider.setEnabled(! (trackPlayer && trackPlayer->isPlaying()));
+    // Track-player play-state notifications. Nothing follows them here any more: the tempo stays editable while
+    // playing (the player's tempo clock changes speed without moving the position), so it is never locked.
 }
 
 void CurrentStyleComponent::triggerStopClick()
