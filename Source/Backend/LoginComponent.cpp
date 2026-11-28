@@ -40,6 +40,7 @@ namespace
         const juce::String enterEmailAndPassword = "Please enter both email and password.";
         const juce::String loginFailedTitle      = "Login Failed";
         const juce::String networkFailure        = "Network failure or invalid JSON";
+        const juce::String noConnection          = "Can't reach the server. Check your internet connection and try again.";
         const juce::String verifyTitle           = "Email Verification Required";
         const juce::String verifyEmail           = "Please verify your email before logging in. Check your inbox.";
         const juce::String unknownError          = "Unknown error occurred:\n";
@@ -299,6 +300,9 @@ void LoginComponent::askServerToLogIn()
                         case Outcome::confirmEmail:
                             StageAlert::showMessage (Text::verifyTitle, Text::verifyEmail);
                             return;
+                        case Outcome::noConnection:
+                            StageAlert::showMessage (Text::loginFailedTitle, Text::noConnection);
+                            return;
                         case Outcome::unreadable:
                             StageAlert::showMessage (Text::loginFailedTitle, Text::networkFailure);
                             return;
@@ -370,6 +374,9 @@ void LoginComponent::handleDoneSignup()
                     using Outcome = BackendJson::SignupReply::Outcome;
                     switch (reply.outcome)
                     {
+                        case Outcome::noConnection:
+                            StageAlert::showMessage (Text::signUpFailedTitle, Text::noConnection);
+                            return;
                         case Outcome::unreadable:
                             StageAlert::showMessage (Text::signUpFailedTitle, Text::invalidResponse + body);
                             return;

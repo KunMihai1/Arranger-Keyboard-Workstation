@@ -12,8 +12,8 @@ namespace BackendJsonTestValues
 
     const juce::String plainBodies     = "Ordinary values give the same bodies the app sent before";
     const juce::String escapedBodies   = "Quotes, backslashes and new lines stay text and the body stays JSON";
-    const juce::String loginReplies    = "Login replies: token, server error, unconfirmed email, junk";
-    const juce::String signupReplies   = "Sign-up replies: created, check email, error, nothing created, junk";
+    const juce::String loginReplies    = "Login replies: token, server error, unconfirmed email, no connection, junk";
+    const juce::String signupReplies   = "Sign-up replies: created, check email, error, nothing created, no connection, junk";
     const juce::String rememberedEmail = "The last email is saved, read back and forgotten in the settings";
     const juce::String rememberedRow   = "'Remembered from last time' shows only in Log in while the field holds that email";
 
@@ -46,8 +46,11 @@ namespace BackendJsonTestValues
     const juce::String messageReply     = "{\"msg\":\"Email rate limit\"}";
     const juce::String messageText      = "Email rate limit";
     const juce::String connectionReply  = "{\"error\":\"connection failed\"}";
-    const juce::String connectionText   = "connection failed";
     const juce::String confirmReply     = "{\"confirmation_required\":\"true\"}";
+    // What the live auth proxy answers for an account whose email is not confirmed yet (Supabase, 2026-11-28).
+    const juce::String unconfirmedReply = "{\"code\":400,\"error_code\":\"email_not_confirmed\",\"msg\":\"Email not confirmed\"}";
+    // And for a wrong password: a rejection with the server's words.
+    const juce::String wrongPasswordReply = "{\"code\":400,\"error_code\":\"invalid_credentials\",\"msg\":\"Invalid login credentials\"}";
     const juce::String strangeReply     = "{\"hello\":\"world\"}";
     const juce::String junkReply        = "<html>502</html>";
     const juce::String emptyReply;
@@ -110,11 +113,15 @@ public:
             expect (message.outcome == Login::rejected);
             expectEquals (message.message, messageText);
 
-            const auto offline = BackendJson::readLoginReply (connectionReply);
-            expect (offline.outcome == Login::rejected);
-            expectEquals (offline.message, connectionText);
+            const auto wrongPassword = BackendJson::readLoginReply (wrongPasswordReply);
+            expect (wrongPassword.outcome == Login::rejected);
+            expectEquals (wrongPassword.message, description);
+
+            expectEquals (BackendJson::connectionFailedBody(), connectionReply);   // what SupabaseClient reports offline
+            expect (BackendJson::readLoginReply (connectionReply).outcome == Login::noConnection);
 
             expect (BackendJson::readLoginReply (confirmReply).outcome == Login::confirmEmail);
+            expect (BackendJson::readLoginReply (unconfirmedReply).outcome == Login::confirmEmail);
             expect (BackendJson::readLoginReply (strangeReply).outcome == Login::unexpected);
             expect (BackendJson::readLoginReply (junkReply).outcome == Login::unreadable);
             expect (BackendJson::readLoginReply (emptyReply).outcome == Login::unreadable);
@@ -125,6 +132,8 @@ public:
             expect (BackendJson::readSignupReply (sessionReply).outcome == Signup::created);
             expect (BackendJson::readSignupReply (userReply).outcome == Signup::created);
             expect (BackendJson::readSignupReply (confirmSentReply).outcome == Signup::createdCheckEmail);
+
+            expect (BackendJson::readSignupReply (connectionReply).outcome == Signup::noConnection);
 
             const auto rejected = BackendJson::readSignupReply (signupErrorReply);
             expect (rejected.outcome == Signup::rejected);
