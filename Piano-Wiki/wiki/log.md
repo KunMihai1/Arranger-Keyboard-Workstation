@@ -14,7 +14,7 @@ status: evergreen
 Append-only. Newest entries at the TOP. Never edit past entries.
 
 ## 2026-11-28 — Log in checks the server again (`feat/login-checks-server`)
-- Owner: the backend is up. Checked: `ecmlftmkoqszdwjugqtn.supabase.co` resolves; the auth proxy answers a made-up
+- Owner: the backend is up. Checked: the backend's address resolves again; the auth proxy answers a made-up
   login with HTTP 400 `invalid_credentials` / "Invalid login credentials", which `BackendJson::readLoginReply` reads
   as rejected with that message.
 - `checkAccountWithServer = true`, as decided when the backend went away. A real login with an account is still to be
