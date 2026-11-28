@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "bf91a2b",
-  "last_synced_branch": "fix/detached-load-threads",
+  "last_synced_commit": "74ad62a",
+  "last_synced_branch": "feat/amber-pressed-keys",
   "last_synced_at": "2026-11-28",
-  "note": "Synced through bf91a2b: SFZ loads on an owned ThreadPool, device upload holds the client, KeyboardUI SafePointer; log archived."
+  "note": "Synced through 74ad62a: pressed keys lit amber (owner's choice)."
 }

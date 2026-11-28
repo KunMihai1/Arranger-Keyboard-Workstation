@@ -13,6 +13,14 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-28 — Pressed keys are lit amber (`feat/amber-pressed-keys`)
+- Owner: "you barely see what notes you pressed". Measured on the rendered keyboard: a pressed key differed from a
+  resting one by about 32 RGB steps (white) and 11 (black). The owner picked the amber-lit key from three options.
+- Only the `StagePalette` pressed colours changed (white `#e89a4a` → `#ffbf73` → `#ffc985` → `#f5b566`, lip
+  `#d8903f`; black `#7a4510` → `#b56a1f`). The drawing and the pushed-down shade are unchanged.
+- Test: the pressed white and the new pressed black must each be amber (red above blue by more than 60) and more than 100 RGB steps from the resting key.
+- unit 5968 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped).
+
 ## 2026-11-28 — Background work no longer outlives its owner (`fix/detached-load-threads`)
 - An audit of the 9 detached-thread sites found three real hazards. The others capture SafePointers, weak
   tokens or values.

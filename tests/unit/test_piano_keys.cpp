@@ -13,7 +13,8 @@ namespace PianoKeysTestValues
     const juce::String scalesWithWidth   = "at 1.6 x (1920 wide) every length is 1.6 x the board's";
     const juce::String outsideThePiano   = "notes outside A0..C8 have no shape";
     const juce::String whiteKeyMaterial  = "a white key shows the board's ivory gradient and its front lip; the gap shows the key bed";
-    const juce::String pressedWhiteKey   = "a pressed white key looks pushed down, not green (owner: no green)";
+    const juce::String pressedWhiteKey   = "a pressed white key is lit amber and pushed down, not green (owner: no green)";
+    const juce::String pressedBlackKey   = "a pressed black key is lit amber too: seen at a glance (owner, 2026-11-28)";
     const juce::String blackKeyMaterial  = "a black key shows the board's ebony gradient and the lit front slope; it casts a shadow";
     const juce::String outOfRangeDimmed  = "a white key outside the device range is dimmed, as today";
     const juce::String allKeysInOrder    = "all 88 keys: whites side by side left to right, each black key between its two whites";
@@ -54,14 +55,19 @@ namespace PianoKeysTestValues
     const juce::Colour whiteTop          { 0xffe9e6de };
     const juce::Colour whiteMiddle       { 0xfffaf9f4 };   // between #f8f7f2 (12 %) and #fbfaf6 (80 %) at half height
     const juce::Colour whiteLip          { 0xffd8d3c6 };
-    const juce::Colour pressedMiddle     { 0xffeae7df };   // between #e6e3da (14 %) and #eeebe3 (85 %) at half height
-    const juce::Colour pressedLip        { 0xffcfc9bb };
+    const juce::Colour pressedMiddle     { 0xffffc47c };   // between #ffbf73 (14 %) and #ffc985 (85 %) at half height
+    const juce::Colour pressedLip        { 0xffd8903f };
     const juce::Colour blackTop          { 0xff151516 };   // #141415 -> #1e1e20 near the top
     const juce::Colour blackSlope        { 0xff333336 };   // between #3b3b3f (84 %) and #2a2a2d (100 %)
     constexpr int colourTolerance = 8;
     constexpr int maxGreenTint    = 6;    // a pressed key's green may exceed its red by at most this
     constexpr int topShadowDepth  = 6;    // the pressed key's top is this much darker than below its shadow
     constexpr int shadowDepth     = 3;    // a black key's shadow darkens the white key next to it by this much
+    // "Seen at a glance": a pressed key differs from a resting one by more than this RGB distance (the old pressed
+    // white differed by ~32, the old pressed black by ~11), and is amber: red above blue by more than this.
+    constexpr int glanceDistance  = 100;
+    constexpr int amberMargin     = 60;
+    constexpr int blackMiddleRow  = 44;   // half of the black key's 88 rows
 
     constexpr int topRow        = 1;
     constexpr int middleRow     = 70;
@@ -201,6 +207,19 @@ public:
             expectGreaterThan ((int) image.getPixelAt (e4Clear, belowShadowRow).getRed() - (int) image.getPixelAt (e4Clear, topRow).getRed(),
                                topShadowDepth);
             keyboard.setKeyDown (noteE4, false);
+            expectSeenAtAGlance (middle, render (keyboard).getPixelAt (e4Clear, middleRow));
+        }
+
+        beginTest (pressedBlackKey);
+        {
+            const auto dSharp = PianoKeyShapes::shapeOf (noteDSharp4, boardWidth, boardHeight);
+            const int dSharpCentre = (int) (dSharp.getX() + dSharp.getWidth() * keyCentre);
+            const auto resting = render (keyboard).getPixelAt (dSharpCentre, blackMiddleRow);
+            keyboard.setKeyDown (noteDSharp4, true);
+            const auto pressed = render (keyboard).getPixelAt (dSharpCentre, blackMiddleRow);
+            keyboard.setKeyDown (noteDSharp4, false);
+            expectLessOrEqual ((int) pressed.getGreen() - (int) pressed.getRed(), maxGreenTint);
+            expectSeenAtAGlance (pressed, resting);
         }
 
         beginTest (blackKeyMaterial);
@@ -288,6 +307,16 @@ private:
                     return true;
         }
         return false;
+    }
+
+    /** The pressed colour is amber and far from the resting one. */
+    void expectSeenAtAGlance (juce::Colour pressed, juce::Colour resting)
+    {
+        const auto squared = [] (juce::uint8 left, juce::uint8 right) { const int step = (int) left - (int) right; return step * step; };
+        const auto distance = std::sqrt ((double) (squared (pressed.getRed(), resting.getRed()) + squared (pressed.getGreen(), resting.getGreen())
+                                                   + squared (pressed.getBlue(), resting.getBlue())));
+        expectGreaterThan (distance, (double) glanceDistance, pressed.toDisplayString (false) + versus + resting.toDisplayString (false));
+        expectGreaterThan ((int) pressed.getRed() - (int) pressed.getBlue(), amberMargin, pressed.toDisplayString (false));
     }
 
     void expectColour (juce::Colour actual, juce::Colour expected)
