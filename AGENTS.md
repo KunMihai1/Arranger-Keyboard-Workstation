@@ -97,6 +97,10 @@ allowlist). **Full rule and idioms: `docs/names-not-values.md`.**
   passwords, `.env` files or credentials. Local-only files (`docs/superpowers/`, `.env*`, machine settings)
   stay out of git through `.gitignore`; never `git add -f` them. **Don't look in the owner's environment**:
   no reading `.env` files, environment variables or credential stores.
+- **Be really cautious with anything public** (owner, 2026-11-28). Never read the owner's secrets, not even to check.
+  Never put secrets, or identifying details such as backend / project addresses and IDs, account emails or user IDs,
+  in commits, PRs, issues, comments, the wiki or web requests: the repo is public and keeps history. Being in the
+  source already is no reason to repeat it. Scan the text before every commit, push and PR; when unsure, leave it out.
 
 ## Finishing work
 
