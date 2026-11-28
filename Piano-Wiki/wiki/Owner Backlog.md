@@ -202,7 +202,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
 | Right-click glitch on a style while playing | ⬜ needs a reproduction. Lead: `MyTabbedComponent::mouseDown` "Close Tab" removes a tab without telling `Display` (same state problem as the Home bug) and picks the tab from `x` although the tabs are vertical |
 | JSON of last / most used styles | ⬜ |
 | Richer save dialog (track name, more fields) | ⬜ |
-| Detached threads → thread pool | ⬜ 9 sites: 4 `.detach()` (Login ×2, MainComponent, MainComponentActions), 5 `Thread::launch` (AudioHandler::loadSfz, ArrangerStyleEditor ×2, CurrentStyleComponent ×2) |
+| Detached threads → thread pool | ✅ 2026-11-28 (`fix/detached-load-threads`): only three of the sites were real hazards. `AudioHandler::loadSfz` runs on an owned `ThreadPool` (the destructor waits) with a weak alive token; the old code crashed a test that destroys the handler mid-load. The device-upload thread holds the client, not `this`. `KeyboardUI`'s note messages hold a `SafePointer`. The rest already use SafePointers, weak tokens or values. |
 | Equalizer | ⬜ |
 | SFZ with the playback system per channel | ✅ |
 | Check MIDI in/out and audio out changes while playing | ⬜ not verified live (no SFZ library / second device here) |

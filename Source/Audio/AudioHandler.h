@@ -270,5 +270,11 @@ private:
     float channelPans[DspConstants::midiChannelCount];
     ChannelDSP channelDSP[DspConstants::midiChannelCount];
 
+    // SFZ loads write into the synths above, so they run on threads this handler owns: the destructor waits for
+    // the running ones (and drops the queued ones) before any member goes. The token tells a completion already
+    // posted to the message thread that the handler is gone.
+    juce::ThreadPool sfzLoaders;
+    std::shared_ptr<bool> aliveToken = std::make_shared<bool> (true);
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioHandler)
 };

@@ -437,9 +437,10 @@ void MainComponent::playButtonOnClick()
             juce::String pid = MIDIDevice.getPID();
             juce::String name = MIDIDevice.getName();
             int nrKeys = MIDIDevice.getNrKeysAfterInitialized();
-            std::thread([this, vid, pid, name, nrKeys]()
+            // Detached: holds its own share of the client, not `this`, so closing the app mid-request is safe.
+            std::thread([clientShare = client, vid, pid, name, nrKeys]()
                 {
-                    client->addOrUpdateDevice(vid, pid, name, nrKeys);
+                    clientShare->addOrUpdateDevice(vid, pid, name, nrKeys);
                 }).detach();
         }
     }
