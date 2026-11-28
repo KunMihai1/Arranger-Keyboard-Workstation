@@ -26,6 +26,7 @@ namespace NoteLayerIntegrationTestValues
     const juce::String strayWindowMessage    = "a window left open by an earlier test covers the note layer: ";
     const juce::String unnamedWindow         = "(unnamed)";
     const juce::String boundsSeparator       = " at ";
+    const juce::String windowListSeparator   = "; ";
 
     constexpr juce::uint32 noMessageFilter = 0;
     constexpr int pollIntervalMs = 2;
@@ -227,14 +228,18 @@ public:
 
         beginTest (nothingCoversTheLayer);
         {
+            // Only another always-on-top window can sit over the host (it is always on top itself).
             auto& desktop = juce::Desktop::getInstance();
+            juce::StringArray covering;
             for (int windowIndex {}; windowIndex < desktop.getNumComponents(); ++windowIndex)
             {
                 auto* window = desktop.getComponent (windowIndex);
-                const bool covers = window != &host && window->isVisible() && window->getScreenBounds().intersects (host.getScreenBounds());
-                const auto name = window->getName().isNotEmpty() ? window->getName() : unnamedWindow;
-                expect (! covers, strayWindowMessage + name + boundsSeparator + window->getScreenBounds().toString());
+                if (window != &host && window->isVisible() && window->isAlwaysOnTop()
+                    && window->getScreenBounds().intersects (host.getScreenBounds()))
+                    covering.add ((window->getName().isNotEmpty() ? window->getName() : unnamedWindow)
+                                  + boundsSeparator + window->getScreenBounds().toString());
             }
+            expect (covering.isEmpty(), strayWindowMessage + covering.joinIntoString (windowListSeparator));
         }
 
         // A white key's column inside the note layer, in screen coordinates. Same rule as
