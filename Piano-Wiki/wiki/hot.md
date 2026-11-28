@@ -12,7 +12,7 @@ status: evergreen
 
 ## Last Updated
 2026-11-28. Merged #75–#81 (Recorder … finishes, Log in / Home look); sign-in part 2 (`feat/ui-sign-in`). **Supabase backend
-unreachable** (domain doesn't resolve): Login still lets anyone in (owner, 2026-11-28). **Owner (2026-11-27): continue without stopping**;
+back** (2026-11-28): Log in checks the account with the server again; owner to confirm a real login. **Owner (2026-11-27): continue without stopping**;
 agent commits / pushes / merges. Screen shared: screenshot first. `docs/superpowers/` is **local only**. Detail in [[log]].
 
 ## Working rules (from `AGENTS.md`)

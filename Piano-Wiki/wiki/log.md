@@ -13,6 +13,17 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-28 — Log in checks the server again (`feat/login-checks-server`)
+- Owner: the backend is up. Checked: `ecmlftmkoqszdwjugqtn.supabase.co` resolves; the auth proxy answers a made-up
+  login with HTTP 400 `invalid_credentials` / "Invalid login credentials", which `BackendJson::readLoginReply` reads
+  as rejected with that message.
+- `checkAccountWithServer = true`, as decided when the backend went away. A real login with an account is still to be
+  confirmed by the owner. The API suite (`Integration-api`) was not run: it signs up a random account.
+- Review (Sonnet, verified): the live "email not confirmed" reply (`error_code` + `msg`) showed "Login Failed" instead
+  of the verify-email dialog, and offline showed "connection failed" as a server rejection. Both readers now have
+  `noConnection`; `email_not_confirmed` opens the verify dialog. JUCE hands over the body on HTTP 400 (checked).
+- unit 5985 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped).
+
 ## 2026-11-28 — Single-process test run: cause found, guard added (`test/note-layer-stray-windows`)
 - Today's `Project Tests.exe` with no flag: 6894 / 0 in three runs. Bisected over the merges between a76dc57 (fails,
   4 NoteLayer pixel checks: 255 read where < 30 expected) and c4439de (passes): the first passing one is PR #67.
