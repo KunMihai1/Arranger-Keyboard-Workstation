@@ -13,6 +13,17 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-28 — Single-process test run: cause found, guard added (`test/note-layer-stray-windows`)
+- Today's `Project Tests.exe` with no flag: 6894 / 0 in three runs. Bisected over the merges between a76dc57 (fails,
+  4 NoteLayer pixel checks: 255 read where < 30 expected) and c4439de (passes): the first passing one is PR #67.
+- Cause, proven on the old build with a desktop dump at the start of the NoteLayer test: three always-on-top
+  `juce::AlertWindow`s "Playing tracks" (568, 308, 401 x 201) over the test window. Earlier unit tests started
+  playback with no output device / no tracks; the runner never dismisses async alerts. #67 sent those notices to the
+  stage screen. No `juce::AlertWindow` is left since #85 (`StageAlert` attaches to an existing window).
+- Guard: the NoteLayer test first expects no visible window over its host and names any it finds. Red check: an
+  injected "Playing tracks" alert fails it by name (plus the same 4 pixel checks).
+- display 14 / 0, no flag 6895 / 0 (+7 skipped).
+
 ## 2026-11-28 — The tempo changes while playing (`feat/tempo-while-playing`)
 - Owner's TODO "Change BPM while playing". Arranger mode locked it and never passed a committed tempo to the
   running engine. Classic mode wasn't locked on the new screen, but a change sped up only the beat counter

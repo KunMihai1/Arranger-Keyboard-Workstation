@@ -163,8 +163,10 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   same `std::function<void(double)>` frame). Found because `Project Tests.exe` with no flag crashed;
   bisected to the CurrentStyleComponent start test + any message pump; crash stack confirms.
   Spec: `docs/superpowers/specs/2026-11-22-stop-callback-use-after-free-design.md`.
-- ⬜ Test isolation: the single-process run (`Project Tests.exe`, no flag) now completes but 4 `NoteLayer` GL pixel
-  checks fail there only (they pass in `--display-tests`); likely a window left by an earlier test (found 2026-11-24).
+- ✅ Test isolation (2026-11-28): the single-process run (no flag) is green, 6895 / 0 three times. Bisected: the 4
+  `NoteLayer` pixel failures ran from 2026-11-24 until PR #67, which replaced the "Playing tracks" `AlertWindow`s with
+  stage messages. Proven with a desktop dump on the old build: three of those always-on-top alerts, left by earlier
+  unit tests, sat over the test window. The NoteLayer test now fails by name if any window covers it.
 - ✅ (`fix/delay-fractional-read`, 2026-11-28) Delay read offset jumped on CC94 changes: now `FractionalDelayLine`
   (Lagrange-3, ported from `va-effects`) and a linear glide of at most half a sample per sample (bends ≤ an octave).
 - ✅ Swap `juce::dsp::Chorus` (CC93) for the BBD model from `va-effects` (2026-11-28, `feat/bbd-chorus`):
