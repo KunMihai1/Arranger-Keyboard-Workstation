@@ -171,7 +171,11 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   (Lagrange-3, ported from `va-effects`) and a linear glide of at most half a sample per sample (bends ≤ an octave).
 - ✅ Swap `juce::dsp::Chorus` (CC93) for the BBD model from `va-effects` (2026-11-28, `feat/bbd-chorus`):
   `BbdChorus`, 8.9 % of one core for 16 parts; the audio callback now flushes denormals.
-- ⬜ 🔒 Missing-SFZ popup never smoke-tested; Phase 7a manual sign-off 0/9.
+- ✅ Missing-SFZ notice checked live (2026-11-28): with the Internal SFZ engine and no SFZ, a note shows on the panel
+  screen "No SFZ loaded for Acoustic Grand Piano (left hand) in style "DEFAULT Style"" (scrolls; it is a screen message
+  since #84, not a popup). With External MIDI it never shows, as intended. Quirk: with no style open the screen says
+  "No style" while the notice names the built-in default style the SFZ mapping uses.
+- ⬜ Phase 7a manual sign-off 0/9 (owner: later).
 - ✅ Prune merged branches (2026-11-28: 41 merged branches deleted on GitHub, the local ones and a stale agent
   worktree; only `main` left, plus `feat/particles-sparks-smoke` checked out in the owner's main folder). Rule since:
   merging a PR deletes its branch (AGENTS.md › Git).
