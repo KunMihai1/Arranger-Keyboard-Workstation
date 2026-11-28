@@ -146,6 +146,12 @@ sfzero output → filter (CC74/71) → distortion (CC80) → chorus (CC93) → r
 > skipped while closed (`isActive()`), and re-opening resets it and keeps the output dry for 12 ms
 > while the line fills, so opening does not click.
 
+> [!key-insight] SFZ loads run on threads the handler owns (2026-11-28)
+> `loadSfz` queues each load on `AudioHandler::sfzLoaders` (a `juce::ThreadPool`, one thread per core). The
+> destructor drops the queued loads and waits for the running ones before any member goes, and the completion
+> message checks a weak alive token. Before, detached `Thread::launch` loads wrote into a destroyed handler
+> when the app closed mid-load (`test_sfz_load_lifetime` crashed the runner).
+
 > [!key-insight] The audio callback flushes denormals
 > `AudioHandler::audioDeviceIOCallbackWithContext` holds a `juce::ScopedNoDenormals`; JUCE's device layer
 > sets nothing. Without it, filters and level followers fed exact silence decay into denormals:

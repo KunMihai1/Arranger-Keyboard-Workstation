@@ -13,6 +13,16 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-28 — Background work no longer outlives its owner (`fix/detached-load-threads`)
+- An audit of the 9 detached-thread sites found three real hazards. The others capture SafePointers, weak
+  tokens or values.
+- `AudioHandler::loadSfz`: detached loads wrote into the handler's synths. A new test runs 16 loads and then destroys
+  the handler, and the old code crashed the runner with an access violation. Now an owned `ThreadPool` that the
+  destructor drains, plus a weak alive token for the completion message.
+- The `MainComponentActions` device upload holds its own `shared_ptr` to the client, not `this`.
+- `KeyboardUI` note on/off (MIDI thread → `callAsync`) holds a `SafePointer` (found by the Sonnet review).
+- unit 5963 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped).
+
 ## 2026-11-28 — CC93 chorus is a bucket-brigade model (`feat/bbd-chorus`)
 - `BbdChorus` (port of `va-effects`' BbdChorus, Juno settings) replaces `juce::dsp::Chorus`: the reconstruction
   corner follows the delay (slower clock, darker), a 2:1 / 1:2 compander and a -78 dB noise floor.
@@ -665,117 +675,3 @@ Append-only. Newest entries at the TOP. Never edit past entries.
   the smoothing formula 1 - e^(-1/samples), ln 2 in the overflow-safe log-cosh, the ADAA near-equal
   threshold); zeros use `{}`; `x`/`a`/`y`/`sr` renamed. `SFZlibrary.cpp`: GM range + fallback label.
   `SFZLibraryUI.h`: button texts named. Allowlist 148. Left in Audio: AudioHandler.cpp, SFZLibraryUI.cpp.
-
-## 2026-11-22 — Arranger stress: style edge cases, count-in, Synchro
-- Storms over edge-case styles (no sections, no tracks, 0- and 64-bar sections, 7/8, 5/4, 3/4 and an
-  invalid 0/0) leave every message valid and nothing sounding — the engine's guards hold
-  (`beatsPerBar` normalises bad signatures, the sequencer clamps 0 bars to 1).
-- Count-in clicks exactly once per beat at any window size (accent first) and a stop cancels it;
-  Synchro Start opens only on a real chord and a stop disarms it. No bug found. Arranger 763/0.
-- Note: count-in clicks are note-ons without note-offs (GM side-stick, one-shot) — harmless.
-
-## 2026-11-22 — Fix: arranger left a note stuck when a pattern restarted the same pitch
-- Found by the stress tests (review pointed at it): `ArrangerEngine::activePlayedNote` kept ONE sounding
-  pitch per (channel, original note). A pattern that starts the same pitch again before releasing it,
-  with a chord change in between, overwrote the first transposed pitch — it never got a note-off.
-- Now a FIFO queue per key: each note-off releases the oldest start. Test (first start under D, second
-  under F#): 1 stuck note before, 0 after. Storm also checks every window for leaks (≤ 4 sounding).
-
-## 2026-11-22 — Arranger hard testing, part A: headless stress tests
-- `test_arranger_stress.cpp` (category Arranger, fixed seed, `renderRange` instead of the timer):
-  20,000 render windows of chord/section/option storms (every quality incl. none, slash chords, unknown
-  section labels, NTT/bass-inversion/minor-scale toggles, notes at the MIDI range edges); 600 stops at
-  random moments; an Ending completing; the same pitch started twice across a chord change.
-- Invariants on every emitted message: note/channel/velocity in range, no note left sounding after a
-  stop or an Ending, the active section always real. All hold — no arranger bug found at this level.
-- Mutation check: removing `silenceArrangerNotes()` from `haltAudio` makes them fail. Arranger suite
-  721/0 in 0.8 s. Part B (live in-app scenarios) still needs an unlocked screen.
-
-## 2026-11-22 — Names cleanup: Source/Common done; checker closes a loophole
-- `HelperFunctions.cpp`: note helpers use named MIDI facts; the 48-branch chord-diagram if/else chain
-  became one named table (generated from the old chain) + a lookup loop.
-- `IOHelper.cpp`: every on-disk key named; the keys of all file/settings formats now live in
-  `Source/Common/PersistedKeys.h` (each key text unchanged and present exactly once). Single-letter
-  loop variables and parameters renamed. Kept under the 800-line cap by that split.
-- Checker: a constant may hold literals only if its initialiser is plain values, so
-  `const juce::String ch = channel == 1 ? "First" : "Second";` no longer hides a 1 and two strings.
-- Arranger hard-testing plan written: `docs/superpowers/test-plans/2026-11-22-arranger-stress-test-plan.md`
-  (A: headless stress, any time; B: live, needs an unlocked screen). Allowlist: 151 files.
-
-## 2026-11-22 — AGENTS.md slimmed; no single-letter names; checker fixes
-- AGENTS.md 139 → 100 lines: build/test detail moved to `docs/build-and-test.md`, the full naming
-  rule to `docs/names-not-values.md`; AGENTS.md keeps short summaries + one-line pointers.
-- Owner tightened the rule: no single-letter names, loop indices included; only JUCE's `g` in paint().
-  The checker now flags single-letter declarations; 6 clean headers had parameter names fixed.
-- Checker: a pure-virtual `= 0` is syntax; a constant's initialiser may span lines until `;`
-  (5 interface headers became clean). Allowlist: 153 files.
-
-## 2026-11-22 — Skipped tests are counted and listed
-- A test that can't run here logs `SKIPPED - <reason>`; the runner counts these per case and prints
-  `| skipped: N` on every line and the TOTAL, plus a list (test / case: reason). CI prints
-  `N passed, K skipped` per suite and writes both, with the reasons, to the GitHub run summary.
-- The list exposed a mis-gated HW test: the *output*-device name case skipped on *no input device*
-  and used the input index; fixed (it now runs: integration 130 passed / 7 skipped locally).
-
-## 2026-11-22 — New house rule: names, not values (enforced by CI)
-- Owner's rule: no bare numbers (not even 0/1), no inline strings (incl. UI text, test names and
-  messages), meaningful identifiers (only `g` in paint() and short loop indices). In AGENTS.md.
-- `ci/check_named_values.py` flags literals outside named-constant definitions; CI runs it first
-  (~1 s). Ratchet: `ci/named-values-allowlist.txt` holds the 158 of 192 files not converted yet
-  (6,117 lines); it may only shrink, clean files must leave it, new files never join it.
-- Plan: one behaviour-identical cleanup PR per subsystem (Common, Audio, Midi, Arranger, Playback,
-  Styles, Backend, UI, tests); persisted keys keep their exact text.
-
-## 2026-11-22 — Tests for the SFZ library (had none)
-- `test_sfz_library.cpp` (9 cases, 34 assertions): add/duplicate/missing file, assignment guards,
-  remove/clear (empty style dropped), import overwrite + no-op cases, save→load round trip (twice,
-  no duplicates), missing/corrupt file → empty library, GM names 0..127. No bug found; a mutation
-  (no clear on load) is caught. Unit 846/0.
-- Coverage map: note editing is already covered via `applyChangesToASequence`; the track player's
-  timing reads the real clock, so a deterministic test would need a time seam (not done).
-
-## 2026-11-22 — Fix: `MidiDevice::sendMidiCC` crashed with no open output (found by CI)
-- CI runners list the Windows GS synth but cannot open it; `MidiDevice_HW` treated it as hardware and
-  `sendMidiCC` dereferenced the null output (0xC0000005). The test now probes that the output opens
-  (else skips); `sendMidiCC` returns without an output. App callers already checked `isOpenOUT()`.
-- The test runner now prints each test as it starts (`ConsoleTestRunner`), so a crash shows where.
-- CI integration: 95 assertions on the runner (floor 85).
-
-## 2026-11-22 — Tests: every test runs in a known category; integration suite in CI
-- `AddDeviceWindow` test was category `Component`, which no flag ran — it never ran anywhere. Now
-  `Unit` (5 assertions, all pass). Two empty test files (`test_settings_window*.cpp`) removed.
-- GL test moved to `Integration-display` (`--display-tests`; real window + pixel reads, needs an
-  unlocked desktop). `--api-tests` added for `Integration-api` (real backend, creates accounts).
-  No flag now runs everything **except** the API tests (it used to run them too).
-- CI runs `--integration-tests` (≈2 s; 93 assertions without MIDI hardware, floor 85). Unit floor
-  730 → 790 (811 now). Category table in AGENTS.md.
-
-## 2026-11-22 — Fix: Start pressed while already playing broke the BPM lock
-- Track player: `MultipleTrackPlayer::start()`/`stop(true)` post a play-state notification and the
-  listeners *flipped* state (BPM slider; notes table Change/Apply). Start-while-playing = uncounted
-  stop + counted start → one flip too many. Listeners now read `MultipleTrackPlayer::isPlaying()`
-  (new; `isTimerRunning()`, mutex-guarded in JUCE). `updateObjects` ignores track-player
-  notifications in arranger mode (the arranger owns the BPM lock there).
-- Arranger: `haltAudio` posts the 'stopped' callback; after an immediate restart it arrived late and
-  cleared the playing state. The posted target is now `ArrangerEngine::notifyStoppedUnlessRestarted()`,
-  which returns while `playing` (also true when Synchro-armed).
-- Tests `test_start_while_playing.cpp` (4 cases, all values/strings named per the new rule): 6
-  failures before, unit 806/0 + arranger 705/0 after. Live: track mode Start/Start/Stop/Stop and
-  arranger Start/Start all keep the right lock.
-
-## 2026-11-22 — Fix: style slots switched to another track's data
-- The shared `UUID → TrackEntry*` map is now only ever pointed into the library: the picker no
-  longer stores `&availableTracksFromFolder[i]` (a copy overwritten on every folder open), and
-  Display rebuilds the map (`buildTrackUuidMap`) after any track/folder removal.
-- `TrackListComponent`: post-confirm work extracted to `removeTracks()`/`removeFolders()` (no disk
-  I/O; dialog callbacks save). Folder removal notifies after the erase; track removal uses the open
-  folder (`currentFolderName`) and `erase(remove_if(...), end())` — `entry.folderName` goes stale
-  after a folder rename and used to create a phantom folder + `erase(end())` (UB).
-- Tests `test_track_list_removal.cpp` (4 cases): folder case failed and rename case aborted the
-  runner before; unit 786/0, arranger 705/0 after. Verified live with the reproduction steps.
-- Noted, not changed: Notes-information table keeps references into the entry while open; a
-  folder rename leaves `TrackEntry::folderName` stale (nothing reads it after load now).
-- Spec: `docs/superpowers/specs/2026-11-22-track-map-stale-pointers-design.md`.
-
----
-Older entries (2026-06-06 to 2026-11-22): [[log-archive-2026]].

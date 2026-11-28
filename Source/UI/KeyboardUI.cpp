@@ -160,14 +160,18 @@ void KeyboardUI::resetStateActiveNotesNoExplicitRepaint()
     }
 }
 
+// Called on the MIDI thread; the key is drawn later on the message thread, by which time the keyboard may be gone
+// (a note arriving while the app closes), so the message holds a SafePointer, not `this`.
 void KeyboardUI::noteOnReceived(int midiNote)
 {
-    juce::MessageManager::callAsync([this, midiNote] { setKeyDown(midiNote, true); });
+    juce::Component::SafePointer<KeyboardUI> keyboard(this);
+    juce::MessageManager::callAsync([keyboard, midiNote] { if (keyboard != nullptr) keyboard->setKeyDown(midiNote, true); });
 }
 
 void KeyboardUI::noteOffReceived(int midiNote)
 {
-    juce::MessageManager::callAsync([this, midiNote] { setKeyDown(midiNote, false); });
+    juce::Component::SafePointer<KeyboardUI> keyboard(this);
+    juce::MessageManager::callAsync([keyboard, midiNote] { if (keyboard != nullptr) keyboard->setKeyDown(midiNote, false); });
 }
 
 void KeyboardUI::setKeyDown(int midiNote, bool isDown)
