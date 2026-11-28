@@ -22,7 +22,6 @@ namespace
     const juce::String jsonContentHeader   = "Content-Type: application/json\r\n";
     const juce::String bearerHeaderStart   = "Authorization: Bearer ";
     const juce::String headerLineEnd       = "\r\n";
-    const juce::String connectionFailedBody = "{\"error\":\"connection failed\"}";
     constexpr int      connectionTimeoutMs = 5000;
 }
 
@@ -50,7 +49,7 @@ HttpResult SupabaseClient::login(const juce::String& email,
     );
     if (!stream)
     {
-        result.body = connectionFailedBody;
+        result.body = BackendJson::connectionFailedBody();
         return result;
     };
     result.body= stream->readEntireStreamAsString();
@@ -79,7 +78,7 @@ HttpResult SupabaseClient::signup(const juce::String& email,
     );
     if (!stream)
     {
-        result.body = connectionFailedBody;
+        result.body = BackendJson::connectionFailedBody();
         return result;
     };
     result.body = stream->readEntireStreamAsString();   // the reply says whether the account was made
@@ -113,7 +112,7 @@ HttpResult SupabaseClient::incrementPlaytime(int seconds, const juce::String& VI
     );
     if (!stream)
     {
-        result.body = connectionFailedBody;
+        result.body = BackendJson::connectionFailedBody();
         return result;
     };
     result.body = stream->readEntireStreamAsString();
@@ -173,7 +172,7 @@ HttpResult SupabaseClient::addOrUpdateDevice(const juce::String& VID, const juce
 
     if (!stream)
     {
-        result.body = connectionFailedBody;
+        result.body = BackendJson::connectionFailedBody();
         return result;
     };
 

@@ -25,6 +25,8 @@ namespace
         const juce::Identifier error                { "error" };
         const juce::Identifier errorDescription     { "error_description" };
         const juce::Identifier message              { "msg" };
+        const juce::Identifier errorCode            { "error_code" };
+        const juce::String     emailNotConfirmed    = "email_not_confirmed";
         const juce::Identifier confirmationRequired { "confirmation_required" };
         const juce::Identifier user                 { "user" };
         const juce::Identifier id                   { "id" };
@@ -32,6 +34,8 @@ namespace
         const juce::Identifier confirmationSentAt   { "confirmation_sent_at" };
         const juce::String     trueText             = "true";
     }
+
+    const juce::String connectionFailedReply = "{\"error\":\"connection failed\"}";
 
     juce::String compact (juce::DynamicObject* object)
     {
@@ -46,6 +50,11 @@ namespace
                 return reply.getProperty (key).toString();
         return {};
     }
+}
+
+juce::String BackendJson::connectionFailedBody()
+{
+    return connectionFailedReply;
 }
 
 juce::String BackendJson::loginBody (const juce::String& email, const juce::String& password)
@@ -93,10 +102,23 @@ juce::String BackendJson::deviceBody (const juce::String& userId, const juce::St
 BackendJson::LoginReply BackendJson::readLoginReply (const juce::String& body)
 {
     LoginReply reply;
+    if (body == connectionFailedReply)
+    {
+        reply.outcome = LoginReply::Outcome::noConnection;
+        return reply;
+    }
+
     const auto parsed = juce::JSON::parse (body);
     const auto* object = parsed.getDynamicObject();
     if (object == nullptr)
         return reply;
+
+    // The live server says "not confirmed" as an error code; older replies carried confirmation_required.
+    if (object->getProperty (ReplyKeys::errorCode).toString() == ReplyKeys::emailNotConfirmed)
+    {
+        reply.outcome = LoginReply::Outcome::confirmEmail;
+        return reply;
+    }
 
     if (object->hasProperty (ReplyKeys::error) || object->hasProperty (ReplyKeys::errorDescription) || object->hasProperty (ReplyKeys::message))
     {
@@ -127,6 +149,12 @@ BackendJson::LoginReply BackendJson::readLoginReply (const juce::String& body)
 BackendJson::SignupReply BackendJson::readSignupReply (const juce::String& body)
 {
     SignupReply reply;
+    if (body == connectionFailedReply)
+    {
+        reply.outcome = SignupReply::Outcome::noConnection;
+        return reply;
+    }
+
     const auto parsed = juce::JSON::parse (body);
     const auto* object = parsed.getDynamicObject();
     if (object == nullptr)

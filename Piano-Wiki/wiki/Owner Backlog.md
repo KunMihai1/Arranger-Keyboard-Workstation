@@ -117,10 +117,10 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   owner 2026-11-27 whether to keep the photo instead — no answer; spec decision followed, easy to revert).
 - ✅ **Sign-in part 2** (`feat/ui-sign-in`): remembered email (`LastEmail`) with *Not you?*, Home "Signed in as … ·
   Log out", no "logged in" box, escaped backend JSON (`BackendJson`), sign-up reads its reply (it never did).
-- ⬜ **Owner: the Supabase backend is unreachable** — `ecmlftmkoqszdwjugqtn.supabase.co` does not resolve (DNS
-  non-existent domain, 2026-11-28; paused or deleted?). Owner decision 2026-11-28: Login keeps letting the typed email
-  in until it is back; then set `checkAccountWithServer = true` (`LoginComponent.cpp`) — the server path is built and
-  its replies unit-tested, but a real login was never seen working.
+- 🟡 **Supabase backend back** (owner, 2026-11-28): the domain resolves; the auth proxy rejects a wrong password with
+  `invalid_credentials`. `checkAccountWithServer = true` again (`feat/login-checks-server`): Log in asks the server.
+  **Owner to confirm:** a real login with their account (never seen working; the agent has no credentials). Set it
+  back to false if the backend goes away again, or nobody gets in.
 - ⬜ Remember me (needs the auth proxy to accept `grant_type=refresh_token`, outside the repo) · Forgot password?
   (needs a reset endpoint) — both wait on the backend.
 - ✅ **Bug found 2026-11-27 — track library reloads tracks from the wrong file** (PR #77). A folder stored one

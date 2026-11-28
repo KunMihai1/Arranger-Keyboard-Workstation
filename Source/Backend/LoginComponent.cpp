@@ -40,6 +40,7 @@ namespace
         const juce::String enterEmailAndPassword = "Please enter both email and password.";
         const juce::String loginFailedTitle      = "Login Failed";
         const juce::String networkFailure        = "Network failure or invalid JSON";
+        const juce::String noConnection          = "Can't reach the server. Check your internet connection and try again.";
         const juce::String verifyTitle           = "Email Verification Required";
         const juce::String verifyEmail           = "Please verify your email before logging in. Check your inbox.";
         const juce::String unknownError          = "Unknown error occurred:\n";
@@ -72,10 +73,10 @@ namespace
     constexpr bool  medium             = false;
     constexpr juce::juce_wchar passwordBullet      = 0x2022;
 
-    /*  Owner decision 2026-11-28: Log in does not ask the server yet. The Supabase project's address does not resolve
-        (paused or deleted), so a real check would lock everyone out. Log in lets the typed email in, as before; set
-        this to true once the backend answers again (the server path below is built and its replies unit-tested). */
-    constexpr bool checkAccountWithServer = false;
+    /*  Log in asks the server (the backend answers again, owner 2026-11-28). While the Supabase project was
+        unreachable this was false and Log in let the typed email in; set it back to false if the backend goes away
+        again, or a real check locks everyone out. */
+    constexpr bool checkAccountWithServer = true;
     constexpr juce::juce_wchar noPasswordCharacter = 0;
 }
 
@@ -299,6 +300,9 @@ void LoginComponent::askServerToLogIn()
                         case Outcome::confirmEmail:
                             StageAlert::showMessage (Text::verifyTitle, Text::verifyEmail);
                             return;
+                        case Outcome::noConnection:
+                            StageAlert::showMessage (Text::loginFailedTitle, Text::noConnection);
+                            return;
                         case Outcome::unreadable:
                             StageAlert::showMessage (Text::loginFailedTitle, Text::networkFailure);
                             return;
@@ -370,6 +374,9 @@ void LoginComponent::handleDoneSignup()
                     using Outcome = BackendJson::SignupReply::Outcome;
                     switch (reply.outcome)
                     {
+                        case Outcome::noConnection:
+                            StageAlert::showMessage (Text::signUpFailedTitle, Text::noConnection);
+                            return;
                         case Outcome::unreadable:
                             StageAlert::showMessage (Text::signUpFailedTitle, Text::invalidResponse + body);
                             return;
