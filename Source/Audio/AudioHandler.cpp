@@ -454,6 +454,10 @@ void AudioHandler::reportChannelsWithoutSfz()
 
 AudioHandler::~AudioHandler()
 {
+    constexpr bool letRunningLoadsFinish = false;   // a load cannot be interrupted part way
+    constexpr int  waitForeverMs         = -1;
+    sfzLoaders.removeAllJobs(letRunningLoadsFinish, waitForeverMs);
+    aliveToken.reset();
     stopTimer();
     midiHandler.setInternalSynthListening(false);   // nothing will drain the queue any more
 }
@@ -598,7 +602,7 @@ void AudioHandler::loadSfz(const juce::File& sfzFile, int midiChannel)
     if (onSfzLoadStart)
         onSfzLoadStart();
 
-    juce::Thread::launch([this, sfzFile, midiChannel]()
+    sfzLoaders.addJob([this, sfzFile, midiChannel, alive = std::weak_ptr<bool>(aliveToken)]()
     {
         auto* sound = new sfzero::Sound(sfzFile);
         sound->loadRegions();
@@ -608,7 +612,8 @@ void AudioHandler::loadSfz(const juce::File& sfzFile, int midiChannel)
         channelHasSfz[midiChannel - firstMidiChannel].store(true, std::memory_order_release);
 
         if (--pendingLoads == noLoadsPending)
-            juce::MessageManager::callAsync([this]() {
+            juce::MessageManager::callAsync([this, alive]() {
+                if (alive.expired()) return;   // the handler went before this message arrived
                 if (onSfzLoadComplete) onSfzLoadComplete();
             });
     });
