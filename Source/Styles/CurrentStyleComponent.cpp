@@ -190,7 +190,6 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
         customBeatBar.setCurrentBeatsElapsed(beatsAtStart);
         customBeatBar.repaint();
         highlightPendingStartSection();   // back to the chosen start (Var 1 by default)
-        if (arrangerModeEnabled) tempoSlider.setEnabled(true);   // unlock BPM after a self-stop (Ending)
     };
 
     // The configurations list: shown by sectionsView (its parent), in the Style page's Sections view.
@@ -218,8 +217,7 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
         if (! startPlaying())
             return;
 
-        isPlaying = true;
-        if (arrangerModeEnabled) tempoSlider.setEnabled(false);   // lock BPM while the arranger plays
+        isPlaying = true;   // the tempo stays editable: both engines follow a change while playing
 
         // Starting rebuilds the play scene, which can land keyboard focus on a freshly created
         // child — return it to the play surface so the PC keyboard plays without a stray screen click.
@@ -232,7 +230,6 @@ CurrentStyleComponent::CurrentStyleComponent(const juce::String& name, std::unor
         isPlaying = false;
         stopPlaying();
         highlightPendingStartSection();   // back to the chosen start (Var 1 by default)
-        if (arrangerModeEnabled) tempoSlider.setEnabled(true);    // unlock BPM when stopped
     };
 
     customBeatBar.isPlayingCheck = [this]()
@@ -376,7 +373,6 @@ void CurrentStyleComponent::setArrangerModeEnabled(bool shouldEnable)
 
     arrangerModeEnabled = shouldEnable;
     isPlaying = false;
-    tempoSlider.setEnabled(true);   // switching modes isn't playing -> BPM editable again
     customBeatBar.repaint();
 
     if (! shouldEnable)
@@ -685,6 +681,8 @@ void CurrentStyleComponent::commitTempo(double newTempo)
 
     if (trackPlayer)
         trackPlayer->setCurrentBPM(currentTempo);
+    if (arrangerEngine)
+        arrangerEngine->setBpm(currentTempo);   // while the arranger plays, it changes speed at once
 
     applyBPMchangeBeforePlayback(currentTempo,true);
 

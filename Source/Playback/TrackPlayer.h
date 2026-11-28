@@ -16,6 +16,7 @@
 #include "TrackPlayerListener.h"
 #include "SubjectInterface.h"
 #include "StyleSection.h"
+#include "TempoClock.h"
 
 /**
  * @class MultipleTrackPlayer
@@ -24,7 +25,7 @@
  * Features:
  *   - High-resolution timing for accurate MIDI playback.
  *   - Individual track playback with volume, instrument, and channel management.
- *   - BPM changes during playback.
+ *   - BPM changes during playback: the tempo clock keeps the musical position and changes the speed.
  *   - Time signature configuration.
  *   - Callback support for elapsed time updates.
  *
@@ -76,10 +77,14 @@ public:
     void setTracks(const std::vector<TrackEntry>& newTracks);
 
     /**
-     * @brief Sets the current BPM for playback.
+     * @brief Sets the tempo: the one the tracks given to the next start() were scaled for, or, while playing, the
+     *        speed from now on (the tracks keep their musical position).
      * @param newBPM Beats per minute.
      */
-    void setCurrentBPM(int newBPM);
+    void setCurrentBPM(double newBPM);
+
+    /** @brief The live tempo, in beats per minute. */
+    double getTempo() const { return clock.getTempo(); }
 
     /** @brief Stops playback and all MIDI notes. */
     void stop(bool shouldModify=true);
@@ -101,12 +106,6 @@ public:
 
     /** @brief Destructor. */
     ~MultipleTrackPlayer();
-
-    /**
-     * @brief Applies a BPM change during playback, adjusting MIDI event timings.
-     * @param newBPM New BPM value.
-     */
-    void applyBPMchangeDuringPlayback(double newBPM);
 
     /**
      * @brief Finds the next event index in a MIDI sequence after a given time.
@@ -153,10 +152,8 @@ private:
     std::weak_ptr<juce::MidiOutput> outputDevice;              /**< MIDI output device */
     std::vector<TrackPlaybackData> tracks;                     /**< Playback state for each track */
     std::vector<int> eventIndices;                              /**< Event indices for each track */
-    double startTime {};                                        /**< Start time of playback */
-    double currentElapsedTime;                                  /**< Current elapsed time in seconds */
-    double currentBPM = defaultBpm;                                /**< Current BPM */
-    double lastKnownSequenceTime {};                           /**< Last known time in the sequence */
+    TempoClock clock;                                           /**< Position in the sequences' seconds, at the live tempo */
+    double lastTickSeconds {};                                  /**< Wall-clock time of the previous tick */
     int timeSignatureDenominator = defaultBeatUnit;                         /**< Time signature denominator */
     int timeSignatureNumerator = defaultBeatsPerBar;                           /**< Time signature numerator */
 

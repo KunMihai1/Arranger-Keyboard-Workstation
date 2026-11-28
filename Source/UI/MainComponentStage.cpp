@@ -432,7 +432,6 @@ void MainComponent::refreshStage()
         stagePanel->setQuickKnobValues (MIDIDevice.getVolume (channel), MIDIDevice.getReverb (channel));
 
     auto& screen = stagePanel->screen();
-    screen.setTempoLocked (playing && display->isOpenStyleInArrangerMode());
     if (styleOpen)
         screen.showTempo (display->getOpenStyleTempo(), display->getOpenStyleBaseTempo());
 

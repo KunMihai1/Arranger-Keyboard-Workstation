@@ -16,16 +16,15 @@ namespace
     constexpr int    highestMidiChannel = 16;
     constexpr int    channelVolumeCC    = 7;
     constexpr int    timerIntervalMs    = 10;
-    constexpr double ticksPerQuarterNote = 960.0;
-    constexpr double secondsPerMinute   = 60.0;
     constexpr double noTime             = 0.0;
     constexpr int    oneSequence        = 1;     // size() - oneSequence is the newest index
     constexpr int    halves             = 2;     // binary search midpoint
     constexpr int    oneEvent           = 1;
 }
 
-MultipleTrackPlayer::MultipleTrackPlayer(std::weak_ptr<juce::MidiOutput> out): outputDevice{out}, currentElapsedTime{noTime}
+MultipleTrackPlayer::MultipleTrackPlayer(std::weak_ptr<juce::MidiOutput> out): outputDevice{out}
 {
+    clock.setTempo(defaultBpm);
 
 }
 
@@ -85,16 +84,15 @@ void MultipleTrackPlayer::setTracks(const std::vector<TrackEntry>& newTracks)
     }
 }
 
-void MultipleTrackPlayer::setCurrentBPM(int newBPM)
+void MultipleTrackPlayer::setCurrentBPM(double newBPM)
 {
-    this->currentBPM = newBPM;
+    clock.setTempo(newBPM);
 }
 
 void MultipleTrackPlayer::stop(bool shouldModify)
 {
     stopTimer();
 
-    this->lastKnownSequenceTime = noTime;
     if (onElapsedUpdate)
     {
         juce::MessageManager::callAsync([this, alive = std::weak_ptr<bool> (liveness)]() {
@@ -124,9 +122,8 @@ void MultipleTrackPlayer::stop(bool shouldModify)
 void MultipleTrackPlayer::start()
 {
 
-    startTime = static_cast<double>(juce::Time::getHighResolutionTicks()) / static_cast<double>(juce::Time::getHighResolutionTicksPerSecond());
-    lastKnownSequenceTime = noTime;
-    currentElapsedTime = noTime;
+    lastTickSeconds = static_cast<double>(juce::Time::getHighResolutionTicks()) / static_cast<double>(juce::Time::getHighResolutionTicksPerSecond());
+    clock.restart();   // the tracks were scaled for the tempo set now
 
     for (auto& track : tracks)
         track.nextEventIndex = {};
@@ -153,53 +150,6 @@ MultipleTrackPlayer::~MultipleTrackPlayer()
     // JUCE: a HighResolutionTimer must be stopped in the derived destructor; otherwise a tick can still run
     // (and post) while this player's members are being destroyed.
     stopTimer();
-}
-
-void MultipleTrackPlayer::applyBPMchangeDuringPlayback(double newBPM)
-{
-    if (currentTracks.empty())
-        return;
-
-    double oldElapsed = currentElapsedTime;
-
-    double newSecondsPerTick = secondsPerMinute / (newBPM * ticksPerQuarterNote);
-
-    for (size_t sequenceIndex {}; sequenceIndex < filteredSequences.size(); ++sequenceIndex)
-    {
-        auto& filteredSeq = filteredSequences[sequenceIndex];
-
-        for (int eventIndex {}; eventIndex < filteredSeq.getNumEvents(); ++eventIndex)
-        {
-            auto* event = filteredSeq.getEventPointer(eventIndex);
-
-            double originalTickTime = event->message.getTimeStamp() / (secondsPerMinute / (currentBPM * ticksPerQuarterNote));
-            double newTimeInSeconds = originalTickTime * newSecondsPerTick;
-
-            // Preserve startup delay (assuming first event time includes startup delay)
-            // You may want to handle startup delay separately
-
-            juce::MidiMessage newMessage = event->message;
-            newMessage.setTimeStamp(newTimeInSeconds);
-            filteredSeq.getEventPointer(eventIndex)->message = newMessage;
-        }
-
-        filteredSeq.updateMatchedPairs();
-    }
-
-    // Update playback timing
-    double now = static_cast<double>(juce::Time::getHighResolutionTicks()) /
-        static_cast<double>(juce::Time::getHighResolutionTicksPerSecond());
-
-    startTime = now - oldElapsed;
-    currentElapsedTime = oldElapsed;
-
-    for (auto& track : tracks)
-    {
-        auto& sequence = filteredSequences[track.filteredSequenceIndex];
-        track.nextEventIndex = findNextEventIndex(filteredSequences[track.filteredSequenceIndex], currentElapsedTime);
-    }
-
-    currentBPM = newBPM; // store the new BPM somewhere accessible
 }
 
 int MultipleTrackPlayer::findNextEventIndex(const juce::MidiMessageSequence& seq, double currentTime)
@@ -305,11 +255,10 @@ void MultipleTrackPlayer::hiResTimerCallback()
 
     double now = juce::Time::getHighResolutionTicks() /
         static_cast<double>(juce::Time::getHighResolutionTicksPerSecond());
-    double elapsed = now - startTime;
+    const double elapsed = clock.advance(now - lastTickSeconds);   // sequence seconds, at the live tempo
+    lastTickSeconds = now;
 
-    currentElapsedTime = elapsed;
-
-    double beatsElapsed = elapsed * (currentBPM / secondsPerMinute);
+    const double beatsElapsed = clock.beats();
 
     juce::MessageManager::callAsync([this, alive = std::weak_ptr<bool> (liveness), beatsElapsed, elapsed]
         {

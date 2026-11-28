@@ -32,7 +32,9 @@ public:
 
     void setDeviceOutput (std::weak_ptr<juce::MidiOutput> out);
     void setStyle (ArrangerStyle newStyle);   // builds the scheduler from section 0
+    /** Any time, also while playing: the beat playhead keeps its position and moves at the new tempo from now on. */
     void setBpm (double bpm);
+    double getBpm() const { return currentBpm.load(); }
 
     /** Queue a section change (applied at the next bar boundary while playing). */
     void queueSection (ArrangerSectionType type, const juce::String& name);
@@ -120,7 +122,7 @@ private:
     juce::String          requestedName;
     bool                  hasQueuedRequest = false;
 
-    double currentBpm = ArrangerStyleDefaults::tempoBpm;
+    std::atomic<double> currentBpm { ArrangerStyleDefaults::tempoBpm };   // set on the message thread, read each tick
     double loopLengthBeats {};
     double playheadBeats {};     // monotonic beat position since start()
     double lastNowSeconds {};    // wall-clock of previous tick (for delta accumulation)

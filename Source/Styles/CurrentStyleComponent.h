@@ -209,8 +209,8 @@ public:
      */
     void setTempo(double newTempo);
 
-    /** Applies a tempo the way releasing the BPM slider does (player BPM, rescaled tracks, style
-        marked changed). Used by the Stage panel's screen. */
+    /** Applies a tempo the way releasing the BPM slider does (player and arranger BPM, rescaled tracks, style
+        marked changed). Used by the Stage panel's screen; while playing, the music changes speed at once. */
     void commitTempo(double newTempo);
 
     /**
@@ -265,6 +265,9 @@ public:
 
     /** @brief Returns a pointer to the internal track player instance. */
     MultipleTrackPlayer* getTrackPlayer();
+
+    /** The arranger-mode engine (never null once constructed). */
+    ArrangerEngine* getArrangerEngine() { return arrangerEngine.get(); }
 
     /** Enable/disable Arranger mode (vs classic linear playback). */
     void setArrangerModeEnabled(bool shouldEnable);

@@ -6,8 +6,12 @@
 #include "Arranger/ArrangerModel.h"
 
 /*
-    Pressing Start while already playing must leave the BPM slider locked while playback runs, and
-    pressing Stop must unlock it - whatever the order and number of presses.
+    Since 2026-11-28 the tempo stays editable while playing (owner's TODO: "Change BPM while playing"). No order or
+    number of Start / Stop presses, and no late notification, may lock it; a tempo committed while playing reaches
+    whichever engine plays.
+
+    Before, Start had to lock the BPM slider while playback ran and Stop had to unlock it; these tests guarded the
+    bugs below.
 
     Bugs (reproduced live 2026-11-22):
     - Track player: every start() and every counted stop() posted a "flip the BPM slider" notification.
@@ -43,6 +47,8 @@ namespace StartWhilePlayingTestValues
     constexpr double      noteOnSeconds  = 0.0;
     constexpr double      noteOffSeconds = 600.0;   // far longer than the test, so playback never ends by itself
     constexpr double      trackTempoBpm  = 120.0;
+    constexpr double      playingTempoBpm = 90.0;   // committed while playing
+    constexpr double      tempoTolerance  = 1.0e-9;
 
     constexpr double sliderMinimumBpm = 60.0;   // identifies the BPM slider among the panel's sliders
     constexpr double sliderMaximumBpm = 200.0;
@@ -60,19 +66,21 @@ namespace StartWhilePlayingTestValues
 
 namespace StartWhilePlayingTestText
 {
-    const juce::String trackPlayerTitle = "Track player: BPM locked while playing and unlocked when stopped, after Start, Start, Stop, Stop";
+    const juce::String trackPlayerTitle = "Track player: the BPM stays editable while playing and when stopped, after Start, Start, Stop, Stop";
     const juce::String panelChildrenMissing        = "panel children not found";
     const juce::String startDidNotStartPlayer      = "Start did not start the track player";
-    const juce::String bpmUnlockedAfterStart       = "BPM slider unlocked after Start";
+    const juce::String bpmLockedAfterStart         = "BPM slider locked after Start";
+    const juce::String playerMissedTempo           = "a tempo committed while playing did not reach the track player";
     const juce::String secondStartStoppedPlayer    = "second Start left the track player stopped";
-    const juce::String bpmUnlockedAfterSecondStart = "BPM slider unlocked while playing, after Start pressed during playback";
+    const juce::String bpmLockedAfterSecondStart   = "BPM slider locked while playing, after Start pressed during playback";
     const juce::String stopDidNotStopPlayer        = "Stop did not stop the track player";
     const juce::String bpmLockedAfterStop          = "BPM slider locked after Stop";
     const juce::String bpmLockedAfterSecondStop    = "BPM slider locked after Stop pressed while stopped";
 
-    const juce::String arrangerModeTitle = "Arranger mode: a track-player notification does not unlock the BPM slider";
-    const juce::String arrangerDidNotLockBpm     = "BPM slider not locked after Start in arranger mode";
-    const juce::String trackPlayerUnlockedArranger = "a track-player notification unlocked the BPM slider while the arranger plays";
+    const juce::String arrangerModeTitle = "Arranger mode: the BPM stays editable while the arranger plays, and a new tempo reaches the engine";
+    const juce::String arrangerLockedBpm          = "BPM slider locked after Start in arranger mode";
+    const juce::String notificationLockedArranger = "a track-player notification locked the BPM slider while the arranger plays";
+    const juce::String engineMissedTempo          = "a tempo committed while the arranger plays did not reach the engine";
 
     const juce::String notesTableTitle = "Notes table: Change and Apply stay disabled across repeated 'playing' notifications";
     const juce::String tableButtonsMissing           = "Change/Apply buttons not found";
@@ -96,8 +104,8 @@ public:
 
     void runTest() override
     {
-        trackPlayerKeepsBpmLockedOnlyWhilePlaying();
-        trackPlayerNotificationLeavesArrangerBpmLockAlone();
+        trackPlayerKeepsBpmEditableWhilePlaying();
+        arrangerKeepsBpmEditableAndFollowsIt();
         notesTableKeepsEditButtonsDisabledWhilePlaying();
         arrangerIgnoresAStopNotificationThatArrivesAfterARestart();
     }
@@ -175,7 +183,7 @@ private:
         return heldNoteTrack;
     }
 
-    void trackPlayerKeepsBpmLockedOnlyWhilePlaying()
+    void trackPlayerKeepsBpmEditableWhilePlaying()
     {
         using namespace StartWhilePlayingTestValues;
         using namespace StartWhilePlayingTestText;
@@ -199,12 +207,15 @@ private:
         controls.startButton->onClick();
         panel.updateObjects();
         expect (player->isPlaying(), startDidNotStartPlayer);
-        expect (! controls.bpmSlider->isEnabled(), bpmUnlockedAfterStart);
+        expect (controls.bpmSlider->isEnabled(), bpmLockedAfterStart);
+
+        panel.commitTempo (playingTempoBpm);
+        expectWithinAbsoluteError (player->getTempo(), playingTempoBpm, tempoTolerance, playerMissedTempo);
 
         controls.startButton->onClick();   // while already playing
         panel.updateObjects();
         expect (player->isPlaying(), secondStartStoppedPlayer);
-        expect (! controls.bpmSlider->isEnabled(), bpmUnlockedAfterSecondStart);
+        expect (controls.bpmSlider->isEnabled(), bpmLockedAfterSecondStart);
 
         controls.stopButton->onClick();
         panel.updateObjects();
@@ -216,7 +227,7 @@ private:
         expect (controls.bpmSlider->isEnabled(), bpmLockedAfterSecondStop);
     }
 
-    void trackPlayerNotificationLeavesArrangerBpmLockAlone()
+    void arrangerKeepsBpmEditableAndFollowsIt()
     {
         using namespace StartWhilePlayingTestValues;
         using namespace StartWhilePlayingTestText;
@@ -230,19 +241,23 @@ private:
         panel.setSize (panelWidth, panelHeight);
 
         const auto controls = findPanelControls (panel);
-        expect (controls.allFound(), panelChildrenMissing);
-        if (! controls.allFound())
+        auto* engine = panel.getArrangerEngine();
+        expect (controls.allFound() && engine != nullptr, panelChildrenMissing);
+        if (! controls.allFound() || engine == nullptr)
             return;
 
         controls.firstSlot->setUUID (heldNoteTrack.uuid);
 
-        controls.startButton->onClick();   // the arranger plays and locks the BPM slider
-        expect (! controls.bpmSlider->isEnabled(), arrangerDidNotLockBpm);
+        controls.startButton->onClick();   // the arranger plays
+        expect (controls.bpmSlider->isEnabled(), arrangerLockedBpm);
 
         // A track-player notification still queued from before the switch to arranger mode
         // (e.g. a track that ended just before) arrives now.
         panel.updateObjects();
-        expect (! controls.bpmSlider->isEnabled(), trackPlayerUnlockedArranger);
+        expect (controls.bpmSlider->isEnabled(), notificationLockedArranger);
+
+        panel.commitTempo (playingTempoBpm);
+        expectWithinAbsoluteError (engine->getBpm(), playingTempoBpm, tempoTolerance, engineMissedTempo);
 
         controls.stopButton->onClick();
     }
