@@ -102,6 +102,9 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started · ❓ needs the owner's
   lane, zoom, jump pads, Selected-section inspector. All 29 inventory items of the spec checked live.
 - ✅ **Realistic keys** (board StageRevised, 2026-11-27): ivory / ebony keys with lip, rounded fronts, gaps on a dark
   bed, black-key shadow; a pressed key looks pushed down (no more green). Checked 1:1 against the board live.
+- ✅ **Pressed keys seen at a glance** (owner, 2026-11-28: "you barely see what notes you pressed"). Owner chose the
+  amber-lit key: pressed whites and blacks take the amber accent (#ffa63a family) and keep the pushed-down shade.
+  The test requires a pressed key to differ from a resting one by more than 100 RGB steps. Before, white keys differed by 32 and black keys by 11.
 - ✅ **New smooth Dust** (board Dust, 2026-11-27): a burst on press, then a soft stream while the key is held; fine
   specks and soft motes drift on a smooth flow (no more jitter), fade in and out, grow as they rise; additive glow.
 - ✅ **Panel finishes** (board SkinsFinish, 2026-11-27): Settings › Display › Finish = Stage (default) · Rosso burst ·

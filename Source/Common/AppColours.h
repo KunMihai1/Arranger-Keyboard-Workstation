@@ -165,11 +165,13 @@ namespace StagePalette
     static const juce::Colour whiteKeyBottom     { 0xffefece4 };
     static const juce::Colour whiteKeyLip        { 0xffd8d3c6 };
     static const juce::Colour whiteKeyEdge       { 0x1a000000 };   // inset -1px 0 0 rgba(0,0,0,.10)
-    static const juce::Colour pressedWhiteTop    { 0xffcfcbc1 };
-    static const juce::Colour pressedWhiteUpper  { 0xffe6e3da };   // at 14 %
-    static const juce::Colour pressedWhiteLower  { 0xffeeebe3 };   // at 85 %
-    static const juce::Colour pressedWhiteBottom { 0xffe4e0d6 };
-    static const juce::Colour pressedWhiteLip    { 0xffcfc9bb };
+    // Pressed keys are lit amber (the tempo / playhead accent, #ffa63a), so what is played is seen at a glance
+    // (owner, 2026-11-28: the pushed-down grey was barely visible). They keep the pushed-down shade and short lip.
+    static const juce::Colour pressedWhiteTop    { 0xffe89a4a };
+    static const juce::Colour pressedWhiteUpper  { 0xffffbf73 };   // at 14 %
+    static const juce::Colour pressedWhiteLower  { 0xffffc985 };   // at 85 %
+    static const juce::Colour pressedWhiteBottom { 0xfff5b566 };
+    static const juce::Colour pressedWhiteLip    { 0xffd8903f };
     static const juce::Colour pressedWhiteEdge   { 0x24000000 };   // rgba(0,0,0,.14)
     static const juce::Colour pressedKeyShade    { 0x59000000 };   // inset 0 5px 6px -3px rgba(0,0,0,.35)
     static const juce::Colour blackKeyTop        { 0xff141415 };
@@ -179,8 +181,8 @@ namespace StagePalette
     static const juce::Colour blackKeyBevelLeft  { 0xff2c2c2f };
     static const juce::Colour blackKeyBevelRight { 0xff070707 };
     static const juce::Colour blackKeyShadow     { 0x73000000 };   // 1px 3px 4px rgba(0,0,0,.45)
-    static const juce::Colour pressedBlackTop    { 0xff0e0e0f };
-    static const juce::Colour pressedBlackBody   { 0xff18181a };
+    static const juce::Colour pressedBlackTop    { 0xff7a4510 };   // amber, deeper than a white key's: still a black key
+    static const juce::Colour pressedBlackBody   { 0xffb56a1f };   // brighter towards the front, as if lit from inside
 
     // --- Sections timeline ---
     static const juce::Colour timelineLanes         { 0xff121315 };

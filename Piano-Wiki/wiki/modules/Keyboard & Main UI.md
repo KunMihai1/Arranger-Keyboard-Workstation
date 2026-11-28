@@ -14,7 +14,7 @@ depends_on:
   - "[[Supabase Backend]]"
 used_by: []
 created: 2026-06-06
-updated: 2026-11-27
+updated: 2026-11-28
 tags:
   - module
   - ui
@@ -45,7 +45,7 @@ The main application screen: hosts the on-screen keyboard, the display/transport
 
 ## Key files
 - `MainComponent.h/.cpp` — central component. Also defines custom UI: `SmoothRotarySlider`, `KnobLookAndFeel` (image-based rotary knobs from `BinaryData`). Owns the subsystem objects and wires their callbacks together.
-- `KeyboardUI.h` (note: declared in `NoteLayer.h`) / `KeyboardUI.cpp` — visual piano keyboard; `MidiHandlerListener` that presses keys on note-on / note-off (`setKeyDown`, on the message thread). Since 2026-11-27 drawn as the board `StageRevised` keys (realistic ivory / ebony, pressed keys pushed down, not green): geometry in the pure `PianoKeyShapes` (52 whites at i × width/52, 22/1200 wide; blacks 14 × 88 set off the boundary C#/F# −2, D#/A# +2, G# 0), edges snapped to whole pixels so the ~1 px gaps show the key bed. Each look (white, pressed, dimmed out-of-range, black, pressed black) and one blurred black-key shadow are drawn **once per size** into cached images (full paint 1.3 ms at 1920 × 224 Debug; 8.75 ms drawing the materials per paint). A white key's `bounds` stays its whole step (the `NoteLayer` falling-note column); `areaOf` (= bounds ∪ drawn shape) is what a press repaints. Colours: `StagePalette` "Keys" in `AppColours.h`.
+- `KeyboardUI.h` (note: declared in `NoteLayer.h`) / `KeyboardUI.cpp` — visual piano keyboard; `MidiHandlerListener` that presses keys on note-on / note-off (`setKeyDown`, on the message thread). Since 2026-11-27 drawn as the board `StageRevised` keys (realistic ivory / ebony; a pressed key is lit amber, the tempo / playhead accent, and still looks pushed down; never green. Amber since 2026-11-28: the grey press was barely visible): geometry in the pure `PianoKeyShapes` (52 whites at i × width/52, 22/1200 wide; blacks 14 × 88 set off the boundary C#/F# −2, D#/A# +2, G# 0), edges snapped to whole pixels so the ~1 px gaps show the key bed. Each look (white, pressed, dimmed out-of-range, black, pressed black) and one blurred black-key shadow are drawn **once per size** into cached images (full paint 1.3 ms at 1920 × 224 Debug; 8.75 ms drawing the materials per paint). A white key's `bounds` stays its whole step (the `NoteLayer` falling-note column); `areaOf` (= bounds ∪ drawn shape) is what a press repaints. Colours: `StagePalette` "Keys" in `AppColours.h`.
 - `NoteLayer.h/.cpp` — falling-note visuals, drawn entirely on the OpenGL render thread (SDF shader, component painting off); motion rules in the pure, unit-tested `NoteField.h/.cpp`. See [[GL Overlay Rendering]].
 - `displayGUI.h/.cpp` — the main display / transport readout.
 - `CustomBeatBar.h/.cpp` — beat/bar position indicator (driven by `onElapsedBeats` from the players).
