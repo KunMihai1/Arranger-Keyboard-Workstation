@@ -72,10 +72,10 @@ namespace
     constexpr bool  medium             = false;
     constexpr juce::juce_wchar passwordBullet      = 0x2022;
 
-    /*  Owner decision 2026-11-28: Log in does not ask the server yet. The Supabase project's address does not resolve
-        (paused or deleted), so a real check would lock everyone out. Log in lets the typed email in, as before; set
-        this to true once the backend answers again (the server path below is built and its replies unit-tested). */
-    constexpr bool checkAccountWithServer = false;
+    /*  Log in asks the server (the backend answers again, owner 2026-11-28). While the Supabase project was
+        unreachable this was false and Log in let the typed email in; set it back to false if the backend goes away
+        again, or a real check locks everyone out. */
+    constexpr bool checkAccountWithServer = true;
     constexpr juce::juce_wchar noPasswordCharacter = 0;
 }
 
