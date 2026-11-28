@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "328140f",
-  "last_synced_branch": "feat/bbd-chorus",
+  "last_synced_commit": "bf91a2b",
+  "last_synced_branch": "fix/detached-load-threads",
   "last_synced_at": "2026-11-28",
-  "note": "Synced through 328140f: CC93 chorus is BbdChorus (va-effects port); the audio callback flushes denormals; delay glide noted on the Audio page."
+  "note": "Synced through bf91a2b: SFZ loads on an owned ThreadPool, device upload holds the client, KeyboardUI SafePointer; log archived."
 }
