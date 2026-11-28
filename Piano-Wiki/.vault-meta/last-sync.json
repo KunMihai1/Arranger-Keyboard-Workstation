@@ -1,6 +1,6 @@
 {
-  "last_synced_commit": "74ad62a",
-  "last_synced_branch": "feat/amber-pressed-keys",
+  "last_synced_commit": "5f112fe",
+  "last_synced_branch": "feat/tempo-while-playing",
   "last_synced_at": "2026-11-28",
-  "note": "Synced through 74ad62a: pressed keys lit amber (owner's choice)."
+  "note": "Synced through 5f112fe: the tempo changes while playing, in both modes."
 }

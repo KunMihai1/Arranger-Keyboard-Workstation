@@ -13,6 +13,17 @@ status: evergreen
 
 Append-only. Newest entries at the TOP. Never edit past entries.
 
+## 2026-11-28 — The tempo changes while playing (`feat/tempo-while-playing`)
+- Owner's TODO "Change BPM while playing". Arranger mode locked it and never passed a committed tempo to the
+  running engine. Classic mode wasn't locked on the new screen, but a change sped up only the beat counter
+  (`elapsed x currentBPM / 60`) while the music kept its Start tempo: the bar count jumped and drifted.
+- Classic: `TempoClock` keeps the position in the sequences' own seconds and advances it by wall-clock x live tempo
+  / start tempo. Arranger: `commitTempo` calls `setBpm`; `currentBpm` is atomic (message thread writes, timer reads).
+  Locks removed (hidden slider, screen). The unused, racy `applyBPMchangeDuringPlayback` is gone.
+- Tests: `TempoClock` (4), Start-while-playing rewritten (tempo editable, reaches player and engine). The arranger
+  checks fail with the old panel code (engine stayed at 120 after committing 90).
+- unit 5981 / 0, arranger 770 / 0, integration 130 / 0 (+7 skipped), after a full rebuild.
+
 ## 2026-11-28 — Pressed keys are lit amber (`feat/amber-pressed-keys`)
 - Owner: "you barely see what notes you pressed". Measured on the rendered keyboard: a pressed key differed from a
   resting one by about 32 RGB steps (white) and 11 (black). The owner picked the amber-lit key from three options.
